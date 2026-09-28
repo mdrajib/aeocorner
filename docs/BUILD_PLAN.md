@@ -74,6 +74,7 @@
 - [x] Moved `docs/db/schema.sql` and `seed_reference.sql` into `prisma/migrations/0001_init/` and `0002_reference_data/`; added `prisma.config.ts` (Prisma 7 moved the datasource URL out of `schema.prisma` — CLI connection now lives here, loaded via `dotenv/config`); generated `schema.prisma`'s 64 models via `prisma db pull` against the migrated `aeo_corner_dev`; `prisma generate` outputs the client to `src/db/generated/` (git-ignored).
 - [x] GitHub Actions CI skeleton ([.github/workflows/ci.yml](../.github/workflows/ci.yml)): lint, format, migrate deploy, `checks.sql`, migration-drift check, unit/smoke/route/integration/tenancy/adapter test scripts, `npm audit`. Runs on `ubuntu-latest` using its pre-installed MySQL 8 service (`sudo systemctl start mysql.service`, root/root) instead of a Docker service container, consistent with no-Docker.
 - [ ] Sentry, PostHog, Langfuse projects created (keys only, wired later per phase) — founder task, still open.
+- [x] `docs/adr/` created; backfilled [ADR-0001](adr/0001-prisma-config-split.md) (Prisma 7's config split) and [ADR-0002](adr/0002-override-mariadb-driver.md) (mariadb driver CVE override) for the two real architectural decisions this phase's work surfaced.
 
 **Tests required before moving on:**
 - [x] `docs/db/schema.sql`, `seed_reference.sql` and `checks.sql` load cleanly into the local `aeo_corner_dev` database with `sql_require_primary_key=ON` (persisted globally, survives a MySQL restart); `checks.sql` prints nothing; 64 tables confirmed.

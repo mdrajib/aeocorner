@@ -21,6 +21,7 @@ A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perpl
 | `docs/db/schema.sql` | DDL: 64 tables, 101 foreign keys, 18 CHECKs. Becomes Prisma migration `0001_init` |
 | `docs/db/seed_reference.sql` | Idempotent reference data (plans, engines, providers, seed domains). Becomes migration `0002_reference_data` |
 | `docs/db/checks.sql` | CI guard rails. Every query must return zero rows |
+| `docs/adr/` | Architecture Decision Records — one-way-door technical decisions and why, written as they happen (not planned per phase) |
 
 Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there; they aren't repeated here.
 
