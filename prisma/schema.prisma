@@ -1,0 +1,2412 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/db/generated/client"
+  importFileExtension = "ts"
+  moduleFormat        = "esm"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model abuse_blocks {
+  id                  BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  kind                abuse_blocks_kind
+  value               String            @db.VarChar(253)
+  reason              String            @db.VarChar(255)
+  created_by_staff_id BigInt?           @db.UnsignedBigInt
+  expires_at          DateTime?
+  created_at          DateTime          @default(now())
+  staff_users         staff_users?      @relation(fields: [created_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_abuse_blocks_staff")
+
+  @@unique([kind, value], map: "uq_abuse_blocks_value")
+  @@index([created_by_staff_id], map: "fk_abuse_blocks_staff")
+  @@index([expires_at], map: "ix_abuse_blocks_expires")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model action_outcomes {
+  id                BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id            BigInt                  @db.UnsignedBigInt
+  project_id        BigInt                  @db.UnsignedBigInt
+  recommendation_id BigInt                  @db.UnsignedBigInt
+  horizon           action_outcomes_horizon
+  engine_scope      String                  @default("all") @db.VarChar(32)
+  prompts_count     Int                     @db.UnsignedSmallInt
+  baseline_run_ids  Json
+  after_run_ids     Json
+  n_before          Int                     @db.UnsignedInt
+  k_before          Int                     @db.UnsignedInt
+  n_after           Int                     @db.UnsignedInt
+  k_after           Int                     @db.UnsignedInt
+  rate_before       Decimal?                @db.Decimal(6, 4)
+  rate_after        Decimal?                @db.Decimal(6, 4)
+  delta_pp          Decimal?                @db.Decimal(6, 2)
+  p_value           Decimal?                @db.Decimal(9, 8)
+  verdict           action_outcomes_verdict
+  computed_at       DateTime                @default(now())
+  notified_at       DateTime?
+  projects          projects                @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_action_outcomes_project")
+  recommendations   recommendations         @relation(fields: [recommendation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_outcomes_rec")
+
+  @@unique([recommendation_id, horizon, engine_scope], map: "uq_action_outcomes_check")
+  @@index([project_id, org_id], map: "fk_action_outcomes_project")
+  @@index([verdict, computed_at], map: "ix_action_outcomes_global")
+  @@index([project_id, verdict, computed_at], map: "ix_action_outcomes_wins")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model admin_audit_log {
+  id               BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  staff_user_id    BigInt      @db.UnsignedBigInt
+  action           String      @db.VarChar(64)
+  org_id           BigInt?     @db.UnsignedBigInt
+  project_id       BigInt?     @db.UnsignedBigInt
+  target_type      String?     @db.VarChar(48)
+  target_id        String?     @db.VarChar(64)
+  reason           String?     @db.VarChar(500)
+  ticket_url       String?     @db.VarChar(512)
+  before_state     Json?
+  after_state      Json?
+  impersonation_id BigInt?     @db.UnsignedBigInt
+  ip               String?     @db.VarChar(45)
+  user_agent       String?     @db.VarChar(512)
+  created_at       DateTime    @default(now())
+  staff_users      staff_users @relation(fields: [staff_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_admin_audit_log_staff")
+
+  @@index([action, created_at], map: "ix_admin_audit_log_action")
+  @@index([org_id, created_at], map: "ix_admin_audit_log_org")
+  @@index([staff_user_id, created_at], map: "ix_admin_audit_log_staff")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model announcements {
+  id                  BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  message             String                 @db.VarChar(500)
+  link_url            String?                @db.VarChar(1024)
+  severity            announcements_severity @default(info)
+  audience            announcements_audience @default(all)
+  audience_value      String?                @db.VarChar(64)
+  dismissible         Boolean                @default(true)
+  starts_at           DateTime
+  ends_at             DateTime?
+  created_by_staff_id BigInt                 @db.UnsignedBigInt
+  created_at          DateTime               @default(now())
+  updated_at          DateTime               @default(now())
+  staff_users         staff_users            @relation(fields: [created_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_announcements_staff")
+
+  @@index([created_by_staff_id], map: "fk_announcements_staff")
+  @@index([starts_at, ends_at], map: "ix_announcements_window")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model answer_snapshots {
+  id                 BigInt                             @default(autoincrement()) @db.UnsignedBigInt
+  run_date           DateTime                           @db.Date
+  org_id             BigInt                             @db.UnsignedBigInt
+  project_id         BigInt                             @db.UnsignedBigInt
+  run_id             BigInt                             @db.UnsignedBigInt
+  prompt_id          BigInt                             @db.UnsignedBigInt
+  engine_code        String                             @db.VarChar(32)
+  provider_code      String                             @db.VarChar(32)
+  method             answer_snapshots_method
+  mode               answer_snapshots_mode              @default(standard)
+  is_fallback        Boolean                            @default(false)
+  sample_idx         Int                                @db.UnsignedTinyInt
+  status             answer_snapshots_status            @default(pending)
+  attempts           Int                                @default(0) @db.UnsignedTinyInt
+  provider_task_id   String?                            @db.VarChar(128)
+  country            String                             @db.Char(2)
+  language           String                             @db.VarChar(16)
+  city               String                             @default("") @db.VarChar(128)
+  model_version      String?                            @db.VarChar(64)
+  collected_at       DateTime?
+  raw_uri            String?                            @db.VarChar(512)
+  raw_sha256         Bytes?                             @db.Binary(32)
+  answer_chars       Int?                               @db.UnsignedInt
+  text_excerpt       String?                            @db.VarChar(500)
+  answer_type        answer_snapshots_answer_type?
+  prepass            Json?
+  extraction_status  answer_snapshots_extraction_status @default(pending)
+  extraction_version String?                            @db.VarChar(16)
+  extracted_at       DateTime?
+  cost_usd           Decimal                            @default(0.000000) @db.Decimal(10, 6)
+  failure_reason     String?                            @db.VarChar(255)
+  created_at         DateTime                           @default(now())
+  updated_at         DateTime                           @default(now())
+
+  @@id([id, run_date])
+  @@unique([run_id, prompt_id, engine_code, sample_idx, run_date], map: "uq_answer_snapshots_task")
+  @@index([project_id, prompt_id, engine_code, run_date], map: "ix_answer_snapshots_cell")
+  @@index([run_id, extraction_status], map: "ix_answer_snapshots_extraction")
+  @@index([provider_task_id], map: "ix_answer_snapshots_provider_task")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model audit_answers {
+  id            BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  audit_id      BigInt                      @db.UnsignedBigInt
+  prompt_idx    Int                         @db.UnsignedTinyInt
+  engine_code   String                      @db.VarChar(32)
+  provider_code String                      @db.VarChar(32)
+  method        audit_answers_method
+  status        audit_answers_status        @default(pending)
+  model_version String?                     @db.VarChar(64)
+  raw_uri       String?                     @db.VarChar(512)
+  text_excerpt  String?                     @db.VarChar(1000)
+  brand_present Boolean?
+  brand_rank    Int?                        @db.UnsignedTinyInt
+  brand_stance  audit_answers_brand_stance?
+  entities      Json?
+  citations     Json?
+  cost_usd      Decimal                     @default(0.000000) @db.Decimal(10, 6)
+  collected_at  DateTime?
+  created_at    DateTime                    @default(now())
+  updated_at    DateTime                    @default(now())
+  audits        audits                      @relation(fields: [audit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_audit_answers_audit")
+
+  @@unique([audit_id, prompt_idx, engine_code], map: "uq_audit_answers_cell")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model audits {
+  id                                        BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id                                 String          @unique(map: "uq_audits_public_id") @db.Char(26)
+  lead_id                                   BigInt?         @db.UnsignedBigInt
+  org_id                                    BigInt?         @db.UnsignedBigInt
+  project_id                                BigInt?         @db.UnsignedBigInt
+  requested_by_user_id                      BigInt?         @db.UnsignedBigInt
+  input_url                                 String          @db.VarChar(2048)
+  domain                                    String          @db.VarChar(253)
+  competitor_domain                         String?         @db.VarChar(253)
+  status                                    audits_status   @default(awaiting_verification)
+  cached_from_audit_id                      BigInt?         @db.UnsignedBigInt
+  ip_hash                                   Bytes?          @db.Binary(32)
+  prompts                                   Json?
+  brand_kit_lite                            Json?
+  suggested_competitors                     Json?
+  readiness_score                           Int?            @db.UnsignedTinyInt
+  visibility_score                          Int?            @db.UnsignedTinyInt
+  aeo_score                                 Int?            @db.UnsignedTinyInt
+  sub_scores                                Json?
+  top_fixes                                 Json?
+  rubric_version                            String?         @db.VarChar(16)
+  extraction_version                        String?         @db.VarChar(16)
+  cost_usd                                  Decimal         @default(0.000000) @db.Decimal(10, 6)
+  claim_token_hash                          Bytes?          @unique(map: "uq_audits_claim_token") @db.Binary(32)
+  claimed_at                                DateTime?
+  verified_at                               DateTime?
+  started_at                                DateTime?
+  finished_at                               DateTime?
+  report_emailed_at                         DateTime?
+  delete_after                              DateTime?
+  created_at                                DateTime        @default(now())
+  updated_at                                DateTime        @default(now())
+  audit_answers                             audit_answers[]
+  audits                                    audits?         @relation("auditsToaudits", fields: [cached_from_audit_id], references: [id], onUpdate: NoAction, map: "fk_audits_cached_from")
+  other_audits                              audits[]        @relation("auditsToaudits")
+  leads                                     leads?          @relation(fields: [lead_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audits_lead")
+  organizations                             organizations?  @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audits_org")
+  projects_audits_project_idToprojects      projects?       @relation("audits_project_idToprojects", fields: [project_id], references: [id], onUpdate: NoAction, map: "fk_audits_project")
+  users                                     users?          @relation(fields: [requested_by_user_id], references: [id], onUpdate: NoAction, map: "fk_audits_user")
+  projects_projects_source_audit_idToaudits projects[]      @relation("projects_source_audit_idToaudits")
+  site_scans                                site_scans[]
+
+  @@index([cached_from_audit_id], map: "fk_audits_cached_from")
+  @@index([project_id], map: "fk_audits_project")
+  @@index([requested_by_user_id], map: "fk_audits_user")
+  @@index([domain, created_at], map: "ix_audits_domain")
+  @@index([ip_hash, created_at], map: "ix_audits_ip")
+  @@index([lead_id], map: "ix_audits_lead")
+  @@index([org_id], map: "ix_audits_org")
+  @@index([status, created_at], map: "ix_audits_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model brand_profiles {
+  id                 BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id             BigInt                @db.UnsignedBigInt
+  project_id         BigInt                @db.UnsignedBigInt
+  version            Int                   @db.UnsignedInt
+  schema_version     Int                   @default(1) @db.UnsignedSmallInt
+  data               Json
+  source             brand_profiles_source
+  created_by_user_id BigInt?               @db.UnsignedBigInt
+  created_at         DateTime              @default(now())
+  users              users?                @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_brand_profiles_created_by")
+  projects           projects              @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_brand_profiles_project")
+
+  @@unique([project_id, version], map: "uq_brand_profiles_version")
+  @@index([created_by_user_id], map: "fk_brand_profiles_created_by")
+  @@index([project_id, org_id], map: "fk_brand_profiles_project")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model cell_entity_results {
+  id            BigInt   @default(autoincrement()) @db.UnsignedBigInt
+  run_date      DateTime @db.Date
+  org_id        BigInt   @db.UnsignedBigInt
+  project_id    BigInt   @db.UnsignedBigInt
+  run_id        BigInt   @db.UnsignedBigInt
+  prompt_id     BigInt   @db.UnsignedBigInt
+  engine_code   String   @db.VarChar(32)
+  entity_id     BigInt   @db.UnsignedBigInt
+  k_mentioned   Int      @db.UnsignedTinyInt
+  k_recommended Int      @default(0) @db.UnsignedTinyInt
+  k_cited       Int      @default(0) @db.UnsignedTinyInt
+  rank_sum      Int      @default(0) @db.UnsignedSmallInt
+  rank_n        Int      @default(0) @db.UnsignedTinyInt
+  best_rank     Int?     @db.UnsignedTinyInt
+  sentiment_sum Int      @default(0) @db.SmallInt
+  sentiment_n   Int      @default(0) @db.UnsignedTinyInt
+  created_at    DateTime @default(now())
+
+  @@id([id, run_date])
+  @@unique([run_id, prompt_id, engine_code, entity_id, run_date], map: "uq_cell_entity_results_cell")
+  @@index([project_id, prompt_id, engine_code, run_date], map: "ix_cell_entity_results_cell")
+  @@index([project_id, entity_id, run_date], map: "ix_cell_entity_results_entity")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model cell_results {
+  id                 BigInt              @default(autoincrement()) @db.UnsignedBigInt
+  run_date           DateTime            @db.Date
+  org_id             BigInt              @db.UnsignedBigInt
+  project_id         BigInt              @db.UnsignedBigInt
+  run_id             BigInt              @db.UnsignedBigInt
+  prompt_id          BigInt              @db.UnsignedBigInt
+  engine_code        String              @db.VarChar(32)
+  status             cell_results_status
+  n_planned          Int                 @db.UnsignedTinyInt
+  n_ok               Int                 @db.UnsignedTinyInt
+  n_no_answer        Int                 @default(0) @db.UnsignedTinyInt
+  n_failed           Int                 @default(0) @db.UnsignedTinyInt
+  cell_score         Decimal?            @db.Decimal(5, 4)
+  citations_total    Int                 @default(0) @db.UnsignedSmallInt
+  citations_own      Int                 @default(0) @db.UnsignedSmallInt
+  extraction_version String              @db.VarChar(16)
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @default(now())
+
+  @@id([id, run_date])
+  @@unique([run_id, prompt_id, engine_code, run_date], map: "uq_cell_results_cell")
+  @@index([project_id, run_date], map: "ix_cell_results_date")
+  @@index([project_id, prompt_id, engine_code, run_date], map: "ix_cell_results_history")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model change_events {
+  id             BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id         BigInt                   @db.UnsignedBigInt
+  project_id     BigInt                   @db.UnsignedBigInt
+  run_id         BigInt?                  @db.UnsignedBigInt
+  kind           change_events_kind
+  engine_code    String?                  @db.VarChar(32)
+  entity_id      BigInt?                  @db.UnsignedBigInt
+  prompt_id      BigInt?                  @db.UnsignedBigInt
+  cluster_id     BigInt?                  @db.UnsignedBigInt
+  before_start   DateTime?                @db.Date
+  before_end     DateTime?                @db.Date
+  after_start    DateTime?                @db.Date
+  after_end      DateTime?                @db.Date
+  n_before       Int?                     @db.UnsignedInt
+  k_before       Int?                     @db.UnsignedInt
+  n_after        Int?                     @db.UnsignedInt
+  k_after        Int?                     @db.UnsignedInt
+  value_before   Decimal?                 @db.Decimal(7, 4)
+  value_after    Decimal?                 @db.Decimal(7, 4)
+  delta_pp       Decimal?                 @db.Decimal(6, 2)
+  p_value        Decimal?                 @db.Decimal(9, 8)
+  direction      change_events_direction?
+  is_significant Boolean
+  details        Json?
+  dedupe_key     String
+  alerted_at     DateTime?
+  digested_at    DateTime?
+  created_at     DateTime                 @default(now())
+  projects       projects                 @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_change_events_project")
+
+  @@unique([project_id, dedupe_key], map: "uq_change_events_dedupe")
+  @@index([project_id, org_id], map: "fk_change_events_project")
+  @@index([project_id, created_at], map: "ix_change_events_project")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model citations {
+  id                  BigInt   @default(autoincrement()) @db.UnsignedBigInt
+  run_date            DateTime @db.Date
+  org_id              BigInt   @db.UnsignedBigInt
+  project_id          BigInt   @db.UnsignedBigInt
+  run_id              BigInt   @db.UnsignedBigInt
+  snapshot_id         BigInt   @db.UnsignedBigInt
+  prompt_id           BigInt   @db.UnsignedBigInt
+  engine_code         String   @db.VarChar(32)
+  position            Int      @db.UnsignedSmallInt
+  url_id              BigInt   @db.UnsignedBigInt
+  domain_id           BigInt   @db.UnsignedBigInt
+  owner_entity_id     BigInt?  @db.UnsignedBigInt
+  is_own              Boolean  @default(false)
+  supports_entity_ids Json?
+  extraction_version  String   @db.VarChar(16)
+  created_at          DateTime @default(now())
+
+  @@id([id, run_date])
+  @@unique([snapshot_id, position, run_date], map: "uq_citations_position")
+  @@index([project_id, run_date, domain_id], map: "ix_citations_domain")
+  @@index([project_id, url_id, run_date], map: "ix_citations_url")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model claims {
+  id              BigInt                 @default(autoincrement()) @db.UnsignedBigInt
+  run_date        DateTime               @db.Date
+  org_id          BigInt                 @db.UnsignedBigInt
+  project_id      BigInt                 @db.UnsignedBigInt
+  snapshot_id     BigInt                 @db.UnsignedBigInt
+  mention_id      BigInt                 @db.UnsignedBigInt
+  entity_id       BigInt                 @db.UnsignedBigInt
+  attribute       String                 @db.VarChar(64)
+  claim_value     String                 @db.VarChar(500)
+  polarity        claims_polarity
+  accuracy_status claims_accuracy_status @default(unchecked)
+  checked_at      DateTime?
+  created_at      DateTime               @default(now())
+
+  @@id([id, run_date])
+  @@index([project_id, entity_id, run_date], map: "ix_claims_entity")
+  @@index([snapshot_id], map: "ix_claims_snapshot")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model content_items {
+  id                                             BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id                                      String                   @unique(map: "uq_content_items_public_id") @db.Char(26)
+  org_id                                         BigInt                   @db.UnsignedBigInt
+  project_id                                     BigInt                   @db.UnsignedBigInt
+  recommendation_id                              BigInt?                  @db.UnsignedBigInt
+  kind                                           content_items_kind
+  format                                         content_items_format
+  title                                          String                   @db.VarChar(255)
+  target_url                                     String?                  @db.VarChar(2048)
+  status                                         content_items_status     @default(researching)
+  brief                                          Json?
+  research                                       Json?
+  qc                                             Json?
+  qc_score                                       Int?                     @db.UnsignedTinyInt
+  jsonld                                         Json?
+  current_revision_id                            BigInt?                  @db.UnsignedBigInt
+  approved_revision_id                           BigInt?                  @db.UnsignedBigInt
+  quota_units                                    Decimal                  @default(1.0) @db.Decimal(3, 1)
+  llm_cost_usd                                   Decimal                  @default(0.000000) @db.Decimal(10, 6)
+  approved_by_user_id                            BigInt?                  @db.UnsignedBigInt
+  approved_at                                    DateTime?
+  cms_ref                                        String?                  @db.VarChar(128)
+  published_url                                  String?                  @db.VarChar(2048)
+  published_at                                   DateTime?
+  created_by_user_id                             BigInt?                  @db.UnsignedBigInt
+  created_at                                     DateTime                 @default(now())
+  updated_at                                     DateTime                 @default(now())
+  users_content_items_approved_by_user_idTousers users?                   @relation("content_items_approved_by_user_idTousers", fields: [approved_by_user_id], references: [id], onUpdate: NoAction, map: "fk_content_items_approved_by")
+  users_content_items_created_by_user_idTousers  users?                   @relation("content_items_created_by_user_idTousers", fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_content_items_created_by")
+  projects                                       projects                 @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_content_items_project")
+  recommendations                                recommendations?         @relation(fields: [recommendation_id], references: [id], onUpdate: NoAction, map: "fk_content_items_rec")
+  content_revisions                              content_revisions[]
+  content_target_prompts                         content_target_prompts[]
+  fix_verifications                              fix_verifications[]
+  site_changes                                   site_changes[]
+
+  @@index([approved_by_user_id], map: "fk_content_items_approved_by")
+  @@index([created_by_user_id], map: "fk_content_items_created_by")
+  @@index([project_id, org_id], map: "fk_content_items_project")
+  @@index([project_id, status], map: "ix_content_items_board")
+  @@index([recommendation_id], map: "ix_content_items_rec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model content_revisions {
+  id                 BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id             BigInt                   @db.UnsignedBigInt
+  content_item_id    BigInt                   @db.UnsignedBigInt
+  revision           Int                      @db.UnsignedInt
+  body_html          String                   @db.MediumText
+  word_count         Int                      @default(0) @db.UnsignedInt
+  source             content_revisions_source
+  created_by_user_id BigInt?                  @db.UnsignedBigInt
+  created_at         DateTime                 @default(now())
+  content_items      content_items            @relation(fields: [content_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_content_revisions_item")
+  users              users?                   @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_content_revisions_user")
+
+  @@unique([content_item_id, revision], map: "uq_content_revisions_rev")
+  @@index([created_by_user_id], map: "fk_content_revisions_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model content_target_prompts {
+  content_item_id BigInt        @db.UnsignedBigInt
+  prompt_id       BigInt        @db.UnsignedBigInt
+  org_id          BigInt        @db.UnsignedBigInt
+  content_items   content_items @relation(fields: [content_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_content_target_prompts_item")
+  prompts         prompts       @relation(fields: [prompt_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_content_target_prompts_prompt")
+
+  @@id([content_item_id, prompt_id])
+  @@index([prompt_id], map: "ix_content_target_prompts_prompt")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model data_requests {
+  id                   BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id               BigInt                      @db.UnsignedBigInt
+  kind                 data_requests_kind
+  requested_by_user_id BigInt?                     @db.UnsignedBigInt
+  requested_via        data_requests_requested_via
+  status               data_requests_status        @default(pending_verification)
+  verified_at          DateTime?
+  undo_until           DateTime?
+  export_uri           String?                     @db.VarChar(512)
+  completed_at         DateTime?
+  handled_by_staff_id  BigInt?                     @db.UnsignedBigInt
+  notes                String?                     @db.VarChar(1000)
+  created_at           DateTime                    @default(now())
+  updated_at           DateTime                    @default(now())
+  staff_users          staff_users?                @relation(fields: [handled_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_data_requests_staff")
+
+  @@index([handled_by_staff_id], map: "fk_data_requests_staff")
+  @@index([org_id], map: "ix_data_requests_org")
+  @@index([status, undo_until], map: "ix_data_requests_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model email_suppressions {
+  id         BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  email      String                    @unique(map: "uq_email_suppressions_email") @db.VarChar(320)
+  reason     email_suppressions_reason
+  source     String                    @default("resend") @db.VarChar(32)
+  created_at DateTime                  @default(now())
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model engines {
+  code                                                String                   @id @db.VarChar(32)
+  name                                                String                   @db.VarChar(64)
+  status                                              engines_status           @default(disabled)
+  query_field                                         engines_query_field      @default(text)
+  default_samples                                     Int                      @default(3) @db.UnsignedTinyInt
+  primary_provider_code                               String?                  @db.VarChar(32)
+  primary_method                                      engines_primary_method?
+  fallback_provider_code                              String?                  @db.VarChar(32)
+  fallback_method                                     engines_fallback_method?
+  sort_order                                          Int                      @default(0) @db.SmallInt
+  created_at                                          DateTime                 @default(now())
+  updated_at                                          DateTime                 @default(now())
+  providers_engines_fallback_provider_codeToproviders providers?               @relation("engines_fallback_provider_codeToproviders", fields: [fallback_provider_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_engines_fallback_provider")
+  providers_engines_primary_provider_codeToproviders  providers?               @relation("engines_primary_provider_codeToproviders", fields: [primary_provider_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_engines_primary_provider")
+  project_engines                                     project_engines[]
+
+  @@index([fallback_provider_code], map: "fk_engines_fallback_provider")
+  @@index([primary_provider_code], map: "fk_engines_primary_provider")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model entitlement_grants {
+  id                          BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                      BigInt                    @db.UnsignedBigInt
+  meter                       entitlement_grants_meter
+  amount                      Int
+  source                      entitlement_grants_source
+  stripe_subscription_item_id String?                   @db.VarChar(64)
+  reason                      String?                   @db.VarChar(255)
+  granted_by_staff_id         BigInt?                   @db.UnsignedBigInt
+  starts_at                   DateTime                  @default(now())
+  ends_at                     DateTime?
+  created_at                  DateTime                  @default(now())
+  organizations               organizations             @relation(fields: [org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_entitlement_grants_org")
+  staff_users                 staff_users?              @relation(fields: [granted_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_entitlement_grants_staff")
+
+  @@index([granted_by_staff_id], map: "fk_entitlement_grants_staff")
+  @@index([org_id, meter, ends_at], map: "ix_entitlement_grants_org")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model entity_aliases {
+  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id              BigInt                @db.UnsignedBigInt
+  project_id          BigInt                @db.UnsignedBigInt
+  entity_id           BigInt                @db.UnsignedBigInt
+  kind                entity_aliases_kind
+  value               String                @db.VarChar(255)
+  value_normalized    String                @db.VarChar(255)
+  source              entity_aliases_source
+  created_by_user_id  BigInt?               @db.UnsignedBigInt
+  created_by_staff_id BigInt?               @db.UnsignedBigInt
+  created_at          DateTime              @default(now())
+  tracked_entities    tracked_entities      @relation(fields: [entity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_entity_aliases_entity")
+  projects            projects              @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_entity_aliases_project")
+  staff_users         staff_users?          @relation(fields: [created_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_entity_aliases_staff")
+  users               users?                @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_entity_aliases_user")
+
+  @@unique([entity_id, kind, value_normalized], map: "uq_entity_aliases_value")
+  @@index([project_id, org_id], map: "fk_entity_aliases_project")
+  @@index([created_by_staff_id], map: "fk_entity_aliases_staff")
+  @@index([created_by_user_id], map: "fk_entity_aliases_user")
+  @@index([project_id, kind], map: "ix_entity_aliases_project")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model fix_verifications {
+  id                BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id            BigInt                   @db.UnsignedBigInt
+  project_id        BigInt                   @db.UnsignedBigInt
+  recommendation_id BigInt                   @db.UnsignedBigInt
+  site_change_id    BigInt?                  @db.UnsignedBigInt
+  content_item_id   BigInt?                  @db.UnsignedBigInt
+  scan_id           BigInt?                  @db.UnsignedBigInt
+  attempt           Int                      @db.UnsignedTinyInt
+  method            fix_verifications_method
+  target_url        String?                  @db.VarChar(2048)
+  status            fix_verifications_status @default(pending)
+  scheduled_for     DateTime
+  checked_at        DateTime?
+  details           Json?
+  created_at        DateTime                 @default(now())
+  updated_at        DateTime                 @default(now())
+  site_changes      site_changes?            @relation(fields: [site_change_id], references: [id], onUpdate: NoAction, map: "fk_fix_verifications_change")
+  content_items     content_items?           @relation(fields: [content_item_id], references: [id], onUpdate: NoAction, map: "fk_fix_verifications_content")
+  projects          projects                 @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_fix_verifications_project")
+  recommendations   recommendations          @relation(fields: [recommendation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_fix_verifications_rec")
+  site_scans        site_scans?              @relation(fields: [scan_id], references: [id], onUpdate: NoAction, map: "fk_fix_verifications_scan")
+
+  @@unique([recommendation_id, attempt], map: "uq_fix_verifications_attempt")
+  @@index([site_change_id], map: "fk_fix_verifications_change")
+  @@index([content_item_id], map: "fk_fix_verifications_content")
+  @@index([project_id, org_id], map: "fk_fix_verifications_project")
+  @@index([scan_id], map: "fk_fix_verifications_scan")
+  @@index([status, scheduled_for], map: "ix_fix_verifications_due")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model impersonation_sessions {
+  id               BigInt                             @id @default(autoincrement()) @db.UnsignedBigInt
+  staff_user_id    BigInt                             @db.UnsignedBigInt
+  org_id           BigInt                             @db.UnsignedBigInt
+  reason           String                             @db.VarChar(500)
+  ticket_url       String?                            @db.VarChar(512)
+  mode             impersonation_sessions_mode        @default(read_only)
+  write_enabled_at DateTime?
+  started_at       DateTime                           @default(now())
+  expires_at       DateTime
+  ended_at         DateTime?
+  end_reason       impersonation_sessions_end_reason?
+  staff_users      staff_users                        @relation(fields: [staff_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_impersonation_staff")
+
+  @@index([org_id, started_at], map: "ix_impersonation_org")
+  @@index([staff_user_id, started_at], map: "ix_impersonation_staff")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model integrations {
+  id                   BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id               BigInt              @db.UnsignedBigInt
+  project_id           BigInt              @db.UnsignedBigInt
+  type                 integrations_type
+  status               integrations_status @default(pending)
+  config               Json?
+  secret_ciphertext    Bytes?              @db.VarBinary(4096)
+  secret_wrapped_dek   Bytes?              @db.VarBinary(512)
+  secret_key_version   Int?                @db.UnsignedSmallInt
+  last_success_at      DateTime?
+  last_error_at        DateTime?
+  last_error           String?             @db.VarChar(500)
+  connected_by_user_id BigInt?             @db.UnsignedBigInt
+  connected_at         DateTime?
+  disconnected_at      DateTime?
+  created_at           DateTime            @default(now())
+  updated_at           DateTime            @default(now())
+  projects             projects            @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_integrations_project")
+  users                users?              @relation(fields: [connected_by_user_id], references: [id], onUpdate: NoAction, map: "fk_integrations_user")
+  site_changes         site_changes[]
+
+  @@unique([project_id, type], map: "uq_integrations_type")
+  @@index([project_id, org_id], map: "fk_integrations_project")
+  @@index([connected_by_user_id], map: "fk_integrations_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model invitations {
+  id              BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id          BigInt                     @db.UnsignedBigInt
+  email           String                     @db.VarChar(320)
+  role            invitations_role
+  project_access  invitations_project_access @default(all)
+  project_ids     Json?
+  status          invitations_status         @default(pending)
+  token_hash      Bytes?                     @unique(map: "uq_invitations_token") @db.Binary(32)
+  inviter_user_id BigInt?                    @db.UnsignedBigInt
+  expires_at      DateTime
+  accepted_at     DateTime?
+  created_at      DateTime                   @default(now())
+  updated_at      DateTime                   @default(now())
+  users           users?                     @relation(fields: [inviter_user_id], references: [id], onUpdate: NoAction, map: "fk_invitations_inviter")
+  organizations   organizations              @relation(fields: [org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_invitations_org")
+
+  @@index([inviter_user_id], map: "fk_invitations_inviter")
+  @@index([email], map: "ix_invitations_email")
+  @@index([org_id, status], map: "ix_invitations_org_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model leads {
+  id                BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  email             String          @unique(map: "uq_leads_email") @db.VarChar(320)
+  email_domain      String          @db.VarChar(253)
+  consent_marketing Boolean         @default(false)
+  consent_version   String?         @db.VarChar(32)
+  consent_at        DateTime?
+  verified_at       DateTime?
+  utm               Json?
+  first_ip_hash     Bytes?          @db.Binary(32)
+  converted_org_id  BigInt?         @db.UnsignedBigInt
+  converted_at      DateTime?
+  unsubscribed_at   DateTime?
+  delete_after      DateTime?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @default(now())
+  audits            audits[]
+  organizations     organizations?  @relation(fields: [converted_org_id], references: [id], onUpdate: NoAction, map: "fk_leads_converted_org")
+  notifications     notifications[]
+
+  @@index([converted_org_id], map: "fk_leads_converted_org")
+  @@index([delete_after], map: "ix_leads_delete_after")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model membership_projects {
+  membership_id BigInt      @db.UnsignedBigInt
+  project_id    BigInt      @db.UnsignedBigInt
+  org_id        BigInt      @db.UnsignedBigInt
+  created_at    DateTime    @default(now())
+  memberships   memberships @relation(fields: [membership_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_membership_projects_membership")
+  projects      projects    @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_membership_projects_project")
+
+  @@id([membership_id, project_id])
+  @@index([project_id, org_id], map: "fk_membership_projects_project")
+  @@index([project_id], map: "ix_membership_projects_project")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model memberships {
+  id                  BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id              BigInt                     @db.UnsignedBigInt
+  user_id             BigInt                     @db.UnsignedBigInt
+  role                memberships_role
+  project_access      memberships_project_access @default(all)
+  notify_prefs        Json?
+  created_at          DateTime                   @default(now())
+  updated_at          DateTime                   @default(now())
+  membership_projects membership_projects[]
+  organizations       organizations              @relation(fields: [org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_memberships_org")
+  users               users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_memberships_user")
+
+  @@unique([org_id, user_id], map: "uq_memberships_org_user")
+  @@index([user_id], map: "ix_memberships_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model mentions {
+  id                 BigInt               @default(autoincrement()) @db.UnsignedBigInt
+  run_date           DateTime             @db.Date
+  org_id             BigInt               @db.UnsignedBigInt
+  project_id         BigInt               @db.UnsignedBigInt
+  run_id             BigInt               @db.UnsignedBigInt
+  snapshot_id        BigInt               @db.UnsignedBigInt
+  prompt_id          BigInt               @db.UnsignedBigInt
+  engine_code        String               @db.VarChar(32)
+  entity_id          BigInt               @db.UnsignedBigInt
+  name_as_written    String               @db.VarChar(255)
+  list_rank          Int?                 @db.UnsignedTinyInt
+  mention_order      Int?                 @db.UnsignedTinyInt
+  prominence         mentions_prominence?
+  stance             mentions_stance?
+  sentiment          Int?                 @db.TinyInt
+  excerpt            String?              @db.VarChar(300)
+  detected_by        mentions_detected_by
+  is_excluded        Boolean              @default(false)
+  extraction_version String               @db.VarChar(16)
+  created_at         DateTime             @default(now())
+
+  @@id([id, run_date])
+  @@unique([snapshot_id, entity_id, run_date], map: "uq_mentions_entity")
+  @@index([project_id, entity_id, run_date], map: "ix_mentions_entity")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model metric_daily {
+  id               BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id           BigInt   @db.UnsignedBigInt
+  project_id       BigInt   @db.UnsignedBigInt
+  metric_date      DateTime @db.Date
+  engine_code      String   @db.VarChar(32)
+  entity_id        BigInt   @db.UnsignedBigInt
+  cells_total      Int      @default(0) @db.UnsignedInt
+  cells_partial    Int      @default(0) @db.UnsignedInt
+  n_answers        Int      @default(0) @db.UnsignedInt
+  k_mentioned      Int      @default(0) @db.UnsignedInt
+  k_recommended    Int      @default(0) @db.UnsignedInt
+  k_cited          Int      @default(0) @db.UnsignedInt
+  rank_sum         Int      @default(0) @db.UnsignedInt
+  rank_n           Int      @default(0) @db.UnsignedInt
+  sentiment_sum    Int      @default(0)
+  sentiment_n      Int      @default(0) @db.UnsignedInt
+  citations_total  Int      @default(0) @db.UnsignedInt
+  citations_entity Int      @default(0) @db.UnsignedInt
+  vis_weighted_sum Decimal? @db.Decimal(14, 4)
+  vis_weight_total Decimal? @db.Decimal(14, 4)
+  aio_queries      Int?     @db.UnsignedInt
+  aio_triggered    Int?     @db.UnsignedInt
+  computed_at      DateTime @default(now())
+
+  @@unique([project_id, metric_date, engine_code, entity_id], map: "uq_metric_daily_cell")
+  @@index([project_id, entity_id, metric_date], map: "ix_metric_daily_entity")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model notifications {
+  id                  BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id              BigInt?                @db.UnsignedBigInt
+  user_id             BigInt?                @db.UnsignedBigInt
+  lead_id             BigInt?                @db.UnsignedBigInt
+  project_id          BigInt?                @db.UnsignedBigInt
+  channel             notifications_channel
+  category            notifications_category
+  kind                String                 @db.VarChar(48)
+  dedupe_key          String                 @unique(map: "uq_notifications_dedupe")
+  subject             String?                @db.VarChar(255)
+  payload             Json?
+  status              notifications_status   @default(queued)
+  provider_message_id String?                @db.VarChar(128)
+  queued_at           DateTime               @default(now())
+  sent_at             DateTime?
+  read_at             DateTime?
+  error               String?                @db.VarChar(500)
+  created_at          DateTime               @default(now())
+  updated_at          DateTime               @default(now())
+  leads               leads?                 @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notifications_lead")
+  users               users?                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notifications_user")
+
+  @@index([lead_id], map: "fk_notifications_lead")
+  @@index([user_id, category, channel, sent_at], map: "ix_notifications_daily_cap")
+  @@index([user_id, channel, read_at], map: "ix_notifications_inbox")
+  @@index([org_id, created_at], map: "ix_notifications_org")
+  @@index([provider_message_id], map: "ix_notifications_provider")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model org_activity_log {
+  id             BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id         BigInt                      @db.UnsignedBigInt
+  project_id     BigInt?                     @db.UnsignedBigInt
+  actor_type     org_activity_log_actor_type
+  actor_user_id  BigInt?                     @db.UnsignedBigInt
+  actor_staff_id BigInt?                     @db.UnsignedBigInt
+  action         String                      @db.VarChar(64)
+  target_type    String?                     @db.VarChar(48)
+  target_id      BigInt?                     @db.UnsignedBigInt
+  summary        String                      @db.VarChar(500)
+  metadata       Json?
+  ip             String?                     @db.VarChar(45)
+  created_at     DateTime                    @default(now())
+
+  @@index([org_id, created_at], map: "ix_org_activity_org")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model org_notes {
+  id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id        BigInt        @db.UnsignedBigInt
+  staff_user_id BigInt        @db.UnsignedBigInt
+  body          String        @db.Text
+  is_pinned     Boolean       @default(false)
+  deleted_at    DateTime?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @default(now())
+  organizations organizations @relation(fields: [org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_notes_org")
+  staff_users   staff_users   @relation(fields: [staff_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_notes_staff")
+
+  @@index([staff_user_id], map: "fk_org_notes_staff")
+  @@index([org_id, is_pinned, created_at], map: "ix_org_notes_org")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model organizations {
+  id                      BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id               String                       @unique(map: "uq_organizations_public_id") @db.Char(26)
+  name                    String                       @db.VarChar(128)
+  slug                    String                       @unique(map: "uq_organizations_slug") @db.VarChar(64)
+  logo_url                String?                      @db.VarChar(1024)
+  metadata                Json?
+  kind                    organizations_kind           @default(brand)
+  plan_code               String?                      @db.VarChar(32)
+  billing_status          organizations_billing_status @default(none)
+  stripe_customer_id      String?                      @unique(map: "uq_organizations_stripe_customer") @db.VarChar(64)
+  spend_cap_usd_daily     Decimal?                     @db.Decimal(10, 2)
+  collection_paused_until DateTime?
+  default_timezone        String                       @default("UTC") @db.VarChar(64)
+  is_design_partner       Boolean                      @default(false)
+  canceled_at             DateTime?
+  retain_until            DateTime?
+  deleted_at              DateTime?
+  purge_after             DateTime?
+  created_at              DateTime                     @default(now())
+  updated_at              DateTime                     @default(now())
+  audits                  audits[]
+  entitlement_grants      entitlement_grants[]
+  invitations             invitations[]
+  leads                   leads[]
+  memberships             memberships[]
+  org_notes               org_notes[]
+  plans                   plans?                       @relation(fields: [plan_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_organizations_plan")
+  projects                projects[]
+  quota_usage             quota_usage[]
+  subscriptions           subscriptions[]
+  users                   users[]
+
+  @@index([plan_code], map: "fk_organizations_plan")
+  @@index([billing_status], map: "ix_organizations_billing")
+  @@index([purge_after], map: "ix_organizations_purge")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model plans {
+  code               String          @id @db.VarChar(32)
+  name               String          @db.VarChar(64)
+  price_usd_month    Decimal         @db.Decimal(10, 2)
+  stripe_price_id    String?         @db.VarChar(64)
+  max_projects       Int?            @db.UnsignedInt
+  max_prompts        Int?            @db.UnsignedInt
+  max_seats          Int?            @db.UnsignedInt
+  drafts_per_month   Decimal?        @db.Decimal(6, 1)
+  runs_now_per_month Int?            @db.UnsignedInt
+  samples_per_engine Int             @default(3) @db.UnsignedTinyInt
+  features           Json?
+  is_public          Boolean         @default(true)
+  sort_order         Int             @default(0) @db.SmallInt
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @default(now())
+  organizations      organizations[]
+  subscriptions      subscriptions[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model project_engines {
+  project_id       BigInt   @db.UnsignedBigInt
+  org_id           BigInt   @db.UnsignedBigInt
+  engine_code      String   @db.VarChar(32)
+  enabled          Boolean  @default(true)
+  weight           Decimal  @default(1.00) @db.Decimal(4, 2)
+  samples_override Int?     @db.UnsignedTinyInt
+  created_at       DateTime @default(now())
+  updated_at       DateTime @default(now())
+  engines          engines  @relation(fields: [engine_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_project_engines_engine")
+  projects         projects @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_project_engines_project")
+
+  @@id([project_id, engine_code])
+  @@index([engine_code], map: "fk_project_engines_engine")
+  @@index([project_id, org_id], map: "fk_project_engines_project")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model projects {
+  id                                      BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id                               String                  @unique(map: "uq_projects_public_id") @db.Char(26)
+  org_id                                  BigInt                  @db.UnsignedBigInt
+  name                                    String                  @db.VarChar(128)
+  domain                                  String                  @db.VarChar(253)
+  country                                 String                  @db.Char(2)
+  language                                String                  @db.VarChar(16)
+  city                                    String                  @default("") @db.VarChar(128)
+  timezone                                String                  @default("UTC") @db.VarChar(64)
+  cadence                                 projects_cadence        @default(weekly)
+  weekly_slot_hour                        Int                     @db.UnsignedSmallInt
+  status                                  projects_status         @default(onboarding)
+  paused_reason                           projects_paused_reason?
+  source_audit_id                         BigInt?                 @db.UnsignedBigInt
+  brand_profile_version                   Int?                    @db.UnsignedInt
+  first_run_at                            DateTime?
+  last_run_at                             DateTime?
+  baseline_ready_at                       DateTime?
+  created_by_user_id                      BigInt?                 @db.UnsignedBigInt
+  deleted_at                              DateTime?
+  purge_after                             DateTime?
+  created_at                              DateTime                @default(now())
+  updated_at                              DateTime                @default(now())
+  active_domain                           String?                 @db.VarChar(253)
+  action_outcomes                         action_outcomes[]
+  audits_audits_project_idToprojects      audits[]                @relation("audits_project_idToprojects")
+  brand_profiles                          brand_profiles[]
+  change_events                           change_events[]
+  content_items                           content_items[]
+  entity_aliases                          entity_aliases[]
+  fix_verifications                       fix_verifications[]
+  integrations                            integrations[]
+  membership_projects                     membership_projects[]
+  project_engines                         project_engines[]
+  users                                   users?                  @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_projects_created_by")
+  organizations                           organizations           @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_org")
+  audits_projects_source_audit_idToaudits audits?                 @relation("projects_source_audit_idToaudits", fields: [source_audit_id], references: [id], onUpdate: NoAction, map: "fk_projects_source_audit")
+  prompt_clusters                         prompt_clusters[]
+  prompts                                 prompts[]
+  recommendations                         recommendations[]
+  reports                                 reports[]
+  review_items                            review_items[]
+  runs                                    runs[]
+  search_console_daily                    search_console_daily[]
+  site_changes                            site_changes[]
+  site_pages                              site_pages[]
+  site_scans                              site_scans[]
+  tracked_entities                        tracked_entities[]
+  traffic_daily                           traffic_daily[]
+
+  @@unique([id, org_id], map: "uq_projects_id_org")
+  @@unique([org_id, active_domain], map: "uq_projects_org_domain")
+  @@index([created_by_user_id], map: "fk_projects_created_by")
+  @@index([source_audit_id], map: "fk_projects_source_audit")
+  @@index([status, weekly_slot_hour], map: "ix_projects_schedule")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model prompt_clusters {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id     BigInt    @db.UnsignedBigInt
+  project_id BigInt    @db.UnsignedBigInt
+  name       String    @db.VarChar(128)
+  sort_order Int       @default(0) @db.SmallInt
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  projects   projects  @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prompt_clusters_project")
+  prompts    prompts[]
+
+  @@unique([project_id, name], map: "uq_prompt_clusters_name")
+  @@index([project_id, org_id], map: "fk_prompt_clusters_project")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model prompts {
+  id                     BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                 BigInt                   @db.UnsignedBigInt
+  project_id             BigInt                   @db.UnsignedBigInt
+  cluster_id             BigInt?                  @db.UnsignedBigInt
+  text                   String                   @db.VarChar(1000)
+  text_hash              Bytes                    @db.Binary(32)
+  search_query           String?                  @db.VarChar(255)
+  intent                 prompts_intent
+  funnel_stage           prompts_funnel_stage?
+  priority               Int                      @default(2) @db.UnsignedTinyInt
+  country                String                   @db.Char(2)
+  language               String                   @db.VarChar(16)
+  city                   String                   @default("") @db.VarChar(128)
+  status                 prompts_status           @default(active)
+  paused_reason          prompts_paused_reason?
+  source                 prompts_source
+  daily_tracking         Boolean                  @default(false)
+  replaces_prompt_id     BigInt?                  @db.UnsignedBigInt
+  created_by_user_id     BigInt?                  @db.UnsignedBigInt
+  archived_at            DateTime?
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime                 @default(now())
+  content_target_prompts content_target_prompts[]
+  prompt_clusters        prompt_clusters?         @relation(fields: [cluster_id], references: [id], onUpdate: NoAction, map: "fk_prompts_cluster")
+  users                  users?                   @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_prompts_created_by")
+  projects               projects                 @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prompts_project")
+  prompts                prompts?                 @relation("promptsToprompts", fields: [replaces_prompt_id], references: [id], onUpdate: NoAction, map: "fk_prompts_replaces")
+  other_prompts          prompts[]                @relation("promptsToprompts")
+  recommendation_prompts recommendation_prompts[]
+
+  @@unique([project_id, country, language, city, text_hash], map: "uq_prompts_text")
+  @@index([created_by_user_id], map: "fk_prompts_created_by")
+  @@index([project_id, org_id], map: "fk_prompts_project")
+  @@index([replaces_prompt_id], map: "fk_prompts_replaces")
+  @@index([cluster_id], map: "ix_prompts_cluster")
+  @@index([project_id, status], map: "ix_prompts_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model provider_health {
+  id            BigInt                        @id @default(autoincrement()) @db.UnsignedBigInt
+  provider_code String                        @db.VarChar(32)
+  engine_code   String                        @default("") @db.VarChar(32)
+  bucket_start  DateTime                      @db.DateTime(0)
+  requests      Int                           @default(0) @db.UnsignedInt
+  successes     Int                           @default(0) @db.UnsignedInt
+  failures      Int                           @default(0) @db.UnsignedInt
+  timeouts      Int                           @default(0) @db.UnsignedInt
+  p50_ms        Int?                          @db.UnsignedInt
+  p95_ms        Int?                          @db.UnsignedInt
+  cost_usd      Decimal                       @default(0.000000) @db.Decimal(10, 6)
+  breaker_state provider_health_breaker_state @default(closed)
+  created_at    DateTime                      @default(now())
+  providers     providers                     @relation(fields: [provider_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_provider_health_provider")
+
+  @@unique([provider_code, engine_code, bucket_start], map: "uq_provider_health_bucket")
+  @@index([bucket_start], map: "ix_provider_health_time")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model providers {
+  code                                              String            @id @db.VarChar(32)
+  name                                              String            @db.VarChar(64)
+  kind                                              providers_kind
+  status                                            providers_status  @default(active)
+  monthly_budget_usd                                Decimal?          @db.Decimal(10, 2)
+  api_key_rotated_at                                DateTime?
+  created_at                                        DateTime          @default(now())
+  updated_at                                        DateTime          @default(now())
+  engines_engines_fallback_provider_codeToproviders engines[]         @relation("engines_fallback_provider_codeToproviders")
+  engines_engines_primary_provider_codeToproviders  engines[]         @relation("engines_primary_provider_codeToproviders")
+  provider_health                                   provider_health[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model quota_usage {
+  org_id        BigInt            @db.UnsignedBigInt
+  period_month  DateTime          @db.Date
+  meter         quota_usage_meter
+  used_units    Decimal           @default(0.0) @db.Decimal(10, 1)
+  updated_at    DateTime          @default(now())
+  organizations organizations     @relation(fields: [org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_quota_usage_org")
+
+  @@id([org_id, period_month, meter])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recommendation_events {
+  id                BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id            BigInt                           @db.UnsignedBigInt
+  recommendation_id BigInt                           @db.UnsignedBigInt
+  from_status       String?                          @db.VarChar(16)
+  to_status         String                           @db.VarChar(16)
+  actor_type        recommendation_events_actor_type
+  actor_user_id     BigInt?                          @db.UnsignedBigInt
+  actor_staff_id    BigInt?                          @db.UnsignedBigInt
+  note              String?                          @db.VarChar(500)
+  created_at        DateTime                         @default(now())
+  recommendations   recommendations                  @relation(fields: [recommendation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_recommendation_events_rec")
+
+  @@index([recommendation_id, created_at], map: "ix_recommendation_events_rec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recommendation_prompts {
+  recommendation_id BigInt          @db.UnsignedBigInt
+  prompt_id         BigInt          @db.UnsignedBigInt
+  org_id            BigInt          @db.UnsignedBigInt
+  prompts           prompts         @relation(fields: [prompt_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_recommendation_prompts_prompt")
+  recommendations   recommendations @relation(fields: [recommendation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_recommendation_prompts_rec")
+
+  @@id([recommendation_id, prompt_id])
+  @@index([prompt_id], map: "ix_recommendation_prompts_prompt")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recommendations {
+  id                       BigInt                          @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                   BigInt                          @db.UnsignedBigInt
+  project_id               BigInt                          @db.UnsignedBigInt
+  rule_code                String                          @db.VarChar(64)
+  rule_version             Int                             @default(1) @db.UnsignedSmallInt
+  stable_key               String
+  category                 recommendations_category
+  fix_path                 recommendations_fix_path
+  title                    String                          @db.VarChar(255)
+  why_md                   String                          @db.Text
+  steps_md                 String?                         @db.Text
+  narrative_version        String?                         @db.VarChar(16)
+  evidence                 Json
+  affected_urls            Json?
+  impact                   Decimal                         @db.Decimal(6, 3)
+  confidence               Decimal                         @db.Decimal(4, 3)
+  effort                   Int                             @db.UnsignedTinyInt
+  ice                      Decimal                         @db.Decimal(8, 3)
+  status                   recommendations_status          @default(open)
+  status_changed_at        DateTime                        @default(now())
+  dismiss_reason           recommendations_dismiss_reason?
+  dismiss_note             String?                         @db.VarChar(500)
+  done_at                  DateTime?
+  done_by_user_id          BigInt?                         @db.UnsignedBigInt
+  verified_at              DateTime?
+  verification             Json?
+  measuring_started_at     DateTime?
+  baseline                 Json?
+  signal_cleared_at        DateTime?
+  first_seen_run_id        BigInt?                         @db.UnsignedBigInt
+  last_seen_run_id         BigInt?                         @db.UnsignedBigInt
+  parent_recommendation_id BigInt?                         @db.UnsignedBigInt
+  created_at               DateTime                        @default(now())
+  updated_at               DateTime                        @default(now())
+  open_key                 String?
+  action_outcomes          action_outcomes[]
+  content_items            content_items[]
+  fix_verifications        fix_verifications[]
+  recommendation_events    recommendation_events[]
+  recommendation_prompts   recommendation_prompts[]
+  users                    users?                          @relation(fields: [done_by_user_id], references: [id], onUpdate: NoAction, map: "fk_recommendations_done_by")
+  recommendations          recommendations?                @relation("recommendationsTorecommendations", fields: [parent_recommendation_id], references: [id], onUpdate: NoAction, map: "fk_recommendations_parent")
+  other_recommendations    recommendations[]               @relation("recommendationsTorecommendations")
+  projects                 projects                        @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_recommendations_project")
+  site_changes             site_changes[]
+
+  @@unique([project_id, open_key], map: "uq_recommendations_open")
+  @@index([done_by_user_id], map: "fk_recommendations_done_by")
+  @@index([parent_recommendation_id], map: "fk_recommendations_parent")
+  @@index([project_id, org_id], map: "fk_recommendations_project")
+  @@index([project_id, status, ice], map: "ix_recommendations_board")
+  @@index([rule_code, status], map: "ix_recommendations_rule")
+  @@index([project_id, stable_key], map: "ix_recommendations_stable")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model reports {
+  id                 BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id          String         @unique(map: "uq_reports_public_id") @db.Char(26)
+  org_id             BigInt         @db.UnsignedBigInt
+  project_id         BigInt         @db.UnsignedBigInt
+  kind               reports_kind
+  period_start       DateTime       @db.Date
+  period_end         DateTime       @db.Date
+  status             reports_status @default(queued)
+  file_uri           String?        @db.VarChar(512)
+  share_token_hash   Bytes?         @unique(map: "uq_reports_share_token") @db.Binary(32)
+  share_expires_at   DateTime?
+  revoked_at         DateTime?
+  view_count         Int            @default(0) @db.UnsignedInt
+  created_by_user_id BigInt?        @db.UnsignedBigInt
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @default(now())
+  projects           projects       @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reports_project")
+  users              users?         @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_reports_user")
+
+  @@index([project_id, org_id], map: "fk_reports_project")
+  @@index([created_by_user_id], map: "fk_reports_user")
+  @@index([project_id, created_at], map: "ix_reports_project")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model review_items {
+  id                                                         BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                                                     BigInt                    @db.UnsignedBigInt
+  project_id                                                 BigInt                    @db.UnsignedBigInt
+  source                                                     review_items_source
+  snapshot_id                                                BigInt                    @db.UnsignedBigInt
+  run_date                                                   DateTime                  @db.Date
+  mention_id                                                 BigInt?                   @db.UnsignedBigInt
+  entity_id                                                  BigInt?                   @db.UnsignedBigInt
+  reported_by_user_id                                        BigInt?                   @db.UnsignedBigInt
+  report_kind                                                review_items_report_kind?
+  report_comment                                             String?                   @db.VarChar(1000)
+  details                                                    Json?
+  status                                                     review_items_status       @default(open)
+  assigned_staff_id                                          BigInt?                   @db.UnsignedBigInt
+  resolution                                                 review_items_resolution?
+  resolution_note                                            String?                   @db.VarChar(1000)
+  resolved_by_staff_id                                       BigInt?                   @db.UnsignedBigInt
+  resolved_at                                                DateTime?
+  reextract_requested_at                                     DateTime?
+  golden_set_exported_at                                     DateTime?
+  customer_notified_at                                       DateTime?
+  created_at                                                 DateTime                  @default(now())
+  updated_at                                                 DateTime                  @default(now())
+  staff_users_review_items_assigned_staff_idTostaff_users    staff_users?              @relation("review_items_assigned_staff_idTostaff_users", fields: [assigned_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_review_items_assignee")
+  tracked_entities                                           tracked_entities?         @relation(fields: [entity_id], references: [id], onUpdate: NoAction, map: "fk_review_items_entity")
+  projects                                                   projects                  @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_review_items_project")
+  users                                                      users?                    @relation(fields: [reported_by_user_id], references: [id], onUpdate: NoAction, map: "fk_review_items_reporter")
+  staff_users_review_items_resolved_by_staff_idTostaff_users staff_users?              @relation("review_items_resolved_by_staff_idTostaff_users", fields: [resolved_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_review_items_resolved_by")
+
+  @@index([assigned_staff_id], map: "fk_review_items_assignee")
+  @@index([entity_id], map: "fk_review_items_entity")
+  @@index([project_id, org_id], map: "fk_review_items_project")
+  @@index([reported_by_user_id], map: "fk_review_items_reporter")
+  @@index([resolved_by_staff_id], map: "fk_review_items_resolved_by")
+  @@index([org_id, status], map: "ix_review_items_org")
+  @@index([status, source, created_at], map: "ix_review_items_queue")
+  @@index([snapshot_id], map: "ix_review_items_snapshot")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model runs {
+  id                    BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                BigInt               @db.UnsignedBigInt
+  project_id            BigInt               @db.UnsignedBigInt
+  slot_key              String               @db.VarChar(40)
+  trigger_type          runs_trigger_type
+  run_date              DateTime             @db.Date
+  status                runs_status          @default(queued)
+  extraction_mode       runs_extraction_mode @default(batch)
+  brand_profile_version Int?                 @db.UnsignedInt
+  extraction_version    String?              @db.VarChar(16)
+  prompts_count         Int                  @default(0) @db.UnsignedInt
+  tasks_planned         Int                  @default(0) @db.UnsignedInt
+  tasks_ok              Int                  @default(0) @db.UnsignedInt
+  tasks_no_answer       Int                  @default(0) @db.UnsignedInt
+  tasks_failed          Int                  @default(0) @db.UnsignedInt
+  cost_usd              Decimal              @default(0.000000) @db.Decimal(10, 6)
+  llm_batch_ids         Json?
+  error_summary         Json?
+  requested_by_user_id  BigInt?              @db.UnsignedBigInt
+  queued_at             DateTime             @default(now())
+  started_at            DateTime?
+  collected_at          DateTime?
+  extracted_at          DateTime?
+  finished_at           DateTime?
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @default(now())
+  projects              projects             @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_runs_project")
+  users                 users?               @relation(fields: [requested_by_user_id], references: [id], onUpdate: NoAction, map: "fk_runs_user")
+
+  @@unique([project_id, slot_key], map: "uq_runs_slot")
+  @@index([project_id, org_id], map: "fk_runs_project")
+  @@index([requested_by_user_id], map: "fk_runs_user")
+  @@index([project_id, run_date], map: "ix_runs_project_date")
+  @@index([status, queued_at], map: "ix_runs_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model scan_checks {
+  id              BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  scan_id         BigInt             @db.UnsignedBigInt
+  org_id          BigInt?            @db.UnsignedBigInt
+  check_code      String             @db.VarChar(8)
+  status          scan_checks_status
+  points_awarded  Decimal            @default(0.0) @db.Decimal(4, 1)
+  points_possible Decimal            @db.Decimal(4, 1)
+  evidence        Json?
+  created_at      DateTime           @default(now())
+  site_scans      site_scans         @relation(fields: [scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_scan_checks_scan")
+
+  @@unique([scan_id, check_code], map: "uq_scan_checks_check")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model scan_pages {
+  id                  BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  scan_id             BigInt      @db.UnsignedBigInt
+  org_id              BigInt?     @db.UnsignedBigInt
+  site_page_id        BigInt?     @db.UnsignedBigInt
+  url                 String      @db.VarChar(2048)
+  url_hash            Bytes       @db.Binary(32)
+  is_key_page         Boolean     @default(false)
+  http_status         Int?        @db.UnsignedSmallInt
+  final_url           String?     @db.VarChar(2048)
+  redirect_count      Int         @default(0) @db.UnsignedTinyInt
+  content_type        String?     @db.VarChar(128)
+  raw_text_chars      Int?        @db.UnsignedInt
+  rendered_text_chars Int?        @db.UnsignedInt
+  raw_uri             String?     @db.VarChar(512)
+  rendered_uri        String?     @db.VarChar(512)
+  jsonld_types        Json?
+  fetch_ms            Int?        @db.UnsignedInt
+  error               String?     @db.VarChar(500)
+  fetched_at          DateTime?
+  created_at          DateTime    @default(now())
+  site_scans          site_scans  @relation(fields: [scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_scan_pages_scan")
+  site_pages          site_pages? @relation(fields: [site_page_id], references: [id], onUpdate: NoAction, map: "fk_scan_pages_site_page")
+
+  @@unique([scan_id, url_hash], map: "uq_scan_pages_url")
+  @@index([site_page_id], map: "ix_scan_pages_site_page")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model search_console_daily {
+  id           BigInt                         @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id       BigInt                         @db.UnsignedBigInt
+  project_id   BigInt                         @db.UnsignedBigInt
+  metric_date  DateTime                       @db.Date
+  dimension    search_console_daily_dimension
+  dim_value    String                         @db.VarChar(2048)
+  dim_hash     Bytes                          @db.Binary(32)
+  is_branded   Boolean?
+  clicks       Int                            @default(0) @db.UnsignedInt
+  impressions  Int                            @default(0) @db.UnsignedInt
+  avg_position Decimal?                       @db.Decimal(6, 2)
+  synced_at    DateTime                       @default(now())
+  projects     projects                       @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_search_console_daily_project")
+
+  @@unique([project_id, metric_date, dimension, dim_hash], map: "uq_search_console_daily_row")
+  @@index([project_id, org_id], map: "fk_search_console_daily_project")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model site_changes {
+  id                                               BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                                           BigInt              @db.UnsignedBigInt
+  project_id                                       BigInt              @db.UnsignedBigInt
+  integration_id                                   BigInt              @db.UnsignedBigInt
+  recommendation_id                                BigInt?             @db.UnsignedBigInt
+  content_item_id                                  BigInt?             @db.UnsignedBigInt
+  kind                                             site_changes_kind
+  target_url                                       String?             @db.VarChar(2048)
+  payload                                          Json
+  previous_value                                   Json?
+  status                                           site_changes_status @default(pending_approval)
+  approved_by_user_id                              BigInt?             @db.UnsignedBigInt
+  approved_at                                      DateTime?
+  applied_at                                       DateTime?
+  remote_ref                                       String?             @db.VarChar(128)
+  attempts                                         Int                 @default(0) @db.UnsignedTinyInt
+  last_error                                       String?             @db.VarChar(1000)
+  rolled_back_at                                   DateTime?
+  rolled_back_by_user_id                           BigInt?             @db.UnsignedBigInt
+  created_at                                       DateTime            @default(now())
+  updated_at                                       DateTime            @default(now())
+  fix_verifications                                fix_verifications[]
+  users_site_changes_approved_by_user_idTousers    users?              @relation("site_changes_approved_by_user_idTousers", fields: [approved_by_user_id], references: [id], onUpdate: NoAction, map: "fk_site_changes_approved_by")
+  content_items                                    content_items?      @relation(fields: [content_item_id], references: [id], onUpdate: NoAction, map: "fk_site_changes_content")
+  integrations                                     integrations        @relation(fields: [integration_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_site_changes_integration")
+  projects                                         projects            @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_site_changes_project")
+  recommendations                                  recommendations?    @relation(fields: [recommendation_id], references: [id], onUpdate: NoAction, map: "fk_site_changes_rec")
+  users_site_changes_rolled_back_by_user_idTousers users?              @relation("site_changes_rolled_back_by_user_idTousers", fields: [rolled_back_by_user_id], references: [id], onUpdate: NoAction, map: "fk_site_changes_rolled_by")
+
+  @@index([approved_by_user_id], map: "fk_site_changes_approved_by")
+  @@index([integration_id], map: "fk_site_changes_integration")
+  @@index([project_id, org_id], map: "fk_site_changes_project")
+  @@index([rolled_back_by_user_id], map: "fk_site_changes_rolled_by")
+  @@index([content_item_id], map: "ix_site_changes_content")
+  @@index([project_id, status, created_at], map: "ix_site_changes_project")
+  @@index([recommendation_id], map: "ix_site_changes_rec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model site_pages {
+  id               BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id           BigInt               @db.UnsignedBigInt
+  project_id       BigInt               @db.UnsignedBigInt
+  url              String               @db.VarChar(2048)
+  url_hash         Bytes                @db.Binary(32)
+  title            String?              @db.VarChar(512)
+  page_type        site_pages_page_type @default(other)
+  is_key_page      Boolean              @default(false)
+  source           site_pages_source
+  last_http_status Int?                 @db.UnsignedSmallInt
+  last_crawled_at  DateTime?
+  last_modified_at DateTime?
+  created_at       DateTime             @default(now())
+  updated_at       DateTime             @default(now())
+  scan_pages       scan_pages[]
+  projects         projects             @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_site_pages_project")
+
+  @@unique([project_id, url_hash], map: "uq_site_pages_url")
+  @@index([project_id, org_id], map: "fk_site_pages_project")
+  @@index([project_id, is_key_page], map: "ix_site_pages_key")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model site_scans {
+  id                BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id            BigInt?                 @db.UnsignedBigInt
+  project_id        BigInt?                 @db.UnsignedBigInt
+  audit_id          BigInt?                 @db.UnsignedBigInt
+  trigger_type      site_scans_trigger_type
+  rubric_version    String                  @db.VarChar(16)
+  status            site_scans_status       @default(queued)
+  readiness_score   Int?                    @db.UnsignedTinyInt
+  category_scores   Json?
+  robots_txt_uri    String?                 @db.VarChar(512)
+  sitemap_urls      Json?
+  pages_planned     Int                     @default(0) @db.UnsignedSmallInt
+  pages_fetched     Int                     @default(0) @db.UnsignedSmallInt
+  started_at        DateTime?
+  finished_at       DateTime?
+  created_at        DateTime                @default(now())
+  updated_at        DateTime                @default(now())
+  fix_verifications fix_verifications[]
+  scan_checks       scan_checks[]
+  scan_pages        scan_pages[]
+  audits            audits?                 @relation(fields: [audit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_site_scans_audit")
+  projects          projects?               @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_site_scans_project")
+
+  @@index([project_id, org_id], map: "fk_site_scans_project")
+  @@index([audit_id], map: "ix_site_scans_audit")
+  @@index([project_id, created_at], map: "ix_site_scans_project")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model staff_roles {
+  staff_user_id                                            BigInt           @db.UnsignedBigInt
+  role                                                     staff_roles_role
+  granted_by_staff_id                                      BigInt?          @db.UnsignedBigInt
+  granted_at                                               DateTime         @default(now())
+  staff_users_staff_roles_granted_by_staff_idTostaff_users staff_users?     @relation("staff_roles_granted_by_staff_idTostaff_users", fields: [granted_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_staff_roles_granted_by")
+  staff_users_staff_roles_staff_user_idTostaff_users       staff_users      @relation("staff_roles_staff_user_idTostaff_users", fields: [staff_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_staff_roles_staff")
+
+  @@id([staff_user_id, role])
+  @@index([granted_by_staff_id], map: "fk_staff_roles_granted_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model staff_users {
+  id                                                          BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  clerk_user_id                                               String?                  @unique(map: "uq_staff_users_clerk") @db.VarChar(64)
+  email                                                       String                   @unique(map: "uq_staff_users_email") @db.VarChar(320)
+  name                                                        String                   @db.VarChar(128)
+  status                                                      staff_users_status       @default(active)
+  last_login_at                                               DateTime?
+  last_login_ip                                               String?                  @db.VarChar(45)
+  created_by_staff_id                                         BigInt?                  @db.UnsignedBigInt
+  created_at                                                  DateTime                 @default(now())
+  updated_at                                                  DateTime                 @default(now())
+  abuse_blocks                                                abuse_blocks[]
+  admin_audit_log                                             admin_audit_log[]
+  announcements                                               announcements[]
+  data_requests                                               data_requests[]
+  entitlement_grants                                          entitlement_grants[]
+  entity_aliases                                              entity_aliases[]
+  impersonation_sessions                                      impersonation_sessions[]
+  org_notes                                                   org_notes[]
+  review_items_review_items_assigned_staff_idTostaff_users    review_items[]           @relation("review_items_assigned_staff_idTostaff_users")
+  review_items_review_items_resolved_by_staff_idTostaff_users review_items[]           @relation("review_items_resolved_by_staff_idTostaff_users")
+  staff_roles_staff_roles_granted_by_staff_idTostaff_users    staff_roles[]            @relation("staff_roles_granted_by_staff_idTostaff_users")
+  staff_roles_staff_roles_staff_user_idTostaff_users          staff_roles[]            @relation("staff_roles_staff_user_idTostaff_users")
+  staff_users                                                 staff_users?             @relation("staff_usersTostaff_users", fields: [created_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_staff_users_created_by")
+  other_staff_users                                           staff_users[]            @relation("staff_usersTostaff_users")
+  web_domains                                                 web_domains[]
+
+  @@index([created_by_staff_id], map: "fk_staff_users_created_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model subscriptions {
+  id                     BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                 BigInt               @db.UnsignedBigInt
+  stripe_subscription_id String               @unique(map: "uq_subscriptions_stripe") @db.VarChar(64)
+  plan_code              String               @db.VarChar(32)
+  status                 subscriptions_status
+  trial_ends_at          DateTime?
+  current_period_start   DateTime?
+  current_period_end     DateTime?
+  cancel_at_period_end   Boolean              @default(false)
+  canceled_at            DateTime?
+  grace_until            DateTime?
+  first_paid_at          DateTime?
+  money_back_until       DateTime?
+  created_at             DateTime             @default(now())
+  updated_at             DateTime             @default(now())
+  organizations          organizations        @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_subscriptions_org")
+  plans                  plans                @relation(fields: [plan_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_subscriptions_plan")
+
+  @@index([plan_code], map: "fk_subscriptions_plan")
+  @@index([org_id, status], map: "ix_subscriptions_org")
+  @@index([status, trial_ends_at], map: "ix_subscriptions_trial")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tracked_entities {
+  id               BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id           BigInt                  @db.UnsignedBigInt
+  project_id       BigInt                  @db.UnsignedBigInt
+  kind             tracked_entities_kind
+  name             String                  @db.VarChar(255)
+  name_normalized  String                  @db.VarChar(255)
+  primary_domain   String?                 @db.VarChar(253)
+  status           tracked_entities_status @default(active)
+  source           tracked_entities_source
+  first_seen_at    DateTime?
+  last_seen_at     DateTime?
+  mentions_30d     Int                     @default(0) @db.UnsignedInt
+  created_at       DateTime                @default(now())
+  updated_at       DateTime                @default(now())
+  brand_project_id BigInt?                 @unique(map: "uq_tracked_entities_one_brand") @db.UnsignedBigInt
+  entity_aliases   entity_aliases[]
+  review_items     review_items[]
+  projects         projects                @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tracked_entities_project")
+
+  @@unique([project_id, name_normalized], map: "uq_tracked_entities_name")
+  @@index([project_id, org_id], map: "fk_tracked_entities_project")
+  @@index([project_id, kind, status], map: "ix_tracked_entities_kind")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model traffic_daily {
+  id                BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id            BigInt   @db.UnsignedBigInt
+  project_id        BigInt   @db.UnsignedBigInt
+  metric_date       DateTime @db.Date
+  channel           String   @db.VarChar(32)
+  landing_page      String   @default("") @db.VarChar(2048)
+  landing_page_hash Bytes    @db.Binary(32)
+  sessions          Int      @default(0) @db.UnsignedInt
+  engaged_sessions  Int      @default(0) @db.UnsignedInt
+  key_events        Int      @default(0) @db.UnsignedInt
+  revenue           Decimal  @default(0.00) @db.Decimal(12, 2)
+  currency          String?  @db.Char(3)
+  synced_at         DateTime @default(now())
+  projects          projects @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_traffic_daily_project")
+
+  @@unique([project_id, metric_date, channel, landing_page_hash], map: "uq_traffic_daily_row")
+  @@index([project_id, org_id], map: "fk_traffic_daily_project")
+  @@index([project_id, channel, metric_date], map: "ix_traffic_daily_channel")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model usage_ledger {
+  id              BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id          BigInt?            @db.UnsignedBigInt
+  project_id      BigInt?            @db.UnsignedBigInt
+  audit_id        BigInt?            @db.UnsignedBigInt
+  meter           usage_ledger_meter
+  provider_code   String             @db.VarChar(32)
+  model           String?            @db.VarChar(64)
+  quantity        Decimal            @default(1.0000) @db.Decimal(14, 4)
+  unit            usage_ledger_unit
+  tokens_in       Int?               @db.UnsignedInt
+  tokens_out      Int?               @db.UnsignedInt
+  tokens_cached   Int?               @db.UnsignedInt
+  cost_usd        Decimal            @db.Decimal(12, 6)
+  ref_type        String?            @db.VarChar(32)
+  ref_id          BigInt?            @db.UnsignedBigInt
+  idempotency_key String             @unique(map: "uq_usage_ledger_idem") @db.VarChar(128)
+  occurred_at     DateTime           @default(now())
+
+  @@index([audit_id], map: "ix_usage_ledger_audit")
+  @@index([provider_code, occurred_at], map: "ix_usage_ledger_provider")
+  @@index([org_id, occurred_at], map: "ix_usage_ledger_spend")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  id                                                      BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  clerk_user_id                                           String              @unique(map: "uq_users_clerk") @db.VarChar(64)
+  email                                                   String              @db.VarChar(320)
+  name                                                    String              @default("") @db.VarChar(128)
+  image_url                                               String?             @db.VarChar(1024)
+  timezone                                                String              @default("UTC") @db.VarChar(64)
+  last_org_id                                             BigInt?             @db.UnsignedBigInt
+  last_login_at                                           DateTime?
+  clerk_updated_at                                        DateTime?
+  deleted_at                                              DateTime?
+  created_at                                              DateTime            @default(now())
+  updated_at                                              DateTime            @default(now())
+  audits                                                  audits[]
+  brand_profiles                                          brand_profiles[]
+  content_items_content_items_approved_by_user_idTousers  content_items[]     @relation("content_items_approved_by_user_idTousers")
+  content_items_content_items_created_by_user_idTousers   content_items[]     @relation("content_items_created_by_user_idTousers")
+  content_revisions                                       content_revisions[]
+  entity_aliases                                          entity_aliases[]
+  integrations                                            integrations[]
+  invitations                                             invitations[]
+  memberships                                             memberships[]
+  notifications                                           notifications[]
+  projects                                                projects[]
+  prompts                                                 prompts[]
+  recommendations                                         recommendations[]
+  reports                                                 reports[]
+  review_items                                            review_items[]
+  runs                                                    runs[]
+  site_changes_site_changes_approved_by_user_idTousers    site_changes[]      @relation("site_changes_approved_by_user_idTousers")
+  site_changes_site_changes_rolled_back_by_user_idTousers site_changes[]      @relation("site_changes_rolled_back_by_user_idTousers")
+  organizations                                           organizations?      @relation(fields: [last_org_id], references: [id], onUpdate: NoAction, map: "fk_users_last_org")
+
+  @@index([last_org_id], map: "fk_users_last_org")
+  @@index([email], map: "ix_users_email")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model web_domains {
+  id                   BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  domain               String                    @unique(map: "uq_web_domains_domain") @db.VarChar(253)
+  class                web_domains_class         @default(unclassified)
+  class_source         web_domains_class_source?
+  class_confidence     Decimal?                  @db.Decimal(4, 3)
+  reviewed_by_staff_id BigInt?                   @db.UnsignedBigInt
+  classified_at        DateTime?
+  created_at           DateTime                  @default(now())
+  updated_at           DateTime                  @default(now())
+  staff_users          staff_users?              @relation(fields: [reviewed_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_web_domains_reviewed_by")
+  web_urls             web_urls[]
+
+  @@index([reviewed_by_staff_id], map: "fk_web_domains_reviewed_by")
+  @@index([class], map: "ix_web_domains_class")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model web_urls {
+  id            BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  url_hash      Bytes       @unique(map: "uq_web_urls_hash") @db.Binary(32)
+  url           String      @db.VarChar(2048)
+  domain_id     BigInt      @db.UnsignedBigInt
+  title         String?     @db.VarChar(512)
+  first_seen_at DateTime    @default(now())
+  web_domains   web_domains @relation(fields: [domain_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_web_urls_domain")
+
+  @@index([domain_id], map: "ix_web_urls_domain")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model webhook_events {
+  id           BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  source       webhook_events_source
+  external_id  String                @db.VarChar(255)
+  event_type   String                @db.VarChar(128)
+  status       webhook_events_status @default(received)
+  attempts     Int                   @default(0) @db.UnsignedTinyInt
+  payload      Json?
+  error        String?               @db.VarChar(1000)
+  received_at  DateTime              @default(now())
+  processed_at DateTime?
+
+  @@unique([source, external_id], map: "uq_webhook_events_external")
+  @@index([status, received_at], map: "ix_webhook_events_status")
+}
+
+enum abuse_blocks_kind {
+  ip
+  ip_prefix
+  email
+  email_domain
+  target_domain
+}
+
+enum staff_roles_role {
+  super_admin
+  ops
+  support
+  reviewer
+  finance
+}
+
+enum webhook_events_source {
+  stripe
+  clerk
+  dataforseo
+  serpapi
+  perplexity
+  wordpress
+  resend
+}
+
+enum data_requests_kind {
+  export
+  delete
+}
+
+enum email_suppressions_reason {
+  bounce
+  complaint
+  unsubscribe_all
+  manual
+}
+
+enum engines_status {
+  active
+  beta
+  disabled
+}
+
+enum entitlement_grants_meter {
+  projects
+  prompts
+  seats
+  drafts
+  runs_now
+  daily_prompts
+}
+
+enum providers_kind {
+  answer_data
+  llm
+}
+
+enum quota_usage_meter {
+  drafts
+  runs_now
+  audits
+}
+
+enum web_domains_class {
+  unclassified
+  review_site
+  ugc
+  media
+  reference
+  directory
+  social
+  ecommerce
+  government
+  education
+  vendor
+  other
+}
+
+enum announcements_severity {
+  info
+  warning
+  incident
+}
+
+enum engines_query_field {
+  text
+  search_query
+}
+
+enum integrations_type {
+  wordpress
+  google
+}
+
+enum invitations_role {
+  owner
+  admin
+  editor
+  viewer
+}
+
+enum memberships_role {
+  owner
+  admin
+  editor
+  viewer
+}
+
+enum org_activity_log_actor_type {
+  user
+  staff
+  system
+}
+
+enum providers_status {
+  active
+  disabled
+}
+
+enum review_items_source {
+  disagreement
+  customer_report
+  low_confidence
+  staff
+}
+
+enum tracked_entities_kind {
+  brand
+  competitor
+  discovered
+}
+
+enum web_domains_class_source {
+  seed
+  llm
+  staff
+}
+
+enum action_outcomes_horizon {
+  week_2
+  week_4
+}
+
+enum announcements_audience {
+  all
+  plan
+  org
+  engine
+}
+
+enum change_events_kind {
+  visibility_change
+  mention_rate_change
+  sov_change
+  citation_share_change
+  competitor_surge
+  new_competitor
+  negative_sentiment
+  inaccurate_claim
+}
+
+enum data_requests_requested_via {
+  self_serve
+  support
+}
+
+enum entitlement_grants_source {
+  addon
+  staff_grant
+  coupon
+  design_partner
+}
+
+enum entity_aliases_kind {
+  name
+  domain
+  exclude
+}
+
+enum integrations_status {
+  pending
+  connected
+  broken
+  disconnected
+}
+
+enum invitations_project_access {
+  all
+  selected
+}
+
+enum memberships_project_access {
+  all
+  selected
+}
+
+enum reports_kind {
+  pdf
+  share_link
+}
+
+enum runs_trigger_type {
+  schedule
+  daily
+  manual
+  onboarding
+}
+
+enum scan_checks_status {
+  pass
+  partial
+  fail
+  not_applicable
+  error
+}
+
+enum search_console_daily_dimension {
+  query
+  page
+}
+
+enum site_scans_trigger_type {
+  audit
+  scheduled
+  manual
+  verification
+}
+
+enum staff_users_status {
+  active
+  suspended
+  removed
+}
+
+enum subscriptions_status {
+  incomplete
+  incomplete_expired
+  trialing
+  active
+  past_due
+  unpaid
+  canceled
+  paused
+}
+
+enum usage_ledger_meter {
+  answer_collect
+  serp
+  llm_extract
+  llm_content
+  llm_brand_kit
+  llm_prompts
+  llm_narrative
+  web_search
+  crawl
+  email
+  other
+}
+
+enum webhook_events_status {
+  received
+  processed
+  failed
+  ignored
+}
+
+enum audit_answers_method {
+  ui_capture
+  api_grounded
+  serp
+}
+
+enum content_items_kind {
+  new
+  refresh
+}
+
+enum data_requests_status {
+  pending_verification
+  queued
+  processing
+  undo_window
+  completed
+  canceled
+  failed
+}
+
+enum impersonation_sessions_mode {
+  read_only
+  write
+}
+
+enum notifications_channel {
+  email
+  in_app
+}
+
+enum recommendation_events_actor_type {
+  user
+  staff
+  system
+}
+
+enum audit_answers_status {
+  pending
+  ok
+  no_answer
+  failed
+}
+
+enum brand_profiles_source {
+  audit
+  extracted
+  edited
+  reanalyzed
+}
+
+enum content_items_format {
+  comparison
+  best_of
+  how_to
+  faq
+  glossary
+  facts_page
+  other
+}
+
+enum content_revisions_source {
+  ai_draft
+  ai_revision
+  user_edit
+}
+
+enum engines_primary_method {
+  ui_capture
+  api_grounded
+  serp
+}
+
+enum invitations_status {
+  pending
+  accepted
+  rejected
+  canceled
+  expired
+}
+
+enum notifications_category {
+  transactional
+  proactive
+  marketing
+}
+
+enum organizations_kind {
+  brand
+  agency
+}
+
+enum recommendations_category {
+  crawler_access
+  renderability
+  structured_data
+  entity
+  content_new
+  content_refresh
+  offsite_presence
+  reputation
+  technical
+}
+
+enum runs_status {
+  queued
+  collecting
+  extracting
+  rolling_up
+  complete
+  partial
+  failed
+  canceled
+}
+
+enum site_changes_kind {
+  jsonld
+  meta
+  robots_txt
+  llms_txt
+  post_create
+  post_update
+  indexnow_ping
+}
+
+enum site_pages_page_type {
+  home
+  about
+  pricing
+  product
+  service
+  article
+  faq
+  contact
+  other
+}
+
+enum site_scans_status {
+  queued
+  running
+  complete
+  partial
+  failed
+}
+
+enum cell_results_status {
+  complete
+  partial
+  failed
+  no_answer
+}
+
+enum entity_aliases_source {
+  brand_kit
+  audit
+  user
+  review
+  system
+}
+
+enum prompts_intent {
+  discovery
+  comparison
+  problem_solution
+  brand
+  local
+  transactional
+}
+
+enum recommendations_fix_path {
+  auto_fix
+  content
+  guidance
+}
+
+enum reports_status {
+  queued
+  ready
+  failed
+  revoked
+}
+
+enum runs_extraction_mode {
+  batch
+  sync
+}
+
+enum tracked_entities_status {
+  active
+  paused
+  suggested
+  ignored
+}
+
+enum answer_snapshots_method {
+  ui_capture
+  api_grounded
+  serp
+}
+
+enum engines_fallback_method {
+  ui_capture
+  api_grounded
+  serp
+}
+
+enum fix_verifications_method {
+  bot_refetch
+  readiness_check
+  url_live
+  manual
+}
+
+enum organizations_billing_status {
+  none
+  trialing
+  active
+  past_due
+  paused
+  canceled
+}
+
+enum prompts_funnel_stage {
+  awareness
+  consideration
+  decision
+}
+
+enum site_pages_source {
+  sitemap
+  nav
+  crawl
+  content_studio
+  citation
+  user
+}
+
+enum tracked_entities_source {
+  brand_kit
+  audit
+  user
+  discovered
+}
+
+enum usage_ledger_unit {
+  request
+  result
+  batch
+  search
+  email
+}
+
+enum answer_snapshots_mode {
+  standard
+  priority
+  live
+}
+
+enum audits_status {
+  awaiting_verification
+  queued
+  running
+  complete
+  partial
+  failed
+  blocked
+}
+
+enum claims_polarity {
+  positive
+  neutral
+  negative
+}
+
+enum content_items_status {
+  researching
+  briefing
+  drafting
+  qc
+  ready
+  approved
+  publishing
+  published
+  failed
+  archived
+}
+
+enum projects_cadence {
+  weekly
+  daily
+}
+
+enum review_items_report_kind {
+  not_us
+  misread
+  missed
+  other
+}
+
+enum claims_accuracy_status {
+  unchecked
+  accurate
+  inaccurate
+  unverifiable
+}
+
+enum fix_verifications_status {
+  pending
+  passed
+  failed
+  not_verifiable
+}
+
+enum impersonation_sessions_end_reason {
+  staff_ended
+  expired
+  revoked
+}
+
+enum site_changes_status {
+  pending_approval
+  approved
+  applying
+  applied
+  failed
+  rolled_back
+  canceled
+}
+
+enum notifications_status {
+  queued
+  sent
+  delivered
+  bounced
+  complained
+  failed
+  suppressed
+}
+
+enum projects_status {
+  onboarding
+  active
+  paused
+  archived
+}
+
+enum provider_health_breaker_state {
+  closed
+  open
+  half_open
+}
+
+enum answer_snapshots_status {
+  pending
+  ok
+  no_answer
+  failed
+}
+
+enum audit_answers_brand_stance {
+  recommended
+  neutral
+  cautioned
+  not_recommended
+}
+
+enum mentions_prominence {
+  primary
+  secondary
+  passing
+}
+
+enum projects_paused_reason {
+  user
+  plan_limit
+  payment
+  spend_cap
+  staff
+}
+
+enum review_items_status {
+  open
+  in_review
+  resolved
+  rejected
+}
+
+enum mentions_stance {
+  recommended
+  neutral
+  cautioned
+  not_recommended
+}
+
+enum prompts_status {
+  active
+  paused
+  archived
+}
+
+enum prompts_paused_reason {
+  user
+  plan_limit
+}
+
+enum review_items_resolution {
+  extraction_correct
+  extraction_wrong
+  alias_added
+  exclusion_added
+  rule_fixed
+  no_action
+}
+
+enum prompts_source {
+  generated
+  imported
+  manual
+  audit
+}
+
+enum mentions_detected_by {
+  prepass
+  llm
+  both
+}
+
+enum action_outcomes_verdict {
+  proven_win
+  no_change
+  declined
+  insufficient_data
+}
+
+enum recommendations_status {
+  open
+  in_progress
+  done
+  verified
+  unverified
+  measuring
+  proven_win
+  no_change
+  declined
+  dismissed
+}
+
+enum recommendations_dismiss_reason {
+  not_relevant
+  already_done
+  wont_do
+  incorrect
+}
+
+enum change_events_direction {
+  up
+  down
+  new
+}
+
+enum answer_snapshots_answer_type {
+  list
+  single_recommendation
+  comparison
+  explanatory
+  refusal
+}
+
+enum answer_snapshots_extraction_status {
+  pending
+  done
+  skipped
+  failed
+}

@@ -1,0 +1,9 @@
+node_modules/
+src/web/public/build/
+src/db/generated/
+coverage/
+test-results/
+playwright-report/
+docs/
+CLAUDE.md
+README.md
