@@ -63,6 +63,16 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - Database tests (`test:routes`, `test:integration`, `test:tenancy`, `test:e2e`) run against `aeo_corner_test`. Each file creates uniquely named data through `fixtures(db)` and removes it afterwards; none truncates tables.
 - Staff are invite-only: `npm run staff:invite -- email "Name" role`.
 
+## Queues and the worker (Phase 3; details in `docs/MVP.md` §7.8 and `docs/BUILD_PLAN.md`)
+
+- **The worker is a separate process** (`npm run worker`, `src/worker/`). The web process only adds jobs (`src/lib/jobs.js`, `createJobClient`) and shows the queues to staff at `/queues` on the staff host.
+- **Every external call goes through `callProvider`** (`src/worker/provider-call.js`): spend pause, circuit breaker, per-organization slot, provider rate limit, the call, the ledger row, then the spend check. Waiting throws a `Deferral` (a delayed job that does not use up an attempt), never a failure. A call that returns no `usage` is a bug.
+- **Job IDs are what the job is** (`src/lib/job-ids.js`: no `:`, not only digits), never when it was made. Payloads carry IDs as strings and nothing else: no emails, names or secrets, because Bull Board shows them.
+- **Money is micro-dollars** (whole numbers, `src/core/spend.js`); the day is the UTC day.
+- **Rate-limit and concurrency logic exist twice on purpose:** a pure model in `src/core` (unit-tested) and a Lua script in `src/lib` (atomic in Redis). A test replays random traffic through both; change them together.
+- **Redis for tests is `TEST_REDIS_URL`** (never `REDIS_URL`). On a local Redis it must name a database other than 0. The local container on port 6379 is shared with another project: use databases 14 (dev) and 15 (tests), keep every key under a prefix, and never run FLUSHDB/FLUSHALL. CI installs Redis with apt (no Docker).
+- A new cross-organization lookup in `src/db/repos/system.js` is a reviewed decision: list it in the tenancy coverage test.
+
 ## Schema rules
 
 - **Tenancy:**

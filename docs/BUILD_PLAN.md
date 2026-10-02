@@ -174,6 +174,8 @@
 
 ## Phase 3 — Job infrastructure & usage ledger
 
+**Status (2026-10-02):** 🟠 **Started; code and the five required tests are written and passing locally, but the phase is not finished.** Still to do: tests for the Bull Board page on the staff host (`src/web/staff/queues.js`, written but never run in a browser or under the CSP), the CI changes (Redis in the workflow, plus `SHADOW_DATABASE_URL` for the accessibility job, which is edited locally and not pushed), the docs pass (CLAUDE.md, MVP §7.8, ADMIN_OPERATIONS §6, an ADR for the queue design) and one flaky integration test seen once in a full run (passed on rerun). Redis for local work is the shared container on port 6379: use databases 14 (dev) and 15 (tests), never 0, never flush.
+
 **Goal:** BullMQ is running as a separate worker process with the scheduling, rate-limiting and cost-tracking primitives every later job depends on.
 
 **Work:**

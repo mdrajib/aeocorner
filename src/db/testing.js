@@ -73,7 +73,7 @@ export function fixtures(db) {
       return { user, membership };
     },
 
-    async project(orgId, name = `Project ${unique()}`) {
+    async project(orgId, name = `Project ${unique()}`, { status, slotHour = 1 } = {}) {
       return prisma.projects.create({
         data: {
           public_id: ulid(),
@@ -82,8 +82,30 @@ export function fixtures(db) {
           domain: `${unique()}.example.test`,
           country: 'US',
           language: 'en',
-          weekly_slot_hour: 1,
+          weekly_slot_hour: slotHour,
+          ...(status ? { status } : {}),
         },
+      });
+    },
+
+    /** Set an organization's plan and its own daily cap directly, as the admin console will later. */
+    setOrgSpend(orgId, { planCode, capUsd } = {}) {
+      return prisma.organizations.update({
+        where: { id: orgId },
+        data: {
+          ...(planCode !== undefined ? { plan_code: planCode } : {}),
+          ...(capUsd !== undefined ? { spend_cap_usd_daily: capUsd } : {}),
+        },
+      });
+    },
+
+    /** Read an organization row, for checks on state the repositories only change (never expose whole). */
+    organizationRow: (orgId) => prisma.organizations.findUnique({ where: { id: orgId } }),
+
+    /** Remove health buckets a test wrote for a real provider code. */
+    deleteProviderHealth({ providerCode, from, to }) {
+      return prisma.provider_health.deleteMany({
+        where: { provider_code: providerCode, bucket_start: { gte: from, lte: to } },
       });
     },
 
@@ -156,6 +178,8 @@ export function fixtures(db) {
         await prisma.memberships.deleteMany({ where });
         await prisma.invitations.deleteMany({ where });
         await prisma.org_activity_log.deleteMany({ where });
+        await prisma.usage_ledger.deleteMany({ where });
+        await prisma.notifications.deleteMany({ where });
         await prisma.projects.deleteMany({ where });
         await prisma.users.updateMany({
           where: { last_org_id: { in: orgs } },

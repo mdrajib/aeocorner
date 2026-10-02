@@ -1,4 +1,5 @@
 import { DomainError, isForeignKeyViolation, isUniqueViolation } from '../errors.js';
+import { usageRepos } from './org-usage.js';
 
 /**
  * Repositories for one organization's data. `forOrg(orgId)` binds the organization once, and every
@@ -319,5 +320,11 @@ export function orgScopedRepos(prisma, orgId) {
       }),
   };
 
-  return { orgId, memberships, invitations, activity };
+  return {
+    orgId,
+    memberships,
+    invitations,
+    activity,
+    ...usageRepos(prisma, orgId, { appendActivity }),
+  };
 }

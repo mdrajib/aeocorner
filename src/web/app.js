@@ -36,6 +36,7 @@ const PUBLIC_DIR = join(WEB_DIR, 'public');
  *   provider       customer sign-in (Clerk). Defaults to Clerk if configured, else "sign-in unavailable".
  *   staffProvider  the same for the separate staff Clerk app.
  *   mailer         sends transactional email.
+ *   queues         the BullMQ queues (src/lib/queues.js). When given, the staff console shows them at /queues.
  *   extraRoutes(app) lets a test mount a route (e.g. one that throws) ahead of the 404 and error handlers.
  */
 export function createApp({
@@ -45,6 +46,7 @@ export function createApp({
   provider = createProvider(config),
   staffProvider = config.staff ? createStaffProvider(config) : null,
   mailer = createMailer({ config, logger }),
+  queues = null,
   cloudflareKeys,
   extraRoutes,
 } = {}) {
@@ -85,7 +87,7 @@ export function createApp({
     app.use(
       onHost(
         config.staff.host,
-        staffRoutes({ config, db, provider: staffProvider, logger, cloudflareKeys }),
+        staffRoutes({ config, db, provider: staffProvider, logger, cloudflareKeys, queues }),
       ),
     );
   }

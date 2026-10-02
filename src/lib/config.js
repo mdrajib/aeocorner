@@ -21,6 +21,14 @@ const envSchema = z.object({
   APP_SECRET: optional(z.string().min(32)),
   DATABASE_URL: optional(z.string().min(1)),
 
+  // Queues, rate limits and circuit breakers (MVP §7.8). BullMQ needs Redis with eviction off.
+  REDIS_URL: optional(z.string().regex(/^rediss?:\/\//, 'must start redis:// or rediss://')),
+  QUEUE_PREFIX: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,32}$/, 'letters, digits, - and _ only')
+    .default('aeo'),
+  ALERT_WEBHOOK_URL: optional(z.url()),
+
   // Clerk, customer app: identity only (DATABASE_SCHEMA §10.1). Both keys or neither.
   CLERK_PUBLISHABLE_KEY: optional(
     z.string().regex(/^pk_(test|live)_/, 'must start pk_test_ or pk_live_'),
@@ -185,6 +193,8 @@ export function loadConfig(env = process.env) {
     posthog,
     appSecret: e.APP_SECRET ?? DEV_APP_SECRET,
     databaseUrl: e.DATABASE_URL ?? null,
+    redis: e.REDIS_URL ? { url: e.REDIS_URL, prefix: e.QUEUE_PREFIX } : null,
+    alertWebhookUrl: e.ALERT_WEBHOOK_URL ?? null,
     auth: customer
       ? {
           ...customer,

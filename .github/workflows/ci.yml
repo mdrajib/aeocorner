@@ -12,6 +12,7 @@ jobs:
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
       TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
       SHADOW_DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_shadow
+      TEST_REDIS_URL: redis://127.0.0.1:6379/15
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +28,15 @@ jobs:
       # No Docker on this project (see CLAUDE.md). ubuntu-latest ships MySQL 8
       # pre-installed but disabled; start it and mirror DigitalOcean's
       # sql_require_primary_key rule before touching the schema.
+      # The queue tests need a real Redis (BullMQ and the rate-limit scripts). The Ubuntu package defaults to the
+      # "noeviction" policy BullMQ requires.
+      - name: Install and start Redis
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-server
+          sudo systemctl start redis-server
+          until redis-cli -h 127.0.0.1 ping | grep -q PONG; do sleep 1; done
+
       - name: Start MySQL and apply DigitalOcean's primary-key rule
         run: |
           sudo systemctl start mysql.service
@@ -115,6 +125,8 @@ jobs:
     env:
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
       TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
+      # prisma.config.ts refuses to load without it, even though `migrate deploy` never uses the shadow database.
+      SHADOW_DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_shadow
     steps:
       - uses: actions/checkout@v4
 

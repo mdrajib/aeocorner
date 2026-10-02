@@ -239,13 +239,177 @@ describe('organizations and invitation links (the global lookups)', () => {
   });
 });
 
+describe('usage ledger', () => {
+  const entry = (key, costUsd = '0.25') => ({
+    meter: 'other',
+    providerCode: 'noop',
+    unit: 'request',
+    costUsd,
+    idempotencyKey: key,
+  });
+  const since = new Date(Date.now() - 3_600_000);
+
+  test('record(): writes A’s org only, and reading it back as B finds nothing', async () => {
+    const { entry: row } = await A.scoped.usage.record(entry(`tenancy.a.${A.org.id}`));
+    assert.equal(row.org_id, A.org.id);
+    assert.ok(!(await B.scoped.usage.recent({ limit: 500 })).some((r) => r.id === row.id));
+  });
+
+  test('record(): B’s project cannot be named from A', async () => {
+    await refuses(
+      A.scoped.usage.record({ ...entry(`tenancy.proj.${A.org.id}`), projectId: bProject.id }),
+      'PROJECT_NOT_IN_ORG',
+    );
+  });
+
+  test('record(): B’s idempotency key is a clash for A, and says nothing about B’s row', async () => {
+    const key = `tenancy.clash.${B.org.id}`;
+    await B.scoped.usage.record(entry(key));
+    await assert.rejects(A.scoped.usage.record(entry(key)), (e) => {
+      assert.ok(e instanceof DomainError && e.code === 'KEY_IN_USE');
+      assert.ok(!JSON.stringify([e.message, e.code]).includes(String(B.org.id)));
+      return true;
+    });
+  });
+
+  test('recent(): only A’s rows', async () => {
+    const rows = await A.scoped.usage.recent({ limit: 500 });
+    assert.ok(rows.length > 0);
+    assert.ok(rows.every((r) => r.org_id === A.org.id));
+  });
+
+  test('spentSinceMicros(): B’s spending never counts towards A', async () => {
+    await B.scoped.usage.record(entry(`tenancy.big.${B.org.id}`, '500'));
+    const a = await A.scoped.usage.spentSinceMicros(since);
+    assert.ok(a < 500_000_000, `A saw ${a} micro-dollars`);
+    assert.ok((await B.scoped.usage.spentSinceMicros(since)) >= 500_000_000);
+  });
+});
+
+describe('spend-cap state', () => {
+  const until = new Date(Date.now() + 3_600_000);
+  const pause = (org) =>
+    org.scoped.spend.pause({ until, now: new Date(), spentUsd: '1', capUsd: '1' });
+
+  test('state(): A sees A’s cap and plan, not B’s', async () => {
+    await fx.setOrgSpend(B.org.id, { capUsd: '777.00', planCode: 'agency' });
+    const a = await A.scoped.spend.state();
+    assert.notEqual(a.orgCapUsd, '777');
+    assert.notEqual(a.planCode, 'agency');
+    assert.equal((await B.scoped.spend.state()).orgCapUsd, '777');
+  });
+
+  test('pause() / resume(): A’s calls never move B’s pause', async () => {
+    assert.equal((await fx.organizationRow(B.org.id)).collection_paused_until, null);
+    assert.equal(await pause(A), true);
+    assert.equal((await fx.organizationRow(B.org.id)).collection_paused_until, null, 'B untouched');
+    assert.ok((await fx.organizationRow(A.org.id)).collection_paused_until);
+
+    await pause(B);
+    assert.equal(await A.scoped.spend.resume({ reason: 'test' }), true);
+    assert.ok((await fx.organizationRow(B.org.id)).collection_paused_until, 'B still paused');
+    assert.equal(await A.scoped.spend.resume({ reason: 'test' }), false, 'nothing left for A');
+    await B.scoped.spend.resume({ reason: 'test' });
+  });
+
+  test('pause() is claimed once: the other callers find it already paused', async () => {
+    const results = await Promise.all(Array.from({ length: 6 }, () => pause(A)));
+    assert.equal(results.filter(Boolean).length, 1);
+    await A.scoped.spend.resume({ reason: 'test' });
+  });
+});
+
+describe('notifications', () => {
+  const notice = (org, over = {}) => ({
+    userId: org.owner.id,
+    kind: 'test',
+    dedupeKey: 'shared-key',
+    ...over,
+  });
+
+  test('createOnce(): B’s user cannot be notified from A', async () => {
+    await refuses(
+      A.scoped.notifications.createOnce(notice(A, { userId: B.owner.id })),
+      'NOT_MEMBER',
+    );
+    assert.equal((await B.scoped.notifications.forUser(B.owner.id)).length, 0);
+  });
+
+  test('createOnce(): the same key in two organizations is two notices; neither reveals the other', async () => {
+    assert.equal((await A.scoped.notifications.createOnce(notice(A))).created, true);
+    assert.equal(
+      (await B.scoped.notifications.createOnce(notice(B))).created,
+      true,
+      'B’s key is not taken just because A used the same text',
+    );
+    assert.equal((await A.scoped.notifications.createOnce(notice(A))).created, false);
+  });
+
+  test('forUser(): B’s user has no notices as seen from A, though B has some', async () => {
+    assert.ok((await B.scoped.notifications.forUser(B.owner.id)).length > 0);
+    assert.deepEqual(await A.scoped.notifications.forUser(B.owner.id), []);
+    const mine = await A.scoped.notifications.forUser(A.owner.id);
+    assert.ok(mine.length > 0 && mine.every((n) => n.org_id === A.org.id));
+  });
+});
+
+describe('system lookups (the reviewed cross-organization set)', () => {
+  test('dueProjects(): IDs only, active projects only, none of their content', async () => {
+    const slotHour = 150;
+    const active = await fx.project(A.org.id, 'Private name A', { status: 'active', slotHour });
+    await fx.project(B.org.id, 'Private name B', { status: 'active', slotHour });
+    await fx.project(A.org.id, 'Still onboarding', { status: 'onboarding', slotHour });
+    await fx.project(A.org.id, 'Archived', { status: 'archived', slotHour });
+
+    const due = await db.system.scheduling.dueProjects({ hour: slotHour });
+    const mine = due.filter((d) => d.orgId === A.org.id || d.orgId === B.org.id);
+    assert.equal(mine.length, 2, 'one active project per organization, and nothing else');
+    assert.ok(mine.some((d) => d.projectId === active.id));
+    for (const d of due) {
+      assert.deepEqual(Object.keys(d).sort(), ['orgId', 'projectId', 'projectPublicId']);
+    }
+    const text = JSON.stringify(due, (_k, v) => (typeof v === 'bigint' ? String(v) : v));
+    assert.ok(!text.includes('Private name'));
+  });
+
+  test('spentByOrgSince() and pausedOrgIds(): numbers and IDs, nothing else', async () => {
+    const spent = await db.system.spendMonitor.spentByOrgSince(new Date(Date.now() - 3_600_000));
+    assert.ok(spent.length > 0);
+    for (const s of spent) assert.deepEqual(Object.keys(s).sort(), ['orgId', 'spentMicros']);
+    const paused = await db.system.spendMonitor.pausedOrgIds();
+    assert.ok(paused.every((id) => typeof id === 'bigint'));
+  });
+});
+
 describe('coverage: no repository function without a leak test', () => {
-  // Update this list in the same commit that adds a function to org-scoped.js.
+  // Update this list in the same commit that adds a function to org-scoped.js or org-usage.js.
   const COVERED = {
     memberships: ['add', 'changeRole', 'get', 'getByUser', 'list', 'remove', 'setProjectAccess'],
     invitations: ['cancel', 'create', 'get', 'listPending', 'reissue'],
     activity: ['append', 'recent'],
+    usage: ['recent', 'record', 'spentSinceMicros'],
+    spend: ['pause', 'resume', 'state'],
+    notifications: ['createOnce', 'forUser'],
   };
+
+  // The cross-organization lookups the worker makes (src/db/repos/system.js). Adding one is a reviewed decision:
+  // list it here, and have its test above say what it returns.
+  const SYSTEM = {
+    scheduling: ['dueProjects'],
+    spendMonitor: ['pausedOrgIds', 'spentByOrgSince'],
+    providerHealth: ['knownProviders', 'recent', 'upsertBucket'],
+  };
+
+  test('every cross-organization system lookup is listed above', () => {
+    assert.deepEqual(Object.keys(db.system).sort(), Object.keys(SYSTEM).sort());
+    for (const [repo, functions] of Object.entries(SYSTEM)) {
+      assert.deepEqual(
+        Object.keys(db.system[repo]).sort(),
+        functions,
+        `${repo}: review, then list`,
+      );
+    }
+  });
 
   test('every function exposed by forOrg() is listed above', () => {
     const scoped = db.forOrg(A.org.id);
@@ -260,7 +424,10 @@ describe('coverage: no repository function without a leak test', () => {
       'activity',
       'invitations',
       'memberships',
+      'notifications',
       'orgId',
+      'spend',
+      'usage',
     ]);
   });
 

@@ -4,13 +4,14 @@ import { clearClerkCookies } from '../routes/auth.js';
 import { notFound } from '../middleware/errors.js';
 import { cloudflareAccess } from './cloudflare-access.js';
 import { createStaffAuth } from './auth.js';
+import { queueBoard } from './queues.js';
 
 /**
  * The staff console (ADMIN_OPERATIONS §1). Phase 2 builds the doorway only: Cloudflare Access, the separate
  * staff Clerk app, mandatory second factor, and role checks. The modules behind it (customers, runs, providers…)
  * arrive with the phases that need them. Everything here lives on its own host, never on the public one.
  */
-export function staffRoutes({ config, db, provider, logger, cloudflareKeys }) {
+export function staffRoutes({ config, db, provider, logger, cloudflareKeys, queues = null }) {
   const router = Router();
   const staffAuth = createStaffAuth({ config, provider, db, logger });
 
@@ -58,6 +59,9 @@ export function staffRoutes({ config, db, provider, logger, cloudflareKeys }) {
       { layout: 'app' },
     );
   });
+
+  // The queue dashboard exists only where there is a queue to show (Redis configured).
+  if (queues) router.use('/queues', queueBoard({ queues, staffAuth, db, logger }));
 
   router.use(notFound);
   return router;

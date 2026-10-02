@@ -45,6 +45,26 @@ export function staffRepo(prisma) {
       );
     },
 
+    /**
+     * Record a staff write action (ADMIN_OPERATIONS: every one is audited). The application's database user may
+     * only INSERT and SELECT on this table, so a row can't be edited or removed afterwards.
+     */
+    audit: ({ staffId, action, targetType, targetId, orgId, reason, afterState, ip, userAgent }) =>
+      prisma.admin_audit_log.create({
+        data: {
+          staff_user_id: staffId,
+          action: String(action).slice(0, 64),
+          org_id: orgId ?? null,
+          target_type: targetType ?? null,
+          target_id:
+            targetId === null || targetId === undefined ? null : String(targetId).slice(0, 64),
+          reason: reason ? String(reason).slice(0, 500) : null,
+          after_state: afterState ?? undefined,
+          ip: ip ? String(ip).slice(0, 45) : null,
+          user_agent: userAgent ? String(userAgent).slice(0, 512) : null,
+        },
+      }),
+
     recordLogin: (staffId, ip) =>
       prisma.staff_users.update({
         where: { id: staffId },
