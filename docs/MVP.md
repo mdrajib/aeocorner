@@ -1055,15 +1055,15 @@ The narrative shape of the build. For the actual checkable work items and the re
 | Week | Focus | Deliverables / exit criteria |
 |---|---|---|
 | **0** (pre-start) | Setup & long-lead items | Repo, CI; DigitalOcean provisioning (Droplet, Managed MySQL, Redis, Spaces, Cloudflare in front) per §7.11; provider accounts and budgets; **Google OAuth verification submitted**; ToS/Privacy/DPA drafts; 20 design-partner conversations started |
-| **1–2** | Foundations + crawler | Auth/orgs, database schema v1, job infrastructure, usage ledger; SSRF-safe fetcher; robots/sitemap parsing; readiness checks v0; **spikes on all 4 engine adapters** with raw storage |
+| **1–2** | Foundations + crawler | Auth/orgs, database schema v1, job infrastructure, usage ledger; SSRF-safe fetcher; robots/sitemap parsing; readiness checks v0; **spikes on all 4 engine adapters** with raw storage; **design system, wireframes and the public site shell** (homepage, methodology v1, Terms, Privacy) |
 | **3** | Extraction + eval | Extraction schema; **200-answer golden set** labeled; eval of Opus 5 (low effort) vs Haiku 4.5; score formulas v0; decision **D4** recorded as an ADR |
-| **4** | 🚩 **M1: Free audit live** | Public audit (Turnstile, OTP, report page, email); rate limits; lead capture; audit analytics funnel. *Starts generating leads while the rest is built* |
+| **4** | 🚩 **M1: Free audit live** | Public audit (Turnstile, OTP, report page, email); rate limits; lead capture; audit analytics funnel; Terms and Privacy already live before any real email is collected. *Starts generating leads while the rest is built* |
 | **5–6** | Tracking core | Projects, Brand Kit, Prompt Manager, scheduler, orchestrator, batch extraction, entity resolution, rollups, significance tests |
 | **7–8** | 🚩 **M2: Design-partner beta** | Dashboard (overview, prompt matrix, competitors), Citation Intelligence; 10–15 design partners onboarded |
 | **9** | Action Center | Rules engine, ICE scoring, narratives, closed-loop baselines, before/after cards |
 | **10** | Content Studio + WordPress | Brief, draft, QC, JSON-LD, approval; WordPress REST + Connector plugin (schema/meta/IndexNow) |
-| **11** | Analytics, digest, billing | GA4/GSC OAuth + sync, AI-traffic charts; weekly digest and alerts; Stripe plans, limits, trial |
-| **12** | 🚩 **M3: Public launch** | Load and cost test at 2× target; security review; public methodology page; pricing page; onboarding polish; runbooks |
+| **11** | Analytics, digest, billing | GA4/GSC OAuth + sync, AI-traffic charts; weekly digest and alerts; Stripe plans, limits, trial. Public marketing site work starts (product pages, pricing page driven by the `plans` table) |
+| **12** | 🚩 **M3: Public launch** | Load and cost test at 2× target; security review; public marketing site finished (final methodology page, case studies, launch content, passes our own readiness checks); onboarding polish; runbooks |
 
 ### 13.3 MVP Definition of Done
 - [ ] A new user goes from free audit → trial → first weekly run → first executed recommendation with **no human help**.

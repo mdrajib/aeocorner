@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-One-way-door technical decisions made while building AEO Corner, and the reasoning behind them — separate from the product/architecture decisions already tracked in [MVP.md §17](../MVP.md#17-decisions-needed-from-the-founder) and [DATABASE_SCHEMA.md §11](../DATABASE_SCHEMA.md#11-open-decisions). An ADR is written when a decision is made, not planned in advance for every phase; [BUILD_PLAN.md](../BUILD_PLAN.md) calls one out explicitly only where a phase's outcome is genuinely uncertain (Phase 4's provider verification, Phase 5's decision D4).
+One-way-door technical decisions made while building AEO Corner, and the reasoning behind them — separate from the product/architecture decisions already tracked in [MVP.md §17](../MVP.md#17-decisions-needed-from-the-founder) and [DATABASE_SCHEMA.md §11](../DATABASE_SCHEMA.md#11-open-decisions). An ADR is written when a decision is made, not planned in advance for every phase; [BUILD_PLAN.md](../BUILD_PLAN.md) calls one out explicitly only where a phase's outcome is genuinely uncertain (Phase 5's provider verification, Phase 6's decision D4).
 
 | ADR | Title | Status | Date |
 |---|---|---|---|

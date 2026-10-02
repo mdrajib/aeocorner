@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Document** | Phase-by-phase execution checklist for building the app |
-| **Date** | 2026-09-28 |
-| **Status** | Draft — no application code exists yet |
+| **Date** | 2026-10-02 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered) |
+| **Status** | In progress — Phase 0 engineering is done; its founder/infra items are still open. Phase 1 is next |
 | **Companion docs** | [MVP.md](MVP.md) §13 (narrative timeline, team, Definition of Done) · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md) · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. Purpose and how to use this plan
@@ -15,7 +15,7 @@
 2. **A phase is not done until its Tests checklist passes**, in addition to its work checklist. Tests from earlier phases must still pass (no regressions) — this is what CI enforces from Phase 0 onward.
 3. **Check boxes as work lands**, in this file, in the same commit/PR as the work. When every box in a phase is checked, mark the phase header `✅ Complete <date>`.
 4. **If a phase reveals that an earlier decision was wrong**, stop and update the relevant doc ([MVP.md](MVP.md), [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md)) in the same pass, per [CLAUDE.md](../CLAUDE.md)'s consistency rule — don't silently drift from the written design.
-5. **No phase below starts until the user says to start building.** Per [CLAUDE.md](../CLAUDE.md), this repository is design-only today; this document is itself a design artifact.
+5. **Building began on 2026-09-28 with Phase 0.** Start each later phase only when the founder asks for it.
 
 ## 2. Testing conventions (apply to every phase)
 
@@ -23,35 +23,43 @@
 |---|---|---|---|
 | Unit tests | **`node:test`** (Node's built-in runner) + `node:assert` — no new dependency, matches the founder's plain-JS/familiar-tools stack | Next to the code, `*.test.js` | Every commit (CI), every phase |
 | HTTP route tests | **supertest** against the Express app in-process | `tests/routes/` | Every commit (CI), from Phase 1 on |
-| DB integration tests | Real MySQL, not mocks — the same `mysql:8.4` container pattern already used to verify `docs/db/*.sql` ([CLAUDE.md](../CLAUDE.md#verifying-schema-changes)), migrated with `prisma migrate deploy` | `tests/integration/` | Every commit (CI), from Phase 1 on |
-| Cross-tenant leak tests | For every tenant-scoped repository function in `src/db/`, assert org A can never read or write org B's rows | `tests/tenancy/` | Every commit (CI), from Phase 1 on — this is [MVP §7.1](MVP.md#71-architecture-principles) principle 7's "second line of defense" |
-| Adapter/contract tests | Recorded fixture responses per provider, replayed — no paid calls in CI | `tests/fixtures/engines/`, `tests/adapters/` | Every commit (CI), from Phase 4 on |
+| DB integration tests | Real MySQL, not mocks — native MySQL 8 with `sql_require_primary_key` ON (the local Windows service; GitHub's pre-installed MySQL in CI; **no Docker**, see [CLAUDE.md](../CLAUDE.md#verifying-schema-changes)), migrated with `prisma migrate deploy` | `tests/integration/` | Every commit (CI), from Phase 2 on |
+| Cross-tenant leak tests | For every tenant-scoped repository function in `src/db/`, assert org A can never read or write org B's rows | `tests/tenancy/` | Every commit (CI), from Phase 2 on — this is [MVP §7.1](MVP.md#71-architecture-principles) principle 7's "second line of defense" |
+| Adapter/contract tests | Recorded fixture responses per provider, replayed — no paid calls in CI | `tests/fixtures/engines/`, `tests/adapters/` | Every commit (CI), from Phase 5 on |
+| Public-page raw-HTML tests | supertest asserts each public page's real content is in the raw HTML response with no JavaScript run — the marketing site must be readable by AI crawlers ([MVP §7.3](MVP.md#73-components)) | `tests/routes/` | Every commit (CI), from Phase 1 on |
+| Accessibility & responsive | **axe-core** through Playwright over every page listed in `tests/e2e/pages.js`, plus width checks at 375 / 768 / 1280 px — WCAG 2.1 AA ([MVP §10](MVP.md#10-non-functional-requirements)) | `tests/e2e/a11y/` | CI whenever `src/web/**` or `tailwind/**` changes, from Phase 1 on |
 | Extraction eval | The 200-answer golden set scored against the [MVP §10](MVP.md#10-non-functional-requirements) accuracy targets | `evals/` | CI, whenever `src/llm/**` or prompt/schema files change (already specified in [MVP §7.10](MVP.md#710-environments--delivery)) |
 | E2E smoke tests | **Playwright** (already in the stack for the crawler's render comparison, reused here) | `tests/e2e/` | Against staging before each milestone (M1/M2/M3), not on every commit |
-| Load & cost tests | k6 (or autocannon) at 2× target load, plus the usage-ledger cost-per-audit / cost-per-run check from [MVP §13.3](MVP.md#133-mvp-definition-of-done) | `tests/load/` | Before Phase 13 (M3) only |
+| Load & cost tests | k6 (or autocannon) at 2× target load, plus the usage-ledger cost-per-audit / cost-per-run check from [MVP §13.3](MVP.md#133-mvp-definition-of-done) | `tests/load/` | Before Phase 15 (M3) only |
 
-**Open item:** `node:test` + supertest is a recommendation, not yet a founder decision — flag it for a quick confirm in Phase 0 alongside the other setup choices (§4 below). Nothing later in this plan depends on which way that goes.
+**Settled in Phase 0:** `node:test` + supertest are the unit and route test tools (see the `package.json` scripts).
 
-**CI gate (from [MVP §7.10](MVP.md#710-environments--delivery)):** lint, unit tests, cross-tenant leak tests, migration drift check, extraction eval (conditional), `npm audit` — all required to merge, starting Phase 0.
+**UI rule (from Phase 1 on):** every phase that adds screens builds them from the Phase 1 component kit, adds any new component to `/_styleguide`, and registers each new page in `tests/e2e/pages.js`, so the accessibility sweep covers it with no extra work. A screen built outside the kit needs a reason written in its phase.
+
+**CI gate (from [MVP §7.10](MVP.md#710-environments--delivery)):** lint, unit tests, cross-tenant leak tests, migration drift check, extraction eval (conditional), accessibility sweep (conditional, from Phase 1), `npm audit` — all required to merge, starting Phase 0.
 
 ## 3. Phase overview
 
 | # | Phase | Roughly maps to MVP §13.2 week(s) | Milestone |
 |---|---|---|---|
 | 0 | Prerequisites & project setup | Week 0 | — |
-| 1 | Auth, orgs & tenancy foundation | Weeks 1–2 | — |
-| 2 | Job infrastructure & usage ledger | Weeks 1–2 | — |
-| 3 | Site crawler & readiness checks | Weeks 1–2 | — |
-| 4 | Engine adapters (spikes) | Weeks 1–2 | — |
-| 5 | Extraction pipeline & golden-set eval | Week 3 | Decision D4 recorded |
-| 6 | Free audit | Week 4 | 🚩 **M1: Free audit live** |
-| 7 | Projects, Brand Kit & Prompt Manager | Weeks 5–6 | — |
-| 8 | Tracking orchestrator, rollups & significance | Weeks 5–6 | — |
-| 9 | Visibility Dashboard & Citation Intelligence | Weeks 7–8 | 🚩 **M2: Design-partner beta** |
-| 10 | Action Center & closed loop | Week 9 | — |
-| 11 | Content Studio & WordPress Connector | Week 10 | — |
-| 12 | AI traffic analytics, digest & billing | Week 11 | — |
-| 13 | Hardening, load/cost testing & launch | Week 12 | 🚩 **M3: Public launch** |
+| 1 | Design system & public site shell | Weeks 1–2 | — |
+| 2 | Auth, orgs & tenancy foundation | Weeks 1–2 | — |
+| 3 | Job infrastructure & usage ledger | Weeks 1–2 | — |
+| 4 | Site crawler & readiness checks | Weeks 1–2 | — |
+| 5 | Engine adapters (spikes) | Weeks 1–2 | — |
+| 6 | Extraction pipeline & golden-set eval | Week 3 | Decision D4 recorded |
+| 7 | Free audit | Week 4 | 🚩 **M1: Free audit live** |
+| 8 | Projects, Brand Kit & Prompt Manager | Weeks 5–6 | — |
+| 9 | Tracking orchestrator, rollups & significance | Weeks 5–6 | — |
+| 10 | Visibility Dashboard & Citation Intelligence | Weeks 7–8 | 🚩 **M2: Design-partner beta** |
+| 11 | Action Center & closed loop | Week 9 | — |
+| 12 | Content Studio & WordPress Connector | Week 10 | — |
+| 13 | AI traffic analytics, digest & billing | Week 11 | — |
+| 14 | Public marketing site & launch content | Weeks 11–12 | — |
+| 15 | Hardening, load/cost testing & launch | Week 12 | 🚩 **M3: Public launch** |
+
+**Capacity note.** Phase 1 runs alongside Phases 2–5 in weeks 1–2. With the [MVP §13.1](MVP.md#131-team-mvp) team, the designer and the UI-leaning engineer carry Phase 1 (plus Phase 2's auth screens), and the backend-leaning engineer carries Phases 3–5. The 12-week total does not change, because the public-site work that used to be crammed into week 12 now has its own phases. But weeks 1–2 are now the tightest stretch of the plan, and they slip first if the team is smaller than that.
 
 ## Phase 0 — Prerequisites & project setup
 
@@ -63,7 +71,8 @@
 - [ ] Provision DigitalOcean: Droplet, Managed MySQL, Redis, Spaces, one region/VPC ([MVP §7.11](MVP.md#711-digitalocean-deployment-topology)).
 - [ ] Fill in the `NULL` plan limits in [seed_reference.sql](db/seed_reference.sql) (seats, "run now" quota) — [DATABASE_SCHEMA §11 O7](DATABASE_SCHEMA.md#11-open-decisions).
 - [ ] Submit Google OAuth verification (GA4/Search Console scopes) — long lead time, start early per [MVP §13.2](MVP.md#132-12-week-timeline) week 0.
-- [ ] Draft ToS, Privacy Policy, DPA, subprocessor list ([MVP §11.3](MVP.md#11-security-privacy-compliance--ethics)).
+- [ ] Draft ToS, Privacy Policy, DPA, subprocessor list ([MVP §11.3](MVP.md#11-security-privacy-compliance--ethics)). The ToS and Privacy drafts are needed before Phase 1 can publish them, and Phase 7 can't collect real emails without them.
+- [ ] Brand basics for Phase 1: wordmark/logo, colour palette, typeface — or approve the designer's proposal in Phase 1. Always written "AEO Corner".
 
 **Repo & tooling setup:**
 - [x] `git init` (already done by the desktop app's session setup) — confirmed `node:test` + supertest per §2 above.
@@ -85,12 +94,50 @@
 
 **Exit criteria:** a developer can clone the repo, run `npm ci`, point `.env` at their local MySQL + a DO Redis URL, and have a working app skeleton with CI green. **Met**, except the external SaaS accounts (Sentry/PostHog/Langfuse) and the founder/infra checklist above.
 
-## Phase 1 — Auth, orgs & tenancy foundation
+## Phase 1 — Design system & public site shell
+
+**Goal:** a designed, accessible, server-rendered public site shell and one reusable UI kit, so every later phase builds screens from the same system instead of inventing its own. The free audit goes live in week 4 (M1) on a public site, so the shell, the legal pages and the methodology page can't wait for launch week.
+
+**Owner:** the product designer (≈50%, [MVP §13.1](MVP.md#131-team-mvp)) with the UI-leaning engineer.
+
+**Design work (before code):**
+- [ ] `docs/UI_DESIGN.md` (new doc — add it to [CLAUDE.md](../CLAUDE.md)'s Documents table when it exists): the screen inventory for every stage in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md); a low-fidelity wireframe per screen; the key flows (audit → report → sign-up → onboarding → first dashboard); content rules for empty, loading, error and partial-data states.
+- [ ] A written UI rule in `UI_DESIGN.md`: a failed or missing collection is never shown as "not mentioned" or as zero. It gets its own "couldn't check" state, mirroring the rollup rule in [CLAUDE.md](../CLAUDE.md) and the edge cases in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md).
+- [ ] Brand basics settled (wordmark, palette, typeface) — the founder's choice from Phase 0, or the designer's proposal approved.
+- [ ] **Founder sign-off on wireframes, one group at a time, before the phase that builds them starts:** public site + audit flow → before Phase 7; onboarding + Brand Kit + prompts → before Phase 8; dashboard + citations → before Phase 10; Action Center + Content Studio → before Phase 11; billing + settings → before Phase 13.
+
+**Build:**
+- [ ] Express app skeleton `src/web/server.js` (what `npm run dev` already points at): EJS, static files, error handler, request logging, a base set of security headers including a CSP that works with htmx and Alpine.js (evaluate Alpine's CSP-safe build so the CSP doesn't need `unsafe-eval`).
+- [ ] Tailwind CLI pipeline (`npm run build:css`) with design tokens (colour, type scale, spacing, radius) in `tailwind/`; the built CSS stays git-ignored under `src/web/public/build/`.
+- [ ] htmx and Alpine.js vendored and self-hosted from `src/web/public/` — no third-party CDN at runtime.
+- [ ] Layouts and partials: a `public` layout (header, footer, audit call-to-action) and an `app` layout (sidebar/top-bar shell, empty until Phase 2 fills it); a head partial with title, description, canonical URL and Open Graph tags; flash messages/toasts.
+- [ ] Component kit as EJS partials: buttons, form fields with validation errors, cards, tables, tabs, badges, modals, stat tiles, banners (including the "incomplete data" banner), empty/loading/error states, progress stepper.
+- [ ] Dev-only `/_styleguide` route (404 in production) that renders every component in every state.
+- [ ] Transactional email base (HTML + plain-text) for Resend, reused by the OTP, audit report, invitation and weekly digest emails.
+- [ ] Public pages: **home** (the audit form above the fold, per [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) stage 1; posts to a stub until Phase 7), **methodology v1** (content from [MVP §6](MVP.md#6-measurement-methodology-core-ip); the audit report links here), **Terms** and **Privacy Policy** (the Phase 0 drafts as approved by the founder), plus 404, 500 and maintenance pages.
+- [ ] Public-site SEO/AEO basics: `robots.txt` that allows the AI crawlers in [MVP Appendix A](MVP.md#appendix-a--ai-crawler-user-agents-readiness-checks), `sitemap.xml`, canonical URLs. Indexing is controlled by environment: staging is `noindex`, production is indexable.
+- [ ] Decide whether PostHog runs cookieless or behind a consent notice ([MVP §11.3](MVP.md#11-security-privacy-compliance--ethics)), and implement that choice. Record it in `UI_DESIGN.md`.
+- [ ] CI: add a `build:css` step, the conditional accessibility job, and the page registry `tests/e2e/pages.js`.
+
+**Tests required before moving on:**
+- [ ] Route tests (supertest): every public page returns 200 with a unique `<title>`, a meta description and a canonical URL; an unknown path renders the 404 page with status 404; a thrown error renders the 500 page without leaking a stack trace.
+- [ ] Raw-HTML test: each public page's main content (headings, body copy, the audit form) is present in the raw HTML response with no JavaScript run.
+- [ ] Accessibility: axe-core over every page in `tests/e2e/pages.js` and over `/_styleguide` — zero serious or critical violations (WCAG 2.1 AA, [MVP §10](MVP.md#10-non-functional-requirements)).
+- [ ] Responsive: Playwright at 375, 768 and 1280 px — no horizontal overflow on any public page, and the audit form is usable at 375 px.
+- [ ] Third-party requests: a Playwright run of the public pages shows no requests to third-party hosts other than PostHog and Cloudflare Turnstile.
+- [ ] `/_styleguide` returns 404 when `NODE_ENV=production`, and renders every component with no console errors in development.
+- [ ] Email base: HTML and plain-text variants both render; no unreplaced template tokens (snapshot test).
+- [ ] Indexing config: staging responds with `noindex`; the production config does not (config test, since production isn't deployed yet).
+- [ ] `npm run build:css` succeeds in CI.
+
+**Exit criteria:** the founder has signed off the public-site and audit-flow wireframes and the live homepage; every public page passes the raw-HTML, accessibility and responsive checks in CI; `/_styleguide` documents the whole kit; the Terms and Privacy pages are live, so Phase 7 can collect real emails.
+
+## Phase 2 — Auth, orgs & tenancy foundation
 
 **Goal:** a signed-in user can create an org and see an empty authenticated shell; every tenant-scoped query is provably isolated.
 
 **Work:**
-- [ ] `@clerk/express` wired into `src/web`: `clerkMiddleware()`, sign-in/sign-up pages (Clerk hosted or embedded components).
+- [ ] `@clerk/express` wired into `src/web`: `clerkMiddleware()`, sign-in/sign-up pages (Clerk hosted or embedded components, themed with Phase 1's tokens), and the empty authenticated shell on Phase 1's `app` layout.
 - [ ] `users` upsert-on-first-request path (lazy create, catch `P2002` per [DATABASE_SCHEMA §10.1](DATABASE_SCHEMA.md#101-auth-clerk-identity-only)).
 - [ ] Clerk webhook endpoint (`user.created`/`updated`/`deleted`), Svix signature verification, `webhook_events` dedupe.
 - [ ] `organizations`, `memberships`, `membership_projects`, `invitations` CRUD + the four roles (owner/admin/editor/viewer).
@@ -108,7 +155,7 @@
 
 **Exit criteria:** sign-up, org creation, invitations and role checks work end to end against real MySQL; the cross-tenant suite exists and passes; no direct Prisma/raw-SQL calls exist outside `src/db/` (enforce with an ESLint rule or a CI grep check).
 
-## Phase 2 — Job infrastructure & usage ledger
+## Phase 3 — Job infrastructure & usage ledger
 
 **Goal:** BullMQ is running as a separate worker process with the scheduling, rate-limiting and cost-tracking primitives every later job depends on.
 
@@ -130,7 +177,7 @@
 
 **Exit criteria:** a hand-triggered no-op job runs through the full queue → retry → ledger path with nothing hard-coded to one project.
 
-## Phase 3 — Site crawler & readiness checks
+## Phase 4 — Site crawler & readiness checks
 
 **Goal:** given a domain, safely fetch and evaluate it for AEO readiness — this is the first real building block of the free audit (F1) and onboarding (F2).
 
@@ -149,7 +196,7 @@
 
 **Exit criteria:** pointing the crawler at a handful of real, varied domains (a WordPress site, a SPA, a site that blocks bots) produces sane, storable readiness results without ever touching a private IP.
 
-## Phase 4 — Engine adapters (spikes)
+## Phase 5 — Engine adapters (spikes)
 
 **Goal:** prove the `EngineAdapter` contract ([MVP §7.5](MVP.md#75-engine-adapter-contract-design-sketch)) against all four real providers before building the orchestrator around them.
 
@@ -167,7 +214,7 @@
 
 **Exit criteria:** all four adapters pass their contract tests and have at least one verified live call; provider pricing is recorded in the usage ledger correctly.
 
-## Phase 5 — Extraction pipeline & golden-set eval
+## Phase 6 — Extraction pipeline & golden-set eval
 
 **Goal:** turn a raw answer into structured mentions/citations/claims, and settle decision D4 (bulk model choice) with real data.
 
@@ -186,26 +233,30 @@
 
 **Exit criteria:** D4 is decided and recorded as an ADR ([MVP §17](MVP.md#17-decisions-needed-from-the-founder)); the eval runs in CI going forward.
 
-## Phase 6 — Free audit (🚩 M1)
+## Phase 7 — Free audit (🚩 M1)
 
 **Goal:** the first public-facing, revenue-relevant surface — F1 end to end, target under 10 minutes.
 
 **Work:**
 - [ ] Public audit endpoint: Cloudflare Turnstile, OTP email verification, rate limiting.
-- [ ] Orchestrates: crawler (Phase 3) → lite Brand Kit → 5 prompts → live-mode collection across all 4 engines (Phase 4) → synchronous extraction (Phase 5) → scores → fixes.
-- [ ] Report page + email delivery (Resend).
+- [ ] Orchestrates: crawler (Phase 4) → lite Brand Kit → 5 prompts → live-mode collection across all 4 engines (Phase 5) → synchronous extraction (Phase 6) → scores → fixes.
+- [ ] Audit screens — URL form → work email → 6-digit code → live progress page (server-sent events) → report — built from Phase 1's kit and the signed-off wireframes. The report email uses Phase 1's email base.
+- [ ] The email step has the marketing-consent checkbox and links to the Terms and Privacy pages from Phase 1; the choice is stored on `leads`.
+- [ ] The report carries the one-sample honesty note and links to Phase 1's methodology page ([CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) honesty rules).
 - [ ] Lead capture into `leads`; audit analytics funnel (PostHog).
 
 **Tests required before moving on:**
-- [ ] E2E (Playwright): submit a domain → receive a report, against staging, using recorded/fixture provider responses so it's not paid per CI run.
+- [ ] E2E (Playwright): submit a domain → receive a report, against staging, using recorded/fixture provider responses so it's not paid per CI run. Run at a 375 px mobile viewport as well as desktop.
+- [ ] Accessibility: every audit screen is in `tests/e2e/pages.js` and passes the axe sweep (WCAG 2.1 AA).
+- [ ] Integration: a lead row stores the consent flag exactly as ticked (unticked is stored as no consent, never defaulted to yes).
 - [ ] Integration: rate limiting and Turnstile bypass attempts are rejected.
 - [ ] Integration: OTP flow — correct code passes, expired/wrong code fails, per [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) verification-code row.
 - [ ] Load: the audit path holds up under a burst of concurrent submissions without exceeding the per-org/global provider rate limits.
 - [ ] Cost check: measured cost per audit against the ≤ $0.75 target in [MVP §13.3](MVP.md#133-mvp-definition-of-done).
 
-**Exit criteria:** matches [MVP §13.2](MVP.md#132-12-week-timeline) M1 — free audit is live and generating leads while later phases are built.
+**Exit criteria:** matches [MVP §13.2](MVP.md#132-12-week-timeline) M1 — free audit is live and generating leads while later phases are built, with Phase 1's Terms, Privacy and methodology pages already live.
 
-## Phase 7 — Projects, Brand Kit & Prompt Manager
+## Phase 8 — Projects, Brand Kit & Prompt Manager
 
 **Goal:** F2 and F3 — the setup a paying customer does before tracking starts.
 
@@ -214,8 +265,10 @@
 - [ ] Brand Kit auto-extraction (domain → brand profile, products, competitors, voice), editable and versioned.
 - [ ] `tracked_entities` (brand + competitors), generated column `brand_project_id`.
 - [ ] Prompt Manager: generate/import/edit prompts, with intent, cluster, locale.
+- [ ] Onboarding screens ([CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) stage 5: confirm brand → competitors → questions → integrations) and the Brand Kit and Prompt Manager screens, built from Phase 1's kit and the signed-off wireframes. The customer is never shown an empty screen while the first run is pending.
 
 **Tests required before moving on:**
+- [ ] Accessibility: onboarding, Brand Kit and Prompt Manager screens are in `tests/e2e/pages.js` and pass the axe sweep ([MVP §10](MVP.md#10-non-functional-requirements) requires WCAG 2.1 AA for onboarding).
 - [ ] Cross-tenant leak tests extended to `projects`, Brand Kit and prompt tables (§2 suite grows).
 - [ ] Unit: Brand Kit versioning — editing creates a new version without losing history.
 - [ ] Integration: prompt generation respects the intent-coverage rules from [MVP §7.7](MVP.md#77-llm-usage-map-claude).
@@ -223,12 +276,12 @@
 
 **Exit criteria:** a customer can create a project, get a Brand Kit, and have a prompt set ready for tracking — all tenant-isolated and tested.
 
-## Phase 8 — Tracking orchestrator, rollups & significance
+## Phase 9 — Tracking orchestrator, rollups & significance
 
 **Goal:** F4 — the scheduled engine that actually produces ongoing visibility data.
 
 **Work:**
-- [ ] Scheduler → orchestrator: expand prompts × engines × samples into tasks, respecting per-provider concurrency (Phase 2) and using the adapters (Phase 4) and extraction pipeline (Phase 5).
+- [ ] Scheduler → orchestrator: expand prompts × engines × samples into tasks, respecting per-provider concurrency (Phase 3) and using the adapters (Phase 5) and extraction pipeline (Phase 6).
 - [ ] `cell_results`/`cell_entity_results` fact-table writes (no FKs, `run_date` in every key, per [DATABASE_SCHEMA](DATABASE_SCHEMA.md#schema-rules) fact-table rules).
 - [ ] Daily rollups by project × engine × cluster × intent × locale.
 - [ ] Significance tests and change-event emission; partial runs marked `partial` and excluded from trend significance (never counted as zero).
@@ -241,12 +294,14 @@
 
 **Exit criteria:** a project runs on its weekly slot automatically, unattended, and produces correct rollups even when one engine's collection partially fails.
 
-## Phase 9 — Visibility Dashboard & Citation Intelligence (🚩 M2)
+## Phase 10 — Visibility Dashboard & Citation Intelligence (🚩 M2)
 
 **Goal:** F5 and F6 — the screens design partners will actually look at.
 
 **Work:**
-- [ ] Dashboard: score, mention rate, share of voice, position, sentiment, trends, per-prompt drilldown (EJS + htmx + Alpine + Chart.js/ECharts).
+- [ ] Dashboard: score, mention rate, share of voice, position, sentiment, trends, per-prompt drilldown (EJS + htmx + Alpine + Chart.js/ECharts), built from Phase 1's kit and the signed-off dashboard wireframes.
+- [ ] Charts are accessible: meaning is never carried by colour alone, each chart has a data-table alternative, and tooltips are reachable by keyboard.
+- [ ] Partial and failed data follow the Phase 1 UI rule: an engine that failed this week shows the "incomplete data" banner and "couldn't check" cells, never 0% or "not mentioned".
 - [ ] Competitor comparison views.
 - [ ] Citation & Source Intelligence: which domains/URLs get cited, citation-gap vs. competitors.
 - [ ] Design-partner onboarding flow (10–15 partners per [MVP §13.2](MVP.md#132-12-week-timeline)).
@@ -255,11 +310,13 @@
 - [ ] Route tests for every dashboard endpoint (auth required, org-scoped).
 - [ ] Unit: score/share-of-voice calculations against hand-computed fixtures.
 - [ ] E2E (Playwright): a logged-in user views their dashboard and drills into a single prompt.
+- [ ] Render test: a project whose latest run is partial shows the "incomplete data" banner and "couldn't check" cells, not zeros.
+- [ ] Accessibility: dashboard, prompt drilldown, competitor and citation screens are in `tests/e2e/pages.js` and pass the axe sweep (WCAG 2.1 AA, [MVP §10](MVP.md#10-non-functional-requirements)).
 - [ ] Cross-tenant leak tests extended to all new read queries.
 
 **Exit criteria:** matches M2 — dashboard and citation intelligence are live, 10–15 design partners are onboarded and using it.
 
-## Phase 10 — Action Center & closed loop
+## Phase 11 — Action Center & closed loop
 
 **Goal:** F7 — turn data into prioritized, provable actions.
 
@@ -276,7 +333,7 @@
 
 **Exit criteria:** a design partner can see a prioritized fix, mark it done, and later see a measured before/after.
 
-## Phase 11 — Content Studio & WordPress Connector
+## Phase 12 — Content Studio & WordPress Connector
 
 **Goal:** F8 and F9 — close the loop by publishing fixes.
 
@@ -287,43 +344,74 @@
 
 **Tests required before moving on:**
 - [ ] Unit: JSON-LD output validates against schema.org before save.
-- [ ] Integration: draft → publish flow against a WordPress test instance (Docker).
+- [ ] Integration: draft → publish flow against a WordPress test instance. No Docker on this project ([CLAUDE.md](../CLAUDE.md#verifying-schema-changes)), so decide the test-instance approach when this phase starts (for example a throwaway WordPress install on the staging Droplet).
 - [ ] Contract: the WordPress plugin's schema/meta injection tested against a real WP install, not just unit-level PHP tests.
 - [ ] Unit: QC rubric scoring against fixture drafts (good and bad examples).
 
 **Exit criteria:** a recommendation can be turned into a published WordPress post with correct structured data, and the originating recommendation is marked done with a closed-loop baseline captured.
 
-## Phase 12 — AI traffic analytics, digest & billing
+## Phase 13 — AI traffic analytics, digest & billing
 
 **Goal:** F10, F11, F12 — the retention and revenue layer.
 
 **Work:**
 - [ ] GA4 + Search Console OAuth and sync; AI-referral session/conversion charts ([MVP Appendix B](MVP.md#appendix-b--ai-referrer-sources-ga4)).
 - [ ] Weekly digest email; alerts on significant drops or negative claims.
-- [ ] Stripe: plans, Checkout, Customer Portal, usage meters for add-ons, plan-limit guard.
+- [ ] Stripe: plans, Checkout, Customer Portal, usage meters for add-ons, plan-limit guard. The `plans` table is the single source for plan limits and prices; Phase 14's pricing page reads from it too.
+- [ ] Billing and settings screens (plan picker, trial state, limit-reached and upgrade prompts) built from Phase 1's kit and the signed-off wireframes.
 - [ ] Internal admin: ops, cost dashboards, provider health, job retries, extraction review, feature flags.
 
 **Tests required before moving on:**
-- [ ] Integration: Stripe webhook handling (subscription created/updated/canceled) idempotent against replay, mirroring the Clerk webhook pattern from Phase 1.
+- [ ] Integration: Stripe webhook handling (subscription created/updated/canceled) idempotent against replay, mirroring the Clerk webhook pattern from Phase 2.
 - [ ] Unit: plan-limit guard blocks an over-quota action and allows an in-quota one.
 - [ ] Integration: GA4/GSC sync against recorded fixture responses (no live Google calls in CI).
 - [ ] Unit: digest content generation against a fixture week of data (no drops → no alert; a real drop → alert fires).
-- [ ] Admin: staff-only routes reject non-staff sessions (reuses Phase 1's 2FA-required check).
+- [ ] Admin: staff-only routes reject non-staff sessions (reuses Phase 2's 2FA-required check).
+- [ ] Accessibility: billing and settings screens are in `tests/e2e/pages.js` and pass the axe sweep.
 
 **Exit criteria:** a customer can subscribe, get billed correctly, see AI-traffic charts, and receive a weekly digest; staff can operate the system from internal admin.
 
-## Phase 13 — Hardening, load/cost testing & launch (🚩 M3)
+## Phase 14 — Public marketing site & launch content
+
+**Goal:** the full public website that earns the traffic the funnel needs, built on Phase 1's shell, using the real plan data from Phase 13 — and one that passes our own AEO readiness checks. A product that sells AI visibility has to be visible and readable to AI engines itself.
+
+**Owner:** the founder (positioning and content) with the designer and the UI-leaning engineer.
+
+**Work:**
+- [ ] Product pages: one per stage of Measure → Diagnose → Fix → Prove, plus an agency page for the secondary persona in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md). Every page carries the audit form above the fold.
+- [ ] Pricing page: plans, limits, trial terms and FAQ, **rendered from the `plans` table** so no number is copied by hand.
+- [ ] Methodology page, final version: expand Phase 1's v1 with sample sizes, significance testing, known limits and the honesty rules ([MVP §6](MVP.md#6-measurement-methodology-core-ip)), plus the blind-comparison credibility check if it has been run ([MVP §14](MVP.md#14-success-metrics--validation)).
+- [ ] Design-partner case studies from the M2 beta. The Day-5 nurture email in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) links to one.
+- [ ] Launch content: an initial set of guides and articles for the "search and AI answers" entry point in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md), with the topic list agreed with the founder.
+- [ ] Structured data (JSON-LD) for the organisation, the product and FAQ content, validated against schema.org.
+- [ ] Analytics funnel in PostHog: page view → audit started → audit completed → "track weekly" click → sign-up ([MVP §14](MVP.md#14-success-metrics--validation) "audit as demand test"), with UTM capture. Anonymous events only.
+- [ ] Dogfood: run Phase 4's readiness checks against our own site using the **production** indexing config (staging's deliberate `noindex` would trip the F1 indexability check), and fix every critical failure.
+- [ ] `sitemap.xml` lists every public page.
+
+**Tests required before moving on:**
+- [ ] The Phase 1 route, raw-HTML, accessibility and responsive checks cover every new page (each one is registered in `tests/e2e/pages.js`).
+- [ ] Integration: every price and limit on the pricing page equals the `plans` table. Change a row and the page changes.
+- [ ] Link check: crawl from the sitemap — no broken internal links, every public page is in the sitemap, and no app or admin page is.
+- [ ] JSON-LD on every page that carries it validates against schema.org (reuse Phase 12's validator).
+- [ ] Dogfood: the readiness checks against the site (production indexing config) return no critical failures.
+- [ ] Config: production serves indexable pages and a `robots.txt` that allows the AI crawlers in [MVP Appendix A](MVP.md#appendix-a--ai-crawler-user-agents-readiness-checks); staging blocks all crawlers.
+- [ ] Analytics: the funnel events fire in the Playwright run (against a PostHog stub) and none carries personal data.
+
+**Exit criteria:** the founder has signed off all public copy; every page is live on the production domain, indexable, and passes the accessibility sweep; the pricing page matches billing; the site passes our own readiness checks.
+
+## Phase 15 — Hardening, load/cost testing & launch (🚩 M3)
 
 **Goal:** everything in [MVP §13.3 Definition of Done](MVP.md#133-mvp-definition-of-done) is true, not just each feature in isolation.
 
 **Work:**
 - [ ] Security review: SSRF, auth, tenancy tests re-run as a full suite; secrets-encryption audit; webhook signature verification audit (Clerk, Stripe, providers).
-- [ ] Public methodology page, pricing page, onboarding polish.
+- [ ] Onboarding polish: first-run experience, empty states and copy, driven by design-partner feedback. (The methodology and pricing pages are done in Phases 1 and 14.)
 - [ ] Runbooks in `deploy/` (provisioning, incident response, provider outage playbook).
-- [ ] Legal: ToS, Privacy Policy, DPA, subprocessor list published (Clerk, DigitalOcean, Anthropic, providers, etc.).
+- [ ] Legal: the Terms and Privacy pages have been live since Phase 1. Publish the DPA and subprocessor list (Clerk, DigitalOcean, Anthropic, providers, etc.), and check the list against the vendors actually wired into the code.
 
 **Tests required before moving on:**
-- [ ] Full regression: every test suite from Phases 0–12 green in one CI run.
+- [ ] Full regression: every test suite from Phases 0–14 green in one CI run.
+- [ ] Accessibility: the complete axe sweep (every page in `tests/e2e/pages.js`) is green — [MVP §10](MVP.md#10-non-functional-requirements) requires WCAG 2.1 AA for the audit, onboarding and dashboard.
 - [ ] Load test at 2× target concurrent load against staging (k6).
 - [ ] Cost test: measured cost per prompt-run ≤ $0.12 and per audit ≤ $0.75 under real load, spend caps verified to actually pause collection.
 - [ ] Security: an automated cross-tenant leak sweep across every table with `org_id` (not just spot checks).

@@ -14,7 +14,7 @@ A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perpl
 | File | Owns |
 |---|---|
 | `docs/MVP.md` | Product and architecture spec: scope, features F1–F12, methodology, stack (§7.4), repo layout (§7.9), unit economics, timeline, founder decisions (§17) |
-| `docs/BUILD_PLAN.md` | The actual build order: 14 phases breaking MVP §13.2's weekly timeline into checkable work items and a required-tests checklist per phase. Work through it in order once coding starts |
+| `docs/BUILD_PLAN.md` | The actual build order: 16 phases (0–15) breaking MVP §13.2's weekly timeline into checkable work items and a required-tests checklist per phase. Work through it in order once coding starts |
 | `docs/CUSTOMER_JOURNEY.md` | Customer experience stage by stage, system data flow, messages. §7 proposes 6 spec changes: the schema models them, but the MVP feature sections haven't been updated yet |
 | `docs/ADMIN_OPERATIONS.md` | Internal admin console, staff roles, runbooks, background jobs, alerts |
 | `docs/DATABASE_SCHEMA.md` | Schema design: conventions, table catalog, ERDs, query patterns, tenancy, retention, grants, Clerk and Prisma rules (§10), open decisions (§11) |
