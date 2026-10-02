@@ -532,6 +532,14 @@ w_p = prompt priority (1–3)     w_e = engine weight (equal by default; user-ad
 
 ### 6.6 AEO Readiness rubric (v0)
 
+*Built in Phase 4 (2026-10-02) as rubric version `v0.1`: 24 checks, 100 points (`src/crawler/readiness/`). The checks are heuristics on the HTML, schema and page structure, with no AI model in the loop; where v0.1 chose a reading the table leaves open:*
+
+- *A1 judges the home page and the selected key pages against `robots.txt`; a crawler shut out of some pages counts half. A2 gives full marks for naming any training crawler (the choice is the business's), half for silence.*
+- *A3 sends the home page requests that carry each vendor's published user-agent string. Some firewalls admit a crawler by its network address, so a block is worded as a strong hint, not proof.*
+- *B1 compares the visible text of the raw HTML with the headless-browser render on up to 5 pages; 80% or more must be in the raw HTML.*
+- *D2 and E1–E6 read the page's content blocks: question headings, the paragraph under each (≤ 60 words), lists and tables, FAQ sections, named authors, outside links and figures, and dated updates.*
+- *A check that could not look (page unreadable, firewall, no browser) is "couldn't check" and left out of the score; if less than half the rubric could be evaluated there is no score.*
+
 These weights are v0 heuristics. After about 200 projects we **calibrate them** by regressing observed visibility on readiness features. Recalibrated weights are both a moat and a marketing asset ("what actually matters for AI visibility").
 
 | Category (pts) | Check | Pts | Auto-fixable in MVP |
@@ -820,7 +828,7 @@ One region (US, per D7) and one VPC. The database and Redis are reachable only o
 | **Droplet** | Ubuntu LTS, **2 vCPU / 4 GB RAM minimum**. Runs Nginx, PM2 web (cluster mode) and PM2 worker (fork mode) | Chromium needs the memory. **Scale step 1:** move the worker to its own Droplet when CPU/RAM stays above 70% or audit jobs queue. **Step 2:** DO Load Balancer + 2 web Droplets. BullMQ makes adding workers trivial |
 | **MySQL 8** | **DO Managed MySQL (recommended)**, trusted sources limited to the Droplets | Daily backups + point-in-time recovery and patching. A standby node can be added later for failover. DO Managed MySQL requires a primary key on every table (our schema already has one). Self-hosting on the Droplet is possible, but then you own the backups, restore tests and upgrades |
 | **Redis** | DO managed (Redis-compatible) or self-hosted on the Droplet | **Must set `maxmemory-policy noeviction`**, or Redis can silently evict queued BullMQ jobs. If self-hosted, enable AOF persistence and keep it off the public interface |
-| **Spaces** | One private bucket per environment, accessed server-side with the AWS S3 SDK (custom endpoint) | Presigned URLs for PDF downloads; lifecycle rule deletes raw payloads after 13 months (§8.3); versioning on raw data |
+| **Spaces** | One private bucket (the founder's existing one, shared with other apps for now), accessed server-side with the AWS S3 SDK (custom endpoint). Everything this app stores is inside its own directory, `aeo-corner/<dev\|staging\|prod>/` | Presigned URLs for PDF downloads; lifecycle rule deletes raw payloads after 13 months (§8.3); versioning on raw data |
 | **Edge** | Cloudflare (free plan) for DNS, TLS, CDN and WAF; Turnstile on the free audit | Hides the Droplet IP. Rate-limits abusive traffic before it reaches Express |
 | **Security** | DO Cloud Firewall (80/443 in; SSH only from admin IPs, keys only, no root login), unattended security upgrades, fail2ban | The database and Redis are never exposed publicly |
 | **Secrets** | `.env` readable only by the app user. The envelope-encryption master key is stored apart from the database and the repo (DO has no KMS) | Move to a secrets manager (Doppler / Infisical) when the team grows |
@@ -955,8 +963,11 @@ A public customer API and a Looker Studio/BI connector come in v2.
 - **SSRF-safe fetcher.** This is critical, because the audit fetches arbitrary URLs.
   - Resolve DNS, then block private, loopback, link-local, CGNAT and cloud-metadata ranges. Repeat the check after every redirect.
   - Only http/https on ports 80/443.
-  - Caps: body 5 MB, timeout 15 s, maximum 5 redirects.
-- **Our crawler's identity:** `AEOCornerBot/1.0 (+https://aeocorner.com/bot)`, with per-domain politeness (≤ 2 concurrent requests, ≥ 500 ms apart).
+  - Caps: body 5 MB **after decompression**, timeout 15 s for the whole fetch, maximum 5 redirects.
+  - *Built in Phase 4 (2026-10-02), see [ADR-0005](adr/0005-fetching-other-peoples-websites.md):* the name is resolved once and the connection goes to the address that was checked (no DNS-rebinding window); a name with any refused address is refused; IPv4 hidden inside IPv6, 6to4, NAT64 and Teredo are refused too.
+  - **The headless browser never opens a connection of its own.** Every request a rendered page makes is answered by this same fetcher, and the browser starts with name resolution switched off as a second wall.
+  - Everything read from a stranger's site is hostile input: sitemaps are scanned, not XML-parsed (no entity expansion); HTML nested deeper than 512 levels is refused (the HTML parser is quadratic in depth); page text is walked without recursion.
+- **Our crawler's identity:** `AEOCornerBot/1.0 (+https://aeocorner.com/bot)`, with per-domain politeness (≤ 2 concurrent requests, ≥ 500 ms apart). It **obeys `robots.txt`** (RFC 9309; a server error means stay away), with one exception decided by the founder on 2026-10-02: a signed-in customer scanning **their own project** is not stopped by it (the scan says so, and still reports what the file blocks). The free audit always obeys it. The page at that address is part of the audit launch ([BUILD_PLAN Phase 7](BUILD_PLAN.md#phase-7--free-audit--m1)).
 - **Secrets:** envelope encryption (AES-256-GCM). Data keys are wrapped by a master key held outside the database and repo (DigitalOcean has no KMS; see §7.11). WordPress application passwords and Google refresh tokens are never logged.
 - **Webhooks:** signature verification (Stripe, providers, WordPress HMAC), replay windows, idempotency keys.
 - **Content-Security-Policy:** strict (`script-src 'self'`, `style-src 'self'`, no `unsafe-inline` or `unsafe-eval`), so views have no inline scripts, handlers or `style=""` attributes. Third-party origins (Turnstile, PostHog) are added only when configured. See [ADR-0003](adr/0003-strict-csp.md).

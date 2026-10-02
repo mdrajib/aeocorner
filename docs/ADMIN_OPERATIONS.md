@@ -158,7 +158,7 @@ These are the BullMQ queues and scheduled jobs the admin console monitors ([§3]
 |---|---|---|---|
 | `scheduler.tick` | Every hour | Finds projects whose weekly slot is due and enqueues runs (job ID = project + slot, so no duplicates) | Next tick catches up |
 | `audit.run` | Free audit submitted | Full audit pipeline (MVP F1) | Retried; customer sees "couldn't check" per engine |
-| `crawl.readiness` | Before each weekly run; on demand | Re-crawls key pages and re-runs readiness checks | Retry; last good result kept |
+| `crawl.readiness` | Before each weekly run; on demand | Re-crawls key pages and re-runs readiness checks (`crawl` queue; job ID `scan-<scan id>`). Obeys robots.txt; writes one `usage_ledger` row (requests made, cost 0) | Retried up to 5 times; then the scan is marked `failed` and the job stays in the failed set; last good result kept |
 | `collect.answer` | Each run (question × engine × sample) | Sends to the data provider, then stores the raw answer in Spaces and a snapshot row | Up to 5 retries → backup provider → marked "couldn't check" |
 | `collect.poll` | Delayed, for async providers | Picks up results from standard-queue providers | Retry until the provider's time limit |
 | `extract.batch` / `extract.poll` | After collection | Submits the Claude Batch API job; polls and stores mentions and citations | Retry; falls back to synchronous extraction for stuck batches |

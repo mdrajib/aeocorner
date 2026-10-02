@@ -27,6 +27,13 @@ export const JOBS = Object.freeze({
     schema: z.object({ orgId: id, projectId: id, weekKey: z.string().regex(/^\d{4}-W\d{2}$/) }),
   },
 
+  // Read one project's website and score its AI readiness (Phase 4, MVP F1/F2). Whoever asks first creates the
+  // scan row ("queued"); the job carries only its ID. The website to read comes from the project, never the payload.
+  'crawl.readiness': {
+    queue: 'crawl',
+    schema: z.object({ orgId: id, projectId: id, scanId: id }),
+  },
+
   // A job that goes through the whole path (queue, retries, rate limit, spend cap, ledger) and does nothing
   // else. It is the Phase 3 exit test, and the way to prove the plumbing on a new machine.
   'system.noop': {

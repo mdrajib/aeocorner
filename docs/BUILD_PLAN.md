@@ -174,7 +174,7 @@
 
 ## Phase 3 — Job infrastructure & usage ledger
 
-**Status (2026-10-02):** 🟠 **Started; code and the five required tests are written and passing locally, but the phase is not finished.** Still to do: tests for the Bull Board page on the staff host (`src/web/staff/queues.js`, written but never run in a browser or under the CSP), the CI changes (Redis in the workflow, plus `SHADOW_DATABASE_URL` for the accessibility job, which is edited locally and not pushed), the docs pass (CLAUDE.md, MVP §7.8, ADMIN_OPERATIONS §6, an ADR for the queue design) and one flaky integration test seen once in a full run (passed on rerun). Redis for local work is the shared container on port 6379: use databases 14 (dev) and 15 (tests), never 0, never flush.
+**Status (2026-10-02):** 🟠 **Started; code and the five required tests are written and passing locally, but the phase is not finished.** Still to do: tests for the Bull Board page on the staff host (`src/web/staff/queues.js`, written but never run in a browser or under the CSP), the docs pass (CLAUDE.md, MVP §7.8, ADMIN_OPERATIONS §6, an ADR for the queue design). *Done since: the CI changes shipped in `180e431` and GitHub Actions ran green on 2026-10-02; the integration test that failed once in a full run was found and fixed during Phase 4 (an "empty bucket" test that assumed the worker starts within two seconds, which a loaded machine misses; and a real MySQL deadlock when organizations are created at the same moment, now retried by `src/db/transaction.js`).* Redis for local work is the shared container on port 6379: use databases 14 (dev) and 15 (tests), never 0, never flush.
 
 **Goal:** BullMQ is running as a separate worker process with the scheduling, rate-limiting and cost-tracking primitives every later job depends on.
 
@@ -198,22 +198,43 @@
 
 ## Phase 4 — Site crawler & readiness checks
 
+**Status (2026-10-02):** 🟡 **Engineering complete and tested locally; not yet pushed, so CI has not run it** (new in CI: a Chromium install step for the render tests). The storage was run against the founder's **real Spaces bucket** on 2026-10-02 and works; the founder also decided that **a customer scanning their own project is not stopped by `robots.txt`** (built; the free audit still obeys it). Left to do outside this code: the `/bot` page the crawler's user agent points to, domain-ownership verification before the override is relied on (Phase 8), and installing Chromium on the Droplet (Phase 15). The decisions behind the fetcher, the browser, `robots.txt` and storage are in [ADR-0005](adr/0005-fetching-other-peoples-websites.md).
+
 **Goal:** given a domain, safely fetch and evaluate it for AEO readiness — this is the first real building block of the free audit (F1) and onboarding (F2).
 
 **Work:**
-- [ ] SSRF-safe HTTP fetcher (block private/link-local IP ranges, redirects re-checked, size/time limits).
-- [ ] robots.txt + sitemap parsing; AI-crawler user-agent checks ([MVP Appendix A](MVP.md#appendix-a--ai-crawler-user-agents-readiness-checks)).
-- [ ] Raw-HTML fetch + Playwright headless render, stored to Spaces (raw-first storage, [MVP §7.1](MVP.md#71-architecture-principles) principle 4).
-- [ ] Page-selection heuristics (which pages matter for AEO).
-- [ ] Readiness checks v0 (schema.org presence, crawlability, entity clarity signals — [MVP §5 F1](MVP.md#f1--free-aeo-audit-lead-magnet)).
+- [x] SSRF-safe HTTP fetcher (`src/crawler/safe-fetch.js`, `ip-guard.js`): refuses private, loopback, link-local, metadata, CGNAT and reserved addresses (IPv4, IPv6 and IPv4 hidden in IPv6); resolves the name once and connects to the address it checked; re-checks every redirect (max 5); ports 80/443 only; 5 MB after decompression, 15 s in total; certificate checked against the name; politeness per host (2 at once, 500 ms apart).
+- [x] robots.txt + sitemap parsing; AI-crawler user-agent checks ([MVP Appendix A](MVP.md#appendix-a--ai-crawler-user-agents-readiness-checks)). robots.txt follows RFC 9309 (`src/crawler/robots.js`) and is **obeyed** by our crawler. Sitemaps are read with a one-pass scanner (`sitemap.js`) that cannot be tricked into reading files or expanding entities. The look-alike AI-crawler user-agent strings for check A3 are in `src/core/ai-crawlers.js`, **checked against OpenAI's and Perplexity's documentation on 2026-10-02** (Anthropic publishes the names but not the full string, so that one is built in the same shape).
+- [x] Raw-HTML fetch + Playwright headless render, stored to Spaces (`src/crawler/render.js`, `src/integrations/spaces.js`). **Chromium never opens a connection of its own**: every request the page makes is answered by the safe fetcher, and name resolution is switched off inside the browser as a second wall. Raw bytes are stored under content-addressed keys (`crawl/2026/10/<sha256>.html`), so a retry writes the same key. *Tested against an S3-compatible stand-in server with the real AWS client, **not** against a real DigitalOcean Spaces bucket.*
+- [x] Page-selection heuristics (`src/crawler/select-pages.js`): the home page, then up to 19 more from the menu and the sitemap, ranked by what the page is (about, pricing, product, service, FAQ, contact, recent articles), with logins, carts, search, archives and legal pages left out; 5 of them are rendered.
+- [x] Readiness checks v0 (`src/crawler/readiness/`): all **24** checks of [MVP §6.6](MVP.md#66-aeo-readiness-rubric-v0) (A1–F4, 100 points, rubric version `v0.1`). A page that could not be read, a firewall in the way or a missing browser makes a check say "couldn't check" and leaves it out of the score; with less than half the rubric evaluated the score is empty, never 0.
+- [x] *Fixed along the way (a bug from Phase 2):* creating organizations at the same moment could make MySQL abandon one transaction as a deadlock, and the person's request failed. Every repository transaction now goes through `transaction()` (`src/db/transaction.js`), which retries it; a lint rule keeps it that way, and `tests/integration/org-concurrency.test.js` makes MySQL deadlock two transactions for real and checks both finish. It surfaced as an unrelated test failing whenever the whole suite ran at once.
+- [x] *Added in this phase:* the `crawl.readiness` job on the `crawl` queue and `forOrg(orgId).scans` (queued → running → complete / partial / failed, results replaced on retry, `site_pages` refreshed); `requestScan()` to start one; one `usage_ledger` row per scan (meter `crawl`, requests made, cost 0); `npm run scan -- <domain>` to scan any site from the command line with no database; `DO_SPACES_*` configuration (all or none; production refuses to start the worker without it); the page-type, platform (WordPress, Shopify, Next.js, client-rendered app…) and charset detection the checks need.
+- [ ] *Carried forward:* persistence for **audit-owned** scans (no organization yet) arrives with the audit pipeline in Phase 8; the code path is the same, only the owner differs.
+- [x] The first run against real Spaces (2026-10-02, bucket `dbs-central-space` in `sgp1`, shared with other apps): write, read-back, delete and a real scan's raw and rendered pages all work, inside this app's own directory `aeo-corner/dev/`. The AWS client's checksum setting is proven there. Environment variables are the project's existing `DO_SPACES_*` names.
+- [x] *Founder decision (2026-10-02):* a signed-in customer scanning **their own project** is not stopped by `robots.txt` (`respectRobots: false`, set by the `crawl.readiness` job; `--ignore-robots` on the command line). The free audit keeps obeying it. The scan notes when it went ahead, and check A1 still reports what the file says. See [ADR-0005](adr/0005-fetching-other-peoples-websites.md) for the limit: domains are not yet verified as the customer's own.
+- [ ] *Carried forward:* publish `https://aeocorner.com/bot` (what the crawler is, what it fetches, how to block it) before the crawler visits sites we do not own — tracked in Phase 7, whose audit is the first thing to do that.
 
 **Tests required before moving on:**
-- [ ] Unit: SSRF guard rejects `127.0.0.1`, `169.254.x.x`, RFC1918 ranges, and a redirect chain that ends up there.
-- [ ] Integration: fetching a fixture site produces the expected raw payload in the test Spaces bucket (or a local S3-compatible stub).
-- [ ] Unit: each readiness check has at least one fixture that should pass and one that should fail.
-- [ ] Contract: Playwright render matches raw HTML fetch on a stable fixture page (regression guard for the render pipeline itself).
+- [x] Unit: SSRF guard rejects `127.0.0.1`, `169.254.x.x`, RFC1918 ranges, and a redirect chain that ends up there (`src/crawler/ip-guard.test.js`, `safe-fetch.test.js`: 74 cases including decimal, hex and octal spellings, IPv6 forms, DNS that answers with a private address, and a name whose DNS answer changes between lookups; and `tests/integration/crawler-fetch.test.js` with real sockets, compressed bombs, oversized and endless responses, and TLS). Checked by mutation: removing any one protection (the redirect re-check, the "any address" rule, the port rule, the metadata range, the IPv4-in-IPv6 unwrapping…) makes a test fail.
+- [x] Integration: fetching a fixture site produces the expected raw payload in the test Spaces bucket (`tests/integration/crawler-scan.test.js`: every page's stored bytes equal what the server sent, byte for byte, through the real S3 client; a second scan writes nothing new).
+- [x] Unit: each readiness check has at least one fixture that should pass and one that should fail (`src/crawler/readiness/checks-*.test.js`: 136 cases for the 24 checks, plus the scoring rules). Checked by mutation on thresholds and logic.
+- [x] Contract: Playwright render matches raw HTML fetch on a stable fixture page (`tests/adapters/render.test.js`: same text, title, structured data, links and content blocks; and a page whose content is added by JavaScript shows exactly that difference). The same file proves the browser reaches nothing the guard would refuse: a page that calls an internal service by `fetch`, XHR, WebSocket, beacon, image, frame, script, form, meta refresh and redirect never reaches it.
+- [x] Also: `crawl.readiness` as a queued job against real Redis and MySQL (retry without doubled results, dead-letter set and a scan marked failed, a payload naming another organization's scan refused — `tests/integration/crawler-job.test.js`); the scan repository in the cross-tenant suite, eight mutations of its tenant filters all caught; hostile input (a 5 MB sitemap of unclosed tags, HTML nested 100,000 deep, a gzip bomb, a robots.txt with 20,000 rules) handled in linear time.
 
-**Exit criteria:** pointing the crawler at a handful of real, varied domains (a WordPress site, a SPA, a site that blocks bots) produces sane, storable readiness results without ever touching a private IP.
+**Local results (2026-10-02):** lint and Prettier clean; `npm test` 566 passing; `npm run test:routes` 156; `npm run test:integration` 155 (six full runs in a row, all passing, before the last five tests were added); `npm run test:tenancy` 50; `npm run test:adapters` 38; `npm run test:e2e` 88; `npm audit` 0 vulnerabilities.
+
+**Exit criteria:** pointing the crawler at a handful of real, varied domains (a WordPress site, a SPA, a site that blocks bots) produces sane, storable readiness results without ever touching a private IP — **met**, run by hand on 2026-10-02 with `npm run scan`, and each run listed the addresses it connected to (all public):
+
+| Site | What it is | Result |
+|---|---|---|
+| wpbeginner.com | WordPress, large | Score **85**, 20 pages read, all 24 checks answered; about 70–80 s (mostly the 500 ms politeness gap and a big sitemap, now capped at 20 s) |
+| excalidraw.com | JavaScript-only app | Score 41; **B1 fails**: 2% of the text is in the raw HTML, the rest appears only after scripts run; platform recognised as a client-rendered app |
+| nytimes.com | blocks bots | robots.txt blocks six AI crawlers by name (A1 partial); every automated request gets 403: **no score ("couldn't check")**, not 0 |
+| glassdoor.com | blocks bots | Cloudflare turns away every automated request: A3 fails, the page checks say "couldn't check", **no score** |
+| example.com | tiny | Score 31; B1 fails correctly, since the page now adds most of its text with a script |
+
+**Not yet met:** a green CI run (the work is not pushed yet).
 
 ## Phase 5 — Engine adapters (spikes)
 
@@ -258,6 +279,8 @@
 
 **Work:**
 - [ ] Public audit endpoint: Cloudflare Turnstile, OTP email verification, rate limiting.
+- [ ] Publish `https://aeocorner.com/bot` before the audit goes public: the address in our crawler's user agent ([MVP §11.2](MVP.md#112-application-security)). It says what `AEOCornerBot` is, what it fetches, how it paces itself, how to block it in `robots.txt`, and who to write to. The audit reads strangers' sites ([ADR-0005](adr/0005-fetching-other-peoples-websites.md)), and site owners will look it up.
+- [ ] Persist audit-owned scans (`site_scans` with an `audit_id` and no organization): the Phase 4 pipeline `runSiteScan()` is unchanged; only the owner differs.
 - [ ] Orchestrates: crawler (Phase 4) → lite Brand Kit → 5 prompts → live-mode collection across all 4 engines (Phase 5) → synchronous extraction (Phase 6) → scores → fixes.
 - [ ] Audit screens — URL form → work email → 6-digit code → live progress page (server-sent events) → report — built from Phase 1's kit and the signed-off wireframes. The report email uses Phase 1's email base.
 - [ ] The email step has the marketing-consent checkbox and links to the Terms and Privacy pages from Phase 1; the choice is stored on `leads`.
@@ -281,6 +304,7 @@
 
 **Work:**
 - [ ] `projects` CRUD, scoped by org; composite FK `(project_id, org_id)` pattern used everywhere from here on.
+- [ ] Domain-ownership verification for a project (a DNS TXT record or a file on the site), so that a customer scan can rely on being the owner: a Phase 4 scan of a customer's project does not stop at `robots.txt` ([ADR-0005](adr/0005-fetching-other-peoples-websites.md)), which is only right for a domain the customer really owns.
 - [ ] Brand Kit auto-extraction (domain → brand profile, products, competitors, voice), editable and versioned.
 - [ ] `tracked_entities` (brand + competitors), generated column `brand_project_id`.
 - [ ] Prompt Manager: generate/import/edit prompts, with intent, cluster, locale.
@@ -423,6 +447,7 @@
 **Goal:** everything in [MVP §13.3 Definition of Done](MVP.md#133-mvp-definition-of-done) is true, not just each feature in isolation.
 
 **Work:**
+- [ ] Provisioning runbook includes installing Chromium for the worker (`npx playwright install --with-deps chromium`, [ADR-0005](adr/0005-fetching-other-peoples-websites.md)) and the Spaces keys and the 13-month lifecycle rule for `aeo-corner/prod/crawl/` (the bucket is shared with other apps, so the rule must be scoped to that prefix) ([MVP §8.3](MVP.md#83-volume-scaling--retention)).
 - [ ] Security review: SSRF, auth, tenancy tests re-run as a full suite; secrets-encryption audit; webhook signature verification audit (Clerk, Stripe, providers).
 - [ ] Onboarding polish: first-run experience, empty states and copy, driven by design-partner feedback. (The methodology and pricing pages are done in Phases 1 and 14.)
 - [ ] Runbooks in `deploy/` (provisioning, incident response, provider outage playbook).

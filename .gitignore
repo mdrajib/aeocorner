@@ -42,3 +42,6 @@ Thumbs.db
 # WordPress plugin build artifacts
 plugins/wordpress-connector/vendor/
 plugins/wordpress-connector/*.zip
+
+# Local stand-in for Spaces (raw crawled pages written by a laptop with no DO_SPACES_* keys)
+.data/

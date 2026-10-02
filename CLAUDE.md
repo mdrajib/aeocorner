@@ -73,6 +73,16 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - **Redis for tests is `TEST_REDIS_URL`** (never `REDIS_URL`). On a local Redis it must name a database other than 0. The local container on port 6379 is shared with another project: use databases 14 (dev) and 15 (tests), keep every key under a prefix, and never run FLUSHDB/FLUSHALL. CI installs Redis with apt (no Docker).
 - A new cross-organization lookup in `src/db/repos/system.js` is a reviewed decision: list it in the tenancy coverage test.
 
+## Crawler (Phase 4; the why is in `docs/adr/0005-fetching-other-peoples-websites.md`, the rubric in `docs/MVP.md` §6.6)
+
+- **Every fetch of a URL we did not choose goes through `createSafeFetcher`** (`src/crawler/safe-fetch.js`). There is no second HTTP client. Its `exceptions` option exists for tests only (a fixture server on this machine) and is never set by app code.
+- **The headless browser never opens a connection of its own** (`src/crawler/render.js`): every request it makes is answered by the safe fetcher, and Chromium starts with name resolution off. Don't add `route.continue()`, a proxy flag, or more allowed resource types without reading the ADR; `tests/adapters/render.test.js` attacks it with a hostile page.
+- **Page content is hostile input.** Code that reads it must be linear: no lazy `[^>]*` patterns on page text, no cheerio `.find()` over a whole page, no recursion over the DOM, nesting capped at 512 (`nestsDeeperThan`). A new parser gets a hostile-input test, as the existing ones have.
+- **A check that could not look says `error` ("couldn't check"), never `fail`**, and is left out of the score; with less than half the rubric evaluated the score is `null`, not 0. A new check: a runner in `src/crawler/readiness/`, an entry in `rubric.js` (the points must still total 100), and a passing and a failing fixture.
+- **Raw pages are stored first** (`storeRaw`, `src/integrations/spaces.js`), under content-addressed keys, so a retry writes the same key. Production needs `DO_SPACES_*`; a laptop writes to `.data/spaces` (gitignored). The bucket is shared with other apps, so everything goes inside this app's directory `aeo-corner/<dev|staging|prod>/` (`DO_SPACES_PREFIX`); never read or write outside it. Tests use the S3 stand-in (`tests/helpers/s3-stub.js`) and must never be pointed at the real bucket.
+- **We obey robots.txt as `AEOCornerBot`, except for a signed-in customer's own project** (founder decision, `respectRobots: false`, set by the job; `--ignore-robots` on the command line). The free audit always obeys it. A scan is `forOrg(orgId).scans`, started with `requestScan()` and run by the `crawl.readiness` job; it does not go through `callProvider`.
+- **Try it:** `npx playwright install chromium` once, then `npm run scan -- example.com` (add `--timing` to see where the time goes). Test helpers: `tests/helpers/http-fixture.js` (fixture servers and a test fetcher), `fixture-sites.js`, `s3-stub.js` (an S3-compatible stand-in, no Docker), `readiness.js`.
+
 ## Schema rules
 
 - **Tenancy:**
@@ -97,6 +107,7 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
   - `schema.prisma` can't express CHECKs, generated columns, `ON UPDATE CURRENT_TIMESTAMP` or partitions, so add those to the migration SQL by hand.
 - **IDs are JavaScript `BigInt`.** Convert them to strings in one JSON serializer.
 - **`upsert` isn't atomic on MySQL.** Catch `P2002` and re-read, or use `INSERT … ON DUPLICATE KEY UPDATE` through `$executeRaw`.
+- **Transactions in a repository go through `transaction(prisma, async (tx) => …)`** (`src/db/transaction.js`), never `prisma.$transaction` directly (lint enforces it). It retries a transaction MySQL abandons as a deadlock, so the callback may run more than once and must touch the database only through `tx`.
 - **Never use `createMany({ skipDuplicates: true })`.** It becomes `INSERT IGNORE`, which silently truncates data and skips CHECK violations.
 - **`prisma.*` and `$queryRaw` are used only inside `src/db/`** (the tenant-scoped repositories).
 
@@ -116,7 +127,7 @@ for f in schema seed_reference checks; do MYSQL_PWD=<root password> "$MYSQL" -ur
 - For Prisma-relevant changes, check the schema in a scratch project with Prisma 7: run `prisma db pull`, then `prisma validate`, then `prisma migrate diff`, which must report no differences.
 - After a change, update the counts wherever they appear: the DATABASE_SCHEMA.md header and §0, the MVP.md companion-docs row, and the `schema.sql` footer.
 
-The dev machine runs Windows 11. MySQL is a native Windows install, not Docker. Redis is a DigitalOcean-hosted instance reached over its public URL (`REDIS_URL` in `.env`) — nothing to install locally for it either. The Bash tool is Git Bash, so use absolute paths or `/c/...` paths; call Windows `.exe` tools by their full path since they aren't on the Git Bash `PATH`. The root MySQL password lives only in `.env` (gitignored) — never put it in a doc or commit it.
+The dev machine runs Windows 11. MySQL is a native Windows install, not Docker. Redis for local work is the shared container on port 6379 (see "Queues and the worker"); nothing to install for it. The Bash tool is Git Bash, so use absolute paths or `/c/...` paths; call Windows `.exe` tools by their full path since they aren't on the Git Bash `PATH`. The root MySQL password lives only in `.env` (gitignored) — never put it in a doc or commit it.
 
 ## Writing the docs
 

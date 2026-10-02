@@ -1,5 +1,6 @@
 import { toMicros } from '../../core/spend.js';
 import { DomainError, isUniqueViolation } from '../errors.js';
+import { transaction } from '../transaction.js';
 
 /**
  * One organization's cost ledger, spend-cap state and in-app notifications. Merged into `forOrg(orgId)`; the
@@ -97,7 +98,7 @@ export function usageRepos(prisma, orgId, { appendActivity }) {
      * same moment, exactly one of them sends the notices.
      */
     async pause({ until, now, spentUsd, capUsd }) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const { count } = await tx.organizations.updateMany({
           where: {
             id: orgId,
@@ -118,7 +119,7 @@ export function usageRepos(prisma, orgId, { appendActivity }) {
 
     /** Let collection continue (the day rolled over, or the cap was raised). */
     async resume({ reason }) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const { count } = await tx.organizations.updateMany({
           where: { id: orgId, collection_paused_until: { not: null } },
           data: { collection_paused_until: null },

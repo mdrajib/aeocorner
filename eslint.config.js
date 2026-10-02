@@ -36,6 +36,10 @@ export default [
         URL: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        setImmediate: 'readonly',
+        TextDecoder: 'readonly',
       },
     },
     rules: {
@@ -79,6 +83,22 @@ export default [
         {
           selector: "MemberExpression[property.name='_prisma']",
           message: 'The raw Prisma client is private to src/db.',
+        },
+      ],
+    },
+  },
+  {
+    // A transaction in a repository goes through transaction() so that a deadlock (InnoDB abandoning one of two
+    // transactions that wait on each other) is retried instead of becoming a failed request.
+    files: ['src/db/repos/**/*.js'],
+    ignores: ['**/*.test.js'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[property.name='$transaction']",
+          message:
+            "Use transaction(prisma, async (tx) => …) from '../transaction.js': it retries deadlocks.",
         },
       ],
     },

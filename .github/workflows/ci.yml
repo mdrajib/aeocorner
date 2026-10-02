@@ -45,6 +45,11 @@ jobs:
           mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE aeo_corner_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
           mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE aeo_corner_shadow CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
 
+      # The crawler renders pages in a headless Chromium (the same browser the worker uses), so its render contract
+      # tests and the whole-scan integration tests need it. No Docker, no external service.
+      - name: Install Chromium for the crawler's render tests
+        run: npx playwright install --with-deps chromium
+
       - name: Build CSS (Tailwind)
         run: npm run build:css
 

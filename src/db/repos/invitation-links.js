@@ -1,5 +1,6 @@
 import { hashToken } from '../../lib/tokens.js';
 import { DomainError, isUniqueViolation } from '../errors.js';
+import { transaction } from '../transaction.js';
 
 /**
  * Invitations seen from the invitee's side. This is the one place a tenant row is found without first
@@ -39,7 +40,7 @@ export function invitationLinksRepo(prisma) {
       const tokenHash = hashToken(token);
       const emails = new Set(verifiedEmails.map((e) => String(e).trim().toLowerCase()));
 
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         // Lock the invitation so two tabs accepting at once can't both create a membership.
         const rows = await tx.$queryRaw`
           SELECT id FROM invitations WHERE token_hash = ${tokenHash} FOR UPDATE`;

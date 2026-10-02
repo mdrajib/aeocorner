@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
 import { ulid } from '../lib/ulid.js';
 import { createDb } from './index.js';
+import { transaction } from './transaction.js';
 
 /**
  * Helpers for the integration and tenancy suites. Lives in src/db because those suites need to seed rows
@@ -126,6 +127,53 @@ export function fixtures(db) {
       });
     },
 
+    /**
+     * Make two transactions deadlock on purpose: each locks one user row, waits until the other has locked its
+     * own, then asks for the other's. MySQL abandons one of them. Returns what each transaction ended with and
+     * how many times each one's callback ran, to test that deadlocks are retried (src/db/transaction.js).
+     */
+    async provokeDeadlock({ attempts }) {
+      const [a, b] = [await this.user(), await this.user()];
+      const runs = [0, 0];
+      let arrived = 0;
+      let release;
+      const bothHoldOne = new Promise((resolve) => (release = resolve));
+      const run = (index, first, second) =>
+        transaction(
+          prisma,
+          async (tx) => {
+            runs[index] += 1;
+            await tx.$queryRaw`SELECT id FROM users WHERE id = ${first} FOR UPDATE`;
+            // Only the first round is staged; a retry runs after the other transaction is gone.
+            if (runs[index] === 1) {
+              arrived += 1;
+              if (arrived === 2) release();
+              await bothHoldOne;
+            }
+            await tx.$queryRaw`SELECT id FROM users WHERE id = ${second} FOR UPDATE`;
+            return 'committed';
+          },
+          { attempts, baseDelayMs: 5 },
+        ).then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+      const results = await Promise.all([run(0, a.id, b.id), run(1, b.id, a.id)]);
+      return { results, runs };
+    },
+
+    /** Write a site_scans row directly, to prove the database itself refuses another organization's project. */
+    forceScan({ orgId, projectId }) {
+      return prisma.site_scans.create({
+        data: {
+          org_id: orgId,
+          project_id: projectId,
+          trigger_type: 'manual',
+          rubric_version: 'v0.1',
+        },
+      });
+    },
+
     suspendStaff(staffId) {
       return prisma.staff_users.update({ where: { id: staffId }, data: { status: 'suspended' } });
     },
@@ -180,6 +228,9 @@ export function fixtures(db) {
         await prisma.org_activity_log.deleteMany({ where });
         await prisma.usage_ledger.deleteMany({ where });
         await prisma.notifications.deleteMany({ where });
+        // Scans reference projects, and take their pages and check results with them.
+        await prisma.site_scans.deleteMany({ where });
+        await prisma.site_pages.deleteMany({ where });
         await prisma.projects.deleteMany({ where });
         await prisma.users.updateMany({
           where: { last_org_id: { in: orgs } },

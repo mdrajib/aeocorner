@@ -29,6 +29,22 @@ const envSchema = z.object({
     .default('aeo'),
   ALERT_WEBHOOK_URL: optional(z.url()),
 
+  // Object storage for raw crawled pages (MVP §7.1): a DigitalOcean Spaces bucket, or any S3-compatible service.
+  // Set all of endpoint, bucket, key and secret, or none (development then writes to local disk).
+  DO_SPACES_ENDPOINT: optional(z.url()),
+  DO_SPACES_REGION: optional(z.string().min(1)),
+  DO_SPACES_BUCKET: optional(
+    z
+      .string()
+      .min(3)
+      .max(63)
+      .regex(/^[a-z0-9][a-z0-9.-]*$/, 'lower-case letters, digits, . and -'),
+  ),
+  DO_SPACES_KEY: optional(z.string().min(1)),
+  DO_SPACES_SECRET: optional(z.string().min(1)),
+  // A directory inside the bucket, ending in "/". Defaults to aeo-corner/dev/, aeo-corner/staging/ or aeo-corner/prod/.
+  DO_SPACES_PREFIX: optional(z.string().regex(/^([A-Za-z0-9_-]+\/)*$/, 'folder names ending in /')),
+
   // Clerk, customer app: identity only (DATABASE_SCHEMA §10.1). Both keys or neither.
   CLERK_PUBLISHABLE_KEY: optional(
     z.string().regex(/^pk_(test|live)_/, 'must start pk_test_ or pk_live_'),
@@ -90,6 +106,45 @@ export function cloudflareTeamDomain(value) {
     .replace(/^https?:\/\//, '')
     .replace(/\/+$/, '');
   return host.includes('.') ? host : `${host}.cloudflareaccess.com`;
+}
+
+/**
+ * Spaces needs all four of endpoint, bucket, key and secret, or none. The region is the first part of a
+ * DigitalOcean address (sgp1.digitaloceanspaces.com) unless it is set. Everything this app stores goes inside its
+ * own directory, aeo-corner/<environment>/, so the bucket can be shared with other apps and staging and
+ * production never touch each other's files.
+ */
+function spacesConfig(e, appEnv) {
+  const given = {
+    DO_SPACES_ENDPOINT: e.DO_SPACES_ENDPOINT,
+    DO_SPACES_BUCKET: e.DO_SPACES_BUCKET,
+    DO_SPACES_KEY: e.DO_SPACES_KEY,
+    DO_SPACES_SECRET: e.DO_SPACES_SECRET,
+  };
+  const missing = Object.entries(given)
+    .filter(([, v]) => !v)
+    .map(([k]) => k);
+  if (missing.length === Object.keys(given).length) return null;
+  if (missing.length) {
+    throw new Error(
+      `Spaces: set ${missing.join(', ')} too, or remove the other DO_SPACES_* values.`,
+    );
+  }
+  const endpoint = new URL(e.DO_SPACES_ENDPOINT);
+  // DigitalOcean's dashboard shows a bucket's address as "<bucket>.<region>.digitaloceanspaces.com". The client
+  // adds the bucket name itself, so that form would end up as "<bucket>.<bucket>.<region>...". Accept it anyway.
+  if (endpoint.hostname.startsWith(`${e.DO_SPACES_BUCKET}.`)) {
+    endpoint.hostname = endpoint.hostname.slice(e.DO_SPACES_BUCKET.length + 1);
+  }
+  const folder = { production: 'prod', staging: 'staging', development: 'dev' }[appEnv];
+  return {
+    endpoint: endpoint.origin,
+    region: e.DO_SPACES_REGION ?? endpoint.hostname.split('.')[0],
+    bucket: e.DO_SPACES_BUCKET,
+    accessKeyId: e.DO_SPACES_KEY,
+    secretAccessKey: e.DO_SPACES_SECRET,
+    prefix: e.DO_SPACES_PREFIX ?? `aeo-corner/${folder}/`,
+  };
 }
 
 function clerkApp({ publishableKey, secretKey, label }) {
@@ -195,6 +250,7 @@ export function loadConfig(env = process.env) {
     databaseUrl: e.DATABASE_URL ?? null,
     redis: e.REDIS_URL ? { url: e.REDIS_URL, prefix: e.QUEUE_PREFIX } : null,
     alertWebhookUrl: e.ALERT_WEBHOOK_URL ?? null,
+    spaces: spacesConfig(e, appEnv),
     auth: customer
       ? {
           ...customer,

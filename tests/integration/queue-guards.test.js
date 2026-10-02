@@ -36,8 +36,13 @@ describe('waiting is not failing', () => {
   test('an empty rate-limit bucket delays the job; it runs later and no attempt is used up', async () => {
     const h = await runtimeFor();
     const org = await fx.org();
-    // Empty the provider's bucket (the default limit is a burst of 10).
-    await h.runtime.ctx.limiter.take('drained', { capacity: 10, refillPerSec: 5 }, 10);
+    // Empty the provider's bucket (the default limit is a burst of 10). The drain is stamped a minute in the
+    // future, so the worker's FIRST attempt finds it empty however long the worker takes to pick the job up:
+    // a plain drain refills in two seconds, which a busy machine (every test file running at once) can exceed.
+    // That first attempt defers the job and restarts the bucket's clock, so the retry then finds tokens.
+    await h.runtime.ctx.limiter.take('drained', { capacity: 10, refillPerSec: 5 }, 10, {
+      nowMs: Date.now() + 60_000,
+    });
 
     const id = uid();
     await h.runtime.jobs.add('system.noop', noopFor(org, { provider: 'drained' }), { jobId: id });

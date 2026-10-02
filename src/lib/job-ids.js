@@ -23,5 +23,8 @@ export function jobId(...parts) {
 /** The weekly tracking run of one project: the same ID for every firing of the same slot. */
 export const trackingRunJobId = (projectId, weekKey) => jobId('run', projectId, weekKey);
 
+/** The one scan of a website: a scan has its own ID in the database, so asking twice for it is one job. */
+export const scanJobId = (scanId) => jobId('scan', scanId);
+
 /** The one job that keeps a recurring task alive (a BullMQ job scheduler's own ID). */
 export const schedulerId = (name) => jobId('schedule', name.replaceAll('.', '_'));

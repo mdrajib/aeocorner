@@ -73,4 +73,14 @@ describe('database boundary lint rule', () => {
       1,
     );
   });
+
+  test('inside the repositories, a transaction must go through transaction() so deadlocks are retried', async () => {
+    const direct = 'export const f = (prisma) => prisma.$transaction(async (tx) => tx);';
+    const found = await problems(direct, 'src/db/repos/example.js');
+    assert.equal(found.length, 1);
+    assert.match(found[0], /transaction\(prisma/);
+    const wrapped =
+      "import { transaction } from '../transaction.js';\nexport const f = (prisma) => transaction(prisma, async (tx) => tx);";
+    assert.deepEqual(await problems(wrapped, 'src/db/repos/example.js'), []);
+  });
 });

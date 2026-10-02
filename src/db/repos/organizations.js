@@ -1,6 +1,7 @@
 import { slugify, withSuffix } from '../../lib/slug.js';
 import { ulid } from '../../lib/ulid.js';
 import { DomainError, isUniqueViolation } from '../errors.js';
+import { transaction } from '../transaction.js';
 
 const MAX_SLUG_ATTEMPTS = 6;
 
@@ -10,7 +11,7 @@ const MAX_SLUG_ATTEMPTS = 6;
  */
 export function organizationsRepo(prisma) {
   async function createOnce({ user, name, kind, slug }) {
-    return prisma.$transaction(async (tx) => {
+    return transaction(prisma, async (tx) => {
       const org = await tx.organizations.create({
         data: { public_id: ulid(), name, slug, kind },
       });

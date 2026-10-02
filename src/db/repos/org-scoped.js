@@ -1,5 +1,7 @@
 import { DomainError, isForeignKeyViolation, isUniqueViolation } from '../errors.js';
+import { scanRepos } from './org-scans.js';
 import { usageRepos } from './org-usage.js';
+import { transaction } from '../transaction.js';
 
 /**
  * Repositories for one organization's data. `forOrg(orgId)` binds the organization once, and every
@@ -100,7 +102,7 @@ export function orgScopedRepos(prisma, orgId) {
     /** Add a member (used when an invitation is accepted). Adding the same person twice is an error. */
     async add({ userId, role, projectAccess = 'all', projectIds = [], actorUserId, summary }) {
       try {
-        return await prisma.$transaction(async (tx) => {
+        return await transaction(prisma, async (tx) => {
           const membership = await tx.memberships.create({
             data: { org_id: orgId, user_id: userId, role, project_access: 'all' },
           });
@@ -128,7 +130,7 @@ export function orgScopedRepos(prisma, orgId) {
      * one fails, even when two owners demote each other at the same moment (the owner rows are locked).
      */
     async changeRole({ membershipId, role, actorUserId }) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const owners = await lockedOwnerCount(tx);
         const target = await tx.memberships.findFirst({
           where: { id: membershipId, org_id: orgId },
@@ -154,7 +156,7 @@ export function orgScopedRepos(prisma, orgId) {
     },
 
     async remove({ membershipId, actorUserId }) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const owners = await lockedOwnerCount(tx);
         const target = await tx.memberships.findFirst({
           where: { id: membershipId, org_id: orgId },
@@ -182,7 +184,7 @@ export function orgScopedRepos(prisma, orgId) {
 
     /** Which projects a member can see: everything, or only the listed ones (agency client seats). */
     async setProjectAccess({ membershipId, access, projectIds = [], actorUserId }) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const target = await tx.memberships.findFirst({
           where: { id: membershipId, org_id: orgId },
         });
@@ -218,7 +220,7 @@ export function orgScopedRepos(prisma, orgId) {
       expiresAt,
     }) {
       const address = String(email).trim().toLowerCase();
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const existingMember = await tx.memberships.findFirst({
           where: { org_id: orgId, users: { email: address, deleted_at: null } },
         });
@@ -274,7 +276,7 @@ export function orgScopedRepos(prisma, orgId) {
       prisma.invitations.findFirst({ where: { id: invitationId, org_id: orgId } }),
 
     async cancel({ invitationId, actorUserId }) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const result = await tx.invitations.updateMany({
           where: { id: invitationId, org_id: orgId, status: 'pending' },
           data: { status: 'canceled' },
@@ -292,7 +294,7 @@ export function orgScopedRepos(prisma, orgId) {
 
     /** Replace the link in an invitation (for "resend"): the old link stops working, the expiry restarts. */
     async reissue({ invitationId, tokenHash, expiresAt, actorUserId }) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const result = await tx.invitations.updateMany({
           where: { id: invitationId, org_id: orgId, status: 'pending' },
           data: { token_hash: tokenHash, expires_at: expiresAt },
@@ -326,5 +328,6 @@ export function orgScopedRepos(prisma, orgId) {
     invitations,
     activity,
     ...usageRepos(prisma, orgId, { appendActivity }),
+    ...scanRepos(prisma, orgId),
   };
 }

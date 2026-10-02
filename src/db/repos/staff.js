@@ -1,4 +1,5 @@
 import { DomainError, isUniqueViolation } from '../errors.js';
+import { transaction } from '../transaction.js';
 
 /**
  * Internal staff accounts (DATABASE_SCHEMA §2.2). Sign-in and the second factor live in the separate
@@ -75,7 +76,7 @@ export function staffRepo(prisma) {
     async invite({ email, name, roles, createdByStaffId = null }) {
       if (!roles?.length) throw new DomainError('ROLE_REQUIRED');
       try {
-        return await prisma.$transaction(async (tx) => {
+        return await transaction(prisma, async (tx) => {
           const staff = await tx.staff_users.create({
             data: {
               email: String(email).trim().toLowerCase(),

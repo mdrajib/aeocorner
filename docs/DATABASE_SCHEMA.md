@@ -120,15 +120,15 @@ These hold public URLs only, never who cited them, so sharing them across tenant
 | `entity_aliases` | Names, domains and **exclusions** ("Apex Legends is not us") used by the deterministic pre-pass, each with where it came from | 5–6 |
 | `prompt_clusters` | Topic groups | 5–6 |
 | `prompts` | Buyer questions: text plus a SHA-256 of the normalized text (duplicates blocked per locale), keyword form for AI Overviews, intent, priority 1–3, locale, source, daily add-on flag | 5–6 |
-| `site_pages` | The customer's known pages, for own-page performance, "should be cited" gaps and internal-link targets | 5–6 |
+| `site_pages` | The customer's known pages, for own-page performance, "should be cited" gaps and internal-link targets. *Phase 4:* every scan refreshes the key pages it chose (`INSERT … ON DUPLICATE KEY UPDATE` on `uq_site_pages_url`); `source` is the best way we met the page (`nav` over `sitemap` over `crawl`) | 4–6 |
 
 ### 2.8 Readiness scans
 
 | Table | Purpose | Used from |
 |---|---|---|
-| `site_scans` | One crawl and readiness evaluation. **Shared by audits, weekly re-checks and fix verification**, so there's one readiness engine and one table set. A row belongs to an audit or to a project (CHECK constraint) | 1–2 |
-| `scan_pages` | Each fetched page: status, redirects, raw vs rendered text length, JSON-LD types, Spaces keys for the HTML | 1–2 |
-| `scan_checks` | One row per rubric check (A1…F4): pass/partial/fail, points, evidence | 1–2 |
+| `site_scans` | One crawl and readiness evaluation. **Shared by audits, weekly re-checks and fix verification**, so there's one readiness engine and one table set. A row belongs to an audit or to a project (CHECK constraint). *Phase 4 (project-owned scans; audit-owned arrive with Phase 7):* `queued` → `running` → `complete` / `partial` / `failed`. `readiness_score` is **NULL, never 0,** when the site could not be read or less than half the rubric could be evaluated. `category_scores` JSON is `{categories: {A…F: {name, earned, possible, score, evaluated, checks}}, coverage, counts, notes[], platform, origin}`; `sitemap_urls` lists the sitemaps found, each with its Spaces key; `robots_txt_uri` is the Spaces key of the robots.txt that was read | 1–2 |
+| `scan_pages` | Each fetched page: status, redirects, raw vs rendered text length, JSON-LD types, Spaces keys for the HTML. `raw_uri` / `rendered_uri` are the **full** keys including the environment folder (`aeo-corner/prod/crawl/2026/10/<sha256>.html`: the app's own directory in the shared bucket, then the environment), content-addressed so a retried scan writes the same key. `error` holds why a page has no content: `disallowed_by_robots`, `blocked_by_firewall`, `scan_time_limit`, a fetch error code | 1–2 |
+| `scan_checks` | One row per rubric check (A1…F4): pass/partial/fail, points, evidence. `status` `error` means **we could not look** (not a fail) and `not_applicable` means the check does not apply; both are left out of the score. `evidence` JSON always starts with a plain-English `summary`, and names the stored file behind a finding where there is one (`robotsKey`, a sitemap `key`) | 1–2 |
 
 ### 2.9 Tracking runs and facts
 
@@ -552,6 +552,7 @@ Tested with Prisma 7.10.0 (the current stable release; Prisma 8 is a release can
 6. **Prisma's `_prisma_migrations` table** uses `utf8mb4_unicode_ci`. It is exempt from CI check 6 and on the global list in check 2.
 7. **Tenant scoping stays in the repository layer** (§6). A Prisma client extension can add the `org_id` filter, but the lint rule remains: `prisma.*` and `$queryRaw` are allowed only inside `src/db/`.
 8. **Connections:** use TLS with DigitalOcean's CA certificate. Set the adapter's `connectionLimit` so the web and worker processes together stay under the cluster's connection cap.
+9. **Transactions retry deadlocks.** InnoDB resolves two transactions that wait on each other by abandoning one ("Deadlock found… try restarting transaction", Prisma `P2034`, or `P2010` for a raw query). That is routine under concurrency, not a bug, and the remedy is to run the whole transaction again. Repositories call `transaction(prisma, async (tx) => …)` from `src/db/transaction.js` (up to 4 attempts with a short random wait), and a lint rule forbids calling `prisma.$transaction` directly there. Added 2026-10-02 after organization creation failed under load.
 
 `docs/db/schema.sql` becomes `prisma/migrations/0001_init/migration.sql`, and `seed_reference.sql` becomes `0002_reference_data`. The copy in `docs/db/` is regenerated each release (`mysqldump --no-data`) as a readable snapshot.
 

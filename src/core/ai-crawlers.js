@@ -73,3 +73,62 @@ export const AI_CRAWLERS = [
   { vendor: 'Mistral', agent: 'MistralAI-User', purpose: 'Various', guidance: 'case_by_case' },
   { vendor: 'ByteDance', agent: 'Bytespider', purpose: 'Various', guidance: 'case_by_case' },
 ];
+
+/**
+ * The user-agent strings the readiness check "A3" sends to see whether a firewall or CDN turns AI crawlers away
+ * (MVP §6.6). Sites block by these strings, so they must look like the real thing.
+ *
+ * Checked against each vendor's documentation on 2026-10-02:
+ *   OpenAI      https://developers.openai.com/api/docs/bots   (published in full)
+ *   Perplexity  https://docs.perplexity.ai/guides/bots        (published in full)
+ *   Anthropic   https://support.claude.com/en/articles/8896518 publishes the names but not the full string, so
+ *               the string below is built in the same shape as the others and carries the documented token.
+ * Re-check them with the rest of this file every quarter.
+ *
+ * What this cannot tell: many firewalls verify a bot by its network address as well as its name, so they would
+ * turn away our look-alike while admitting the real crawler. A3 words its findings accordingly.
+ */
+export const PROBE_USER_AGENTS = [
+  {
+    agent: 'OAI-SearchBot',
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36; compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot',
+  },
+  {
+    agent: 'ChatGPT-User',
+    userAgent:
+      'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot',
+  },
+  {
+    agent: 'PerplexityBot',
+    userAgent:
+      'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)',
+  },
+  {
+    agent: 'Claude-SearchBot',
+    userAgent:
+      'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Claude-SearchBot/1.0; +Claude-SearchBot@anthropic.com)',
+  },
+];
+
+/**
+ * The crawlers the readiness rubric names (MVP §6.6). A1 checks that the first group may read the site;
+ * A2 looks for a stated policy on the second. Both are subsets of the list above.
+ */
+export const ANSWER_BOTS = [
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'PerplexityBot',
+  'Perplexity-User',
+  'Claude-SearchBot',
+  'Claude-User',
+  'Bingbot',
+  'Googlebot',
+];
+export const TRAINING_BOTS = [
+  'GPTBot',
+  'ClaudeBot',
+  'Google-Extended',
+  'Applebot-Extended',
+  'CCBot',
+];

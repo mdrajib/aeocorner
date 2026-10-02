@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { DomainError } from '../../src/db/index.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
+import { runReadinessChecks } from '../../src/crawler/readiness/index.js';
 import { hashToken, newToken } from '../../src/lib/tokens.js';
+import { context } from '../helpers/readiness.js';
 
 /**
  * Cross-tenant leak suite for the repository layer (DATABASE_SCHEMA §6, layer 4).
@@ -353,6 +355,137 @@ describe('notifications', () => {
   });
 });
 
+describe('site scans', () => {
+  // A scan result as the crawler returns it, with every check "couldn't check" (that is enough to be stored).
+  const report = runReadinessChecks(context());
+  const resultFor = (domain) => ({
+    status: 'partial',
+    rubricVersion: report.rubricVersion,
+    readinessScore: null,
+    categoryScores: report.categories,
+    coverage: 0,
+    counts: report.counts,
+    checks: report.checks,
+    notes: ['test'],
+    site: { platform: 'wordpress', origin: `https://${domain}` },
+    robots: { key: null },
+    sitemaps: { found: [] },
+    pagesPlanned: 1,
+    pagesFetched: 1,
+    finishedAt: new Date().toISOString(),
+    pages: [
+      {
+        url: `https://${domain}/`,
+        finalUrl: `https://${domain}/`,
+        pageType: 'home',
+        isKey: true,
+        sources: ['home'],
+        status: 200,
+        redirectCount: 0,
+        contentType: 'text/html',
+        headers: {},
+        title: 'Home',
+        jsonLdTypes: [],
+        rawTextChars: 100,
+        renderedTextChars: null,
+        rawKey: 'test/crawl/x.html',
+        renderedKey: null,
+        fetchMs: 12,
+        error: null,
+      },
+    ],
+  });
+  let aScan;
+  let bScan;
+  let aProject;
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Scanned A');
+    aScan = await A.scoped.scans.create({ projectId: aProject.id, rubricVersion: 'v0.1' });
+    bScan = await B.scoped.scans.create({ projectId: bProject.id, rubricVersion: 'v0.1' });
+  });
+
+  test('create(): B’s project cannot be scanned from A', async () => {
+    await refuses(
+      A.scoped.scans.create({ projectId: bProject.id, rubricVersion: 'v0.1' }),
+      'PROJECT_NOT_IN_ORG',
+    );
+  });
+
+  test('get(): A cannot read B’s scan, and B’s own is untouched', async () => {
+    assert.equal(await A.scoped.scans.get(bScan.id), null);
+    const own = await A.scoped.scans.get(aScan.id);
+    assert.equal(own.domain, aProject.domain);
+    assert.equal((await B.scoped.scans.get(bScan.id)).status, 'queued');
+  });
+
+  test('start(): A cannot start B’s scan', async () => {
+    assert.equal(await A.scoped.scans.start(bScan.id), false);
+    assert.equal((await B.scoped.scans.get(bScan.id)).status, 'queued');
+    assert.equal(await B.scoped.scans.start(bScan.id), true);
+  });
+
+  test('fail(): A cannot fail B’s scan, and B can fail its own', async () => {
+    const spare = await B.scoped.scans.create({ projectId: bProject.id, rubricVersion: 'v0.1' });
+    assert.equal(await A.scoped.scans.fail(spare.id), false);
+    assert.equal((await B.scoped.scans.get(spare.id)).status, 'queued');
+    assert.equal(await B.scoped.scans.fail(spare.id), true);
+    assert.equal((await B.scoped.scans.get(spare.id)).status, 'failed');
+    assert.equal(
+      await B.scoped.scans.fail(spare.id),
+      false,
+      'a scan that already ended is left alone',
+    );
+  });
+
+  test('finish(): A cannot write results into B’s scan', async () => {
+    await refuses(A.scoped.scans.finish(bScan.id, resultFor('a.example.test')), 'NOT_FOUND');
+    assert.deepEqual(await B.scoped.scans.pages(bScan.id), []);
+    assert.deepEqual(await B.scoped.scans.checks(bScan.id), []);
+    assert.equal((await B.scoped.scans.get(bScan.id)).status, 'running');
+  });
+
+  test('finish(): saves the pages and checks, and doing it again replaces them instead of doubling them', async () => {
+    const first = await B.scoped.scans.finish(bScan.id, resultFor('b.example.test'));
+    assert.deepEqual([first.pages, first.checks], [1, 24]);
+    await B.scoped.scans.finish(bScan.id, resultFor('b.example.test'));
+    assert.equal((await B.scoped.scans.pages(bScan.id)).length, 1);
+    assert.equal((await B.scoped.scans.checks(bScan.id)).length, 24);
+    assert.equal(
+      (await B.scoped.scans.knownPages(bProject.id)).length,
+      1,
+      'one known page, refreshed',
+    );
+    const row = await B.scoped.scans.get(bScan.id);
+    assert.equal(row.status, 'partial');
+    assert.equal(
+      row.readiness_score,
+      null,
+      'a scan that could not be read has no score, not a score of 0',
+    );
+  });
+
+  test('pages() / checks() / knownPages(): A sees nothing of B’s scan, though B has results', async () => {
+    assert.deepEqual(await A.scoped.scans.pages(bScan.id), []);
+    assert.deepEqual(await A.scoped.scans.checks(bScan.id), []);
+    assert.deepEqual(await A.scoped.scans.knownPages(bProject.id), []);
+    assert.ok((await B.scoped.scans.checks(bScan.id)).length > 0);
+  });
+
+  test('recent(): A listing B’s project gets nothing; its own project shows only its own scans', async () => {
+    assert.deepEqual(await A.scoped.scans.recent({ projectId: bProject.id }), []);
+    const mine = await A.scoped.scans.recent({ projectId: aProject.id });
+    assert.deepEqual(ids(mine), [String(aScan.id)]);
+    assert.ok(mine.every((r) => r.org_id === A.org.id));
+  });
+
+  test('the database itself refuses a scan row that names another organization’s project', async () => {
+    await assert.rejects(fx.forceScan({ orgId: A.org.id, projectId: bProject.id }), (e) =>
+      /foreign key|constraint/i.test(String(e.message)),
+    );
+  });
+});
+
 describe('system lookups (the reviewed cross-organization set)', () => {
   test('dueProjects(): IDs only, active projects only, none of their content', async () => {
     const slotHour = 150;
@@ -390,6 +523,7 @@ describe('coverage: no repository function without a leak test', () => {
     usage: ['recent', 'record', 'spentSinceMicros'],
     spend: ['pause', 'resume', 'state'],
     notifications: ['createOnce', 'forUser'],
+    scans: ['checks', 'create', 'fail', 'finish', 'get', 'knownPages', 'pages', 'recent', 'start'],
   };
 
   // The cross-organization lookups the worker makes (src/db/repos/system.js). Adding one is a reviewed decision:
@@ -426,6 +560,7 @@ describe('coverage: no repository function without a leak test', () => {
       'memberships',
       'notifications',
       'orgId',
+      'scans',
       'spend',
       'usage',
     ]);

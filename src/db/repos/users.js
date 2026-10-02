@@ -1,4 +1,5 @@
 import { isUniqueViolation } from '../errors.js';
+import { transaction } from '../transaction.js';
 
 const LOGIN_TOUCH_INTERVAL_MS = 10 * 60 * 1000;
 
@@ -85,7 +86,7 @@ export function usersRepo(prisma) {
      * @returns {Promise<{ status: 'deleted'|'missing'|'already', orphanedOrgIds: bigint[] }>}
      */
     async markDeleted(clerkUserId) {
-      return prisma.$transaction(async (tx) => {
+      return transaction(prisma, async (tx) => {
         const user = await tx.users.findUnique({ where: { clerk_user_id: String(clerkUserId) } });
         if (!user) return { status: 'missing', orphanedOrgIds: [] };
         if (user.deleted_at) return { status: 'already', orphanedOrgIds: [] };
