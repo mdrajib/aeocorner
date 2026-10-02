@@ -1,0 +1,11 @@
+<%
+// Props: engine (label, e.g. "ChatGPT"), question, text (the real answer excerpt — escaped), highlights ([{ term, kind: brand|competitor }])
+// The brand and competitor names are highlighted so the reader sees at a glance who the AI named.
+-%>
+<figure class="card">
+  <figcaption class="card-header">
+    <span class="badge badge-neutral"><%= locals.engine %></span>
+    <span class="text-ink-700 min-w-0 flex-1 text-right text-sm"><%= locals.question %></span>
+  </figcaption>
+  <blockquote class="card-body text-ink-800 text-[0.95rem] leading-7"><%- ui.highlight(locals.text, locals.highlights) %></blockquote>
+</figure>

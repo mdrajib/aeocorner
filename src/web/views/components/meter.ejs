@@ -1,0 +1,14 @@
+<%
+// Props: id (required, unique), label (required), value, max (required), warnAt (fraction 0..1, default 0.9)
+// Uses the native <progress> element: accessible by default and needs no inline style (CSP forbids style="").
+const max = locals.max;
+const value = Math.min(Math.max(locals.value ?? 0, 0), max);
+const warn = max > 0 && value / max >= (locals.warnAt ?? 0.9);
+-%>
+<div class="meter-block<%= warn ? ' meter-warn' : '' %>">
+  <div class="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+    <label class="text-ink-800 font-medium" for="<%= locals.id %>"><%= locals.label %></label>
+    <span class="text-ink-700 tabular-nums"><%= value %> of <%= max %></span>
+  </div>
+  <progress class="meter" id="<%= locals.id %>" value="<%= value %>" max="<%= max %>"><%= value %> of <%= max %></progress>
+</div>

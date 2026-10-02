@@ -1,0 +1,14 @@
+<%
+// Props: label (accessible name), steps ([{ label }] or strings), current (0-based index of the active step)
+const steps = (locals.steps ?? []).map((s) => (typeof s === 'string' ? { label: s } : s));
+const current = locals.current ?? 0;
+-%>
+<ol class="stepper" aria-label="<%= locals.label ?? 'Progress' %>">
+  <% steps.forEach((s, i) => { const state = i < current ? 'complete' : i === current ? 'current' : 'upcoming'; %>
+  <li class="step step-<%= state %>"<% if (state === 'current') { %> aria-current="step"<% } %>>
+    <% if (i > 0) { %><span class="<%= i <= current ? 'bg-brand-600' : 'bg-ink-300' %> absolute top-4 right-1/2 hidden h-0.5 w-full sm:block" aria-hidden="true"></span><% } %>
+    <span class="step-dot"><% if (state === 'complete') { %><%- ui.icon({ name: 'check', size: 16 }) %><span class="sr-only">Completed:</span><% } else { %><%= i + 1 %><% } %></span>
+    <span class="step-label mt-0 sm:mt-2"><%= s.label %></span>
+  </li>
+  <% }) %>
+</ol>

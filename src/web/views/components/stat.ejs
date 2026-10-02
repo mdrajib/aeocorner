@@ -1,0 +1,29 @@
+<%
+// Props: label (required), value, note, delta ({ direction: up|down|flat, text, significant }), state (ok|unknown|loading),
+//        interval (e.g. "95% range 22–41"), href + hrefLabel (link to the evidence behind the number)
+// state "unknown" shows a dash and "Couldn’t check" — never 0. Callers must choose it when a collection failed.
+const state = locals.state ?? 'ok';
+// A change is only coloured green/red when the significance test passed (MVP §6.3). Anything else is neutral:
+// normal ups and downs must not look like wins or losses.
+const deltaTone = locals.delta ? (locals.delta.significant === true ? locals.delta.direction : 'flat') : null;
+-%>
+<div class="stat<%= state === 'unknown' ? ' stat-unknown' : '' %>"<% if (state === 'loading') { %> aria-busy="true"<% } %>>
+  <p class="stat-label"><%= locals.label %></p>
+  <% if (state === 'loading') { -%>
+  <div class="skeleton my-1 h-9 w-24" role="status"><span class="sr-only">Loading <%= locals.label %></span></div>
+  <% } else if (state === 'unknown') { -%>
+  <p class="stat-value"><span aria-hidden="true">—</span><span class="sr-only">No value</span></p>
+  <p class="stat-note flex items-center gap-1.5 font-semibold"><%- ui.icon({ name: 'help', size: 16 }) %>Couldn’t check<% if (locals.note) { %>: <%= locals.note %><% } %></p>
+  <% } else { -%>
+  <p class="stat-value"><%= locals.value %></p>
+  <% if (locals.delta) { %>
+  <p class="delta delta-<%= deltaTone %>">
+    <%- ui.icon({ name: locals.delta.direction === 'up' ? 'arrow-up' : locals.delta.direction === 'down' ? 'arrow-down' : 'minus', size: 16 }) %>
+    <span><%= locals.delta.text %></span>
+  </p>
+  <% } %>
+  <% if (locals.interval) { %><p class="stat-note"><%= locals.interval %></p><% } %>
+  <% if (locals.note) { %><p class="stat-note"><%= locals.note %></p><% } %>
+  <% } -%>
+  <% if (locals.href && state !== 'loading') { %><a class="mt-1 text-sm font-semibold" href="<%= locals.href %>"><%= locals.hrefLabel ?? 'See the answers behind this' %></a><% } %>
+</div>

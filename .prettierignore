@@ -1,5 +1,7 @@
 node_modules/
 src/web/public/build/
+src/web/public/vendor/
+src/web/public/fonts/
 src/db/generated/
 coverage/
 test-results/

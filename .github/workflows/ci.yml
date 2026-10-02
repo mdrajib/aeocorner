@@ -34,6 +34,9 @@ jobs:
           mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE aeo_corner_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
           mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE aeo_corner_shadow CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
 
+      - name: Build CSS (Tailwind)
+        run: npm run build:css
+
       - name: Lint
         run: npm run lint
 
@@ -78,3 +81,56 @@ jobs:
 
       - name: npm audit (production dependencies)
         run: npm audit --omit=dev --audit-level=high
+
+  # Which parts of the repo changed? Used to run the (slower) browser job only when the UI could be affected.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      ui: ${{ steps.filter.outputs.ui }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ui:
+              - 'src/web/**'
+              - 'tailwind/**'
+              - 'tests/e2e/**'
+              - 'playwright.config.js'
+              - 'package-lock.json'
+
+  # Accessibility (axe-core, WCAG 2.1 AA), responsive (375/768/1280 px), third-party-request and
+  # styleguide checks in a real browser. Required to merge, but only runs when the UI changed
+  # (BUILD_PLAN §2). Needs no database: the pages it visits don't use one yet.
+  accessibility:
+    needs: changes
+    if: needs.changes.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      # playwright.config.js builds the CSS and starts the web server itself.
+      - name: Playwright (a11y, responsive, third-party, styleguide)
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

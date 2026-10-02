@@ -1,0 +1,16 @@
+<%
+// Props: id (required, unique on the page), label (accessible name of the tab list), tabs ([{ id, label, html }]), initial (tab id)
+// Without JavaScript the first panel is shown and the others stay hidden until Alpine runs (x-cloak is for the flash only).
+const tabs = locals.tabs ?? [];
+const initial = locals.initial ?? (tabs[0] && tabs[0].id);
+-%>
+<div x-data="tabs" data-initial="<%= initial %>">
+  <div class="tablist" role="tablist" aria-label="<%= locals.label %>" x-on:keydown="keydown">
+    <% for (const t of tabs) { %>
+    <button type="button" role="tab" class="tab" id="<%= locals.id %>-tab-<%= t.id %>" data-tab="<%= t.id %>" aria-controls="<%= locals.id %>-panel-<%= t.id %>" aria-selected="<%= t.id === initial ? 'true' : 'false' %>" tabindex="<%= t.id === initial ? '0' : '-1' %>" x-on:click="select" x-bind:aria-selected="isSelected" x-bind:tabindex="tabIndex"><%= t.label %></button>
+    <% } %>
+  </div>
+  <% for (const t of tabs) { %>
+  <div role="tabpanel" class="pt-5" id="<%= locals.id %>-panel-<%= t.id %>" aria-labelledby="<%= locals.id %>-tab-<%= t.id %>" data-panel="<%= t.id %>" tabindex="0"<% if (t.id !== initial) { %> x-cloak<% } %> x-show="isActivePanel"><%- t.html ?? '' %></div>
+  <% } %>
+</div>

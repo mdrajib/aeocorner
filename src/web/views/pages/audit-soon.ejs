@@ -1,0 +1,12 @@
+<%# Phase 1 stub for POST /audit: validates the address and says the audit isn't open yet. Nothing is stored. Replaced in Phase 7. %>
+<section class="py-20">
+  <div class="container-narrow text-center">
+    <p class="eyebrow">Almost ready</p>
+    <h1 class="mt-3 text-4xl sm:text-5xl">The free audit opens soon</h1>
+    <p class="text-ink-700 mx-auto mt-4 max-w-xl text-lg">We checked that <strong><%= domain %></strong> looks like a valid website address. The audit itself isn’t live yet, and we haven’t saved anything you entered.</p>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <%- ui.button({ label: 'Read how it will work', href: '/methodology' }) %>
+      <%- ui.button({ label: 'Back to the home page', href: '/', variant: 'secondary' }) %>
+    </div>
+  </div>
+</section>

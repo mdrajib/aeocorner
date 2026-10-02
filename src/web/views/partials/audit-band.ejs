@@ -1,0 +1,12 @@
+<section class="hero" aria-labelledby="band-heading">
+  <div class="container-page grid gap-8 py-14 lg:grid-cols-2 lg:items-center">
+    <div>
+      <p class="eyebrow">Free AEO audit</p>
+      <h2 class="mt-2 text-3xl" id="band-heading">See what AI says about your brand</h2>
+      <p class="text-ink-200 mt-3 max-w-lg">Enter your website and get a real report in about five minutes: your AEO Score, the actual answers AI gave, and your top five fixes.</p>
+    </div>
+    <div class="card text-ink-900 max-w-xl">
+      <div class="card-body"><%- ui.auditForm({ idPrefix: 'band', variant: 'compact', turnstileSiteKey: site.turnstileSiteKey }) %></div>
+    </div>
+  </div>
+</section>

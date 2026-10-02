@@ -1,0 +1,227 @@
+<%#
+  Dev-only component catalogue (404 in production). Renders every component in every state.
+  Adding a component? Add its partial in views/components, its CSS in tailwind/components.css, and a section here.
+%><%
+const toc = [
+  ['brand', 'Brand and colour'], ['type', 'Typography'], ['buttons', 'Buttons'], ['forms', 'Form fields'],
+  ['cards', 'Cards'], ['tables', 'Tables'], ['tabs', 'Tabs'], ['badges', 'Badges'], ['modals', 'Modals'],
+  ['stats', 'Stat tiles'], ['results', 'Result cells and answers'], ['banners', 'Banners'], ['states', 'Empty, loading and error states'],
+  ['stepper', 'Progress stepper'], ['meter', 'Meters'], ['toasts', 'Toasts'], ['shells', 'Shells and emails'],
+];
+const swatches = {
+  Ink: ['bg-ink-50', 'bg-ink-100', 'bg-ink-200', 'bg-ink-300', 'bg-ink-400', 'bg-ink-500', 'bg-ink-600', 'bg-ink-700', 'bg-ink-800', 'bg-ink-900', 'bg-ink-950'],
+  Brand: ['bg-brand-50', 'bg-brand-100', 'bg-brand-200', 'bg-brand-300', 'bg-brand-400', 'bg-brand-500', 'bg-brand-600', 'bg-brand-700', 'bg-brand-800', 'bg-brand-900', 'bg-brand-950'],
+  Signal: ['bg-signal-200', 'bg-signal-300', 'bg-signal-400', 'bg-signal-500'],
+  Success: ['bg-success-50', 'bg-success-100', 'bg-success-600', 'bg-success-700', 'bg-success-800'],
+  Warning: ['bg-warning-50', 'bg-warning-100', 'bg-warning-500', 'bg-warning-700', 'bg-warning-800'],
+  Danger: ['bg-danger-50', 'bg-danger-100', 'bg-danger-600', 'bg-danger-700', 'bg-danger-800'],
+  Info: ['bg-info-50', 'bg-info-100', 'bg-info-700', 'bg-info-800'],
+};
+const sectionClass = 'border-ink-200 border-t py-10';
+const row = 'flex flex-wrap items-center gap-3';
+const modalFooter = ui.button({ label: 'Cancel', variant: 'secondary', attrs: { 'data-modal-close': true } }) + ui.button({ label: 'Confirm', attrs: { 'data-modal-close': true } });
+-%>
+<div class="container-page py-12">
+  <p class="eyebrow">Development only</p>
+  <h1 class="mt-2 text-4xl sm:text-5xl">Component styleguide</h1>
+  <p class="text-ink-700 mt-3 max-w-2xl text-lg">Every component in every state. Build screens from these; add anything new here first. Not served in production.</p>
+  <nav aria-label="Styleguide sections" class="mt-6"><ul class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+    <% for (const [id, label] of toc) { %><li><a href="#<%= id %>"><%= label %></a></li><% } %>
+  </ul></nav>
+
+  <section id="brand" class="<%= sectionClass %> mt-10" aria-labelledby="brand-h">
+    <h2 id="brand-h" class="text-2xl">Brand and colour</h2>
+    <p class="text-ink-700 mt-2 max-w-2xl text-sm">Wordmark, palette and typeface are a designer proposal until the founder approves them (docs/UI_DESIGN.md §2).</p>
+    <div class="mt-6 flex flex-wrap items-center gap-8">
+      <div class="border-ink-200 rounded-xl border p-5"><%- ui.logo({ href: '#brand' }) %></div>
+      <div class="bg-ink-950 rounded-xl p-5"><%- ui.logo({ tone: 'light', href: '#brand' }) %></div>
+      <div class="border-ink-200 rounded-xl border p-5"><%- ui.logo({ text: false, href: '#brand' }) %></div>
+    </div>
+    <div class="mt-8 grid gap-5">
+      <% for (const [name, classes] of Object.entries(swatches)) { %>
+      <div>
+        <h3 class="text-sm tracking-normal"><%= name %></h3>
+        <div class="mt-2 flex flex-wrap gap-2" role="list">
+          <% for (const c of classes) { %><div role="listitem" class="flex flex-col items-center gap-1"><div class="<%= c %> border-ink-200 size-12 rounded-lg border"></div><span class="text-ink-600 text-xs"><%= c.replace('bg-', '') %></span></div><% } %>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </section>
+
+  <section id="type" class="<%= sectionClass %>" aria-labelledby="type-h">
+    <h2 id="type-h" class="text-2xl">Typography</h2>
+    <p class="text-display mt-6">Display — Corner your market in AI answers</p>
+    <h1 class="mt-4 text-4xl">Heading 1 — Is AI sending customers to rivals?</h1>
+    <h2 class="mt-4 text-3xl">Heading 2 — Measure, diagnose, fix, prove</h2>
+    <h3 class="mt-4 text-xl">Heading 3 — Your top 5 fixes</h3>
+    <h4 class="mt-4 text-base">Heading 4 — Engine breakdown</h4>
+    <p class="mt-4 max-w-2xl">Body text at 16px with a 1.6 line height. AI answers vary, so we sample every question several times and show a range. <a href="#type">A link looks like this</a>, and <code class="bg-ink-100 rounded px-1.5 py-0.5 font-mono text-sm">code looks like this</code>.</p>
+    <p class="text-ink-600 mt-2 text-sm">Small and muted text for hints and captions.</p>
+  </section>
+
+  <section id="buttons" class="<%= sectionClass %>" aria-labelledby="buttons-h">
+    <h2 id="buttons-h" class="text-2xl">Buttons</h2>
+    <div class="mt-5 grid gap-4">
+      <% for (const v of ['primary', 'secondary', 'ghost', 'danger']) { %>
+      <div class="<%= row %>">
+        <%- ui.button({ label: v.charAt(0).toUpperCase() + v.slice(1), variant: v }) %>
+        <%- ui.button({ label: 'With icon', variant: v, icon: 'plus' }) %>
+        <%- ui.button({ label: 'Disabled', variant: v, disabled: true }) %>
+        <%- ui.button({ label: 'Saving', variant: v, busy: true }) %>
+      </div>
+      <% } %>
+      <div class="bg-ink-950 rounded-xl p-4"><div class="<%= row %> on-dark"><%- ui.button({ label: 'Signal (on dark)', variant: 'signal', iconRight: 'arrow-right' }) %></div></div>
+      <div class="<%= row %>">
+        <%- ui.button({ label: 'Small', size: 'sm' }) %><%- ui.button({ label: 'Medium' }) %><%- ui.button({ label: 'Large', size: 'lg', iconRight: 'arrow-right' }) %>
+        <%- ui.button({ label: 'A link styled as a button', href: '#buttons', variant: 'secondary' }) %>
+      </div>
+    </div>
+  </section>
+
+  <section id="forms" class="<%= sectionClass %>" aria-labelledby="forms-h">
+    <h2 id="forms-h" class="text-2xl">Form fields</h2>
+    <div class="mt-5 grid max-w-3xl gap-6 sm:grid-cols-2">
+      <%- ui.field({ id: 'sg-text', name: 'sg_text', label: 'Brand name', required: true, placeholder: 'Acme Dental', hint: 'As customers would type it.' }) %>
+      <%- ui.field({ id: 'sg-optional', name: 'sg_optional', label: 'Nickname', value: 'Acme' }) %>
+      <%- ui.field({ id: 'sg-error', name: 'sg_error', label: 'Website', required: true, value: 'not a website', error: 'That doesn’t look like a website address. Try something like yourcompany.com.' }) %>
+      <%- ui.field({ id: 'sg-disabled', name: 'sg_disabled', label: 'Plan', value: 'Starter', disabled: true, required: true }) %>
+      <%- ui.field({ id: 'sg-select', name: 'sg_select', label: 'Country', type: 'select', required: true, value: 'us', options: [{ value: 'us', label: 'United States' }, { value: 'gb', label: 'United Kingdom' }, { value: 'ca', label: 'Canada' }] }) %>
+      <%- ui.field({ id: 'sg-textarea', name: 'sg_textarea', label: 'One-line description', type: 'textarea', rows: 3, hint: 'What you do, for whom, and where.' }) %>
+      <%- ui.checkbox({ id: 'sg-check', name: 'sg_check', label: 'Send me tips about AI visibility', hint: 'Optional. Separate from receiving your report.' }) %>
+      <%- ui.checkbox({ id: 'sg-check-error', name: 'sg_check_error', label: 'I agree to the Terms of Service', error: 'You need to agree to continue.' }) %>
+    </div>
+    <h3 class="mt-10 text-lg">Audit form (compact)</h3>
+    <div class="card card-body mt-3 max-w-xl"><%- ui.auditForm({ idPrefix: 'sg', variant: 'compact', errors: { url: 'Enter your website address, like yourcompany.com.' } }) %></div>
+  </section>
+
+  <section id="cards" class="<%= sectionClass %>" aria-labelledby="cards-h">
+    <h2 id="cards-h" class="text-2xl">Cards</h2>
+    <div class="mt-5 grid gap-5 md:grid-cols-2">
+      <%- ui.card({ title: 'Plain card', html: '<p class="text-ink-700 text-sm">Cards group related content. The body is padded by default.</p>' }) %>
+      <%- ui.card({ title: 'With actions and footer', html: '<p class="text-ink-700 text-sm">Header actions sit on the right; the footer holds secondary links.</p>', actionsHtml: ui.badge({ text: 'New', tone: 'brand' }), footerHtml: ui.button({ label: 'View details', variant: 'ghost', size: 'sm' }) }) %>
+    </div>
+  </section>
+
+  <section id="tables" class="<%= sectionClass %>" aria-labelledby="tables-h">
+    <h2 id="tables-h" class="text-2xl">Tables</h2>
+    <div class="mt-5 grid gap-6">
+      <%- ui.table({
+        caption: 'Mention rate by engine (example data)',
+        columns: [{ key: 'engine', label: 'Engine' }, { key: 'result', label: 'Result' }, { key: 'rate', label: 'Mention rate', numeric: true }],
+        rows: [
+          { engine: 'ChatGPT', result: { html: ui.resultCell({ status: 'ok', mentioned: true }) }, rate: '3 of 9' },
+          { engine: 'Perplexity', result: { html: ui.resultCell({ status: 'ok', mentioned: false }) }, rate: '0 of 9' },
+          { engine: 'Gemini', result: { html: ui.resultCell({ status: 'failed' }) }, rate: { html: '<span class="text-ink-600">—</span>' } },
+        ],
+      }) %>
+      <%- ui.table({ caption: 'Empty table', columns: [{ key: 'a', label: 'Question' }, { key: 'b', label: 'Engine' }], rows: [], emptyText: 'No questions yet. Add your first buyer question to start tracking.' }) %>
+    </div>
+  </section>
+
+  <section id="tabs" class="<%= sectionClass %>" aria-labelledby="tabs-h">
+    <h2 id="tabs-h" class="text-2xl">Tabs</h2>
+    <div class="mt-5 max-w-2xl">
+      <%- ui.tabs({ id: 'sg-tabs', label: 'Example tabs', tabs: [
+        { id: 'one', label: 'Overview', html: '<p class="text-ink-700 text-sm">Overview panel. Arrow keys move between tabs.</p>' },
+        { id: 'two', label: 'Engines', html: '<p class="text-ink-700 text-sm">Engines panel.</p>' },
+        { id: 'three', label: 'Competitors', html: '<p class="text-ink-700 text-sm">Competitors panel.</p>' },
+      ] }) %>
+    </div>
+  </section>
+
+  <section id="badges" class="<%= sectionClass %>" aria-labelledby="badges-h">
+    <h2 id="badges-h" class="text-2xl">Badges</h2>
+    <div class="<%= row %> mt-5">
+      <% for (const tone of ['neutral', 'brand', 'success', 'warning', 'danger', 'info']) { %><%- ui.badge({ text: tone.charAt(0).toUpperCase() + tone.slice(1), tone }) %><% } %>
+      <%- ui.badge({ text: 'Verified', tone: 'success', icon: 'check' }) %>
+      <%- ui.badge({ text: 'Couldn’t check', tone: 'unknown', icon: 'help' }) %>
+    </div>
+  </section>
+
+  <section id="modals" class="<%= sectionClass %>" aria-labelledby="modals-h">
+    <h2 id="modals-h" class="text-2xl">Modals</h2>
+    <div class="mt-5"><%- ui.button({ label: 'Open a dialog', variant: 'secondary', attrs: { 'data-modal-open': 'sg-modal' } }) %></div>
+    <%- ui.modal({ id: 'sg-modal', title: 'Approve this change?', html: '<p>You’re about to add Organization schema to your homepage. You can preview the exact code first, and nothing goes live until you approve.</p>', footerHtml: modalFooter }) %>
+  </section>
+
+  <section id="stats" class="<%= sectionClass %>" aria-labelledby="stats-h">
+    <h2 id="stats-h" class="text-2xl">Stat tiles</h2>
+    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <%- ui.stat({ label: 'AEO Score', value: '38', delta: { direction: 'up', text: '+6 since last week', significant: true }, interval: '95% range 31–45', href: '#stats' }) %>
+      <%- ui.stat({ label: 'Mention rate', value: '22%', delta: { direction: 'down', text: '−3 pts, within normal variation', significant: false } }) %>
+      <%- ui.stat({ label: 'Share of voice', value: '14%', delta: { direction: 'flat', text: 'No change' } }) %>
+      <%- ui.stat({ label: 'Gemini mention rate', state: 'unknown', note: 'will retry tonight' }) %>
+      <%- ui.stat({ label: 'Citation share', state: 'loading' }) %>
+    </div>
+  </section>
+
+  <section id="results" class="<%= sectionClass %>" aria-labelledby="results-h">
+    <h2 id="results-h" class="text-2xl">Result cells and answers</h2>
+    <p class="text-ink-700 mt-2 max-w-2xl text-sm">A failed, pending or missing collection can only ever render as “Couldn’t check” or “Checking…” — never as “Not mentioned” and never as zero. <code>ui.resultCell()</code> enforces it.</p>
+    <div class="<%= row %> mt-5">
+      <%- ui.resultCell({ status: 'ok', mentioned: true }) %>
+      <%- ui.resultCell({ status: 'ok', mentioned: false }) %>
+      <%- ui.resultCell({ status: 'failed' }) %>
+      <%- ui.resultCell({ status: 'pending' }) %>
+      <%- ui.resultCell({ status: 'no_overview' }) %>
+    </div>
+    <div class="mt-6 max-w-2xl">
+      <%- ui.excerpt({ engine: 'ChatGPT', question: 'best family dentist in Austin', text: 'For families in Austin, Bright Smiles Dental and Capital City Family Dentistry are frequently recommended, and Acme Dental is also well reviewed for pediatric care.', highlights: [{ term: 'Acme Dental', kind: 'brand' }, { term: 'Bright Smiles Dental', kind: 'competitor' }, { term: 'Capital City Family Dentistry', kind: 'competitor' }] }) %>
+      <p class="text-ink-600 mt-2 text-sm">Highlights: <mark class="mark-brand">your brand</mark> and <mark class="mark-competitor">a competitor</mark>.</p>
+    </div>
+  </section>
+
+  <section id="banners" class="<%= sectionClass %>" aria-labelledby="banners-h">
+    <h2 id="banners-h" class="text-2xl">Banners</h2>
+    <div class="mt-5 grid max-w-3xl gap-3">
+      <%- ui.banner({ tone: 'info', title: 'This is your baseline', text: 'We’ll measure every change from here.' }) %>
+      <%- ui.banner({ tone: 'success', title: 'Fix verified', text: 'Organization schema is live on your homepage.', dismissible: true }) %>
+      <%- ui.banner({ tone: 'warning', title: 'Integration needs attention', html: 'Your WordPress connection stopped working. <a href="#banners">Reconnect</a>' }) %>
+      <%- ui.banner({ tone: 'danger', title: 'We couldn’t save your changes', text: 'Check the highlighted fields and try again.' }) %>
+      <%- ui.banner({ tone: 'incomplete', title: 'Gemini data is incomplete this week', text: 'We’re retrying. Missing answers show as “Couldn’t check” and are left out of your rates.' }) %>
+    </div>
+  </section>
+
+  <section id="states" class="<%= sectionClass %>" aria-labelledby="states-h">
+    <h2 id="states-h" class="text-2xl">Empty, loading and error states</h2>
+    <div class="mt-5 grid gap-5 lg:grid-cols-3">
+      <%- ui.state({ kind: 'empty', title: 'No AI traffic yet', text: 'Connect Google Analytics to see visits that came from AI answers. It takes about 2 minutes.', action: { label: 'Connect Google Analytics', href: '#states' } }) %>
+      <%- ui.state({ kind: 'loading', title: 'Updating: 60% of answers collected', text: 'Existing data stays visible while this finishes.' }) %>
+      <%- ui.state({ kind: 'error', title: 'We couldn’t load this report', text: 'Something went wrong on our side. Your data is safe.', action: { label: 'Try again', href: '#states' } }) %>
+    </div>
+  </section>
+
+  <section id="stepper" class="<%= sectionClass %>" aria-labelledby="stepper-h">
+    <h2 id="stepper-h" class="text-2xl">Progress stepper</h2>
+    <div class="mt-6 grid max-w-3xl gap-10">
+      <%- ui.stepper({ label: 'Audit progress (start)', steps: ['Your site', 'Confirm email', 'Checking AI', 'Report'], current: 0 }) %>
+      <%- ui.stepper({ label: 'Audit progress (middle)', steps: ['Your site', 'Confirm email', 'Checking AI', 'Report'], current: 2 }) %>
+      <%- ui.stepper({ label: 'Audit progress (done)', steps: ['Your site', 'Confirm email', 'Checking AI', 'Report'], current: 4 }) %>
+    </div>
+  </section>
+
+  <section id="meter" class="<%= sectionClass %>" aria-labelledby="meter-h">
+    <h2 id="meter-h" class="text-2xl">Meters</h2>
+    <div class="mt-5 grid max-w-md gap-6">
+      <%- ui.meter({ id: 'sg-meter-1', label: 'Buyer questions', value: 38, max: 50 }) %>
+      <%- ui.meter({ id: 'sg-meter-2', label: 'Buyer questions (near limit)', value: 48, max: 50 }) %>
+    </div>
+  </section>
+
+  <section id="toasts" class="<%= sectionClass %>" aria-labelledby="toasts-h">
+    <h2 id="toasts-h" class="text-2xl">Toasts</h2>
+    <p class="text-ink-700 mt-2 max-w-2xl text-sm">From the server, send the header <code>HX-Trigger: {"toast":{"message":"Saved","tone":"success"}}</code>, or put <code>data-toast-message</code> on any button.</p>
+    <div class="mt-5"><%- ui.button({ label: 'Show a toast', variant: 'secondary', attrs: { 'data-toast-message': 'Saved. Your change will apply on the next run.', 'data-toast-tone': 'success' } }) %></div>
+  </section>
+
+  <section id="shells" class="<%= sectionClass %>" aria-labelledby="shells-h">
+    <h2 id="shells-h" class="text-2xl">Shells and emails</h2>
+    <ul class="mt-4 list-disc space-y-1.5 pl-6 text-sm">
+      <li><a href="/_styleguide/app-shell">App shell</a> (sidebar and top bar, empty until Phase 2)</li>
+      <li><a href="/_styleguide/email/verification-code">Verification-code email, HTML</a></li>
+      <li><a href="/_styleguide/email/verification-code.txt">Verification-code email, plain text</a></li>
+      <li><a href="/__styleguide-missing">A 404 page</a> · <a href="/_styleguide/error">A 500 page</a></li>
+    </ul>
+  </section>
+</div>

@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Document** | Phase-by-phase execution checklist for building the app |
-| **Date** | 2026-10-02 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered) |
-| **Status** | In progress — Phase 0 engineering is done; its founder/infra items are still open. Phase 1 is next |
+| **Date** | 2026-10-02 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered; Phase 1 engineering finished 2026-10-02) |
+| **Status** | In progress — Phases 0 and 1: engineering is done and tested locally; founder/infra items (accounts, brand and wireframe sign-off, legal text) and the first GitHub CI run are still open. Phase 2 is next, when the founder asks for it |
 | **Companion docs** | [MVP.md](MVP.md) §13 (narrative timeline, team, Definition of Done) · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md) · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. Purpose and how to use this plan
@@ -96,41 +96,49 @@
 
 ## Phase 1 — Design system & public site shell
 
+**Status (2026-10-02):** 🟡 **Engineering complete; waiting on founder items.** Everything buildable is built and tested locally. Open: founder sign-off (brand, wireframes, live homepage), the Terms and Privacy text, and the first CI run on GitHub. See the unchecked boxes below and [UI_DESIGN.md §11](UI_DESIGN.md#11-open-items-for-the-founder).
+
 **Goal:** a designed, accessible, server-rendered public site shell and one reusable UI kit, so every later phase builds screens from the same system instead of inventing its own. The free audit goes live in week 4 (M1) on a public site, so the shell, the legal pages and the methodology page can't wait for launch week.
 
 **Owner:** the product designer (≈50%, [MVP §13.1](MVP.md#131-team-mvp)) with the UI-leaning engineer.
 
 **Design work (before code):**
-- [ ] `docs/UI_DESIGN.md` (new doc — add it to [CLAUDE.md](../CLAUDE.md)'s Documents table when it exists): the screen inventory for every stage in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md); a low-fidelity wireframe per screen; the key flows (audit → report → sign-up → onboarding → first dashboard); content rules for empty, loading, error and partial-data states.
-- [ ] A written UI rule in `UI_DESIGN.md`: a failed or missing collection is never shown as "not mentioned" or as zero. It gets its own "couldn't check" state, mirroring the rollup rule in [CLAUDE.md](../CLAUDE.md) and the edge cases in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md).
-- [ ] Brand basics settled (wordmark, palette, typeface) — the founder's choice from Phase 0, or the designer's proposal approved.
-- [ ] **Founder sign-off on wireframes, one group at a time, before the phase that builds them starts:** public site + audit flow → before Phase 7; onboarding + Brand Kit + prompts → before Phase 8; dashboard + citations → before Phase 10; Action Center + Content Studio → before Phase 11; billing + settings → before Phase 13.
+- [x] [UI_DESIGN.md](UI_DESIGN.md): the screen inventory for every stage in [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md), a low-fidelity wireframe per screen group, the key flows, and content rules for empty, loading, error and partial-data states. **Drafted 2026-10-02; the wireframes are drafts for sign-off (below).** Added to [CLAUDE.md](../CLAUDE.md)'s Documents table.
+- [x] A written UI rule in `UI_DESIGN.md` ([§1 rule 1](UI_DESIGN.md#1-ui-rules), [§7](UI_DESIGN.md#7-what-every-state-looks-like)): a failed or missing collection is never shown as "not mentioned" or as zero. It gets its own "Couldn't check" state, enforced in code by `ui.resultCell()` and unit-tested.
+- [ ] Brand basics settled (wordmark, palette, typeface) — a **designer proposal is built and documented** ([UI_DESIGN.md §2](UI_DESIGN.md#2-brand-basics)); **needs founder approval**.
+- [ ] **Founder sign-off on wireframes, one group at a time, before the phase that builds them starts:** public site + audit flow → before Phase 7; onboarding + Brand Kit + prompts → before Phase 8; dashboard + citations → before Phase 10; Action Center + Content Studio → before Phase 11; billing + settings → before Phase 13. *All five groups are drafted in [UI_DESIGN.md §5](UI_DESIGN.md#5-wireframes); none is signed off yet.*
 
 **Build:**
-- [ ] Express app skeleton `src/web/server.js` (what `npm run dev` already points at): EJS, static files, error handler, request logging, a base set of security headers including a CSP that works with htmx and Alpine.js (evaluate Alpine's CSP-safe build so the CSP doesn't need `unsafe-eval`).
-- [ ] Tailwind CLI pipeline (`npm run build:css`) with design tokens (colour, type scale, spacing, radius) in `tailwind/`; the built CSS stays git-ignored under `src/web/public/build/`.
-- [ ] htmx and Alpine.js vendored and self-hosted from `src/web/public/` — no third-party CDN at runtime.
-- [ ] Layouts and partials: a `public` layout (header, footer, audit call-to-action) and an `app` layout (sidebar/top-bar shell, empty until Phase 2 fills it); a head partial with title, description, canonical URL and Open Graph tags; flash messages/toasts.
-- [ ] Component kit as EJS partials: buttons, form fields with validation errors, cards, tables, tabs, badges, modals, stat tiles, banners (including the "incomplete data" banner), empty/loading/error states, progress stepper.
-- [ ] Dev-only `/_styleguide` route (404 in production) that renders every component in every state.
-- [ ] Transactional email base (HTML + plain-text) for Resend, reused by the OTP, audit report, invitation and weekly digest emails.
-- [ ] Public pages: **home** (the audit form above the fold, per [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) stage 1; posts to a stub until Phase 7), **methodology v1** (content from [MVP §6](MVP.md#6-measurement-methodology-core-ip); the audit report links here), **Terms** and **Privacy Policy** (the Phase 0 drafts as approved by the founder), plus 404, 500 and maintenance pages.
-- [ ] Public-site SEO/AEO basics: `robots.txt` that allows the AI crawlers in [MVP Appendix A](MVP.md#appendix-a--ai-crawler-user-agents-readiness-checks), `sitemap.xml`, canonical URLs. Indexing is controlled by environment: staging is `noindex`, production is indexable.
-- [ ] Decide whether PostHog runs cookieless or behind a consent notice ([MVP §11.3](MVP.md#11-security-privacy-compliance--ethics)), and implement that choice. Record it in `UI_DESIGN.md`.
-- [ ] CI: add a `build:css` step, the conditional accessibility job, and the page registry `tests/e2e/pages.js`.
+- [x] Express app skeleton `src/web/server.js` / `app.js`: EJS, static files, error handler, structured request logging with request ids, and security headers including a strict CSP. Alpine's CSP-safe build was evaluated and adopted, so the CSP needs no `unsafe-inline` or `unsafe-eval` ([ADR-0003](adr/0003-strict-csp.md)). A cross-site guard protects the public form (session-based CSRF tokens arrive with auth in Phase 2).
+- [x] Tailwind CLI pipeline (`npm run build:css`) with design tokens (colour, type scale, radius, shadow) in `tailwind/tokens.css`; the built CSS stays git-ignored under `src/web/public/build/`.
+- [x] htmx and Alpine.js (CSP build) and the Inter font vendored and self-hosted from `src/web/public/` (`npm run vendor`) — no third-party CDN at runtime.
+- [x] Layouts and partials: a `public` layout (header, footer, audit call-to-action) and an `app` layout (sidebar/top-bar shell, empty until Phase 2 fills it); a head partial with title, description, canonical URL, Open Graph tags and JSON-LD; flash messages (dismissible banners) and a toast region.
+- [x] Component kit as EJS partials: buttons, form fields with validation errors, cards, tables, tabs, badges, modals, stat tiles, banners (including the "incomplete data" banner), empty/loading/error states, progress stepper — plus meters, the result cell and the answer excerpt ([UI_DESIGN.md §3](UI_DESIGN.md#3-design-tokens-and-component-kit)).
+- [x] Dev-only `/_styleguide` route (404 in production) that renders every component in every state.
+- [x] Transactional email base (HTML + plain-text) for Resend (`src/lib/email.js`), with the verification-code email as the first template; reused later by the audit report, invitation and weekly digest. *Sending through Resend is wired in Phase 7; this phase renders only.*
+- [ ] Public pages:
+  - [x] **home** (the audit form above the fold, per [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) stage 1; posts to a stub that validates the address and stores nothing until Phase 7)
+  - [x] **methodology v1** (content from [MVP §6](MVP.md#6-measurement-methodology-core-ip); the audit report will link here)
+  - [ ] **Terms** and **Privacy Policy** — pages are built from a **working draft with `[bracketed]` gaps and a visible draft banner**, not the "Phase 0 drafts as approved by the founder" (those don't exist yet). Replace the text and remove the banner once a lawyer has reviewed it.
+  - [x] 404, 500 and maintenance pages
+- [x] Public-site SEO/AEO basics: `robots.txt` that allows the AI crawlers in [MVP Appendix A](MVP.md#appendix-a--ai-crawler-user-agents-readiness-checks) by name (list kept as config in `src/core/ai-crawlers.js`), `sitemap.xml`, canonical URLs, FAQPage/Organization/WebSite structured data, social-share image. Indexing is controlled by `APP_ENV`: only `production` is indexable.
+- [x] Decide whether PostHog runs cookieless or behind a consent notice, and implement that choice: **cookieless, no banner** ([UI_DESIGN.md §9](UI_DESIGN.md#9-analytics-and-consent)). Needs the founder to switch on "Cookieless server hash mode" in PostHog and supply a key; with no key nothing loads.
+- [ ] CI: a `build:css` step, the conditional accessibility job and the page registry `tests/e2e/pages.js`. *Workflow and registry are written; **the workflow has not run on GitHub yet**. Tick this once the first push is green.*
 
 **Tests required before moving on:**
-- [ ] Route tests (supertest): every public page returns 200 with a unique `<title>`, a meta description and a canonical URL; an unknown path renders the 404 page with status 404; a thrown error renders the 500 page without leaking a stack trace.
-- [ ] Raw-HTML test: each public page's main content (headings, body copy, the audit form) is present in the raw HTML response with no JavaScript run.
-- [ ] Accessibility: axe-core over every page in `tests/e2e/pages.js` and over `/_styleguide` — zero serious or critical violations (WCAG 2.1 AA, [MVP §10](MVP.md#10-non-functional-requirements)).
-- [ ] Responsive: Playwright at 375, 768 and 1280 px — no horizontal overflow on any public page, and the audit form is usable at 375 px.
-- [ ] Third-party requests: a Playwright run of the public pages shows no requests to third-party hosts other than PostHog and Cloudflare Turnstile.
-- [ ] `/_styleguide` returns 404 when `NODE_ENV=production`, and renders every component with no console errors in development.
-- [ ] Email base: HTML and plain-text variants both render; no unreplaced template tokens (snapshot test).
-- [ ] Indexing config: staging responds with `noindex`; the production config does not (config test, since production isn't deployed yet).
-- [ ] `npm run build:css` succeeds in CI.
+- [x] Route tests (supertest): every public page returns 200 with a unique `<title>`, a meta description and a canonical URL; an unknown path renders the 404 page with status 404; a thrown error renders the 500 page without leaking a stack trace. (`tests/routes/`: 74 tests covering all the route-level items in this phase.)
+- [x] Raw-HTML test: each public page's main content (headings, body copy, the audit form) is present in the raw HTML response with no JavaScript run.
+- [x] Accessibility: axe-core over every page in `tests/e2e/pages.js` and over `/_styleguide` — zero serious or critical violations (WCAG 2.1 AA, [MVP §10](MVP.md#10-non-functional-requirements)). Also covers the form's error state, the open modal and the open mobile menu.
+- [x] Responsive: Playwright at 375, 768 and 1280 px — no horizontal overflow on any page, and the audit form is usable at 375 px.
+- [x] Third-party requests: a Playwright run of the public pages shows no requests to third-party hosts other than PostHog and Cloudflare Turnstile (neither is configured in the sweep, so it asserts none at all). *Turnstile and PostHog themselves are not yet exercised against the real services (no keys); the CSP unit tests cover their configured form.*
+- [x] `/_styleguide` returns 404 when `NODE_ENV=production`, and renders every component with no console errors (including CSP violations) in development.
+- [x] Email base: HTML and plain-text variants both render; no unreplaced template tokens.
+- [x] Indexing config: staging responds with `noindex`; the production config does not (route and config tests).
+- [ ] `npm run build:css` succeeds in CI. *It succeeds locally; tick after the first green CI run.*
 
-**Exit criteria:** the founder has signed off the public-site and audit-flow wireframes and the live homepage; every public page passes the raw-HTML, accessibility and responsive checks in CI; `/_styleguide` documents the whole kit; the Terms and Privacy pages are live, so Phase 7 can collect real emails.
+**Local results (2026-10-02):** lint and Prettier clean; `npm test` 42 passing; `npm run test:routes` 74 passing; `npm run test:e2e` 44 passing (Chromium); `npm audit` 0 vulnerabilities.
+
+**Exit criteria:** the founder has signed off the public-site and audit-flow wireframes and the live homepage; every public page passes the raw-HTML, accessibility and responsive checks in CI; `/_styleguide` documents the whole kit; the Terms and Privacy pages are live, so Phase 7 can collect real emails. **Not yet met:** founder sign-off, approved Terms/Privacy text, and a green CI run. The checks themselves pass locally.
 
 ## Phase 2 — Auth, orgs & tenancy foundation
 

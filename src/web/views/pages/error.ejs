@@ -1,0 +1,12 @@
+<%# Generic error page. Locals: status, heading, message, requestId. Never prints a stack trace or error text from the server. %>
+<section class="py-20">
+  <div class="container-narrow text-center">
+    <p class="eyebrow">Error <%= status %></p>
+    <h1 class="mt-3 text-4xl sm:text-5xl"><%= heading %></h1>
+    <p class="text-ink-700 mx-auto mt-4 max-w-xl text-lg"><%= message %></p>
+    <% if (requestId) { %><p class="text-ink-600 mt-4 text-sm">If you contact us, quote this reference: <code class="bg-ink-100 rounded px-1.5 py-0.5 font-mono"><%= requestId %></code></p><% } %>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <%- ui.button({ label: 'Go to the home page', href: '/' }) %>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,6 @@
+<%# Order matters: components.js registers Alpine components on `alpine:init`, so it must run before Alpine starts (all three are deferred and execute in document order). %>
+<script src="<%= asset('/js/components.js') %>" defer></script>
+<script src="<%= asset('/vendor/htmx.min.js') %>" defer></script>
+<script src="<%= asset('/vendor/alpine-csp.min.js') %>" defer></script>
+<% if (site.posthog) { %><script src="<%= asset('/js/analytics.js') %>" defer></script><% } %>
+<% if (site.turnstileSiteKey && hasAuditForm) { %><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>

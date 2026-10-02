@@ -1,0 +1,14 @@
+<%
+// Props: id, name, label (required), checked, error, hint, value, required
+const id = locals.id ?? locals.name;
+const hintId = locals.hint ? id + '-hint' : null;
+const errorId = locals.error ? id + '-error' : null;
+const describedBy = [hintId, errorId].filter(Boolean).join(' ');
+-%>
+<div class="field">
+  <div class="choice">
+    <input class="checkbox" type="checkbox" id="<%= id %>" name="<%= locals.name %>" value="<%= locals.value ?? '1' %>"<% if (locals.checked) { %> checked<% } %><% if (locals.required) { %> required<% } %><% if (locals.error) { %> aria-invalid="true"<% } %><% if (describedBy) { %> aria-describedby="<%= describedBy %>"<% } %>>
+    <label for="<%= id %>" class="text-ink-900 text-sm"><%= locals.label %><% if (locals.hint) { %><span class="hint block" id="<%= hintId %>"><%= locals.hint %></span><% } %></label>
+  </div>
+  <% if (locals.error) { %><p class="field-error" id="<%= errorId %>"><%- ui.icon({ name: 'alert-circle', size: 16 }) %><span><%= locals.error %></span></p><% } %>
+</div>

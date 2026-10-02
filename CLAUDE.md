@@ -19,6 +19,7 @@ A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perpl
 | `docs/BUILD_PLAN.md` | The actual build order: 16 phases (0–15) breaking MVP §13.2's weekly timeline into checkable work items and a required-tests checklist per phase. Work through it in order |
 | `docs/CUSTOMER_JOURNEY.md` | Customer experience stage by stage, system data flow, messages. §7 proposes 6 spec changes: the schema models them, but the MVP feature sections haven't been updated yet |
 | `docs/ADMIN_OPERATIONS.md` | Internal admin console, staff roles, runbooks, background jobs, alerts |
+| `docs/UI_DESIGN.md` | UI rules, brand basics (a proposal until the founder approves it), the component kit, screen inventory, wireframes by sign-off group, key flows, and what every empty/loading/error/partial-data state says |
 | `docs/DATABASE_SCHEMA.md` | Schema design: conventions, table catalog, ERDs, query patterns, tenancy, retention, grants, Clerk and Prisma rules (§10), open decisions (§11) |
 | `docs/db/schema.sql` | DDL: 64 tables, 101 foreign keys, 18 CHECKs. Currently an identical copy of Prisma migration `0001_init` |
 | `docs/db/seed_reference.sql` | Idempotent reference data (plans, engines, providers, seed domains). Currently an identical copy of migration `0002_reference_data` |
@@ -42,6 +43,14 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
   - Clerk Organizations is not used.
 - **ORM: Prisma 7 with SQL-first migrations.**
 - The user chose Clerk and Prisma over the earlier recommendations (Better Auth, Drizzle). Design for them; don't argue for the alternatives again.
+
+## UI rules (details in `docs/UI_DESIGN.md` §1)
+
+- **Build screens from the component kit** (`ui.badge(...)`, `ui.stat(...)` and so on in `src/web/views/components/`). A new component gets its partial, its CSS in `tailwind/components.css` and a section in the dev-only `/_styleguide` together. Register each new page in `tests/e2e/pages.js`.
+- **A failed, pending or missing collection is never "not mentioned" and never 0.** Use `ui.resultCell({ status, mentioned })` and `ui.stat({ state: 'unknown' })`; they show "Couldn’t check". Only a change that passed the significance test is coloured green or red.
+- **Strict CSP (ADR-0003): no inline `<script>`, `on*=` handlers or `style=""` in any view.** Behaviour goes in `src/web/public/js/components.js`; Alpine is the CSP build (only named components, no free-form expressions); htmx has eval off. Text props are escaped by the component; only props named `html`/`…Html` take trusted markup.
+- **Public pages must be complete in the raw HTML**, and every public page is a registry entry in `src/web/pages.js`.
+- After `src/web/` or `tailwind/` changes run `npm run build:css`, then `npm run test:routes` and `npm run test:e2e` (Playwright; `npx playwright install chromium` once).
 
 ## Schema rules
 

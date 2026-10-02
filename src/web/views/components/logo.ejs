@@ -1,0 +1,14 @@
+<%
+// Props: href (default '/'), text (show the wordmark, default true), tone ('dark' text on light bg | 'light' text on dark bg)
+const showText = locals.text ?? true;
+const tone = locals.tone ?? 'dark';
+const href = locals.href ?? '/';
+-%>
+<a href="<%= href %>" class="inline-flex items-center gap-2.5 no-underline <%= tone === 'light' ? 'text-white hover:text-white' : 'text-ink-950 hover:text-ink-950' %>"<% if (!showText) { %> aria-label="AEO Corner home"<% } %>>
+  <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false" class="shrink-0">
+    <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+    <path d="M9.5 8.5v14h14" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="21.5" cy="10.5" r="3.25" fill="#a3e635"/>
+  </svg>
+  <% if (showText) { %><span class="text-lg font-bold tracking-tight">AEO Corner</span><% } %>
+</a>

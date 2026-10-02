@@ -1,0 +1,24 @@
+<%
+const links = [
+  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/methodology', label: 'Methodology' },
+  { href: '/#faq', label: 'FAQ' },
+];
+-%>
+<header class="site-header">
+  <div class="container-page flex h-16 items-center justify-between gap-4">
+    <%- ui.logo({}) %>
+    <nav aria-label="Main" class="hidden items-center gap-1 md:flex">
+      <% for (const l of links) { %><a class="nav-link" href="<%= l.href %>"<% if (currentPath === l.href) { %> aria-current="page"<% } %>><%= l.label %></a><% } %>
+      <%- ui.button({ label: 'Free AEO audit', href: '/#audit', size: 'sm' }) %>
+    </nav>
+    <%# Mobile menu: a native <details> disclosure — works without JavaScript. %>
+    <details class="relative md:hidden">
+      <summary class="btn btn-secondary btn-sm list-none" aria-label="Menu"><%- ui.icon({ name: 'menu', size: 18 }) %>Menu</summary>
+      <nav aria-label="Main (mobile)" class="border-ink-200 shadow-pop absolute right-0 mt-2 flex w-64 flex-col gap-1 rounded-xl border bg-white p-3">
+        <% for (const l of links) { %><a class="nav-link" href="<%= l.href %>"><%= l.label %></a><% } %>
+        <%- ui.button({ label: 'Free AEO audit', href: '/#audit', size: 'sm' }) %>
+      </nav>
+    </details>
+  </div>
+</header>

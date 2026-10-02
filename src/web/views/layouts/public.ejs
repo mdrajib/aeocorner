@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include('../partials/head') %>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <%- include('../partials/site-header') %>
+  <main id="main" tabindex="-1">
+<%- body %>
+  </main>
+  <% if (showAuditBand) { %><%- include('../partials/audit-band') %><% } %>
+  <%- include('../partials/site-footer') %>
+  <div class="toast-region" data-toast-region role="status" aria-live="polite"></div>
+<%- include('../partials/scripts') %>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<%
+// Props: caption (required, shown above and read by screen readers), columns ([{ key, label, numeric }]),
+//        rows ([{ [key]: text | { html } }]), emptyText
+const columns = locals.columns ?? [];
+const rows = locals.rows ?? [];
+-%>
+<div class="table-wrap" tabindex="0" role="region" aria-label="<%= locals.caption %>">
+  <table class="table">
+    <caption><%= locals.caption %></caption>
+    <thead>
+      <tr><% for (const c of columns) { %><th scope="col"<% if (c.numeric) { %> class="num"<% } %>><%= c.label %></th><% } %></tr>
+    </thead>
+    <tbody>
+      <% if (!rows.length) { %>
+      <tr><td colspan="<%= columns.length || 1 %>" class="text-ink-600 py-8 text-center"><%= locals.emptyText ?? 'Nothing to show yet.' %></td></tr>
+      <% } %>
+      <% for (const r of rows) { %>
+      <tr>
+        <% columns.forEach((c, i) => { const cell = r[c.key]; const isHtml = cell && typeof cell === 'object' && 'html' in cell; %>
+        <% if (i === 0) { %><th scope="row" class="row-head"><% } else { %><td<% if (c.numeric) { %> class="num"<% } %>><% } %><% if (isHtml) { %><%- cell.html %><% } else { %><%= cell ?? '' %><% } %><% if (i === 0) { %></th><% } else { %></td><% } %>
+        <% }) %>
+      </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>

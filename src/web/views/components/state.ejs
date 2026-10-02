@@ -1,0 +1,13 @@
+<%
+// Props: kind (empty|loading|error), title (required), text, action ({ label, href }), actionHtml, icon
+// Every empty screen says why it is empty and offers the next action (CUSTOMER_JOURNEY §5).
+const kind = locals.kind ?? 'empty';
+const icon = locals.icon ?? (kind === 'error' ? 'alert-circle' : 'inbox');
+-%>
+<div class="state state-<%= kind %>"<% if (kind === 'loading') { %> role="status" aria-live="polite" aria-busy="true"<% } else if (kind === 'error') { %> role="alert"<% } %>>
+  <% if (kind === 'loading') { %><div class="spinner" aria-hidden="true"></div><% } else { %><div class="state-icon"><%- ui.icon({ name: icon, size: 24 }) %></div><% } %>
+  <h3 class="text-lg"><%= locals.title %></h3>
+  <% if (locals.text) { %><p class="text-ink-700 max-w-md text-sm"><%= locals.text %></p><% } %>
+  <% if (locals.action) { %><%- ui.button({ label: locals.action.label, href: locals.action.href, variant: kind === 'error' ? 'secondary' : 'primary', size: 'sm' }) %><% } %>
+  <% if (locals.actionHtml) { %><%- locals.actionHtml %><% } %>
+</div>

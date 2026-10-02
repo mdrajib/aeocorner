@@ -1,0 +1,136 @@
+<%
+const steps = [
+  { icon: 'chart', title: 'Measure', text: 'We ask ChatGPT, Perplexity, Gemini and Google AI Overviews the questions your buyers ask — several times each, because AI answers vary.' },
+  { icon: 'search', title: 'Diagnose', text: 'We find out why: can AI crawlers reach your site, is your content easy to quote, and are the sources AI trusts talking about you?' },
+  { icon: 'wrench', title: 'Fix', text: 'You get a ranked list of fixes, with changes ready to approve. Nothing changes on your site until you say so.' },
+  { icon: 'target', title: 'Prove', text: 'After a fix, we re-measure and tell you whether AI answers really changed, or whether it is just normal variation.' },
+];
+const reportItems = [
+  { icon: 'target', title: 'Your AEO Score', text: 'One number out of 100, split into Readiness (your site) and Visibility (what AI says) so you can see which one to work on.' },
+  { icon: 'document', title: 'The real answers', text: 'Actual excerpts from each engine, with your brand and your competitors highlighted. Not a summary — the evidence.' },
+  { icon: 'eye', title: 'Who AI names instead', text: 'Which competitors show up for the questions you should be winning, engine by engine.' },
+  { icon: 'list', title: 'Your top 5 fixes', text: 'Each one explains why it matters and links to the check or answer that proves it.' },
+];
+const principles = [
+  { icon: 'chart', title: 'Rates, not guesses', text: 'We sample every question several times and show a range, so you do not panic over one unlucky answer.' },
+  { icon: 'help', title: '“Couldn’t check” is not “zero”', text: 'A failed collection is always labelled as such. It is never counted against your brand.' },
+  { icon: 'shield', title: 'Every number opens its evidence', text: 'Click any score and see the answers behind it. Our method is public, so you can check our work.' },
+];
+-%>
+<section class="hero" id="audit" aria-labelledby="audit-heading">
+  <div class="container-page grid gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
+    <div>
+      <p class="eyebrow">Free AEO audit</p>
+      <h1 class="mt-3 text-4xl sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]" id="audit-heading">Is AI sending your customers to your competitors?</h1>
+      <p class="text-ink-200 mt-5 max-w-xl text-lg">See what ChatGPT, Perplexity, Gemini and Google AI Overviews actually say when someone asks about your market. Real answers, a score out of 100, and your top five fixes — in about five minutes.</p>
+      <div class="card text-ink-900 mt-8 max-w-xl">
+        <div class="card-body"><%- ui.auditForm({ idPrefix: 'hero', variant: 'hero', values: audit && audit.values, errors: audit && audit.errors, turnstileSiteKey: site.turnstileSiteKey }) %></div>
+      </div>
+    </div>
+
+    <%# Illustrative example — fictional brand and made-up numbers, labelled as such (MVP §11.4: no invented results presented as real). %>
+    <div class="card text-ink-900" aria-labelledby="example-heading">
+      <div class="card-header">
+        <h2 class="!text-ink-950 text-base tracking-normal" id="example-heading">Example report</h2>
+        <%- ui.badge({ text: 'Illustrative — not real data', tone: 'neutral' }) %>
+      </div>
+      <div class="card-body flex flex-col gap-5">
+        <div class="flex items-end justify-between gap-4">
+          <div>
+            <p class="text-ink-600 text-sm font-medium">AEO Score for Acme Dental</p>
+            <p class="text-ink-950 text-5xl font-bold tracking-tight tabular-nums">38<span class="text-ink-500 text-2xl font-semibold">/100</span></p>
+          </div>
+          <dl class="text-ink-700 grid grid-cols-2 gap-x-5 gap-y-1 text-sm">
+            <dt>Readiness</dt><dd class="text-ink-950 font-semibold tabular-nums">54</dd>
+            <dt>Visibility</dt><dd class="text-ink-950 font-semibold tabular-nums">15</dd>
+          </dl>
+        </div>
+        <ul class="divide-ink-100 divide-y text-sm" aria-label="Example results by engine">
+          <li class="flex items-center justify-between gap-3 py-2.5"><span class="font-semibold">ChatGPT</span><%- ui.resultCell({ status: 'ok', mentioned: false }) %></li>
+          <li class="flex items-center justify-between gap-3 py-2.5"><span class="font-semibold">Perplexity</span><%- ui.resultCell({ status: 'ok', mentioned: true }) %></li>
+          <li class="flex items-center justify-between gap-3 py-2.5"><span class="font-semibold">Gemini</span><%- ui.resultCell({ status: 'failed' }) %></li>
+          <li class="flex items-center justify-between gap-3 py-2.5"><span class="font-semibold">Google AI Overviews</span><%- ui.resultCell({ status: 'no_overview' }) %></li>
+        </ul>
+        <div class="bg-ink-50 rounded-lg p-4 text-sm leading-6">
+          <p class="text-ink-600 mb-1 font-semibold">ChatGPT, “best family dentist in Austin”</p>
+          <p class="text-ink-800"><%- ui.highlight('Top picks include Bright Smiles Dental and Capital City Family Dentistry, both praised for gentle care with children…', [{ term: 'Bright Smiles Dental', kind: 'competitor' }, { term: 'Capital City Family Dentistry', kind: 'competitor' }]) %></p>
+          <p class="text-ink-700 mt-2">Acme Dental wasn’t named.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-16 sm:py-20" id="how-it-works" aria-labelledby="how-heading">
+  <div class="container-page">
+    <p class="eyebrow">How it works</p>
+    <h2 class="mt-2 max-w-2xl text-3xl sm:text-4xl" id="how-heading">Measure, diagnose, fix, prove</h2>
+    <p class="text-ink-700 mt-4 max-w-2xl text-lg">Most tools stop at a score. AEO Corner shows where you stand, tells you what to change, and then checks whether the change worked.</p>
+    <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <% steps.forEach((s, i) => { %>
+      <li class="card card-body">
+        <div class="bg-brand-100 text-brand-700 flex size-11 items-center justify-center rounded-lg"><%- ui.icon({ name: s.icon, size: 22 }) %></div>
+        <h3 class="mt-4 text-xl"><span class="text-ink-500 mr-1 text-base font-semibold tabular-nums"><%= i + 1 %>.</span><%= s.title %></h3>
+        <p class="text-ink-700 mt-2 text-sm leading-6"><%= s.text %></p>
+      </li>
+      <% }) %>
+    </ol>
+  </div>
+</section>
+
+<section class="bg-ink-50 border-ink-200 border-y py-16 sm:py-20" aria-labelledby="report-heading">
+  <div class="container-page">
+    <p class="eyebrow">What the free audit shows</p>
+    <h2 class="mt-2 max-w-2xl text-3xl sm:text-4xl" id="report-heading">A report you can act on today</h2>
+    <ul class="mt-10 grid gap-6 sm:grid-cols-2">
+      <% for (const item of reportItems) { %>
+      <li class="flex gap-4">
+        <div class="bg-brand-600 flex size-11 shrink-0 items-center justify-center rounded-lg text-white"><%- ui.icon({ name: item.icon, size: 22 }) %></div>
+        <div>
+          <h3 class="text-lg"><%= item.title %></h3>
+          <p class="text-ink-700 mt-1 text-sm leading-6"><%= item.text %></p>
+        </div>
+      </li>
+      <% } %>
+    </ul>
+    <div class="mt-10 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <span class="text-ink-700 text-sm font-semibold">Engines we check:</span>
+      <% for (const e of ['ChatGPT', 'Perplexity', 'Gemini', 'Google AI Overviews']) { %><%- ui.badge({ text: e, tone: 'neutral' }) %><% } %>
+    </div>
+  </div>
+</section>
+
+<section class="py-16 sm:py-20" aria-labelledby="honest-heading">
+  <div class="container-page">
+    <p class="eyebrow">Honest by design</p>
+    <h2 class="mt-2 max-w-2xl text-3xl sm:text-4xl" id="honest-heading">Numbers you can trust, because you can check them</h2>
+    <ul class="mt-10 grid gap-6 md:grid-cols-3">
+      <% for (const p of principles) { %>
+      <li class="card card-body">
+        <div class="text-brand-700"><%- ui.icon({ name: p.icon, size: 26 }) %></div>
+        <h3 class="mt-3 text-lg"><%= p.title %></h3>
+        <p class="text-ink-700 mt-2 text-sm leading-6"><%= p.text %></p>
+      </li>
+      <% } %>
+    </ul>
+    <p class="mt-8"><%- ui.button({ label: 'Read our methodology', href: '/methodology', variant: 'secondary', iconRight: 'arrow-right' }) %></p>
+  </div>
+</section>
+
+<section class="bg-ink-50 border-ink-200 border-t py-16 sm:py-20" id="faq" aria-labelledby="faq-heading">
+  <div class="container-narrow">
+    <p class="eyebrow">FAQ</p>
+    <h2 class="mt-2 text-3xl sm:text-4xl" id="faq-heading">Questions people ask first</h2>
+    <div class="mt-8 flex flex-col gap-3">
+      <% for (const item of faq) { %>
+      <details class="card group">
+        <summary class="card-body flex cursor-pointer list-none items-center justify-between gap-4 !py-4 font-semibold">
+          <h3 class="text-base tracking-normal"><%= item.q %></h3>
+          <span class="text-ink-500 transition group-open:rotate-45" aria-hidden="true"><%- ui.icon({ name: 'plus', size: 20 }) %></span>
+        </summary>
+        <p class="text-ink-700 px-5 pb-5 text-sm leading-6 sm:px-6"><%= item.a %></p>
+      </details>
+      <% } %>
+    </div>
+  </div>
+</section>

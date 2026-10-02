@@ -1,0 +1,15 @@
+<%
+// Props: id (required), title (required), html (trusted body), footerHtml (trusted; put a close button in it)
+// Open with any element carrying data-modal-open="<id>"; close with data-modal-close. Native <dialog> traps focus
+// and handles Escape; public/js/components.js wires the buttons (no inline handlers — CSP).
+-%>
+<dialog class="modal" id="<%= locals.id %>" aria-labelledby="<%= locals.id %>-title">
+  <div class="modal-body">
+    <div class="mb-3 flex items-start justify-between gap-4">
+      <h2 class="text-xl" id="<%= locals.id %>-title"><%= locals.title %></h2>
+      <button type="button" class="btn btn-ghost btn-sm -mt-1 -mr-2" data-modal-close aria-label="Close dialog"><%- ui.icon({ name: 'x', size: 18 }) %></button>
+    </div>
+    <div class="text-ink-700 text-sm"><%- locals.html ?? '' %></div>
+  </div>
+  <% if (locals.footerHtml) { %><div class="modal-footer"><%- locals.footerHtml %></div><% } %>
+</dialog>

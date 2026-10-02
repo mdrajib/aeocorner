@@ -1,0 +1,17 @@
+<%
+// Props: tone (info|success|warning|danger|incomplete), title, text, html (trusted), dismissible
+// "incomplete" is the partial-data banner: use it when a run finished without every engine
+// ("Gemini data is incomplete this week; retrying"). Missing cells then show "Couldn’t check".
+const tone = locals.tone ?? 'info';
+const icons = { info: 'info', success: 'check', warning: 'alert', danger: 'alert-circle', incomplete: 'clock' };
+const role = tone === 'danger' ? 'alert' : 'status';
+-%>
+<div class="banner banner-<%= tone %>" role="<%= role %>"<% if (locals.dismissible) { %> x-data="dismissible" x-show="open"<% } %>>
+  <%- ui.icon({ name: icons[tone], size: 20, class: 'mt-0.5 shrink-0' }) %>
+  <div class="min-w-0 flex-1">
+    <% if (locals.title) { %><p class="font-semibold"><%= locals.title %></p><% } %>
+    <% if (locals.text) { %><p><%= locals.text %></p><% } %>
+    <% if (locals.html) { %><div><%- locals.html %></div><% } %>
+  </div>
+  <% if (locals.dismissible) { %><button type="button" class="btn btn-ghost btn-sm -my-1 -mr-2" x-cloak x-on:click="close" aria-label="Dismiss"><%- ui.icon({ name: 'x', size: 16 }) %></button><% } %>
+</div>

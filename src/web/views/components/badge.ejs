@@ -1,0 +1,6 @@
+<%
+// Props: text (required), tone (neutral|brand|success|warning|danger|info|unknown), icon
+// tone "unknown" is the dashed/hatched "couldn't check" look — never use a success/danger tone for missing data.
+const tone = locals.tone ?? 'neutral';
+-%>
+<span class="badge badge-<%= tone %>"><% if (locals.icon) { %><%- ui.icon({ name: locals.icon, size: 14 }) %><% } %><%= locals.text %></span>

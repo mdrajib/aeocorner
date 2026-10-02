@@ -8,8 +8,6 @@ node_modules/
 
 # Build output
 src/web/public/build/
-tailwind/*.css
-!tailwind/input.css
 dist/
 build/
 

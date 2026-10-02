@@ -1,0 +1,9 @@
+/* AEO Corner — Tailwind entry point. Tokens live in tokens.css, the component kit in components.css.
+   `source(none)` + explicit @source keeps the class scan deterministic (views and our own browser JS only). */
+@import 'tailwindcss' source(none);
+@source '../src/web/views';
+@source '../src/web/public/js';
+
+@import './tokens.css';
+@import './base.css';
+@import './components.css';

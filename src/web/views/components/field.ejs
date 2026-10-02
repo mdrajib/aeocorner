@@ -1,0 +1,33 @@
+<%
+// Props: id, name (required), label (required), type (text|email|url|password|search|textarea|select), value, hint,
+//        error, required, placeholder, autocomplete, inputmode, options ([{ value, label }] for select), rows,
+//        disabled, attrs (extra attributes)
+const type = locals.type ?? 'text';
+const id = locals.id ?? locals.name;
+const hintId = locals.hint ? id + '-hint' : null;
+const errorId = locals.error ? id + '-error' : null;
+const describedBy = [hintId, errorId].filter(Boolean).join(' ');
+const common = ' id="' + ui.esc(id) + '" name="' + ui.esc(locals.name) + '"'
+  + (locals.required ? ' required' : '')
+  + (locals.disabled ? ' disabled' : '')
+  + (locals.error ? ' aria-invalid="true"' : '')
+  + (describedBy ? ' aria-describedby="' + ui.esc(describedBy) + '"' : '')
+  + (locals.autocomplete ? ' autocomplete="' + ui.esc(locals.autocomplete) + '"' : '')
+  + (locals.placeholder ? ' placeholder="' + ui.esc(locals.placeholder) + '"' : '')
+  + ui.attrs(locals.attrs);
+-%>
+<div class="field">
+  <label class="label" for="<%= id %>"><%= locals.label %><% if (!locals.required) { %> <span class="text-ink-600 font-normal">(optional)</span><% } %></label>
+  <% if (locals.hint) { %><p class="hint" id="<%= hintId %>"><%= locals.hint %></p><% } %>
+  <% if (type === 'textarea') { -%>
+  <textarea class="textarea" rows="<%= locals.rows ?? 4 %>"<%- common %>><%= locals.value ?? '' %></textarea>
+  <% } else if (type === 'select') { -%>
+  <select class="select"<%- common %>>
+    <% for (const o of (locals.options ?? [])) { %><option value="<%= o.value %>"<% if (String(o.value) === String(locals.value ?? '')) { %> selected<% } %>><%= o.label %></option>
+    <% } %>
+  </select>
+  <% } else { -%>
+  <input class="input" type="<%= type %>" value="<%= locals.value ?? '' %>"<% if (locals.inputmode) { %> inputmode="<%= locals.inputmode %>"<% } %><%- common %>>
+  <% } -%>
+  <% if (locals.error) { %><p class="field-error" id="<%= errorId %>"><%- ui.icon({ name: 'alert-circle', size: 16 }) %><span><%= locals.error %></span></p><% } %>
+</div>

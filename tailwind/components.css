@@ -1,0 +1,525 @@
+/* Component kit styles. Every class here has a partial in src/web/views/components and a
+   rendered example in /_styleguide. Add new components to both. */
+
+@utility hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    rgb(100 116 139 / 0.16) 5px 10px
+  );
+}
+
+@layer components {
+  /* ---------- Layout ---------- */
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-narrow {
+    @apply mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .skip-link {
+    @apply bg-ink-950 absolute top-2 left-2 z-50 -translate-y-24 rounded-md px-4 py-2 text-sm font-semibold text-white focus:translate-y-0;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-semibold whitespace-nowrap no-underline transition-colors;
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:text-white;
+  }
+
+  .btn-secondary {
+    @apply border-ink-300 text-ink-800 hover:bg-ink-50 hover:text-ink-900 bg-white shadow-sm;
+  }
+
+  .btn-ghost {
+    @apply text-ink-700 hover:bg-ink-100 hover:text-ink-900 bg-transparent;
+  }
+
+  .btn-danger {
+    @apply bg-danger-700 hover:bg-danger-800 text-white shadow-sm hover:text-white;
+  }
+
+  .btn-signal {
+    @apply bg-signal-400 text-ink-950 hover:bg-signal-300 hover:text-ink-950 shadow-sm;
+  }
+
+  .btn-sm {
+    @apply min-h-9 px-3 py-1.5 text-sm;
+  }
+
+  .btn-lg {
+    @apply min-h-12 px-6 py-3 text-base;
+  }
+
+  .btn[aria-busy='true'] {
+    @apply cursor-progress;
+  }
+
+  .btn[aria-busy='true']::before {
+    content: '';
+    @apply size-4 animate-spin rounded-full border-2 border-current border-t-transparent;
+  }
+
+  /* ---------- Form fields ---------- */
+  .field {
+    @apply flex flex-col gap-1.5;
+  }
+
+  .label {
+    @apply text-ink-900 text-sm font-semibold;
+  }
+
+  .hint {
+    @apply text-ink-600 text-sm;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    @apply border-ink-300 text-ink-900 placeholder:text-ink-500 block min-h-11 w-full rounded-lg border bg-white px-3.5 py-2 text-base shadow-sm;
+  }
+
+  .input:disabled,
+  .select:disabled,
+  .textarea:disabled {
+    @apply bg-ink-100 text-ink-600 cursor-not-allowed;
+  }
+
+  .input[aria-invalid='true'],
+  .select[aria-invalid='true'],
+  .textarea[aria-invalid='true'] {
+    @apply border-danger-700 bg-danger-50;
+  }
+
+  .textarea {
+    @apply min-h-28;
+  }
+
+  .field-error {
+    @apply text-danger-700 flex items-start gap-1.5 text-sm font-medium;
+  }
+
+  .choice {
+    @apply flex items-start gap-3;
+  }
+
+  .checkbox {
+    @apply border-ink-400 text-brand-600 mt-1 size-5 shrink-0 rounded;
+  }
+
+  /* ---------- Cards, tables ---------- */
+  .card {
+    @apply border-ink-200 shadow-card rounded-xl border bg-white;
+  }
+
+  .card-body {
+    @apply p-5 sm:p-6;
+  }
+
+  .card-header {
+    @apply border-ink-200 flex items-center justify-between gap-3 border-b px-5 py-4 sm:px-6;
+  }
+
+  .table-wrap {
+    @apply border-ink-200 overflow-x-auto rounded-xl border bg-white;
+  }
+
+  .table {
+    @apply w-full min-w-[32rem] border-collapse text-left text-sm;
+  }
+
+  .table caption {
+    @apply text-ink-600 px-4 py-3 text-left text-sm;
+  }
+
+  .table th {
+    @apply border-ink-200 bg-ink-50 text-ink-700 border-b px-4 py-3 text-xs font-semibold tracking-wide uppercase;
+  }
+
+  .table td {
+    @apply border-ink-100 text-ink-800 border-b px-4 py-3 align-middle;
+  }
+
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .table th.row-head {
+    @apply text-ink-900 border-ink-100 border-b bg-white px-4 py-3 text-sm font-semibold tracking-normal normal-case;
+  }
+
+  .table tbody tr:last-child th.row-head {
+    @apply border-b-0;
+  }
+
+  .table .num {
+    @apply text-right tabular-nums;
+  }
+
+  /* ---------- Badges ---------- */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .badge-neutral {
+    @apply bg-ink-100 text-ink-800;
+  }
+
+  .badge-brand {
+    @apply bg-brand-100 text-brand-800;
+  }
+
+  .badge-success {
+    @apply bg-success-100 text-success-800;
+  }
+
+  .badge-warning {
+    @apply bg-warning-100 text-warning-800;
+  }
+
+  .badge-danger {
+    @apply bg-danger-100 text-danger-800;
+  }
+
+  .badge-info {
+    @apply bg-info-100 text-info-800;
+  }
+
+  /* "Couldn't check" — dashed and hatched so it can never be mistaken for a zero. */
+  .badge-unknown {
+    @apply text-ink-700 border-ink-400 hatch border-dashed bg-white;
+  }
+
+  /* ---------- Banners ---------- */
+  .banner {
+    @apply flex items-start gap-3 rounded-lg border px-4 py-3 text-sm;
+  }
+
+  .banner-info {
+    @apply border-info-700/30 bg-info-50 text-info-800;
+  }
+
+  .banner-success {
+    @apply border-success-700/30 bg-success-50 text-success-800;
+  }
+
+  .banner-warning {
+    @apply border-warning-700/30 bg-warning-50 text-warning-800;
+  }
+
+  .banner-danger {
+    @apply border-danger-700/30 bg-danger-50 text-danger-800;
+  }
+
+  /* Partial data — hatched so it reads as "something is missing", not as a colour-coded alert. */
+  .banner-incomplete {
+    @apply border-ink-400 text-ink-800 hatch border-dashed bg-white;
+  }
+
+  .banner a {
+    @apply font-semibold underline;
+    color: inherit;
+  }
+
+  /* ---------- Stat tiles ---------- */
+  .stat {
+    @apply border-ink-200 shadow-card flex flex-col gap-1 rounded-xl border bg-white p-5;
+  }
+
+  .stat-label {
+    @apply text-ink-600 text-sm font-medium;
+  }
+
+  .stat-value {
+    @apply text-ink-950 text-3xl font-bold tracking-tight tabular-nums;
+  }
+
+  .stat-note {
+    @apply text-ink-600 text-sm;
+  }
+
+  .stat-unknown {
+    @apply border-ink-400 hatch border-dashed;
+  }
+
+  .stat-unknown .stat-value {
+    @apply text-ink-600;
+  }
+
+  .delta {
+    @apply inline-flex items-center gap-1 text-sm font-semibold;
+  }
+
+  .delta-up {
+    @apply text-success-700;
+  }
+
+  .delta-down {
+    @apply text-danger-700;
+  }
+
+  .delta-flat {
+    @apply text-ink-600;
+  }
+
+  /* ---------- Result cell: mentioned / not mentioned / couldn't check / no overview ---------- */
+  .result-cell {
+    @apply inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-semibold;
+  }
+
+  .result-mentioned {
+    @apply border-success-700/30 bg-success-50 text-success-800;
+  }
+
+  .result-absent {
+    @apply border-ink-300 text-ink-700 bg-white;
+  }
+
+  .result-unknown {
+    @apply border-ink-500 text-ink-800 hatch border-dashed bg-white;
+  }
+
+  .result-no-overview {
+    @apply border-info-700/30 bg-info-50 text-info-800;
+  }
+
+  /* ---------- Highlights inside real answer excerpts ---------- */
+  mark.mark-brand {
+    @apply bg-signal-300 text-ink-950 rounded px-0.5 font-semibold;
+  }
+
+  mark.mark-competitor {
+    @apply bg-warning-100 text-warning-800 decoration-warning-500 rounded px-0.5 font-semibold underline decoration-2 underline-offset-2;
+  }
+
+  /* ---------- Stepper ---------- */
+  .stepper {
+    @apply flex flex-col gap-4 sm:flex-row sm:gap-0;
+  }
+
+  .step {
+    @apply relative flex flex-1 items-start gap-3 sm:flex-col sm:items-center sm:text-center;
+  }
+
+  .step-dot {
+    @apply border-ink-300 text-ink-600 z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-white text-sm font-bold;
+  }
+
+  .step-complete .step-dot {
+    @apply border-brand-600 bg-brand-600 text-white;
+  }
+
+  .step-current .step-dot {
+    @apply border-brand-600 text-brand-700 ring-brand-100 ring-4;
+  }
+
+  .step-label {
+    @apply text-ink-700 text-sm font-medium;
+  }
+
+  .step-current .step-label {
+    @apply text-ink-950 font-semibold;
+  }
+
+  /* ---------- Meter (plan usage, run progress): native <progress>, no inline style needed ---------- */
+  progress.meter {
+    @apply bg-ink-200 block h-2.5 w-full appearance-none overflow-hidden rounded-full border-0;
+  }
+
+  progress.meter::-webkit-progress-bar {
+    @apply bg-ink-200;
+  }
+
+  progress.meter::-webkit-progress-value {
+    @apply bg-brand-600 rounded-full;
+  }
+
+  progress.meter::-moz-progress-bar {
+    @apply bg-brand-600 rounded-full;
+  }
+
+  .meter-warn progress.meter::-webkit-progress-value {
+    @apply bg-warning-500;
+  }
+
+  .meter-warn progress.meter::-moz-progress-bar {
+    @apply bg-warning-500;
+  }
+
+  /* ---------- Tabs ---------- */
+  .tablist {
+    @apply border-ink-200 flex gap-1 overflow-x-auto border-b;
+  }
+
+  .tab {
+    @apply text-ink-600 hover:text-ink-900 -mb-px min-h-11 cursor-pointer border-b-2 border-transparent px-4 py-2 text-sm font-semibold whitespace-nowrap;
+  }
+
+  .tab[aria-selected='true'] {
+    @apply border-brand-600 text-brand-700;
+  }
+
+  /* ---------- Modal (native <dialog>) ---------- */
+  .modal {
+    @apply shadow-pop m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-white p-0 text-left;
+  }
+
+  .modal::backdrop {
+    background: rgb(11 16 32 / 0.6);
+  }
+
+  .modal-body {
+    @apply p-6;
+  }
+
+  .modal-footer {
+    @apply border-ink-200 flex flex-wrap justify-end gap-3 border-t px-6 py-4;
+  }
+
+  /* ---------- Empty / loading / error states ---------- */
+  .state {
+    @apply border-ink-300 flex flex-col items-center gap-3 rounded-xl border border-dashed bg-white px-6 py-10 text-center;
+  }
+
+  .state-icon {
+    @apply bg-ink-100 text-ink-600 flex size-12 items-center justify-center rounded-full;
+  }
+
+  .state-error .state-icon {
+    @apply bg-danger-100 text-danger-700;
+  }
+
+  .skeleton {
+    @apply bg-ink-200 animate-pulse rounded-md;
+  }
+
+  .spinner {
+    @apply text-brand-600 size-6 animate-spin rounded-full border-[3px] border-current border-t-transparent;
+  }
+
+  /* ---------- Toasts ---------- */
+  .toast-region {
+    @apply pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4;
+  }
+
+  .toast {
+    @apply bg-ink-950 shadow-pop pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-lg px-4 py-3 text-sm text-white;
+  }
+
+  /* ---------- Site chrome ---------- */
+  .site-header {
+    @apply border-ink-200 sticky top-0 z-40 border-b bg-white/95 backdrop-blur;
+  }
+
+  .nav-link {
+    @apply text-ink-700 hover:text-ink-950 rounded-md px-3 py-2 text-sm font-semibold no-underline;
+  }
+
+  .nav-link[aria-current='page'] {
+    @apply text-brand-700;
+  }
+
+  .site-footer {
+    @apply bg-ink-950 text-ink-300;
+  }
+
+  .site-footer a {
+    @apply text-ink-200 no-underline hover:text-white hover:underline;
+  }
+
+  .hero {
+    @apply bg-ink-950 relative overflow-hidden text-white;
+    background-image:
+      radial-gradient(60rem 28rem at 85% -10%, rgb(79 70 229 / 0.55), transparent 60%),
+      radial-gradient(40rem 24rem at -10% 110%, rgb(132 204 22 / 0.18), transparent 60%);
+  }
+
+  .hero h1,
+  .hero h2 {
+    @apply text-white;
+  }
+
+  .eyebrow {
+    @apply text-brand-700 text-sm font-bold tracking-wider uppercase;
+  }
+
+  .hero .eyebrow {
+    @apply text-signal-300;
+  }
+
+  /* ---------- App shell (empty until Phase 2) ---------- */
+  .app-sidebar {
+    @apply bg-ink-950 text-ink-200 flex w-64 shrink-0 flex-col gap-1 p-4;
+  }
+
+  .app-nav-link {
+    @apply text-ink-300 flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold no-underline hover:bg-white/10 hover:text-white;
+  }
+
+  .app-nav-link[aria-current='page'] {
+    @apply bg-white/15 text-white;
+  }
+
+  /* ---------- Long-form text (methodology, legal) ---------- */
+  .prose-aeo {
+    @apply text-ink-800 text-base leading-7;
+  }
+
+  .prose-aeo > * + * {
+    @apply mt-4;
+  }
+
+  .prose-aeo h2 {
+    @apply mt-12 text-2xl;
+  }
+
+  .prose-aeo h3 {
+    @apply mt-8 text-lg;
+  }
+
+  .prose-aeo ul {
+    @apply list-disc space-y-1.5 pl-6;
+  }
+
+  .prose-aeo ol {
+    @apply list-decimal space-y-1.5 pl-6;
+  }
+
+  .prose-aeo code {
+    @apply bg-ink-100 text-ink-900 rounded px-1.5 py-0.5 font-mono text-[0.9em];
+  }
+
+  .prose-aeo pre {
+    @apply bg-ink-950 text-ink-100 overflow-x-auto rounded-lg p-4 text-sm;
+  }
+
+  .prose-aeo pre code {
+    @apply bg-transparent p-0 text-inherit;
+  }
+
+  .prose-aeo table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+
+  .prose-aeo th {
+    @apply border-ink-300 bg-ink-50 border-b px-3 py-2 font-semibold;
+  }
+
+  .prose-aeo td {
+    @apply border-ink-200 border-b px-3 py-2 align-top;
+  }
+
+  .prose-aeo .table-wrap {
+    @apply my-6;
+  }
+}

@@ -1,0 +1,15 @@
+<%
+// Props: label (required), variant (primary|secondary|ghost|danger|signal), size (sm|md|lg), href (renders <a>),
+//        type, disabled, busy, icon, iconRight, id, name, value, attrs (extra attributes, e.g. { 'data-modal-open': 'x' })
+const variant = locals.variant ?? 'primary';
+const size = locals.size ?? 'md';
+const cls = ['btn', 'btn-' + variant, size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : ''].filter(Boolean).join(' ');
+const extra = ui.attrs(locals.attrs);
+const icon = locals.icon ? ui.icon({ name: locals.icon, size: 18 }) : '';
+const iconRight = locals.iconRight ? ui.icon({ name: locals.iconRight, size: 18 }) : '';
+-%>
+<% if (locals.href && !locals.disabled) { -%>
+<a href="<%= locals.href %>" class="<%= cls %>"<% if (locals.id) { %> id="<%= locals.id %>"<% } %><%- extra %>><%- icon %><%= locals.label %><%- iconRight %></a>
+<% } else { -%>
+<button type="<%= locals.type ?? 'button' %>" class="<%= cls %>"<% if (locals.id) { %> id="<%= locals.id %>"<% } %><% if (locals.name) { %> name="<%= locals.name %>"<% } %><% if (locals.value != null) { %> value="<%= locals.value %>"<% } %><% if (locals.disabled) { %> disabled<% } %><% if (locals.busy) { %> aria-busy="true"<% } %><%- extra %>><%- icon %><%= locals.label %><%- iconRight %></button>
+<% } -%>

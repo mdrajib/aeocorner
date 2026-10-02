@@ -1,0 +1,24 @@
+<%
+// Props: idPrefix (unique on the page), variant (hero|compact), values ({ url, competitor_url }), errors ({ url, competitor_url }),
+//        turnstileSiteKey. Posts to /audit (a stub until Phase 7 — see BUILD_PLAN).
+const p = locals.idPrefix ?? 'audit';
+const values = locals.values ?? {};
+const errors = locals.errors ?? {};
+const compact = locals.variant === 'compact';
+const hasErrors = Object.keys(errors).length > 0;
+-%>
+<form method="post" action="/audit" class="flex flex-col gap-4" id="<%= p %>-form"<% if (!compact) { %> aria-labelledby="<%= p %>-heading"<% } %>>
+  <% if (hasErrors) { %><%- ui.banner({ tone: 'danger', text: 'Please check the highlighted field and try again.' }) %><% } %>
+  <%- ui.field({ id: p + '-url', name: 'url', label: 'Your website', type: 'text', inputmode: 'url', autocomplete: 'url', placeholder: 'yourcompany.com', required: true, value: values.url, error: errors.url, hint: compact ? undefined : 'Just the address — we do the rest.' }) %>
+  <details class="group"<% if (values.competitor_url || errors.competitor_url) { %> open<% } %>>
+    <summary class="text-brand-700 cursor-pointer text-sm font-semibold">Compare with a competitor (optional)</summary>
+    <div class="mt-3">
+      <%- ui.field({ id: p + '-competitor', name: 'competitor_url', label: 'Competitor website', type: 'text', inputmode: 'url', placeholder: 'rival.com', value: values.competitor_url, error: errors.competitor_url }) %>
+    </div>
+  </details>
+  <% if (locals.turnstileSiteKey) { %><div class="cf-turnstile" data-sitekey="<%= locals.turnstileSiteKey %>" data-theme="light"></div><% } %>
+  <div>
+    <%- ui.button({ label: 'Run my free audit', type: 'submit', size: 'lg', iconRight: 'arrow-right' }) %>
+  </div>
+  <p class="text-ink-600 text-sm">Free · about 5 minutes · no account or credit card needed.</p>
+</form>

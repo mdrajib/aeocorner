@@ -1,0 +1,146 @@
+<%
+const toc = [
+  ['principles', 'Principles'],
+  ['engines', 'Engines and how we collect answers'],
+  ['sampling', 'Sampling and statistics'],
+  ['extraction', 'Reading the answers'],
+  ['metrics', 'What we measure'],
+  ['score', 'The AI Visibility Score'],
+  ['readiness', 'The AEO Readiness checklist'],
+  ['audit-score', 'The free audit’s AEO Score'],
+  ['never', 'What we will not do'],
+  ['changes', 'Version history'],
+];
+-%>
+<div class="bg-ink-50 border-ink-200 border-b py-12 sm:py-16">
+  <div class="container-narrow">
+    <p class="eyebrow">Methodology</p>
+    <h1 class="mt-2 text-4xl sm:text-5xl">How AEO Corner measures AI visibility</h1>
+    <p class="text-ink-700 mt-4 text-lg">Black-box scores are hard to trust. This page explains exactly what we collect, how we read it, and how every number is calculated, so you can check our work.</p>
+    <p class="mt-4"><%- ui.badge({ text: 'Version 1 · 2 October 2026', tone: 'brand' }) %></p>
+  </div>
+</div>
+
+<div class="container-narrow py-12">
+  <nav aria-label="On this page" class="card card-body mb-10">
+    <h2 class="text-base tracking-normal">On this page</h2>
+    <ol class="text-ink-700 mt-3 grid list-decimal gap-x-8 gap-y-1.5 pl-5 text-sm sm:grid-cols-2">
+      <% for (const [id, label] of toc) { %><li><a href="#<%= id %>"><%= label %></a></li><% } %>
+    </ol>
+  </nav>
+
+  <article class="prose-aeo">
+    <h2 id="principles">1. Principles</h2>
+    <ol>
+      <li><strong>We measure what people see, and label where it came from.</strong> An answer captured from a chat interface and one produced by an API with web search can differ, so every answer we store is tagged with how it was collected.</li>
+      <li><strong>AI answers are random.</strong> Ask the same question twice and you can get two different answers. We ask several times and report <em>rates with a margin of error</em>, never a single yes or no.</li>
+      <li><strong>We keep the raw answer.</strong> Every number is derived from stored raw answers, so when our reading of answers improves we can recompute history instead of guessing.</li>
+      <li><strong>We keep cause and outcome apart.</strong> <em>Readiness</em> is what your site does to help AI find and quote you. <em>Visibility</em> is what AI answers actually say. They are scored separately because one does not guarantee the other.</li>
+      <li><strong>A failed check is never a zero.</strong> If we couldn’t collect an answer, it is shown as “Couldn’t check” and left out of rates. It is never counted as “not mentioned”.</li>
+    </ol>
+
+    <h2 id="engines">2. Engines and how we collect answers</h2>
+    <p>We buy answers from licensed data providers and use official APIs. We do not scrape consumer AI apps ourselves.</p>
+    <div class="table-wrap">
+      <table class="table" aria-describedby="engines-note">
+        <caption class="sr-only">Engines, collection method and samples per run</caption>
+        <thead><tr><th scope="col">Engine</th><th scope="col">How the answer is collected</th><th scope="col" class="num">Samples per question</th></tr></thead>
+        <tbody>
+          <tr><th scope="row" class="row-head">ChatGPT</th><td>Licensed capture of the ChatGPT interface, logged out and not personalised, including the sources it shows. Falls back to an official API with web search, labelled as such.</td><td class="num">3</td></tr>
+          <tr><th scope="row" class="row-head">Gemini</th><td>Licensed capture of the Gemini interface. Falls back to the official API with Google Search grounding, labelled as such.</td><td class="num">3</td></tr>
+          <tr><th scope="row" class="row-head">Perplexity</th><td>The official Perplexity API, which returns the sources it cites. Labelled “API-grounded”.</td><td class="num">3</td></tr>
+          <tr><th scope="row" class="row-head">Google AI Overviews</th><td>A search-results data provider, using the keyword form of the question. Not every search shows an AI Overview, so we also track how often one appears.</td><td class="num">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p id="engines-note">If a provider starts failing, we switch to a backup automatically and tell you which method produced each answer. The free audit asks each question once; ongoing tracking asks three times.</p>
+
+    <h2 id="sampling">3. Sampling and statistics</h2>
+    <ul>
+      <li><strong>Mention rate</strong> for a question on an engine is the number of samples that name your brand divided by the number of samples collected.</li>
+      <li><strong>Ranges.</strong> Rates across many questions are shown with a 95% Wilson confidence interval, drawn as a band on charts.</li>
+      <li><strong>Change detection.</strong> We compare the last four weeks with the four weeks before. A change is called <em>significant</em> only if a two-proportion z-test gives p &lt; 0.05 <strong>and</strong> the change is at least 5 percentage points. Anything else is labelled “within normal variation”.</li>
+      <li><strong>Why this matters.</strong> Single-sample tools swing wildly from week to week. Honest handling of that noise is the difference between a dashboard you can act on and one that makes you panic.</li>
+    </ul>
+
+    <h2 id="extraction">4. Reading the answers</h2>
+    <ol>
+      <li><strong>Matching.</strong> A deterministic first pass finds your brand, its aliases and your domain in the answer, and parses the sources the engine cited.</li>
+      <li><strong>Understanding.</strong> A language model reads each answer into a structured record: the type of answer (list, single recommendation, comparison, explanation or refusal), every brand named, its position, how prominent it is, whether it is recommended or cautioned against, sentiment, and the claims made about it.</li>
+      <li><strong>Cross-check.</strong> The matching pass and the model must agree on whether your brand is present. Disagreements go to a review queue and are used to improve the system.</li>
+      <li><strong>Versioning.</strong> Every derived number records which version of the reader produced it, so history can be re-read from the raw answers.</li>
+    </ol>
+
+    <h2 id="metrics">5. What we measure</h2>
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">Metric definitions</caption>
+        <thead><tr><th scope="col">Metric</th><th scope="col">Definition</th></tr></thead>
+        <tbody>
+          <tr><th scope="row" class="row-head">Mention rate</th><td>Share of answers that name your brand.</td></tr>
+          <tr><th scope="row" class="row-head">Share of voice</th><td>Your mentions divided by mentions of everyone you track (you and your competitors).</td></tr>
+          <tr><th scope="row" class="row-head">Recommendation rate</th><td>Share of answers that actively recommend you.</td></tr>
+          <tr><th scope="row" class="row-head">Average position</th><td>Your average place in list-style answers, when you are named.</td></tr>
+          <tr><th scope="row" class="row-head">Citation share</th><td>Citations that point to your domain divided by all citations.</td></tr>
+          <tr><th scope="row" class="row-head">Sentiment</th><td>Average sentiment of the mentions, from −2 (negative) to +2 (positive).</td></tr>
+          <tr><th scope="row" class="row-head">Win rate vs a competitor</th><td>Share of questions where you rank ahead of them, or they are absent and you are present.</td></tr>
+          <tr><th scope="row" class="row-head">AI Overview trigger rate</th><td>Share of searches that show an AI Overview, and how often those overviews mention or cite you.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="score">6. The AI Visibility Score</h2>
+    <p>The score is a weighted average, from 0 to 100, of how prominently you appear in each answer. For every question <em>p</em> and engine <em>e</em>, we average the presence value over the samples:</p>
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">Presence value for one answer</caption>
+        <thead><tr><th scope="col">What the answer does</th><th scope="col" class="num">Presence value</th></tr></thead>
+        <tbody>
+          <tr><th scope="row" class="row-head">Recommends only you, or lists you first</th><td class="num">1.00</td></tr>
+          <tr><th scope="row" class="row-head">Lists you second</th><td class="num">0.85</td></tr>
+          <tr><th scope="row" class="row-head">Lists you third</th><td class="num">0.70</td></tr>
+          <tr><th scope="row" class="row-head">Lists you fourth or lower, or mentions you outside a list</th><td class="num">0.50</td></tr>
+          <tr><th scope="row" class="row-head">Cites your website but does not name your brand</th><td class="num">0.25</td></tr>
+          <tr><th scope="row" class="row-head">Does not mention you</th><td class="num">0.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>If the answer cautions against you or does not recommend you, the value is halved. The score is the average of these values, weighted by how important each question is (priority 1–3) and by engine weight (equal by default), multiplied by 100. Answers we couldn’t collect are left out of the average, not scored as zero.</p>
+
+    <h2 id="readiness">7. The AEO Readiness checklist</h2>
+    <p>Readiness scores the signals on your own site that help AI find, read and trust you. These weights are our first version (v0): reasoned heuristics that have not yet been tested against outcomes. Once we have enough customer data we will calibrate them against real results and publish what changed.</p>
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">Readiness categories and points</caption>
+        <thead><tr><th scope="col">Category</th><th scope="col">What we check</th><th scope="col" class="num">Points</th></tr></thead>
+        <tbody>
+          <tr><th scope="row" class="row-head">A. AI crawler access</th><td>Answer and search bots are allowed in robots.txt; no firewall or CDN challenge blocks them; a sitemap exists. Training-bot policy is shown for information and is your business choice.</td><td class="num">20</td></tr>
+          <tr><th scope="row" class="row-head">B. Renderability</th><td>Your main content is in the HTML a crawler receives, not only after JavaScript runs.</td><td class="num">10</td></tr>
+          <tr><th scope="row" class="row-head">C. Structured data</th><td>Organization and page-type schema on key pages, valid and server-rendered, plus site and breadcrumb markup.</td><td class="num">20</td></tr>
+          <tr><th scope="row" class="row-head">D. Entity clarity</th><td>Consistent brand name, a clear About page, links to authoritative profiles, consistent name/address/phone for local businesses.</td><td class="num">15</td></tr>
+          <tr><th scope="row" class="row-head">E. Content answerability</th><td>Question-style headings, a short direct answer under each, lists and tables, FAQs, evidence with sources, and visible freshness.</td><td class="num">25</td></tr>
+          <tr><th scope="row" class="row-head">F. Technical foundations</th><td>Key pages are indexable, served over HTTPS without redirect chains, with unique titles and descriptions. An llms.txt file earns a point but is low weight because major engines have not confirmed they use it.</td><td class="num">10</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="audit-score">8. The free audit’s AEO Score</h2>
+    <p>The free audit combines the two parts: <strong>AEO Score = 0.6 × Readiness + 0.4 × Visibility</strong>. The report always shows both parts separately. The audit’s visibility part is a one-answer-per-question snapshot, so it is directional. Ongoing tracking, with repeated sampling, is what you should use to measure change.</p>
+
+    <h2 id="never">9. What we will not do</h2>
+    <p>These are limits we put on ourselves, because durable AEO should not put your brand at risk:</p>
+    <ul>
+      <li>Fake reviews, testimonials or invented statistics.</li>
+      <li>Hidden text, or content shown only to bots.</li>
+      <li>Automated posting on Reddit, Quora or similar communities.</li>
+      <li>Mass-published AI articles. Content we help you write needs human approval and passes quality checks first.</li>
+      <li>Buying links or using other people’s sites to rank yours.</li>
+    </ul>
+
+    <h2 id="changes">10. Version history</h2>
+    <ul>
+      <li><strong>Version 1 — 2 October 2026.</strong> First public version.</li>
+    </ul>
+    <p>When this method changes, we will add a dated note here saying what changed and why.</p>
+  </article>
+</div>

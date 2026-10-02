@@ -1,0 +1,14 @@
+<%
+// Props: title, html (trusted body markup), footerHtml, actionsHtml (header right side), padded (default true), headingLevel (default 3)
+const level = locals.headingLevel ?? 3;
+-%>
+<section class="card">
+  <% if (locals.title) { %>
+  <header class="card-header">
+    <h<%= level %> class="text-base font-semibold tracking-normal"><%= locals.title %></h<%= level %>>
+    <% if (locals.actionsHtml) { %><div class="flex items-center gap-2"><%- locals.actionsHtml %></div><% } %>
+  </header>
+  <% } -%>
+  <div class="<%= (locals.padded ?? true) ? 'card-body' : '' %>"><%- locals.html ?? '' %></div>
+  <% if (locals.footerHtml) { %><footer class="card-header border-t border-b-0"><%- locals.footerHtml %></footer><% } %>
+</section>

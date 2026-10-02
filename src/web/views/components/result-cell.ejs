@@ -1,0 +1,14 @@
+<%
+// Props: state (mentioned|absent|unknown|pending|no_overview), detail. Build it with ui.resultCell({ status, mentioned })
+// so a failed or missing collection can only ever become "Couldn’t check" — see resolveResultCell() in src/web/ui.js.
+const variants = {
+  mentioned: { cls: 'result-mentioned', icon: 'check', text: 'Mentioned' },
+  absent: { cls: 'result-absent', icon: 'minus', text: 'Not mentioned' },
+  unknown: { cls: 'result-unknown', icon: 'help', text: "Couldn’t check" },
+  pending: { cls: 'result-unknown', icon: 'clock', text: 'Checking…' },
+  no_overview: { cls: 'result-no-overview', icon: 'info', text: 'No AI Overview' },
+};
+const v = variants[locals.state];
+if (!v) throw new Error('Unknown result cell state: ' + locals.state);
+-%>
+<span class="result-cell <%= v.cls %>" data-state="<%= locals.state %>"><%- ui.icon({ name: v.icon, size: 16 }) %><%= v.text %><% if (locals.detail) { %><span class="sr-only">: <%= locals.detail %></span><% } %></span>

@@ -669,7 +669,7 @@ flowchart LR
 |---|---|---|---|
 | Runtime / language | **Node.js (LTS)**, JavaScript with **zod** validation at every boundary (LLM outputs, provider payloads, API input). TypeScript optional for `core/` and `engines/` | The team knows it. zod catches bad data shapes where they enter | Full TypeScript |
 | Web | **Express** | Familiar, minimal, easy to reason about | Fastify |
-| Views / UI | **EJS + Tailwind CLI + htmx + Alpine.js**; Chart.js or ECharts for charts; TipTap (vanilla) for the Content Studio editor | Server-rendered HTML (fast, and readable by AI crawlers). htmx/Alpine give dashboard interactivity without a SPA | React for the Content Studio only, if it outgrows htmx |
+| Views / UI | **EJS + Tailwind CLI (v4) + htmx + Alpine.js (CSP build)**; Chart.js or ECharts for charts; TipTap (vanilla) for the Content Studio editor. One component kit and a dev-only `/_styleguide` ([UI_DESIGN.md](UI_DESIGN.md)) | Server-rendered HTML (fast, and readable by AI crawlers). htmx/Alpine give dashboard interactivity without a SPA. Alpine's CSP build keeps the Content-Security-Policy free of `unsafe-eval` ([ADR-0003](adr/0003-strict-csp.md)) | React for the Content Studio only, if it outgrows htmx |
 | Background jobs | **BullMQ + Redis** in a separate worker process: queues, retries with backoff, job schedulers (cron), per-queue concurrency, rate limiters, failed-job set as a dead-letter queue | The standard Node job system. Long runs are fine on our own Droplet (no serverless timeouts) | Trigger.dev (managed) |
 | Database | **MySQL 8** (DigitalOcean) + **Prisma 7** with SQL-first migrations ([DATABASE_SCHEMA.md §10.2](DATABASE_SCHEMA.md#102-orm-prisma-7-with-sql-first-migrations)) | Familiar. JSON columns, window functions, CTEs and partitioning cover the MVP. Prisma was tested against the full schema | Add **ClickHouse** later for analytics facts (§8.3) |
 | Cache / queues / limits | **Redis** (DigitalOcean) | BullMQ queues, token buckets per provider/org, locks, OTP store, cached user lookups | — |
@@ -785,7 +785,8 @@ aeo-corner/
 │  ├─ crawler/             # SSRF-safe fetcher, robots/sitemap parsers, readiness checks
 │  ├─ integrations/        # WordPress, Google (GA4/GSC), IndexNow, Stripe, Spaces
 │  └─ lib/                 # config, logger, queue definitions, Redis client, crypto
-├─ tailwind/               # Tailwind CLI input CSS + config
+├─ tailwind/               # Tailwind CLI input CSS: design tokens, base, component kit
+├─ scripts/                # small dev scripts (vendoring front-end assets)
 ├─ plugins/
 │  └─ wordpress-connector/ # PHP plugin
 ├─ evals/                  # golden sets (labeled answers, prompts, domains)
@@ -958,12 +959,15 @@ A public customer API and a Looker Studio/BI connector come in v2.
 - **Our crawler's identity:** `AEOCornerBot/1.0 (+https://aeocorner.com/bot)`, with per-domain politeness (≤ 2 concurrent requests, ≥ 500 ms apart).
 - **Secrets:** envelope encryption (AES-256-GCM). Data keys are wrapped by a master key held outside the database and repo (DigitalOcean has no KMS; see §7.11). WordPress application passwords and Google refresh tokens are never logged.
 - **Webhooks:** signature verification (Stripe, providers, WordPress HMAC), replay windows, idempotency keys.
+- **Content-Security-Policy:** strict (`script-src 'self'`, `style-src 'self'`, no `unsafe-inline` or `unsafe-eval`), so views have no inline scripts, handlers or `style=""` attributes. Third-party origins (Turnstile, PostHog) are added only when configured. See [ADR-0003](adr/0003-strict-csp.md).
+- **Cross-site forms:** the public audit form refuses requests that came from another site (`Sec-Fetch-Site` / `Origin`); authenticated forms add synchroniser tokens in Phase 2.
 - **Abuse:** Turnstile, OTP, rate limits, disposable-email blocking on the audit.
 - **Dependencies:** automated updates and an audit in CI.
 
 ### 11.3 Privacy & legal
 - A GDPR/CCPA-ready privacy policy, a DPA template, and a public **subprocessor list**: Anthropic, OpenAI*, Google, Perplexity, DataForSEO, SerpApi, DigitalOcean, Cloudflare, Clerk, Stripe, Resend, PostHog, Sentry, Langfuse (if cloud-hosted). (*Only if the fallback adapter is enabled.)
 - Marketing consent is separate from audit delivery.
+- **Analytics on the public site is cookieless** (decided 2026-10-02): PostHog in `cookieless_mode: 'always'`, so there are no cookies, no local storage and no consent banner. The app's own sign-in cookies are strictly necessary. See [UI_DESIGN.md §9](UI_DESIGN.md#9-analytics-and-consent).
 - Data subject rights: export and deletion within 30 days.
 - **Provider terms:** We do not scrape consumer AI apps ourselves. We rely on licensed data providers and official APIs. Legal reviews each provider's terms before launch and re-checks them every 6 months.
 

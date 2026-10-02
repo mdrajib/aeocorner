@@ -1,0 +1,9 @@
+<%# Styleguide-only preview of the authenticated shell with sample content. Phase 2 builds the real screens inside this layout. %>
+<h1 class="text-3xl">Dashboard</h1>
+<p class="text-ink-700 mt-2">This is the empty authenticated shell. Real screens arrive with Phase 2 onward.</p>
+<div class="mt-6 grid gap-4 sm:grid-cols-3">
+  <%- ui.stat({ label: 'AEO Score', value: '—', note: 'Appears after your first run' }) %>
+  <%- ui.stat({ label: 'Mention rate', state: 'unknown' }) %>
+  <%- ui.stat({ label: 'Share of voice', state: 'loading' }) %>
+</div>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'Nothing here yet', text: 'Every empty screen explains why and offers the next step.', action: { label: 'Start tracking', href: '#' } }) %></div>
