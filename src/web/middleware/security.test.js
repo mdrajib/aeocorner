@@ -39,7 +39,13 @@ test('PostHog origins are added only when PostHog is configured, and only the ho
 
 test('production upgrades insecure requests; development does not', () => {
   assert.ok(
-    'upgrade-insecure-requests' in buildCspDirectives(loadConfig({ NODE_ENV: 'production' })),
+    'upgrade-insecure-requests' in
+      buildCspDirectives(
+        loadConfig({
+          NODE_ENV: 'production',
+          APP_SECRET: 'test-secret-test-secret-test-secret-123',
+        }),
+      ),
   );
   assert.equal('upgrade-insecure-requests' in buildCspDirectives(loadConfig({})), false);
 });

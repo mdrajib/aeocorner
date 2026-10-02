@@ -27,6 +27,7 @@ export function pageRenderer({ config, viewsDir, publicDir }) {
 
   const site = {
     appEnv: config.appEnv,
+    authEnabled: Boolean(config.auth),
     turnstileSiteKey: config.turnstileSiteKey,
     posthog: config.posthog,
   };
@@ -52,6 +53,9 @@ export function pageRenderer({ config, viewsDir, publicDir }) {
         ...res.locals,
         ...locals,
         showAuditBand,
+        // Opt-in, per page. Analytics is for the public marketing pages only: the signed-in area, invitation
+        // links and the staff console have private data or secrets in their URLs, which must never reach PostHog.
+        analytics: Boolean(config.posthog) && locals.analytics === true,
         hasAuditForm: layout === 'public' && (view === 'home' || showAuditBand),
         meta: buildMeta({ config, path: req.path, meta: locals.meta }),
       };

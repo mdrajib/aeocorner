@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { pages, viewportWidths } from './pages.js';
+import { appPages, openAppPage, pages, viewportWidths } from './pages.js';
 
 // No horizontal overflow on any page at 375 / 768 / 1280 px (a 16px gutter and no sideways scroll).
 for (const width of viewportWidths) {
@@ -7,6 +7,24 @@ for (const width of viewportWidths) {
     test(`no horizontal overflow at ${width}px: ${entry.name}`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(entry.path);
+      await page.evaluate(() => document.fonts.ready);
+      const overflow = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+      }));
+      expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.innerWidth);
+    });
+  }
+}
+
+for (const width of viewportWidths) {
+  for (const entry of appPages) {
+    test(`no horizontal overflow at ${width}px: ${entry.name} (signed-in area)`, async ({
+      page,
+      request,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openAppPage(page, request, entry);
       await page.evaluate(() => document.fonts.ready);
       const overflow = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,

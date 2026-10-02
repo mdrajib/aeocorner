@@ -52,6 +52,17 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - **Public pages must be complete in the raw HTML**, and every public page is a registry entry in `src/web/pages.js`.
 - After `src/web/` or `tailwind/` changes run `npm run build:css`, then `npm run test:routes` and `npm run test:e2e` (Playwright; `npx playwright install chromium` once).
 
+## Auth and tenancy rules (details in `docs/DATABASE_SCHEMA.md` §6 and §10.1, `docs/adr/0004-clerk-hosted-sign-in.md`)
+
+- **Tenant data is reached only through `db.forOrg(orgId)`** (`src/db/index.js`). `orgId` comes from the `loadOrg` middleware, which proves the signed-in user is a member of the organization in the URL (`/app/o/:org`). No repository function takes an `org_id` from its arguments.
+- **Prisma and raw SQL live only in `src/db/`.** An ESLint rule enforces it, tests included. Test-only database helpers are in `src/db/testing.js` (it refuses any database not named `*_test`).
+- **A new repository function or organization route needs a cross-tenant leak test in the same change.** `tests/tenancy/` has a coverage test that lists them and fails if one is missing.
+- **Signed-in routes** run `auth.identify` then `auth.requireUser`; every state-changing form carries the hidden `_csrf` field; what a role may do comes from `src/core/permissions.js` (`auth.requirePermission(action)`), never from an ad-hoc role check. Anything that isn't a plain 404 for a non-member leaks that an organization exists.
+- **Clerk is behind `src/web/auth/provider.js`** (four methods). Sign-in is Clerk's hosted pages. Tests and the Playwright server use a fake provider, so no test needs Clerk keys.
+- **Analytics is opt-in per page** (`analytics: true` in `res.page`); only public marketing pages opt in, because PostHog records URLs.
+- Database tests (`test:routes`, `test:integration`, `test:tenancy`, `test:e2e`) run against `aeo_corner_test`. Each file creates uniquely named data through `fixtures(db)` and removes it afterwards; none truncates tables.
+- Staff are invite-only: `npm run staff:invite -- email "Name" role`.
+
 ## Schema rules
 
 - **Tenancy:**

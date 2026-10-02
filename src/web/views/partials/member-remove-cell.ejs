@@ -1,0 +1,7 @@
+<%# Remove (or leave) button for one member. Props: member, orgBase, csrfToken. %>
+<% if (member.canRemove) { %>
+<form method="post" action="<%= orgBase %>/members/<%= member.id %>/remove">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- ui.button({ label: member.isYou ? 'Leave' : 'Remove', type: 'submit', variant: 'ghost', size: 'sm', attrs: { 'aria-label': (member.isYou ? 'Leave the organization as ' : 'Remove ') + member.name } }) %>
+</form>
+<% } %>

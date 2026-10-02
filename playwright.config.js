@@ -16,7 +16,8 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     // Build the CSS first so a fresh checkout (where src/web/public/build is git-ignored) works.
-    command: 'npm run build:css && node src/web/server.js',
+    // tests/e2e/server.js is the real app with a fake Clerk and the test database (MySQL must be running).
+    command: 'npm run build:css && node tests/e2e/server.js',
     url: `http://127.0.0.1:${PORT}/healthz`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
@@ -29,6 +30,14 @@ export default defineConfig({
       // No third-party integrations in the sweep: the third-party-request test depends on this.
       TURNSTILE_SITE_KEY: '',
       POSTHOG_API_KEY: '',
+      // Dummy Clerk keys (valid format, never used to call Clerk) so the app behaves as a configured one.
+      // Set explicitly so real keys in a developer's .env can never reach the test server.
+      CLERK_PUBLISHABLE_KEY: 'pk_test_ZTJlLWNsZXJrLmFjY291bnRzLmRldiQ',
+      CLERK_SECRET_KEY: 'sk_test_e2e_not_real',
+      CLERK_WEBHOOK_SECRET: '',
+      CLERK_STAFF_PUBLISHABLE_KEY: '',
+      CLERK_STAFF_SECRET_KEY: '',
+      RESEND_API_KEY: '',
     },
   },
 });

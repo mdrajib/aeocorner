@@ -1,6 +1,7 @@
 <%#
-  Authenticated app shell: sidebar + top bar + content. Empty until Phase 2 fills it.
-  Locals: nav ([{ href, label, icon, current }]), pageTitle, user ({ name }), project ({ name }), flash ([{ tone, text }]).
+  Authenticated app shell: sidebar + top bar + content.
+  Locals: nav ([{ href, label, icon, current }]), user ({ name }), org ({ publicId, name }), orgs ([{ publicId, name }]),
+  csrfToken, project ({ name }), flash ([{ tone, text }]).
 %><!doctype html>
 <html lang="en">
 <head>
@@ -18,9 +19,30 @@
       </nav>
     </aside>
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="border-ink-200 flex h-16 items-center justify-between gap-4 border-b bg-white px-4 sm:px-6">
-        <p class="text-ink-700 text-sm font-semibold"><%= typeof project !== 'undefined' && project ? project.name : 'No project yet' %></p>
-        <p class="text-ink-700 text-sm"><%= typeof user !== 'undefined' && user ? user.name : 'Signed out' %></p>
+      <header class="border-ink-200 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b bg-white px-4 py-2 sm:px-6">
+        <%# Organization switcher: a native <details> disclosure, so it works without JavaScript. %>
+        <% if (typeof org !== 'undefined' && org) { %>
+        <details class="relative">
+          <summary class="btn btn-secondary btn-sm list-none" aria-label="Organization: <%= org.name %>. Switch organization"><%- ui.icon({ name: 'globe', size: 16 }) %><span class="max-w-48 truncate"><%= org.name %></span></summary>
+          <nav aria-label="Your organizations" class="border-ink-200 shadow-pop absolute left-0 z-20 mt-2 flex w-72 flex-col gap-1 rounded-xl border bg-white p-2">
+            <% for (const o of (typeof orgs !== 'undefined' ? orgs : [])) { %>
+            <a class="nav-link truncate" href="/app/o/<%= o.publicId %>"<% if (o.publicId === org.publicId) { %> aria-current="page"<% } %>><%= o.name %></a>
+            <% } %>
+            <a class="nav-link" href="/app/new-org">+ Create another organization</a>
+          </nav>
+        </details>
+        <% } else { %><p class="text-ink-700 text-sm font-semibold"><%= typeof project !== 'undefined' && project ? project.name : 'AEO Corner' %></p><% } %>
+        <% if (typeof user !== 'undefined' && user) { %>
+        <div class="flex items-center gap-3">
+          <p class="text-ink-700 max-w-56 truncate text-sm"><%= user.name %></p>
+          <% if (typeof csrfToken !== 'undefined') { %>
+          <form method="post" action="/sign-out">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <%- ui.button({ label: 'Sign out', type: 'submit', variant: 'ghost', size: 'sm' }) %>
+          </form>
+          <% } %>
+        </div>
+        <% } %>
       </header>
       <main id="main" tabindex="-1" class="flex-1 p-4 sm:p-6 lg:p-8">
         <% for (const f of (typeof flash !== 'undefined' ? flash : [])) { %><div class="mb-4"><%- ui.banner({ tone: f.tone, text: f.text, dismissible: true }) %></div><% } %>

@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["src/web/server.js"],
       "port": 3000
+    },
+    {
+      "name": "signed-in-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tests/e2e/server.js"],
+      "port": 3000
     }
   ]
 }

@@ -1,0 +1,53 @@
+<%#
+  The page behind an invitation email. Props: state (invalid | expired | accepted | canceled | rejected |
+  sign-in | accept | wrong-account), orgName, roleLabel, roleDescription, maskedEmail, next, signedInAs.
+%>
+<section class="py-16">
+  <div class="container-narrow">
+    <p class="eyebrow">Invitation</p>
+    <% if (state === 'invalid') { %>
+    <h1 class="mt-3 text-3xl sm:text-4xl">We can’t find that invitation</h1>
+    <p class="text-ink-700 mt-3 text-lg">The link may be mistyped or incomplete. Ask the person who invited you to send it again.</p>
+    <div class="mt-6"><%- ui.button({ label: 'Go to the home page', href: '/' }) %></div>
+
+    <% } else if (state === 'expired') { %>
+    <h1 class="mt-3 text-3xl sm:text-4xl">This invitation has expired</h1>
+    <p class="text-ink-700 mt-3 text-lg">Invitations to <strong><%= orgName %></strong> work for 7 days. Ask an owner or admin to send you a new one.</p>
+
+    <% } else if (state === 'accepted') { %>
+    <h1 class="mt-3 text-3xl sm:text-4xl">This invitation was already used</h1>
+    <p class="text-ink-700 mt-3 text-lg">If that was you, you can open <strong><%= orgName %></strong> from your account.</p>
+    <div class="mt-6"><%- ui.button({ label: 'Open AEO Corner', href: '/app' }) %></div>
+
+    <% } else if (state === 'canceled' || state === 'rejected') { %>
+    <h1 class="mt-3 text-3xl sm:text-4xl">This invitation is no longer valid</h1>
+    <p class="text-ink-700 mt-3 text-lg">It was replaced or withdrawn. If you were sent a newer email, use the link in that one. Otherwise ask an owner or admin of <strong><%= orgName %></strong> for a new invitation.</p>
+
+    <% } else { %>
+    <h1 class="mt-3 text-3xl sm:text-4xl">Join <%= orgName %></h1>
+    <p class="text-ink-700 mt-3 text-lg">You’ve been invited to <strong><%= orgName %></strong> as <strong><%= roleLabel %></strong>. <%= roleDescription %></p>
+    <p class="text-ink-600 mt-2 text-sm">This invitation was sent to <%= maskedEmail %>.</p>
+
+    <% if (state === 'sign-in') { %>
+    <p class="text-ink-700 mt-6">Sign in or create an account with that email address to accept.</p>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <%- ui.button({ label: 'Sign in', href: '/sign-in?next=' + encodeURIComponent(next) }) %>
+      <%- ui.button({ label: 'Create an account', href: '/sign-up?next=' + encodeURIComponent(next), variant: 'secondary' }) %>
+    </div>
+
+    <% } else if (state === 'accept') { %>
+    <form method="post" action="<%= next %>/accept" class="mt-6">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- ui.button({ label: 'Accept invitation', type: 'submit', size: 'lg' }) %>
+    </form>
+
+    <% } else { %>
+    <div class="mt-6"><%- ui.banner({ tone: 'warning', title: 'This isn’t the right account', text: 'You’re signed in as ' + signedInAs + ', but the invitation was sent to a different address. Sign out, then sign in or sign up with the address it was sent to.' }) %></div>
+    <form method="post" action="/sign-out" class="mt-4">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- ui.button({ label: 'Sign out', type: 'submit', variant: 'secondary' }) %>
+    </form>
+    <% } %>
+    <% } %>
+  </div>
+</section>

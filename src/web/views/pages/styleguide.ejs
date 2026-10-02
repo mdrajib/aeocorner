@@ -116,6 +116,18 @@ const modalFooter = ui.button({ label: 'Cancel', variant: 'secondary', attrs: { 
         ],
       }) %>
       <%- ui.table({ caption: 'Empty table', columns: [{ key: 'a', label: 'Question' }, { key: 'b', label: 'Engine' }], rows: [], emptyText: 'No questions yet. Add your first buyer question to start tracking.' }) %>
+      <div>
+        <p class="text-ink-700 mb-2 text-sm">Inside a card, with the caption kept for screen readers (<code>flush</code>, <code>captionHidden</code>) and rows that stack on phones (<code>stack</code>, resize to see it):</p>
+        <%- ui.card({ title: 'Members', headingLevel: 3, padded: false, html: ui.table({
+          caption: 'Members of Acme Dental (example data)',
+          captionHidden: true, flush: true, stack: true,
+          columns: [{ key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'role', label: 'Role' }],
+          rows: [
+            { name: 'Maya Chen', email: 'maya@example.com', role: 'Owner' },
+            { name: 'Sam Lee', email: 'sam@example.com', role: 'Editor' },
+          ],
+        }) }) %>
+      </div>
     </div>
   </section>
 

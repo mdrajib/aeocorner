@@ -2,8 +2,18 @@ import { Router } from 'express';
 import { AI_CRAWLERS } from '../../core/ai-crawlers.js';
 import { publicPages } from '../pages.js';
 
-// Paths no crawler should index. The styleguide only exists outside production; /audit is a form endpoint.
-const DISALLOWED = ['/_styleguide', '/audit'];
+// Paths no crawler should index. The styleguide only exists outside production; /audit is a form endpoint;
+// the rest is the signed-in area and the sign-in and invitation flows.
+const DISALLOWED = [
+  '/_styleguide',
+  '/audit',
+  '/app',
+  '/invite',
+  '/sign-in',
+  '/sign-up',
+  '/sign-out',
+  '/webhooks',
+];
 
 export function robotsTxt(config) {
   if (!config.indexable) {

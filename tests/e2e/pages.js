@@ -13,4 +13,27 @@ export const pages = [
 
 export const publicSitePages = pages.filter((p) => p.audience === 'public');
 
+// Signed-in screens and the invitation page. They need data, so each path is a function of the ids the e2e
+// server seeded (tests/e2e/server.js, served at /__e2e/fixtures). `as` is who to sign in as first (null = anonymous).
+/** @type {{ name: string, as: string | null, status?: number, path: (f: any) => string }[]} */
+export const appPages = [
+  { name: 'new-org', as: 'newcomer', path: () => '/app/new-org' },
+  { name: 'org-home', as: 'owner', path: (f) => `/app/o/${f.orgId}` },
+  { name: 'team', as: 'owner', path: (f) => `/app/o/${f.orgId}/settings` },
+  { name: 'team-no-access', as: 'viewer', status: 403, path: (f) => `/app/o/${f.orgId}/settings` },
+  { name: 'invite-signed-out', as: null, path: (f) => `/invite/${f.tokens.signedOut}` },
+  { name: 'invite-accept', as: 'invitee', path: (f) => `/invite/${f.tokens.accept}` },
+  { name: 'invite-wrong-account', as: 'owner', path: (f) => `/invite/${f.tokens.accept}` },
+  { name: 'invite-expired', as: null, path: (f) => `/invite/${f.tokens.expired}` },
+  { name: 'invite-unknown', as: null, status: 404, path: (f) => `/invite/${f.unknownToken}` },
+];
+
+/** Open a signed-in page: sign in as the right person, then land on the page. Returns the final response. */
+export async function openAppPage(page, request, entry) {
+  const fixtures = await (await request.get('/__e2e/fixtures')).json();
+  const path = entry.path(fixtures);
+  const target = entry.as ? `/__e2e/login?as=${entry.as}&next=${encodeURIComponent(path)}` : path;
+  return page.goto(target);
+}
+
 export const viewportWidths = [375, 768, 1280];

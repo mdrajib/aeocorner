@@ -382,12 +382,12 @@ All ten were run through `EXPLAIN` on the test database. Each one resolves throu
 
 MySQL has no row-level security, so isolation has four layers:
 
-1. **Repository layer (runtime).** Every query goes through a tenant-scoped repository that injects `org_id` (MVP §11.1). Raw SQL outside `src/db/` is blocked by a lint rule.
+1. **Repository layer (runtime).** Every query goes through a tenant-scoped repository that injects `org_id` (MVP §11.1): `createDb().forOrg(orgId)` binds the organization once, and no function takes an `org_id` from its arguments. Prisma and raw SQL outside `src/db/` are blocked by an ESLint rule (`eslint.config.js`), and `src/db/boundary.test.js` proves the rule fires.
 2. **Composite foreign keys (database).** Project rows reference `projects (id, org_id)`, so a row with project 10 and the wrong org is rejected (tested: `ERROR 1452`).
 3. **Schema guard rails (CI, [db/checks.sql](db/checks.sql)).**
    - Every table without `org_id` must be on a reviewed global list.
    - `org_id` may be NULL only on a reviewed "mixed" list: `audits`, `site_scans`, `scan_pages`, `scan_checks`, `notifications`, `usage_ledger`, `admin_audit_log`. Those rows either belong to an anonymous audit or lead, or are internal.
-4. **Cross-tenant leak tests (CI).** Seed two orgs with near-identical data, call every repository method and every route as org A, and assert that no org B ID appears.
+4. **Cross-tenant leak tests (CI).** Seed two orgs with near-identical data, call every repository method and every route as org A, and assert that no org B ID appears. **Live since Phase 2** in `tests/tenancy/` (repositories and routes). Both suites fail if a function or route is added without a leak test, so they grow with every phase.
 
 **Global tables (no `org_id`):** `plans`, `providers`, `engines`, `web_domains`, `web_urls`, `staff_users`, `staff_roles`, `users`, `organizations` (the tenant root), `leads`, `audit_answers` (reached through its audit), `abuse_blocks`, `email_suppressions`, `announcements`, `provider_health`, `webhook_events`, and Prisma's `_prisma_migrations`.
 
@@ -492,21 +492,24 @@ Clerk handles sign-in (email + password or Google, as in [CUSTOMER_JOURNEY](CUST
 1. `clerkMiddleware()` from `@clerk/express` checks the Clerk session, and `getAuth(req).userId` gives the Clerk user ID. (`requireAuth()` is deprecated.)
 2. The app finds the `users` row by `clerk_user_id` (unique index; cacheable in Redis for a few minutes).
 3. If the row doesn't exist yet, it fetches the user from Clerk's Backend API and inserts it. The `user.created` webhook can arrive after the first page view, and it does the same insert, so either path can win. A unique-key error (Prisma `P2002`) means "already created": read the row.
-4. The org comes from the URL. `memberships` and `membership_projects` decide access, as before. `users.last_org_id` chooses the org to open after sign-in.
+4. The org comes from the URL (`/app/o/:org`, its `public_id`). `organizations.findForUser()` returns it only if the user has a membership; a non-member gets the same 404 as an ID that doesn't exist. `memberships` and `membership_projects` decide access, as before. `users.last_org_id` chooses the org to open after sign-in.
+5. State-changing requests carry a CSRF token: an HMAC of the Clerk session ID under `APP_SECRET`. Nothing is stored server-side.
 
-Sign-in screens are Clerk's hosted pages or its JavaScript components mounted in an EJS page. Neither needs React.
+**Sign-in screens are Clerk's hosted pages** (decided 2026-10-02, [ADR-0004](adr/0004-clerk-hosted-sign-in.md)): Clerk's embedded components need `style-src 'unsafe-inline'`, which would undo the strict CSP. The app sends visitors to Clerk with a return address, and `clerkMiddleware()` runs only under `/app`, `/invite`, `/sign-out` and on the staff host.
 
 **Webhooks** (`user.created`, `user.updated`, `user.deleted`):
 - Verify the Svix signature, then insert into `webhook_events` with `external_id` = the `svix-id` header. Clerk can deliver an event twice or out of order. The unique key drops repeats.
 - Apply an update only if its `updated_at` is newer than `users.clerk_updated_at`.
 - `users.email` is indexed but not unique. Clerk enforces uniqueness, and out-of-order events could briefly give two rows the same address.
-- `user.deleted`: clear the email and name, set `deleted_at` and remove memberships. The row stays so history keeps its IDs.
+- `user.deleted`: clear the email and name, set `deleted_at` and remove memberships. The row stays so history keeps its IDs. A late `user.updated` never revives a deleted user. If the person was the only owner of an organization, the organization is left without an owner: the handler logs a warning, and nothing else happens automatically yet (the account-deletion and ownership-transfer flow belongs with billing, Phase 13).
+- Only the customer Clerk app sends webhooks (`webhook_events.source = 'clerk'`). The stored payload contains email addresses and is meant to be kept 30 days; **the purge job that deletes older payloads does not exist yet** (Phase 3, with the other background jobs).
 
 **Invitations are ours.** An owner invites by email, and we send the email with a random token (its hash is `invitations.token_hash`). The invitee signs in or signs up with Clerk. Acceptance needs the token **and** a verified Clerk email that matches the invitation. It then creates the membership and any project restrictions.
 
 **Staff sign in through a separate Clerk application**, so staff and customer accounts never share a user pool or a session:
 - Sign-up is invite-only. A super_admin creates the `staff_users` row, and `clerk_user_id` is bound on first sign-in by matching the verified email.
-- The admin middleware rejects any staff session whose Clerk user has no second factor. The staff app's session settings enforce the 30-minute idle timeout. Cloudflare Access stays in front of `admin.aeocorner.com`.
+- The admin middleware rejects any staff session whose Clerk user has no second factor (the `fva` claim in the session token; see [ADR-0004](adr/0004-clerk-hosted-sign-in.md)). The staff app's session settings enforce the 30-minute idle timeout: **set it in the staff Clerk dashboard, it isn't code.** Cloudflare Access stays in front of `admin.aeocorner.com`, and the app verifies Cloudflare's signed token itself (`src/web/staff/cloudflare-access.js`), so going around Cloudflare to the server's own address gets nothing. The staff app runs on its own host (`STAFF_HOST`) and never serves customer pages, or the other way round.
+- The first staff member is created from the command line: `npm run staff:invite -- you@aeocorner.com "Your Name" super_admin`. They then sign in with that email, verified, and a second factor.
 - Support impersonation stays ours (`impersonation_sessions`: org-scoped, read-only by default, reason required). Clerk's own impersonation signs in as a specific user and is capped at 5 a month without a $100/month add-on.
 
 **Cost** (Clerk's pricing page, checked 2026-09-28):

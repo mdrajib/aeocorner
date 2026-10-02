@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Document** | Phase-by-phase execution checklist for building the app |
-| **Date** | 2026-10-02 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered; Phase 1 engineering finished 2026-10-02) |
-| **Status** | In progress — Phases 0 and 1: engineering is done and tested locally; founder/infra items (accounts, brand and wireframe sign-off, legal text) and the first GitHub CI run are still open. Phase 2 is next, when the founder asks for it |
+| **Date** | 2026-10-02 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered; Phase 1 engineering finished 2026-10-02; Phase 2 engineering finished 2026-10-02) |
+| **Status** | In progress — Phases 0, 1 and 2: engineering is done and tested locally; open items are founder/infra work (accounts, brand and wireframe sign-off, legal text, Clerk and Cloudflare setup), the first run against real Clerk, and the first GitHub CI run with the Phase 2 changes. Phase 3 is next, when the founder asks for it |
 | **Companion docs** | [MVP.md](MVP.md) §13 (narrative timeline, team, Definition of Done) · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md) · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. Purpose and how to use this plan
@@ -109,7 +109,7 @@
 - [ ] **Founder sign-off on wireframes, one group at a time, before the phase that builds them starts:** public site + audit flow → before Phase 7; onboarding + Brand Kit + prompts → before Phase 8; dashboard + citations → before Phase 10; Action Center + Content Studio → before Phase 11; billing + settings → before Phase 13. *All five groups are drafted in [UI_DESIGN.md §5](UI_DESIGN.md#5-wireframes); none is signed off yet.*
 
 **Build:**
-- [x] Express app skeleton `src/web/server.js` / `app.js`: EJS, static files, error handler, structured request logging with request ids, and security headers including a strict CSP. Alpine's CSP-safe build was evaluated and adopted, so the CSP needs no `unsafe-inline` or `unsafe-eval` ([ADR-0003](adr/0003-strict-csp.md)). A cross-site guard protects the public form (session-based CSRF tokens arrive with auth in Phase 2).
+- [x] Express app skeleton `src/web/server.js` / `app.js`: EJS, static files, error handler, structured request logging with request ids, and security headers including a strict CSP. Alpine's CSP-safe build was evaluated and adopted, so the CSP needs no `unsafe-inline` or `unsafe-eval` ([ADR-0003](adr/0003-strict-csp.md)). A cross-site guard protects the public form (session-based CSRF tokens arrived with auth in Phase 2).
 - [x] Tailwind CLI pipeline (`npm run build:css`) with design tokens (colour, type scale, radius, shadow) in `tailwind/tokens.css`; the built CSS stays git-ignored under `src/web/public/build/`.
 - [x] htmx and Alpine.js (CSP build) and the Inter font vendored and self-hosted from `src/web/public/` (`npm run vendor`) — no third-party CDN at runtime.
 - [x] Layouts and partials: a `public` layout (header, footer, audit call-to-action) and an `app` layout (sidebar/top-bar shell, empty until Phase 2 fills it); a head partial with title, description, canonical URL, Open Graph tags and JSON-LD; flash messages (dismissible banners) and a toast region.
@@ -142,26 +142,35 @@
 
 ## Phase 2 — Auth, orgs & tenancy foundation
 
+**Status (2026-10-02):** 🟡 **Engineering complete; waiting on a first run against real Clerk.** Everything buildable is built and tested locally, but no Clerk keys existed, so the Clerk-facing parts were tested against a fake with the same four methods as the real provider, and webhooks against real Svix signatures. The founder's Clerk and Cloudflare setup (below) is the remaining work. See [ADR-0004](adr/0004-clerk-hosted-sign-in.md) for the decision and its first-run checklist.
+
 **Goal:** a signed-in user can create an org and see an empty authenticated shell; every tenant-scoped query is provably isolated.
 
 **Work:**
-- [ ] `@clerk/express` wired into `src/web`: `clerkMiddleware()`, sign-in/sign-up pages (Clerk hosted or embedded components, themed with Phase 1's tokens), and the empty authenticated shell on Phase 1's `app` layout.
-- [ ] `users` upsert-on-first-request path (lazy create, catch `P2002` per [DATABASE_SCHEMA §10.1](DATABASE_SCHEMA.md#101-auth-clerk-identity-only)).
-- [ ] Clerk webhook endpoint (`user.created`/`updated`/`deleted`), Svix signature verification, `webhook_events` dedupe.
-- [ ] `organizations`, `memberships`, `membership_projects`, `invitations` CRUD + the four roles (owner/admin/editor/viewer).
-- [ ] Invitation email flow (token + verified-Clerk-email match).
-- [ ] Tenant-scoped repository layer in `src/db/` — the only place `prisma.*`/`$queryRaw` may appear ([DATABASE_SCHEMA §10.2](DATABASE_SCHEMA.md#102-orm-prisma-7-with-sql-first-migrations) rule 7).
-- [ ] Staff app skeleton: separate Clerk app, invite-only, `staff_users`/`staff_roles`, Cloudflare Access in front, 2FA-required middleware check.
+- [x] `@clerk/express` wired into `src/web`: `clerkMiddleware()` (run only under `/app`, `/invite` and `/sign-out`, never on public pages), sign-in/sign-up through **Clerk's hosted pages** (embedded components would need `style-src 'unsafe-inline'`, undoing [ADR-0003](adr/0003-strict-csp.md); see [ADR-0004](adr/0004-clerk-hosted-sign-in.md)), and the authenticated shell on Phase 1's `app` layout with an organization switcher and sign-out.
+- [x] `users` upsert-on-first-request path (lazy create, catch `P2002` per [DATABASE_SCHEMA §10.1](DATABASE_SCHEMA.md#101-auth-clerk-identity-only)); the webhook and the first request can race and both win safely (tested).
+- [x] Clerk webhook endpoint `POST /webhooks/clerk` (`user.created`/`updated`/`deleted`): Svix signature verified on the raw body, `webhook_events` dedupe by `svix-id`, stale events dropped by `updated_at`, failures answer 500 so Clerk retries.
+- [x] `organizations`, `memberships`, `membership_projects`, `invitations` + the four roles (owner/admin/editor/viewer). The Team page (`/app/o/:org/settings`) lists members, changes roles, removes members, and sends, resends and cancels invitations. An organization always keeps at least one owner, even when two owners demote each other at the same moment. *`membership_projects` (limited client seats) is implemented and tested in the repository, with no screen until projects exist in Phase 8.*
+- [x] Invitation email flow: random token (only its SHA-256 is stored), emailed link, acceptance needs the token **and** a Clerk-verified email matching the invitation. Sending goes through Resend (`src/lib/mailer.js`); with no `RESEND_API_KEY` emails are written to the server log instead, and the server refuses to start in production without a key.
+- [x] Tenant-scoped repository layer in `src/db/` — the only place `prisma.*`/`$queryRaw` may appear ([DATABASE_SCHEMA §10.2](DATABASE_SCHEMA.md#102-orm-prisma-7-with-sql-first-migrations) rule 7). Enforced by an ESLint rule that applies to tests too, and `src/db/boundary.test.js` proves the rule fires.
+- [x] Staff app skeleton on its own host: separate Clerk app, invite-only (`npm run staff:invite`), `staff_users`/`staff_roles`, Cloudflare Access token verified by the app itself, mandatory second factor (Clerk's `fva` claim), role checks. Only the doorway exists (a "Staff console" page showing who you are and your roles); the admin modules come with the phases that need them.
+- [x] *Added in this phase:* CSRF tokens on every signed-in form (an HMAC of the Clerk session ID, nothing stored); organization in the URL (`/app/o/:org`); analytics (PostHog) made opt-in per page so it never sees signed-in, invitation or staff URLs; a `stack` option for tables on phones; `tests/e2e/server.js` (the real app with a fake Clerk and the test database) so the signed-in screens get the same accessibility and overflow sweeps as the public ones.
+- [ ] *Carried forward:* the first htmx request that changes data on a signed-in page must send the CSRF token. The server already accepts it in an `X-CSRF-Token` header; the client side (a `<meta>` tag and an `htmx:configRequest` listener in `components.js`), and reloading the page on a `401`, are added together with that first request (Phase 8 onward), because there is no htmx call on a signed-in page yet to test them against.
+- [ ] **Run it once against real Clerk** (a development instance, customer and staff), following the checklist in [ADR-0004](adr/0004-clerk-hosted-sign-in.md): the handshake from `localhost`, `redirect_url` on the hosted page, the staff token carrying `fva`, sign-out. Needs the founder's keys.
+- [ ] **Founder setup** (not engineering): in the customer Clerk app, a webhook endpoint `<APP_BASE_URL>/webhooks/clerk` with the three user events, its signing secret in `CLERK_WEBHOOK_SECRET`; in the staff Clerk app, invite-only sign-up, multi-factor required, 30-minute inactivity timeout; a Cloudflare Access application on the staff host (team name and AUD tag into `.env`); the first staff member from `npm run staff:invite`.
 
 **Tests required before moving on:**
-- [ ] Unit: role-permission matrix (who can do what) for owner/admin/editor/viewer.
-- [ ] Integration: sign-in → org creation → membership row exists, against real MySQL.
-- [ ] Integration: webhook replay (same `svix-id` twice) is a no-op; out-of-order `updated_at` is dropped.
-- [ ] **Cross-tenant leak suite goes live here** — every repository function gets a test proving org A cannot touch org B's rows. This suite grows with every later phase that adds a repository function.
-- [ ] Route tests: unauthenticated requests to any authenticated route redirect/`401`.
-- [ ] Staff: a Clerk session without a second factor is rejected by the admin middleware.
+- [x] Unit: role-permission matrix (who can do what) for owner/admin/editor/viewer (`src/core/permissions.test.js`, every cell written out by hand; plus the team rules: admins can't touch owners or make owners).
+- [x] Integration: sign-in → org creation → membership row exists, against real MySQL (`tests/integration/identity.test.js`; the same flow through the web routes in `tests/routes/app.test.js`).
+- [x] Integration: webhook replay (same `svix-id` twice) is a no-op; out-of-order `updated_at` is dropped; a deleted user can't be revived; a failed delivery is retried and succeeds (`tests/routes/webhooks.test.js`, with real Svix signatures, and `tests/integration/webhooks-staff.test.js`).
+- [x] **Cross-tenant leak suite goes live here** (`tests/tenancy/`) — every repository function and every organization route is called as org A against org B's data and must find nothing and change nothing. Both suites **fail if a function or route is added without a test**, so they grow with every later phase. Checked by mutation: removing an `org_id` filter makes them fail.
+- [x] Route tests: unauthenticated requests to any authenticated route redirect (pages) or answer `401` (everything else), and create nothing.
+- [x] Staff: a Clerk session without a second factor is rejected by the admin middleware; so are a missing, expired, wrong-audience or wrongly signed Cloudflare token, an uninvited account, a suspended member and a second Clerk account claiming a bound email (`tests/routes/staff.test.js`).
+- [x] Also: CSRF (missing, wrong, other-session and cross-site tokens), open-redirect attempts on the sign-in return address, invitation edge cases (wrong or unverified email, expired, withdrawn, double accept, two tabs at once), analytics absent from private pages, and the accessibility, overflow and flow checks for every new screen in Chromium.
 
-**Exit criteria:** sign-up, org creation, invitations and role checks work end to end against real MySQL; the cross-tenant suite exists and passes; no direct Prisma/raw-SQL calls exist outside `src/db/` (enforce with an ESLint rule or a CI grep check).
+**Local results (2026-10-02):** lint and Prettier clean; `npm test` 136 passing; `npm run test:routes` 156 (74 from Phase 1); `npm run test:integration` 42; `npm run test:tenancy` 27; `npm run test:e2e` 88 (44 from Phase 1); `npm audit` 0 vulnerabilities. Two concurrency tests were confirmed to fail when their protection (a row lock) is removed.
+
+**Exit criteria:** sign-up, org creation, invitations and role checks work end to end against real MySQL — **met, with Clerk faked**; the cross-tenant suite exists and passes — **met**; no direct Prisma/raw-SQL calls exist outside `src/db/` — **met** (lint rule). **Not yet met:** the first run against real Clerk, and the founder's Clerk and Cloudflare setup.
 
 ## Phase 3 — Job infrastructure & usage ledger
 

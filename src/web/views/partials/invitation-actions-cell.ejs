@@ -1,0 +1,11 @@
+<%# Send again / Cancel for one waiting invitation. Props: invitation, orgBase, csrfToken. %>
+<div class="flex flex-wrap items-center gap-2">
+  <form method="post" action="<%= orgBase %>/invitations/<%= invitation.id %>/resend">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.button({ label: 'Send again', type: 'submit', variant: 'secondary', size: 'sm', attrs: { 'aria-label': 'Send the invitation to ' + invitation.email + ' again' } }) %>
+  </form>
+  <form method="post" action="<%= orgBase %>/invitations/<%= invitation.id %>/cancel">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.button({ label: 'Cancel', type: 'submit', variant: 'ghost', size: 'sm', attrs: { 'aria-label': 'Cancel the invitation to ' + invitation.email } }) %>
+  </form>
+</div>

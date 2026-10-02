@@ -1,0 +1,9 @@
+<%# The staff console doorway. Props: staff ({ name, email, roles }). The admin modules arrive with the phases that need them. %>
+<h1 class="text-3xl">Staff console</h1>
+<p class="text-ink-700 mt-2">Signed in as <strong><%= staff.name %></strong> (<%= staff.email %>).</p>
+<div class="mt-4 flex flex-wrap gap-2" aria-label="Your staff roles" role="list">
+  <% for (const role of staff.roles) { %><span role="listitem"><%- ui.badge({ text: role.replace('_', ' '), tone: 'brand' }) %></span><% } %>
+</div>
+<div class="mt-6">
+  <%- ui.state({ kind: 'empty', title: 'No admin modules yet', text: 'Customer lookup, run monitoring and provider health are added in later phases. Your sign-in, two-factor check and roles are working.' }) %>
+</div>

@@ -2,5 +2,5 @@
 <script src="<%= asset('/js/components.js') %>" defer></script>
 <script src="<%= asset('/vendor/htmx.min.js') %>" defer></script>
 <script src="<%= asset('/vendor/alpine-csp.min.js') %>" defer></script>
-<% if (site.posthog) { %><script src="<%= asset('/js/analytics.js') %>" defer></script><% } %>
+<% if (analytics) { %><script src="<%= asset('/js/analytics.js') %>" defer></script><% } %>
 <% if (site.turnstileSiteKey && hasAuditForm) { %><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><% } %>

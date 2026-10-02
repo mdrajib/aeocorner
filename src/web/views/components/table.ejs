@@ -1,23 +1,30 @@
 <%
-// Props: caption (required, shown above and read by screen readers), columns ([{ key, label, numeric }]),
-//        rows ([{ [key]: text | { html } }]), emptyText
+// Props: caption (required, read by screen readers), columns ([{ key, label, numeric }]),
+//        rows ([{ [key]: text | { html } }]), emptyText,
+//        captionHidden (keep the caption for screen readers only — use when a heading already says it),
+//        flush (no border or corners — for a table that fills a card),
+//        stack (below 640px each row becomes a small card of "Label  value" lines instead of scrolling sideways;
+//               use it when the columns hold things people act on, such as role selectors and buttons)
 const columns = locals.columns ?? [];
 const rows = locals.rows ?? [];
+const wrapClass = ['table-wrap', locals.flush ? 'table-flush' : '', locals.stack ? 'table-stack' : ''].filter(Boolean).join(' ');
+// Stacked rows are laid out as blocks, which makes some browsers drop the table semantics; say them explicitly.
+const r = (name) => (locals.stack ? ' role="' + name + '"' : '');
 -%>
-<div class="table-wrap" tabindex="0" role="region" aria-label="<%= locals.caption %>">
-  <table class="table">
-    <caption><%= locals.caption %></caption>
-    <thead>
-      <tr><% for (const c of columns) { %><th scope="col"<% if (c.numeric) { %> class="num"<% } %>><%= c.label %></th><% } %></tr>
+<div class="<%= wrapClass %>" tabindex="0" role="region" aria-label="<%= locals.caption %>">
+  <table class="table"<%- r('table') %>>
+    <caption<% if (locals.captionHidden) { %> class="sr-only"<% } %>><%= locals.caption %></caption>
+    <thead<%- r('rowgroup') %>>
+      <tr<%- r('row') %>><% for (const c of columns) { %><th scope="col"<%- r('columnheader') %><% if (c.numeric) { %> class="num"<% } %>><%= c.label %></th><% } %></tr>
     </thead>
-    <tbody>
+    <tbody<%- r('rowgroup') %>>
       <% if (!rows.length) { %>
-      <tr><td colspan="<%= columns.length || 1 %>" class="text-ink-600 py-8 text-center"><%= locals.emptyText ?? 'Nothing to show yet.' %></td></tr>
+      <tr<%- r('row') %>><td<%- r('cell') %> colspan="<%= columns.length || 1 %>" class="text-ink-600 py-8 text-center"><%= locals.emptyText ?? 'Nothing to show yet.' %></td></tr>
       <% } %>
-      <% for (const r of rows) { %>
-      <tr>
-        <% columns.forEach((c, i) => { const cell = r[c.key]; const isHtml = cell && typeof cell === 'object' && 'html' in cell; %>
-        <% if (i === 0) { %><th scope="row" class="row-head"><% } else { %><td<% if (c.numeric) { %> class="num"<% } %>><% } %><% if (isHtml) { %><%- cell.html %><% } else { %><%= cell ?? '' %><% } %><% if (i === 0) { %></th><% } else { %></td><% } %>
+      <% for (const row of rows) { %>
+      <tr<%- r('row') %>>
+        <% columns.forEach((c, i) => { const cell = row[c.key]; const isHtml = cell && typeof cell === 'object' && 'html' in cell; %>
+        <% if (i === 0) { %><th scope="row"<%- r('rowheader') %> class="row-head"><% } else { %><td<%- r('cell') %> data-label="<%= c.label %>"<% if (c.numeric) { %> class="num"<% } %>><% } %><% if (isHtml) { %><%- cell.html %><% } else { %><%= cell ?? '' %><% } %><% if (i === 0) { %></th><% } else { %></td><% } %>
         <% }) %>
       </tr>
       <% } %>

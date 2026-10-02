@@ -166,6 +166,40 @@
     @apply text-right tabular-nums;
   }
 
+  /* A table that fills a card: the card already draws the border and the corners. */
+  .table-flush {
+    @apply rounded-t-none rounded-b-xl border-0;
+  }
+
+  /* Below 640px every row becomes a small card of "Label  value" lines, instead of scrolling sideways. */
+  @media (max-width: 639px) {
+    .table-stack .table {
+      @apply min-w-0;
+    }
+
+    .table-stack thead {
+      @apply sr-only;
+    }
+
+    .table-stack tr {
+      @apply border-ink-100 block border-b px-4 py-3;
+    }
+
+    .table-stack tbody tr:last-child {
+      @apply border-b-0;
+    }
+
+    .table-stack th.row-head,
+    .table-stack td {
+      @apply flex items-center justify-between gap-3 border-b-0 bg-transparent px-0 py-1.5 text-left;
+    }
+
+    .table-stack td::before {
+      content: attr(data-label);
+      @apply text-ink-600 shrink-0 text-xs font-semibold tracking-wide uppercase;
+    }
+  }
+
   /* ---------- Badges ---------- */
   .badge {
     @apply inline-flex items-center gap-1 rounded-full border border-transparent px-2.5 py-0.5 text-xs font-semibold;
@@ -459,7 +493,7 @@
 
   /* ---------- App shell (empty until Phase 2) ---------- */
   .app-sidebar {
-    @apply bg-ink-950 text-ink-200 flex w-64 shrink-0 flex-col gap-1 p-4;
+    @apply bg-ink-950 text-ink-200 flex w-full shrink-0 flex-col gap-1 p-4 lg:w-64;
   }
 
   .app-nav-link {

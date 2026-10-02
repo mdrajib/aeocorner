@@ -7,5 +7,6 @@ One-way-door technical decisions made while building AEO Corner, and the reasoni
 | [0001](0001-prisma-config-split.md) | Prisma 7 connection config lives in `prisma.config.ts`, not `schema.prisma` | Accepted | 2026-09-28 |
 | [0002](0002-override-mariadb-driver.md) | Override the `mariadb` npm package to a patched version | Accepted | 2026-09-28 |
 | [0003](0003-strict-csp.md) | Strict Content-Security-Policy: no inline scripts, handlers or styles | Accepted | 2026-10-02 |
+| [0004](0004-clerk-hosted-sign-in.md) | Sign-in through Clerk's hosted pages; sign-out and CSRF protection are ours | Accepted | 2026-10-02 |
 
 **Format:** Status, Context, Decision, Consequences. Numbered sequentially, never renumbered or deleted — a reversed decision gets a new ADR marking the old one `Superseded by ADR-000N`, per [CLAUDE.md](../../CLAUDE.md)'s consistency rule.

@@ -39,6 +39,7 @@ export function auditRoutes() {
       return res.page(
         'home',
         {
+          analytics: true,
           faq: homeFaq,
           audit: { values, errors },
           meta: { title: home.title, description: home.description, path: '/', noindex: true },
@@ -48,6 +49,7 @@ export function auditRoutes() {
     }
 
     res.page('audit-soon', {
+      analytics: true,
       domain: site.domain,
       meta: {
         title: 'The free audit opens soon | AEO Corner',

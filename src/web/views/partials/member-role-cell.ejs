@@ -1,0 +1,11 @@
+<%# One member's role: a select + Save when the viewer may change it, plain text otherwise. Props: member, orgBase, csrfToken. %>
+<% if (member.roleChoices.length > 1) { %>
+<form method="post" action="<%= orgBase %>/members/<%= member.id %>/role" class="flex items-center gap-2">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label class="sr-only" for="role-<%= member.id %>">Role for <%= member.name %></label>
+  <select class="select" id="role-<%= member.id %>" name="role">
+    <% for (const c of member.roleChoices) { %><option value="<%= c.value %>"<% if (c.value === member.role) { %> selected<% } %>><%= c.label %></option><% } %>
+  </select>
+  <%- ui.button({ label: 'Save', type: 'submit', variant: 'secondary', size: 'sm', attrs: { 'aria-label': 'Save role for ' + member.name } }) %>
+</form>
+<% } else { %><%= member.roleChoices[0].label %><% } %>

@@ -19,6 +19,12 @@ const TEMPLATES = {
     footerReason:
       'You are receiving this because someone asked for an AEO Corner report with this email address.',
   },
+  invitation: {
+    subject: (d) => `${d.inviterName} invited you to ${d.orgName} on AEO Corner`,
+    preheader: (d) => `Join as ${d.roleLabel}. The link works for ${d.expiresDays} days.`,
+    footerReason:
+      'You are receiving this because someone invited this email address to join an AEO Corner organization.',
+  },
 };
 
 const cache = new Map();

@@ -1,0 +1,14 @@
+<%# Shown when someone reaches a sign-in or signed-in page on a server with no Clerk keys. %>
+<section class="py-20">
+  <div class="container-narrow text-center">
+    <p class="eyebrow">Sign-in</p>
+    <h1 class="mt-3 text-4xl sm:text-5xl">Sign-in isn’t available right now</h1>
+    <p class="text-ink-700 mx-auto mt-4 max-w-xl text-lg">We can’t sign anyone in on this server at the moment. The public pages still work, and you can run the free audit from the home page.</p>
+    <% if (site.appEnv === 'development') { %>
+    <div class="mx-auto mt-8 max-w-xl text-left"><%- ui.banner({ tone: 'info', title: 'Developer note', text: 'This server has no Clerk keys. Set CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY in .env (see .env.example), then restart the server.' }) %></div>
+    <% } %>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <%- ui.button({ label: 'Back to the home page', href: '/' }) %>
+    </div>
+  </div>
+</section>

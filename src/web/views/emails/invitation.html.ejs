@@ -1,0 +1,7 @@
+<h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.25;color:<%= t['ink-950'] %>;">You’re invited to join <%= orgName %></h1>
+<p style="margin:0 0 20px 0;"><%= inviterName %> invited you to join <strong><%= orgName %></strong> on AEO Corner as <strong><%= roleLabel %></strong>. <%= roleDescription %></p>
+<p style="margin:0 0 24px 0;"><a href="<%= acceptUrl %>" style="display:inline-block;padding:12px 24px;background-color:<%= t['brand-600'] %>;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">Accept the invitation</a></p>
+<p style="margin:0 0 8px 0;color:<%= t['ink-700'] %>;">This invitation was sent to <%= email %>. Sign in or create an account with that address to accept it.</p>
+<p style="margin:0 0 8px 0;color:<%= t['ink-700'] %>;">The link works for <%= expiresDays %> days. If the button doesn’t work, copy this address into your browser:</p>
+<p style="margin:0 0 8px 0;word-break:break-all;color:<%= t['ink-700'] %>;"><a href="<%= acceptUrl %>" style="color:<%= t['brand-700'] %>;"><%= acceptUrl %></a></p>
+<p style="margin:0;color:<%= t['ink-700'] %>;">If you weren’t expecting this, you can ignore the email — nothing happens unless the link is opened.</p>

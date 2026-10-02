@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
+      TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
       SHADOW_DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_shadow
 
     steps:
@@ -95,6 +96,10 @@ jobs:
           filters: |
             ui:
               - 'src/web/**'
+              - 'src/db/**'
+              - 'src/core/**'
+              - 'src/lib/**'
+              - 'prisma/**'
               - 'tailwind/**'
               - 'tests/e2e/**'
               - 'playwright.config.js'
@@ -102,11 +107,14 @@ jobs:
 
   # Accessibility (axe-core, WCAG 2.1 AA), responsive (375/768/1280 px), third-party-request and
   # styleguide checks in a real browser. Required to merge, but only runs when the UI changed
-  # (BUILD_PLAN §2). Needs no database: the pages it visits don't use one yet.
+  # (BUILD_PLAN §2). The signed-in pages need the database, so it starts MySQL like the test job does.
   accessibility:
     needs: changes
     if: needs.changes.outputs.ui == 'true'
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
+      TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/aeo_corner_test
     steps:
       - uses: actions/checkout@v4
 
@@ -118,11 +126,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Start MySQL and apply DigitalOcean's primary-key rule
+        run: |
+          sudo systemctl start mysql.service
+          until mysqladmin ping -h127.0.0.1 -uroot -proot --silent; do sleep 1; done
+          mysql -h127.0.0.1 -uroot -proot -e "SET GLOBAL sql_require_primary_key = ON;"
+          mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE aeo_corner_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+
+      - name: Apply migrations and generate the Prisma client
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
 
-      # playwright.config.js builds the CSS and starts the web server itself.
-      - name: Playwright (a11y, responsive, third-party, styleguide)
+      # playwright.config.js builds the CSS and starts tests/e2e/server.js (the app with a fake Clerk).
+      - name: Playwright (a11y, responsive, third-party, styleguide, signed-in flows)
         run: npm run test:e2e
         env:
           CI: 'true'

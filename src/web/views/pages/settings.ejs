@@ -1,0 +1,42 @@
+<%#
+  E4 (Phase 2 part): members, roles and invitations.
+  Props: members, invitations, inviteRoles, values, errors; layout locals: orgBase, csrfToken, org.
+  Inline form instead of the wireframe's modal: it works without JavaScript. The project picker for limited
+  client seats arrives with projects (Phase 8).
+%>
+<h1 class="text-3xl">Team</h1>
+<p class="text-ink-700 mt-2">Who can use <strong><%= org.name %></strong>, and what they can do.</p>
+
+<%
+const memberRows = members.map((m) => ({
+  name: { html: ui.esc(m.name) + (m.isYou ? ' <span class="text-ink-600">(you)</span>' : '') },
+  email: m.email,
+  role: { html: ui.fragment('partials/member-role-cell', { member: m, orgBase, csrfToken }) },
+  actions: { html: ui.fragment('partials/member-remove-cell', { member: m, orgBase, csrfToken }) },
+}));
+const inviteRows = invitations.map((i) => ({
+  email: i.email,
+  role: i.role.charAt(0).toUpperCase() + i.role.slice(1),
+  expires: i.expires.toISOString().slice(0, 10),
+  actions: { html: ui.fragment('partials/invitation-actions-cell', { invitation: i, orgBase, csrfToken }) },
+}));
+-%>
+
+<div class="mt-6 flex flex-col gap-6">
+  <%- ui.card({ title: 'Members', headingLevel: 2, padded: false, html: ui.table({
+    caption: 'Members of ' + org.name,
+    captionHidden: true, flush: true, stack: true,
+    columns: [{ key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'role', label: 'Role' }, { key: 'actions', label: 'Actions' }],
+    rows: memberRows,
+  }) }) %>
+
+  <%- ui.card({ title: 'Invite a teammate', headingLevel: 2, html: ui.fragment('partials/invite-form', { orgBase, csrfToken, values, errors, roles: inviteRoles }) }) %>
+
+  <%- ui.card({ title: 'Waiting for an answer', headingLevel: 2, padded: false, html: ui.table({
+    caption: 'Invitations waiting for an answer',
+    captionHidden: true, flush: true, stack: true,
+    columns: [{ key: 'email', label: 'Email' }, { key: 'role', label: 'Role' }, { key: 'expires', label: 'Expires' }, { key: 'actions', label: 'Actions' }],
+    rows: inviteRows,
+    emptyText: 'No invitations are waiting.',
+  }) }) %>
+</div>

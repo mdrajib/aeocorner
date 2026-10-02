@@ -16,9 +16,24 @@ test('defaults describe a local development environment', () => {
 });
 
 test('only the production environment is indexable; staging runs NODE_ENV=production but is not', () => {
-  assert.equal(loadConfig({ NODE_ENV: 'production' }).indexable, true);
-  assert.equal(loadConfig({ NODE_ENV: 'production', APP_ENV: 'production' }).indexable, true);
-  const staging = loadConfig({ NODE_ENV: 'production', APP_ENV: 'staging' });
+  assert.equal(
+    loadConfig({ NODE_ENV: 'production', APP_SECRET: 'test-secret-test-secret-test-secret-123' })
+      .indexable,
+    true,
+  );
+  assert.equal(
+    loadConfig({
+      NODE_ENV: 'production',
+      APP_ENV: 'production',
+      APP_SECRET: 'test-secret-test-secret-test-secret-123',
+    }).indexable,
+    true,
+  );
+  const staging = loadConfig({
+    NODE_ENV: 'production',
+    APP_ENV: 'staging',
+    APP_SECRET: 'test-secret-test-secret-test-secret-123',
+  });
   assert.equal(staging.isProduction, true);
   assert.equal(staging.appEnv, 'staging');
   assert.equal(staging.indexable, false);

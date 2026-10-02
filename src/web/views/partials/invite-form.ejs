@@ -1,0 +1,8 @@
+<%# Invite a teammate by email. Props: orgBase, csrfToken, values ({ email, role }), errors ({ email, role }), roles ([{ value, label }]). %>
+<form method="post" action="<%= orgBase %>/invitations" class="flex flex-col gap-4" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', text: 'Please check the highlighted fields and try again.' }) %><% } %>
+  <%- ui.field({ id: 'invite-email', name: 'email', type: 'email', label: 'Email address', required: true, autocomplete: 'off', value: values.email, error: errors.email, hint: 'They’ll need to sign in or sign up with this address to accept.' }) %>
+  <%- ui.field({ id: 'invite-role', name: 'role', type: 'select', label: 'Role', required: true, value: values.role || 'viewer', error: errors.role, options: roles }) %>
+  <div><%- ui.button({ label: 'Send invitation', type: 'submit' }) %></div>
+</form>

@@ -1,0 +1,14 @@
+<%# B2: create an organization. Props: values ({ name }), errors ({ name }), first (true when the user has no organization yet). %>
+<div class="mx-auto max-w-xl">
+  <h1 class="text-3xl"><%= first ? 'Create your organization' : 'Create another organization' %></h1>
+  <p class="text-ink-700 mt-2">An organization holds your projects and your team. You’ll be its owner.</p>
+  <form method="post" action="/app/new-org" class="mt-6 flex flex-col gap-4" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', text: 'Please check the highlighted field and try again.' }) %><% } %>
+    <%- ui.field({ id: 'org-name', name: 'name', label: 'Organization name', required: true, autocomplete: 'organization', value: values.name, error: errors.name, hint: 'Usually your company or agency name.' }) %>
+    <div class="flex flex-wrap gap-3">
+      <%- ui.button({ label: 'Create organization', type: 'submit' }) %>
+      <% if (!first) { %><%- ui.button({ label: 'Cancel', href: '/app', variant: 'secondary' }) %><% } %>
+    </div>
+  </form>
+</div>

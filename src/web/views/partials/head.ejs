@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="<%= asset('/build/app.css') %>">
 <%# htmx under a strict CSP: no eval, no injected <style>, same-origin requests only. See docs/adr/0003-strict-csp.md %>
 <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false,"selfRequestsOnly":true,"historyCacheSize":0}'>
-<% if (site.posthog) { %><meta name="posthog-config" content="<%= JSON.stringify(site.posthog) %>"><% } %>
+<% if (analytics) { %><meta name="posthog-config" content="<%= JSON.stringify(site.posthog) %>"><% } %>
 <% for (const item of meta.jsonLd) { %>
 <script type="application/ld+json"><%- JSON.stringify(item).replace(/</g, '\\u003c') %></script>
 <% } %>

@@ -25,13 +25,24 @@ test('canonical URLs use the configured base URL, not the request host', () => {
 });
 
 test('production is indexable; staging and development are noindex; a page can opt out', () => {
-  const prod = loadConfig({ NODE_ENV: 'production', APP_ENV: 'production' });
+  const prod = loadConfig({
+    NODE_ENV: 'production',
+    APP_ENV: 'production',
+    APP_SECRET: 'test-secret-test-secret-test-secret-123',
+  });
   assert.match(buildMeta({ config: prod, path: '/' }).robots, /^index, follow/);
   assert.equal(
     buildMeta({ config: prod, path: '/', meta: { noindex: true } }).robots,
     'noindex, nofollow',
   );
-  for (const env of [{ NODE_ENV: 'production', APP_ENV: 'staging' }, {}]) {
+  for (const env of [
+    {
+      NODE_ENV: 'production',
+      APP_ENV: 'staging',
+      APP_SECRET: 'test-secret-test-secret-test-secret-123',
+    },
+    {},
+  ]) {
     assert.equal(buildMeta({ config: loadConfig(env), path: '/' }).robots, 'noindex, nofollow');
   }
 });

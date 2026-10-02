@@ -947,7 +947,7 @@ A public customer API and a Looker Studio/BI connector come in v2.
 ## 11. Security, privacy, compliance & ethics
 
 ### 11.1 Identity & tenancy
-- Authentication via Clerk; staff sign in through a separate Clerk app with 2FA required. Roles `owner/admin/editor/viewer` live in our database. Clerk manages the session (a short-lived token it refreshes); CSRF protection on every form and htmx request.
+- Authentication via Clerk; staff sign in through a separate Clerk app with 2FA required. Roles `owner/admin/editor/viewer` live in our database. Clerk manages the session (a short-lived token it refreshes); sign-in uses Clerk's hosted pages ([ADR-0004](adr/0004-clerk-hosted-sign-in.md)). CSRF protection on every state-changing request in the signed-in area: a token derived from the Clerk session ID (hidden `_csrf` field on forms, `X-CSRF-Token` header for htmx) on top of the `Sec-Fetch-Site`/`Origin` check.
 - Every query goes through a tenant-scoped repository that injects `org_id`. Raw SQL outside the repository layer is banned by lint rule. MySQL has no row-level security, so **cross-tenant leak tests in CI** are the second line of defense.
 - Internal impersonation requires a reason and is recorded in the audit log.
 

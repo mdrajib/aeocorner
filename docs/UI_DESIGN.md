@@ -4,8 +4,8 @@
 |---|---|
 | **Document** | UI design: rules, brand basics, component kit, screen inventory, wireframes, key flows and the content of every non-happy state |
 | **Date** | 2026-10-02 |
-| **Status** | Draft v0.1. The **public site shell and component kit are built** (Phase 1). **Group A wireframes (public site + audit flow) are drafted and await founder sign-off**, which gates Phase 7. Groups B–E are first-pass drafts to be reviewed before their phases. Brand basics are a **proposal**, not yet approved (§2) |
-| **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) Phase 1 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) (the stages these screens serve) · [MVP.md](MVP.md) §5 (features), §6 (methodology), §10 (accessibility target) · [ADR-0003](adr/0003-strict-csp.md) (strict CSP) |
+| **Status** | Draft v0.2. The **public site shell and component kit are built** (Phase 1), and so are the **sign-in hand-off, organization creation, team settings and invitation screens** (Phase 2). **Group A wireframes (public site + audit flow) are drafted and await founder sign-off**, which gates Phase 7. Groups B–E are first-pass drafts to be reviewed before their phases. Brand basics are a **proposal**, not yet approved (§2) |
+| **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) Phase 1 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) (the stages these screens serve) · [MVP.md](MVP.md) §5 (features), §6 (methodology), §10 (accessibility target) · [ADR-0003](adr/0003-strict-csp.md) (strict CSP) · [ADR-0004](adr/0004-clerk-hosted-sign-in.md) (hosted sign-in) |
 
 ---
 
@@ -13,7 +13,7 @@
 
 - **One kit, one rule book.** Every screen is built from the same EJS components, listed in §3 and shown live at `/_styleguide` (development only). A phase that needs a new component adds it to the kit and the styleguide first.
 - **The one rule that matters most:** a failed or missing collection is never shown as "not mentioned" and never as zero. It has its own look and its own words: *Couldn't check* (§1, rule 1; §7). The code enforces it (`ui.resultCell()`, stat tiles), and tests prove it.
-- **What exists today:** the public site (home with the audit form, methodology, Terms and Privacy drafts, 404/500/maintenance), the app shell layout, the transactional email base, and the component kit. The audit form itself is a stub until Phase 7.
+- **What exists today:** the public site (home with the audit form, methodology, Terms and Privacy drafts, 404/500/maintenance), the app shell layout, the transactional email base, and the component kit. The audit form itself is a stub until Phase 7. Phase 2 added sign-in through Clerk's hosted pages, creating an organization, the Team page (members, roles, invitations), the invitation page and the staff console doorway.
 - **What the founder needs to do:** approve or change the brand proposal (§2), review the Group A wireframes (§5.1), supply the Terms and Privacy text (§11), and switch on one PostHog setting (§9).
 
 ---
@@ -80,7 +80,7 @@ Every phase follows these. They are short on purpose.
 | Button | `ui.button` | Actions and button-styled links | `primary`, `secondary`, `ghost`, `danger`, `signal`; `sm/md/lg`; disabled; busy (spinner) |
 | Form field | `ui.field`, `ui.checkbox` | Text, URL, email, textarea, select, checkbox | Label, hint and error are wired to the input (`aria-describedby`, `aria-invalid`); "(optional)" is added automatically |
 | Card | `ui.card` | Grouping | Optional title, header actions, footer |
-| Table | `ui.table` | Data tables | Required caption; scrolls sideways inside its own box on narrow screens, never the page |
+| Table | `ui.table` | Data tables | Required caption; scrolls sideways inside its own box on narrow screens, never the page. Options: `stack` (below 640px each row becomes a small card of label/value lines; use it when cells hold actions, such as role selectors), `flush` (fills a card: no second border), `captionHidden` (when a heading already says it; the caption stays for screen readers) |
 | Tabs | `ui.tabs` | Switching panels | Arrow keys, Home/End; first panel visible without JavaScript |
 | Badge | `ui.badge` | Small labels | `unknown` tone is the *Couldn't check* look |
 | Modal | `ui.modal` | Confirmations | Native `<dialog>`: focus trap and Escape for free |
@@ -101,7 +101,7 @@ Every phase follows these. They are short on purpose.
 
 ## 4. Screen inventory
 
-Routes for screens not yet built are proposals. "Group" is the wireframe sign-off group from [BUILD_PLAN.md](BUILD_PLAN.md) Phase 1; each group is signed off before the phase that builds it.
+Routes for screens not yet built are proposals. Organization pages carry the organization in the URL (`/app/o/:org/…`, its public ID) rather than in a "current organization" setting, so two browser tabs on different organizations can never act on the wrong one ([DATABASE_SCHEMA §10.1](DATABASE_SCHEMA.md#101-auth-clerk-identity-only)). "Group" is the wireframe sign-off group from [BUILD_PLAN.md](BUILD_PLAN.md) Phase 1; each group is signed off before the phase that builds it.
 
 | ID | Screen | Journey stage | Route (proposed) | Layout | Built in | Group |
 |---|---|---|---|---|---|---|
@@ -117,8 +117,11 @@ Routes for screens not yet built are proposals. "Group" is the wireframe sign-of
 | A10 | Audit edge-case messages: cached report, limit reached, site blocks our crawler, site unreachable, non-English | 2 | in A6 / A8 / A9 | public | Phase 7 | A |
 | A11 | Crawler identity page (the URL in our bot's user agent) | n/a | `/bot` | public | Phase 4 | A |
 | A12 | Emails: verification code ✅, "Your AEO report is ready", nurture (3) | 2, 3 | n/a | email | Phase 1 / 7 | A |
-| B1 | Sign up and sign in | 4 Trial | Clerk | public | Phase 2 | B |
-| B2 | Create organisation (name pre-filled from the audit domain) | 4 | `/app/new-org` | app | Phase 2 | B |
+| B1 | Sign up and sign in | 4 Trial | `/sign-in`, `/sign-up` → Clerk's hosted pages ([ADR-0004](adr/0004-clerk-hosted-sign-in.md)) | Clerk | **Phase 2 ✅** | B |
+| B1a | Sign-in unavailable (a server with no Clerk keys) | 4 | `/sign-in`, `/app` | public | **Phase 2 ✅** | B |
+| B2 | Create organisation (name pre-filled from the audit domain with `?domain=`) | 4 | `/app/new-org` | app | **Phase 2 ✅** | B |
+| B2a | Empty overview of an organization ("No projects yet") | 4 | `/app/o/:org` | app | **Phase 2 ✅** (projects: Phase 8) | B |
+| B2b | Accept an invitation: signed out, signed in, wrong account, expired, already used, unknown | 4, 9 | `/invite/:token` | public | **Phase 2 ✅** | B |
 | B3 | Onboarding 1: confirm your brand | 5 Onboarding | `/app/onboarding/brand` | app | Phase 8 | B |
 | B4 | Onboarding 2: competitors | 5 | `…/competitors` | app | Phase 8 | B |
 | B5 | Onboarding 3: buyer questions | 5 | `…/questions` | app | Phase 8 | B |
@@ -139,8 +142,9 @@ Routes for screens not yet built are proposals. "Group" is the wireframe sign-of
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |
 | E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | Phase 13 | E |
 | E2 | Weekly digest email, alert emails, trial-ending email | 7, 9 | n/a | email | Phase 13 | E |
-| E3 | Plan, billing and usage (Stripe Checkout and Portal hand-offs) | 4, 9 | `/app/billing` | app | Phase 13 | E |
-| E4 | Settings: members and roles, invitations, notifications | 4, 9 | `/app/settings` | app | Phase 2 / 13 | E |
+| E3 | Plan, billing and usage (Stripe Checkout and Portal hand-offs) | 4, 9 | `/app/o/:org/billing` | app | Phase 13 | E |
+| E4 | Settings: members and roles, invitations (**built**); notifications (Phase 13) | 4, 9 | `/app/o/:org/settings` | app | **Phase 2 ✅** / 13 | E |
+| E6 | No access: signed in and a member, but the role doesn't allow the page | 9 | inline (403) | app | **Phase 2 ✅** | E |
 | E5 | Plan-limit prompts, spend-cap and stale-data banners | 9 | inline | app | Phase 13 | E |
 
 ---
@@ -353,8 +357,10 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
  E1 AI traffic     [Connect Google Analytics — 2 minutes]  →  chart: visits from AI answers by source · top landing pages
  E3 Billing        Plan: Starter (trial ends in 6 days) │ Usage meters: Buyer questions 38 of 50, Projects 1 of 1
                    [ Manage billing ] → Stripe Customer Portal        [ Upgrade ]
- E4 Settings       Members table: name · email · role (owner/admin/editor/viewer) · [ Change ] [ Remove ]
-                   [ Invite member ] modal: email + role + (viewers: which projects)
+ E4 Settings       Members table: name · email · role (owner/admin/editor/viewer) · [ Save ] [ Remove ]
+                   Invite a teammate: email + role (an inline card, not a modal, so it works without JavaScript;
+                   the "which projects" picker for limited client seats arrives with projects, Phase 8)
+                   Waiting for an answer: email · role · expires · [ Send again ] [ Cancel ]
                    Notifications: digest on/off, alerts on/off
  E5 Banners        "Plan limit reached" · "This week's update is delayed — our team has been notified" ·
                    "Last updated 16 days ago because payment is paused"
@@ -417,6 +423,11 @@ flowchart LR
 | **Partial data** | `ui.banner tone=incomplete` | Name the missing engine, say it is retrying, and say that missing cells are left out of rates |
 | **Limit reached** | `ui.meter` + warning banner | Show it at the moment of saving ("50 of 50 buyer questions"), with the upgrade option. Nothing is silently dropped |
 | **Maintenance** | `maintenance.ejs`, HTTP 503 + `Retry-After` | "Back soon", and that work in progress is not affected |
+| **Sign-in unavailable** | `auth-unavailable.ejs`, HTTP 503 | Say sign-in isn't available on this server right now and the public pages still work. On a development server only, say which keys are missing |
+| **No access** | `forbidden.ejs`, HTTP 403 inside the app shell | Name the role and say who can change it ("An owner or admin can change your role"). Never reveal what is on the page |
+| **Not a member / unknown organization** | the normal 404 | Identical to a page that doesn't exist, so the response never confirms an organization is real |
+| **Invitation problems** | `invite.ejs` | Expired: say invitations last 7 days and who to ask. Used or withdrawn: say so and what to do next. Wrong account: say which account is signed in, show the invited address only masked (`s•••@example.com`), and offer to sign out |
+| **Notices after an action** | banner from a short code in `?notice=` | The text is ours, never taken from the URL: "Role updated.", "An organization needs at least one owner, so that change wasn't made." |
 | **Success** | toast, or a success banner for something that needs follow-up | Say what happened and what happens next: "Saved. Your change applies on the next run." |
 
 ---
@@ -449,7 +460,7 @@ Sentence case for headings and buttons. Short sentences. Say what happens next. 
 | Do Not Track | Honoured in addition: `analytics.js` does not load if the browser sends Do Not Track or Global Privacy Control |
 | Setup needed | In the PostHog project settings turn on **Cookieless server hash mode** (Web analytics). Set `POSTHOG_API_KEY` (and `POSTHOG_HOST` for the EU region). With no key, nothing loads |
 | Privacy policy | States that the public site sets no cookies and lists PostHog as a subprocessor |
-| Not decided here | Product analytics *inside* the signed-in app. Clerk's sign-in cookies are strictly necessary. Decide in Phase 2 whether in-app analytics are cookieless too or sit behind consent |
+| Signed-in area | **No analytics inside the signed-in area, the invitation pages or the staff console** (decided in Phase 2). Analytics is opt-in per page and only the public pages opt in, because PostHog records page URLs and these URLs hold organization IDs or a secret invitation token. Clerk's sign-in cookies are strictly necessary. If in-app product analytics are wanted later, they need their own decision (events without URLs, and whether they sit behind consent) |
 
 ---
 

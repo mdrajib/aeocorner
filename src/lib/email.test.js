@@ -7,7 +7,18 @@ import { emailNames, renderEmail } from './email.js';
 import { emailTokens } from './email-tokens.js';
 
 const context = { baseUrl: 'https://aeocorner.com' };
-const sample = { 'verification-code': { code: '482915', expiresMinutes: 10 } };
+const sample = {
+  'verification-code': { code: '482915', expiresMinutes: 10 },
+  invitation: {
+    inviterName: 'Maya Chen',
+    orgName: 'Acme Dental',
+    roleLabel: 'Editor',
+    roleDescription: 'Edits the Brand Kit, questions and content.',
+    email: 'sam@example.com',
+    acceptUrl: 'https://aeocorner.com/invite/abc123',
+    expiresDays: 7,
+  },
+};
 
 // Snapshot-style guard: nothing may leak template syntax or JavaScript placeholders into an email.
 const LEAKS = [/<%/, /%>/, /\bundefined\b/, /\bnull\b/, /\[object Object\]/, /\{\{/, /\bNaN\b/];

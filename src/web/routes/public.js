@@ -38,6 +38,7 @@ export function publicRoutes(config) {
   for (const page of publicPages) {
     router.get(page.path, (req, res) => {
       res.page(page.view, {
+        analytics: true,
         faq: page.view === 'home' ? homeFaq : [],
         meta: {
           title: page.title,

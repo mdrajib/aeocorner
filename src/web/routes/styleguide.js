@@ -3,6 +3,15 @@ import { emailNames, renderEmail } from '../../lib/email.js';
 
 const SAMPLE_EMAIL_DATA = {
   'verification-code': { code: '482915', expiresMinutes: 10 },
+  invitation: {
+    inviterName: 'Maya Chen',
+    orgName: 'Acme Dental',
+    roleLabel: 'Editor',
+    roleDescription: 'Edits the Brand Kit, questions and content.',
+    email: 'sam@example.com',
+    acceptUrl: 'https://aeocorner.com/invite/example-token',
+    expiresDays: 7,
+  },
 };
 
 const SAMPLE_NAV = [

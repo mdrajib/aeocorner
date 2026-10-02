@@ -4,6 +4,7 @@ import { loadConfig } from '../../src/lib/config.js';
 import { createApp } from '../../src/web/app.js';
 
 export const BASE = 'https://aeocorner.com';
+const APP_SECRET = 'test-secret-test-secret-test-secret-123';
 
 /** Environments the app runs in. NODE_ENV=test keeps pino quiet and views uncached. */
 export const envs = {
@@ -12,9 +13,10 @@ export const envs = {
   staging: {
     NODE_ENV: 'production',
     APP_ENV: 'staging',
+    APP_SECRET,
     APP_BASE_URL: 'https://staging.aeocorner.com',
   },
-  production: { NODE_ENV: 'production', APP_ENV: 'production', APP_BASE_URL: BASE },
+  production: { NODE_ENV: 'production', APP_ENV: 'production', APP_SECRET, APP_BASE_URL: BASE },
 };
 
 export const silentLogger = pino({ level: 'silent' });

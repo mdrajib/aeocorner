@@ -35,7 +35,7 @@ The team's routine: **about 15 minutes a day, 2–3 hours a week, half a day a m
 | Rule | Detail |
 |---|---|
 | **Separate entry point** | `admin.aeocorner.com`: a separate Express router in the same app. It's put behind **Cloudflare Access** (Zero Trust login in front of the site), so it can't be reached from the public internet |
-| **Staff accounts only** | Staff sign in through a **separate Clerk application**, so staff and customer accounts never mix. Sign-up is invite-only. **Two-factor login is mandatory** (authenticator app or passkey): the admin app refuses a staff session without it. Sessions time out after 30 minutes idle |
+| **Staff accounts only** | Staff sign in through a **separate Clerk application**, so staff and customer accounts never mix. The first staff member is created from the command line (`npm run staff:invite`); later ones by a super admin. Sign-up is invite-only. **Two-factor login is mandatory** (authenticator app or passkey): the admin app refuses a staff session without it. Sessions time out after 30 minutes idle |
 | **Least privilege** | Staff roles ([§2](#2-staff-roles)). At MVP the same people hold several roles, but the permissions stay separate |
 | **Everything is logged** | Every admin write action goes to `admin_audit_log`: who, what, which customer, reason, before/after, time. The log can't be edited |
 | **Impersonation** | Requires a **reason** (and a ticket link if there is one). Opens **read-only** by default; any write needs a second confirmation. A banner is always visible. The session ends after 30 minutes. The customer's account activity log shows "AEO Corner support viewed your account on <date>" |
