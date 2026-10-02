@@ -2,24 +2,26 @@
 
 A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perplexity, Gemini, Google AI Overviews) mention, recommend and cite it compared with competitors. It then helps fix the gaps and proves whether the fixes worked (Measure → Diagnose → Fix → Prove). The reference product is aeoengine.ai. Always write the name as "AEO Corner".
 
-## Current phase: design only
+## Current phase: building
 
-- **There is no application code yet.** The deliverables are the documents in `docs/` and the SQL design files in `docs/db/`.
-- Don't scaffold the app (`src/`, `package.json`, `prisma/`) until the user asks to start building. SQL DDL, seed and check files count as design work when asked for.
+- **Building began on 2026-09-28.** The app lives in `src/`, `tests/` and `prisma/`, and the design docs in `docs/` stay the source of truth for what to build.
+- **Where the build stands is in `docs/BUILD_PLAN.md`** (checked boxes and phase headers). Read it there; this file doesn't track progress.
+- Work the phases in order, with the tests each phase requires. Start the next phase only when the user asks for it.
+- When code or a discovery changes a decision, update the affected docs in the same pass (see "Writing the docs"). A one-way-door technical decision gets an ADR in `docs/adr/`.
 - Put throwaway test scripts in the session scratchpad, not in the repo.
-- The project is not a git repository yet.
+- The repo is on GitHub (`origin` = `mdrajib/aeocorner`, branch `main`). Commit and push only when the user asks. Stage files by name, never with `git add -A`, and never stage `.env`.
 
 ## Documents (sources of truth)
 
 | File | Owns |
 |---|---|
 | `docs/MVP.md` | Product and architecture spec: scope, features F1–F12, methodology, stack (§7.4), repo layout (§7.9), unit economics, timeline, founder decisions (§17) |
-| `docs/BUILD_PLAN.md` | The actual build order: 16 phases (0–15) breaking MVP §13.2's weekly timeline into checkable work items and a required-tests checklist per phase. Work through it in order once coding starts |
+| `docs/BUILD_PLAN.md` | The actual build order: 16 phases (0–15) breaking MVP §13.2's weekly timeline into checkable work items and a required-tests checklist per phase. Work through it in order |
 | `docs/CUSTOMER_JOURNEY.md` | Customer experience stage by stage, system data flow, messages. §7 proposes 6 spec changes: the schema models them, but the MVP feature sections haven't been updated yet |
 | `docs/ADMIN_OPERATIONS.md` | Internal admin console, staff roles, runbooks, background jobs, alerts |
 | `docs/DATABASE_SCHEMA.md` | Schema design: conventions, table catalog, ERDs, query patterns, tenancy, retention, grants, Clerk and Prisma rules (§10), open decisions (§11) |
-| `docs/db/schema.sql` | DDL: 64 tables, 101 foreign keys, 18 CHECKs. Becomes Prisma migration `0001_init` |
-| `docs/db/seed_reference.sql` | Idempotent reference data (plans, engines, providers, seed domains). Becomes migration `0002_reference_data` |
+| `docs/db/schema.sql` | DDL: 64 tables, 101 foreign keys, 18 CHECKs. Currently an identical copy of Prisma migration `0001_init` |
+| `docs/db/seed_reference.sql` | Idempotent reference data (plans, engines, providers, seed domains). Currently an identical copy of migration `0002_reference_data` |
 | `docs/db/checks.sql` | CI guard rails. Every query must return zero rows |
 | `docs/adr/` | Architecture Decision Records — one-way-door technical decisions and why, written as they happen (not planned per phase) |
 
