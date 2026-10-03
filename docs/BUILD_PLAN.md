@@ -263,7 +263,7 @@
 
 ## Phase 6 — Extraction pipeline & golden-set eval
 
-**Status (2026-10-03):** 🟡 **Pipeline built and tested; both models evaluated; D4 provisionally "keep Opus 5.5".** On the draft labels Opus 5.5 meets every target (mention 99.9%, stance 92.0%, rank 91.8%) and Haiku 4.5 misses stance (85.5%). The eval cost about $7.10. D4 becomes final after the founder's review of the labels (`npm run golden:review`; founder decision 2026-10-03: Claude drafts, the founder corrects) and a re-score on them, which is free because replies are cached. **Extraction costs about 60% more than the spec assumed** (Opus ≈ $0.013 an answer batched, not $0.008), which lowers the Starter margin from ≈ 64% to ≈ 52% ([MVP §12.1](MVP.md#121-cost-inputs)). Everything is in [ADR-0007](adr/0007-answer-extraction.md). **The spec's `claude-opus-5` is now `claude-opus-5-5`**, its successor: same features, cheaper.
+**Status (2026-10-03):** 🟡 **Pipeline built and tested; both models evaluated; D4 provisionally "keep Opus 5.5".** On the draft labels, with prompt `x2`, Opus 5.5 meets every target (mention 100%, stance 91.4%, rank 92.0%) and Haiku 4.5 misses stance (87.8%). Two runs (prompt `x1`, then `x2`, which stopped a brand named only in the question counting as mentioned) cost about $14. D4 becomes final after the founder's review of the labels (`npm run golden:review`; founder decision 2026-10-03: Claude drafts, the founder corrects) and a re-score on them, which is free because replies are cached. **Extraction costs about 60% more than the spec assumed** (Opus ≈ $0.013 an answer batched, not $0.008), which lowers the Starter margin from ≈ 64% to ≈ 52% ([MVP §12.1](MVP.md#121-cost-inputs)). Everything is in [ADR-0007](adr/0007-answer-extraction.md). **The spec's `claude-opus-5` is now `claude-opus-5-5`**, its successor: same features, cheaper.
 
 **Goal:** turn a raw answer into structured mentions/citations/claims, and settle decision D4 (bulk model choice) with real data.
 
@@ -271,7 +271,7 @@
 - [x] Deterministic pre-pass (alias matching, domain/citation extraction) before any LLM call: `src/llm/prepass.js`. Whole words, case-insensitive, possessives, a domain written in the text, "That's not us" exclusions, the longest name wins. Names inside links are citations, not mentions. Sources are numbered (the provider's first, then links from the text, with tracking parameters and fragments removed), each with the brand that owns it. Linear-time on hostile text.
 - [x] Claude Batch API request builder with prompt caching + structured outputs (`src/llm/`):
   - `extraction.js`: the request, a strict check of the reply, and the merge with the pre-pass.
-  - `extraction-prompt.js`: the versioned prompt (`x1`) with four worked examples; the stable prefix comes first with two cache breakpoints, and the answer is fenced as data.
+  - `extraction-prompt.js`: the versioned prompt (`x2`) with four worked examples; the stable prefix comes first with two cache breakpoints, and the answer is fenced as data.
   - `extraction-schema.js`: the JSON schema for structured outputs, plus zod for the limits the schema can't express.
   - `models.js`: Opus 5.5 at low effort and Haiku 4.5, their prices, and cost in micro-dollars.
   - `claude.js`: the SDK wrapper; errors are classified like the engine adapters'.

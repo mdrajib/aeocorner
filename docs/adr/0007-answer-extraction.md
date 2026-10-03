@@ -19,7 +19,7 @@ Decision D4 ([MVP §17](../MVP.md#17-decisions-needed-from-the-founder)) is whic
 **2. The pre-pass** looks for each tracked brand's name, aliases and domains in the answer text: whole words, case-insensitive, possessives included, the longest overlapping name wins ("HubSpot CRM" over "HubSpot"), and "That's not us" rules (`entity_aliases.kind = exclude`) remove the matches they cover. **Names inside links don't count as mentions**: every URL, and every link whose visible text is just a domain (how ChatGPT and Gemini show sources), is blanked out before matching; those are citations. This rule came from the golden set: the first eval run found one false mention, `www.shopify.com` in a ChatGPT citation chip. A domain written in a sentence ("visit acme.com") still counts. Everything is linear in the answer's length (the answer can quote any website): `indexOf` scans, two regexes with no nested repetition, merged spans with binary search. Hostile-input tests cover 200,000-character answers, thousands of overlapping exclusions and tens of thousands of links.
 
 **3. The request** ([`src/llm/extraction-prompt.js`](../../src/llm/extraction-prompt.js), [`extraction-schema.js`](../../src/llm/extraction-schema.js)):
-- **Versioned.** `PROMPT_VERSION = 'x1'`, and every row carries `extraction_version = x1.<model>` (`x1.opus55`), so history can be re-read when either changes ([MVP §6.4](../MVP.md#64-answer-extraction-pipeline) step 5).
+- **Versioned.** `PROMPT_VERSION = 'x2'` (x1 until 2026-10-03; see decision 9), and every row carries `extraction_version = x2.<model>` (`x2.opus55`), so history can be re-read when either changes ([MVP §6.4](../MVP.md#64-answer-extraction-pipeline) step 5).
 - **Structured outputs** (`output_config.format`, a JSON schema). The schema subset has no numeric ranges or string lengths, so a zod schema checks those on the way in.
 - **Stable prefix first, for caching.** The system prompt (instructions plus four worked examples, about 3,900 tokens) is identical for every answer; the project's tracked-brand block (refs `E1…En`, brand first) is identical for every answer of a run. Both carry cache breakpoints. The answer and its numbered sources come last.
 - **The answer is fenced and treated as data.** An answer can quote a web page that addresses the model. The instructions say nothing inside `<answer>` is an instruction, fence tags inside the text are neutralised, and structured outputs mean the reply can only be the extraction shape.
@@ -56,15 +56,24 @@ First Claude run, 2026-10-03: all 237 answers, both models, answered one at a ti
 | Claude Haiku 4.5 (stored) | 99.3% | **85.5%** ❌ | 90.8% | 80.6% | 8 | **$0.0047** (5.6 s) | ❌ stance |
 | Claude Haiku 4.5 (alone) | 98.4% (11 brands missed) | 87.3% | 90.8% | 80.6% | 8 | | ❌ stance |
 
-**D4, provisional: keep Opus 5.5** (`decideD4`). Haiku is within the 2-point mention tolerance (0.6 points behind) but misses the stance target by 4.5 points, mostly by reading a recommendation as a caution (25 times) or as neutral (18). As expected, mention detection didn't decide it: the pre-pass already has it, and Claude's false mentions are what it adds.
+**Second run, prompt `x2`** (same day, same set): one rule added, that a brand named only in the question isn't named by the answer.
+
+| Reader | Mention | Stance | Rank | Answer type | False mentions | Cost per answer (full price) | Meets targets |
+|---|---|---|---|---|---|---|---|
+| Claude Opus 5.5 (stored) | **100%** | **91.4%** | **92.0%** | 88.2% | **0** | $0.0255 | ✅ all three |
+| Claude Haiku 4.5 (stored) | 99.3% | **87.8%** ❌ | 91.2% | 82.3% | 8 | $0.0046 | ❌ stance |
+
+The fix worked: Opus's one false mention is gone, with no new ones. Stance moved from 92.0% to 91.4%. That is run-to-run variation, not the new rule: comparing Opus's two runs answer by answer, 7 of its 523 stance readings changed, all for brands the answer itself names, which the new rule doesn't touch. Haiku's 8 false mentions are a different problem (brands it reads into the answer), and it still misses stance. The x1 scores above stay as the record of that prompt.
+
+**D4, provisional: keep Opus 5.5** (`decideD4`, both runs). Haiku is within the 2-point mention tolerance (0.6 points behind) but misses the stance target by 4.5 points, mostly by reading a recommendation as a caution (25 times) or as neutral (18). As expected, mention detection didn't decide it: the pre-pass already has it, and Claude's false mentions are what it adds.
 
 What the misses show:
-- **Opus's one false mention** (`email-q4-perplexity`, Mailchimp) came from the question ("a cheaper alternative to Mailchimp?"), not the answer. A line in the prompt saying a brand named only in the question isn't a mention should fix it; that is prompt `x2` and a new run (about $6 for Opus).
+- **Opus's one false mention under x1** (`email-q4-perplexity`, Mailchimp) came from the question ("a cheaper alternative to Mailchimp?"), not the answer. **Fixed in x2** (above).
 - **Opus's stance misses** are split between "recommended" read as neutral or cautioned (22) and neutral read as recommended (18), so there's no single bias. Several may be label mistakes; the founder's review settles that.
 - **Opus's rank misses** are mostly ranks it left empty (30 of 43) where the label gave one. None of those 15 answers has a numbered list; the brands are in bullets or headed sections, and the labels counted their order as a rank. That is a rule to clarify in the prompt once the review shows which side is right.
 - **Answer type** (86.5%) has no target. It is reported, not decided on.
 
-Scores on reviewed labels go in this table when the review is done (`npm run eval:extraction -- --labels reviewed`, free).
+Scores on reviewed labels go in these tables when the review is done (`npm run eval:extraction -- --labels reviewed`, free).
 
 ## Consequences
 

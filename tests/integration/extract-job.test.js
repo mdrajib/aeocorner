@@ -7,6 +7,7 @@ import { connectTestDb, fixtures } from '../../src/db/testing.js';
 import { ProviderError } from '../../src/engines/contract.js';
 import { createFileStore, storeRaw } from '../../src/integrations/spaces.js';
 import { extractAnswerJobId, extractPollJobId, extractRunJobId } from '../../src/lib/job-ids.js';
+import { PROMPT_VERSION } from '../../src/llm/extraction-prompt.js';
 import { parseCustomId } from '../../src/llm/extraction.js';
 import { startRuntime, until, waitForJob } from '../helpers/worker.js';
 
@@ -258,7 +259,7 @@ describe('extract.batch → extract.poll', () => {
 
     const r = await scoped().extractions.readingOf(a.id);
     assert.equal(r.snapshot.extraction_status, 'done');
-    assert.equal(r.snapshot.extraction_version, 'x1.opus55');
+    assert.equal(r.snapshot.extraction_version, `${PROMPT_VERSION}.opus55`);
     assert.equal(r.snapshot.answer_type, 'list');
     assert.deepEqual(
       r.snapshot.prepass.found.map((f) => f.entityId).sort(),
