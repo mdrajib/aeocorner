@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { createHash, randomBytes } from 'node:crypto';
+import { normalizeName } from '../llm/names.js';
 import { ulid } from '../lib/ulid.js';
 import { createDb } from './index.js';
 import { transaction } from './transaction.js';
@@ -35,6 +36,10 @@ export function fixtures(db) {
   const orgIds = [];
   const staffIds = [];
   const webhookIds = [];
+  // Webhook deliveries this file makes through the route carry this prefix, so its cleanup removes its own rows and
+  // never another file's mid-test (a shared prefix let one file delete a delivery another was still processing).
+  const webhookPrefix = `msg_test_${unique()}_`;
+  let webhookCount = 0;
 
   return {
     /** A Clerk-style user record, as the webhook or the Clerk API would hand it over. */
@@ -209,6 +214,102 @@ export function fixtures(db) {
       });
     },
 
+    /**
+     * A tracked entity with its aliases (Brand Kit and competitors arrive in Phase 8). `domains` beyond the first
+     * become domain aliases; `excludes` are "That's not us" rules.
+     */
+    async entity(
+      project,
+      {
+        kind = 'competitor',
+        name,
+        aliases = [],
+        domains = [],
+        excludes = [],
+        status = 'active',
+      } = {},
+    ) {
+      const label = name ?? `Brand ${unique()}`;
+      const row = await prisma.tracked_entities.create({
+        data: {
+          org_id: project.org_id,
+          project_id: project.id,
+          kind,
+          name: label,
+          name_normalized: normalizeName(label),
+          primary_domain: domains[0] ?? null,
+          status,
+          source: 'user',
+        },
+      });
+      const alias = (aliasKind, value) => ({
+        org_id: project.org_id,
+        project_id: project.id,
+        entity_id: row.id,
+        kind: aliasKind,
+        value,
+        value_normalized: aliasKind === 'domain' ? value.toLowerCase() : normalizeName(value),
+        source: 'user',
+      });
+      const rows = [
+        ...aliases.map((v) => alias('name', v)),
+        ...domains.slice(1).map((v) => alias('domain', v)),
+        ...excludes.map((v) => alias('exclude', v)),
+      ];
+      if (rows.length) await prisma.entity_aliases.createMany({ data: rows });
+      return row;
+    },
+
+    /**
+     * A collected answer, as `collect.answer` leaves it: an `ok` snapshot whose raw document is at `rawUri`, waiting
+     * to be read.
+     */
+    async collectedAnswer(
+      run,
+      prompt,
+      { engine = 'perplexity', sampleIdx = 0, rawUri, rawSha256 } = {},
+    ) {
+      const scoped = db.forOrg(run.org_id);
+      const { snapshot } = await scoped.snapshots.create({
+        runId: run.id,
+        promptId: prompt.id,
+        engineCode: engine,
+        sampleIdx,
+        providerCode: 'perplexity_api',
+        method: 'api_grounded',
+      });
+      await scoped.snapshots.complete(snapshot.id, {
+        status: 'ok',
+        providerCode: 'perplexity_api',
+        method: 'api_grounded',
+        isFallback: false,
+        providerTaskId: null,
+        modelVersion: 'perplexity/sonar',
+        collectedAt: new Date(),
+        rawUri: rawUri ?? `test/answers/${unique()}.json`,
+        rawSha256: rawSha256 ?? 'a'.repeat(64),
+        answerChars: 100,
+        textExcerpt: 'An answer',
+        costUsd: '0.004',
+      });
+      return prisma.answer_snapshots.findFirst({ where: { id: snapshot.id } });
+    },
+
+    /** Delete one tracked entity (and its aliases), as a later Brand Kit edit would. */
+    removeEntity: (entityId) => prisma.tracked_entities.delete({ where: { id: entityId } }),
+
+    /** Remove URL-dictionary rows a test caused (the dictionary is global, so per-org cleanup misses it). */
+    async forgetDomains(domains) {
+      const rows = await prisma.web_domains.findMany({
+        where: { domain: { in: domains } },
+        select: { id: true },
+      });
+      const domainIds = rows.map((r) => r.id);
+      if (!domainIds.length) return;
+      await prisma.web_urls.deleteMany({ where: { domain_id: { in: domainIds } } });
+      await prisma.web_domains.deleteMany({ where: { id: { in: domainIds } } });
+    },
+
     /** Read a ledger row by its key, whoever's it is: to check what a job wrote. */
     ledgerRow: (idempotencyKey) =>
       prisma.usage_ledger.findUnique({ where: { idempotency_key: idempotencyKey } }),
@@ -216,6 +317,9 @@ export function fixtures(db) {
     suspendStaff(staffId) {
       return prisma.staff_users.update({ where: { id: staffId }, data: { status: 'suspended' } });
     },
+
+    /** A delivery ID (Clerk's `svix-id`) for a webhook this file sends through the route. */
+    webhookId: () => `${webhookPrefix}${webhookCount++}`,
 
     trackWebhook(id) {
       webhookIds.push(id);
@@ -270,7 +374,13 @@ export function fixtures(db) {
         // Scans reference projects, and take their pages and check results with them.
         await prisma.site_scans.deleteMany({ where });
         await prisma.site_pages.deleteMany({ where });
+        await prisma.claims.deleteMany({ where });
+        await prisma.mentions.deleteMany({ where });
+        await prisma.citations.deleteMany({ where });
+        await prisma.review_items.deleteMany({ where });
         await prisma.answer_snapshots.deleteMany({ where });
+        await prisma.entity_aliases.deleteMany({ where });
+        await prisma.tracked_entities.deleteMany({ where });
         await prisma.runs.deleteMany({ where });
         await prisma.prompts.deleteMany({ where });
         await prisma.projects.deleteMany({ where });
@@ -281,12 +391,12 @@ export function fixtures(db) {
         await prisma.organizations.deleteMany({ where: { id: { in: orgs } } });
       }
       if (userIds.length) await prisma.users.deleteMany({ where: { id: { in: userIds } } });
-      // Deliveries made through the webhook route use ids like "msg_test_…"; the others are tracked by id.
+      // Deliveries this file sent through the route carry its own prefix; the others are tracked by id.
       await prisma.webhook_events.deleteMany({
         where: {
           OR: [
             { id: { in: webhookIds } },
-            { source: 'clerk', external_id: { startsWith: 'msg_test_' } },
+            { source: 'clerk', external_id: { startsWith: webhookPrefix } },
           ],
         },
       });

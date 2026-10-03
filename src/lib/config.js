@@ -78,6 +78,11 @@ const envSchema = z.object({
     z.string().regex(/^0\.\d{1,6}$/, 'a dollar amount under $1, such as 0.010'),
   ),
 
+  // Claude (src/llm): answer extraction now, the rest of MVP §7.7 later. Without a key, extraction jobs fail at once.
+  ANTHROPIC_API_KEY: optional(z.string().min(1)),
+  // The model that reads answers (decision D4, ADR-0007): opus55 or haiku45.
+  EXTRACTION_MODEL: z.enum(['opus55', 'haiku45']).default('opus55'),
+
   RESEND_API_KEY: optional(z.string().min(1)),
   EMAIL_FROM_ADDRESS: optional(z.string().min(3)),
 });
@@ -287,6 +292,8 @@ export function loadConfig(env = process.env) {
     alertWebhookUrl: e.ALERT_WEBHOOK_URL ?? null,
     spaces: spacesConfig(e, appEnv),
     providers: providersConfig(e),
+    anthropic: e.ANTHROPIC_API_KEY ? { apiKey: e.ANTHROPIC_API_KEY } : null,
+    extraction: { model: e.EXTRACTION_MODEL },
     auth: customer
       ? {
           ...customer,

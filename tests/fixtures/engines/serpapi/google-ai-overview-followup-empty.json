@@ -1,0 +1,18 @@
+{
+  "search_metadata": {
+    "id": "6ac0919055cfe16e42f2dbe7",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/ItGvicOgtBF1OACJsobw-zNJ1OowWU7T0Sm20njj6Ck/6ac0919055cfe16e42f2dbe7.json",
+    "created_at": "2026-10-03 05:24:32 UTC",
+    "processed_at": "2026-10-03 05:24:32 UTC",
+    "total_time_taken": 1.1
+  },
+  "search_parameters": {
+    "engine": "google_ai_overview",
+    "page_token": "KIVu-nictZPdkqI4FMcv-fixture-token"
+  },
+  "search_information": {
+    "ai_overview_state": "Fully empty"
+  },
+  "error": "Google hasn't returned any results for this query."
+}

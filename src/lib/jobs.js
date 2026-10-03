@@ -42,6 +42,17 @@ export const JOBS = Object.freeze({
     schema: z.object({ orgId: id, snapshotId: id, submittedAt: z.iso.datetime().optional() }),
   },
 
+  // Read every collected answer of a run with one Claude batch (Phase 6, MVP §6.4). The answers, the tracked brands
+  // and the model come from the database and the configuration, never the payload.
+  'extract.batch': { queue: 'extract', schema: z.object({ orgId: id, runId: id }) },
+  // Wait for one Claude batch, then store its results. The batch ID must be one the run itself recorded.
+  'extract.poll': {
+    queue: 'extract',
+    schema: z.object({ orgId: id, runId: id, batchId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/) }),
+  },
+  // Read one answer now (a batch item that failed; the free audit in Phase 7).
+  'extract.answer': { queue: 'extract', schema: z.object({ orgId: id, snapshotId: id }) },
+
   // A job that goes through the whole path (queue, retries, rate limit, spend cap, ledger) and does nothing
   // else. It is the Phase 3 exit test, and the way to prove the plumbing on a new machine.
   'system.noop': {

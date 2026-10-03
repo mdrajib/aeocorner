@@ -597,6 +597,175 @@ describe('answer snapshots', () => {
   });
 });
 
+describe('answer extraction', () => {
+  // mentions, citations and claims are fact tables with no foreign keys, so the repository is the only thing that
+  // keeps one organization's readings, entities and batches away from another's.
+  let aProject;
+  let aRun;
+  let aSnap;
+  let aBrand;
+  let bRun;
+  let bSnap;
+  let bBrand;
+  const DOMAIN = 'tenancy-extract.test';
+  const planFor = (entityId) => ({
+    answerType: 'list',
+    mentions: [
+      {
+        entityId,
+        discoveredName: null,
+        nameAsWritten: 'Twin',
+        listRank: 1,
+        mentionOrder: 1,
+        prominence: 'primary',
+        stance: 'recommended',
+        sentiment: 1,
+        excerpt: 'Twin is good.',
+        detectedBy: 'both',
+        claims: [{ attribute: 'pricing', value: 'cheap', polarity: 'positive' }],
+      },
+      {
+        entityId: null,
+        discoveredName: 'Shared Rival',
+        nameAsWritten: 'Shared Rival',
+        listRank: 2,
+        mentionOrder: 2,
+        prominence: 'primary',
+        stance: 'neutral',
+        sentiment: 0,
+        excerpt: null,
+        detectedBy: 'llm',
+        claims: [],
+      },
+    ],
+    citations: [
+      {
+        position: 1,
+        url: `https://${DOMAIN}/a`,
+        domain: DOMAIN,
+        title: 'A',
+        ownerEntityId: entityId,
+        isOwn: true,
+        supportsEntityIds: [entityId],
+        supportsDiscovered: ['Shared Rival'],
+      },
+    ],
+    disagreements: [],
+  });
+  const save = (scoped, snapshotId, entityId) =>
+    scoped.extractions.save(snapshotId, {
+      plan: planFor(entityId),
+      prepass: { v: 'p1', found: [], citations: 1 },
+      version: 'x1.opus55',
+    });
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Extraction A');
+    aBrand = await fx.entity(aProject, { kind: 'brand', name: 'Twin', domains: ['twin-a.test'] });
+    bBrand = await fx.entity(bProject, {
+      kind: 'brand',
+      name: 'Twin',
+      aliases: ['Twins'],
+      domains: ['twin-b.test'],
+      excludes: ['Twin Peaks'],
+    });
+    aRun = await fx.run(aProject);
+    bRun = await fx.run(bProject);
+    aSnap = await fx.collectedAnswer(aRun, await fx.prompt(aProject, { text: 'Which twin?' }));
+    bSnap = await fx.collectedAnswer(bRun, await fx.prompt(bProject, { text: 'Which twin?' }));
+  });
+
+  after(() => fx.forgetDomains([DOMAIN]));
+
+  test('entitiesFor(): A gets nothing for B’s project; B gets its own with aliases and exclusions', async () => {
+    assert.deepEqual(await A.scoped.extractions.entitiesFor(bProject.id), []);
+    const mine = await B.scoped.extractions.entitiesFor(bProject.id);
+    assert.deepEqual(
+      mine.map((e) => [e.name, e.aliases, e.domains, e.excludes]),
+      [['Twin', ['Twins'], ['twin-b.test'], ['Twin Peaks']]],
+    );
+  });
+
+  test('snapshot(), run() and pendingForRun(): B’s answers, runs and questions are invisible from A', async () => {
+    assert.equal(await A.scoped.extractions.snapshot(bSnap.id), null);
+    assert.equal(await A.scoped.extractions.run(bRun.id), null);
+    assert.deepEqual(await A.scoped.extractions.pendingForRun(bRun.id), []);
+    const pending = await B.scoped.extractions.pendingForRun(bRun.id);
+    assert.deepEqual(ids(pending), [String(bSnap.id)]);
+    assert.equal(pending[0].prompt.text, 'Which twin?');
+  });
+
+  test('addBatch(), batchesOf() and batchProcessed(): A can neither record nor see nor close B’s batches', async () => {
+    const at = new Date();
+    assert.equal(
+      await A.scoped.extractions.addBatch(bRun.id, {
+        batchId: 'msgbatch_a',
+        model: 'opus55',
+        count: 1,
+        submittedAt: at,
+      }),
+      false,
+    );
+    assert.equal(
+      await B.scoped.extractions.addBatch(bRun.id, {
+        batchId: 'msgbatch_b',
+        model: 'opus55',
+        count: 1,
+        submittedAt: at,
+      }),
+      true,
+    );
+    assert.deepEqual(await A.scoped.extractions.batchesOf(bRun.id), []);
+    assert.equal(await A.scoped.extractions.batchProcessed(bRun.id, 'msgbatch_b', at), false);
+    const [batch] = await B.scoped.extractions.batchesOf(bRun.id);
+    assert.equal(batch.id, 'msgbatch_b');
+    assert.equal(batch.processedAt, null, 'A did not close it');
+  });
+
+  test('save(): A cannot write into B’s snapshot, nor name B’s entity in its own', async () => {
+    await refuses(save(A.scoped, bSnap.id, aBrand.id), 'NOT_FOUND');
+    await refuses(save(A.scoped, aSnap.id, bBrand.id), 'ENTITY_NOT_IN_PROJECT');
+    const forged = planFor(aBrand.id);
+    forged.citations[0].supportsEntityIds = [bBrand.id];
+    await refuses(
+      A.scoped.extractions.save(aSnap.id, { plan: forged, prepass: null, version: 'x1.opus55' }),
+      'ENTITY_NOT_IN_PROJECT',
+    );
+    assert.equal((await B.scoped.extractions.readingOf(bSnap.id)).mentions.length, 0);
+  });
+
+  test('save(): the same discovered brand in two organizations is two entities; readingOf() shows only one’s own', async () => {
+    await save(A.scoped, aSnap.id, aBrand.id);
+    await save(B.scoped, bSnap.id, bBrand.id);
+    const a = await A.scoped.extractions.readingOf(aSnap.id);
+    const b = await B.scoped.extractions.readingOf(bSnap.id);
+    assert.equal(a.mentions.length, 2);
+    assert.notEqual(String(a.mentions[1].entity_id), String(b.mentions[1].entity_id));
+    assert.equal(await A.scoped.extractions.readingOf(bSnap.id), null);
+    assert.deepEqual(a.citations[0].supports_entity_ids, [
+      String(aBrand.id),
+      String(a.mentions[1].entity_id),
+    ]);
+    assert.ok(
+      a.mentions.every((m) => m.org_id === A.org.id) &&
+        a.claims.every((c) => c.org_id === A.org.id),
+    );
+  });
+
+  test('fail() and requeue(): A cannot move B’s snapshot', async () => {
+    assert.equal(await B.scoped.extractions.requeue(bSnap.id), true);
+    assert.equal(await A.scoped.extractions.fail(bSnap.id, 'from A'), false);
+    assert.equal(await A.scoped.extractions.requeue(bSnap.id), false);
+    const b = await B.scoped.extractions.readingOf(bSnap.id);
+    assert.equal(b.snapshot.extraction_status, 'pending');
+    assert.equal(
+      b.mentions.length,
+      2,
+      'requeueing keeps the old reading until a new one replaces it',
+    );
+  });
+});
+
 describe('system lookups (the reviewed cross-organization set)', () => {
   test('dueProjects(): IDs only, active projects only, none of their content', async () => {
     const slotHour = 150;
@@ -636,6 +805,19 @@ describe('coverage: no repository function without a leak test', () => {
     notifications: ['createOnce', 'forUser'],
     scans: ['checks', 'create', 'fail', 'finish', 'get', 'knownPages', 'pages', 'recent', 'start'],
     snapshots: ['complete', 'create', 'fail', 'forRun', 'get', 'submitted'],
+    extractions: [
+      'addBatch',
+      'batchProcessed',
+      'batchesOf',
+      'entitiesFor',
+      'fail',
+      'pendingForRun',
+      'readingOf',
+      'requeue',
+      'run',
+      'save',
+      'snapshot',
+    ],
   };
 
   // The cross-organization lookups the worker makes (src/db/repos/system.js). Adding one is a reviewed decision:
@@ -668,6 +850,7 @@ describe('coverage: no repository function without a leak test', () => {
     }
     assert.deepEqual(Object.keys(scoped).sort(), [
       'activity',
+      'extractions',
       'invitations',
       'memberships',
       'notifications',

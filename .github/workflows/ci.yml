@@ -103,12 +103,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ui: ${{ steps.filter.outputs.ui }}
+      llm: ${{ steps.filter.outputs.llm }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
+            llm:
+              - 'src/llm/**'
+              - 'evals/extraction/**'
+              - 'scripts/eval-extraction.js'
             ui:
               - 'src/web/**'
               - 'src/db/**'
@@ -171,3 +176,43 @@ jobs:
           name: playwright-traces
           path: test-results/
           retention-days: 7
+
+  # The extraction golden-set eval (BUILD_PLAN Phase 6, MVP §7.10, ADR-0007): runs whenever the extraction code, its
+  # prompt or the golden set changes. The pre-pass part is free and always runs. The Claude part costs about $1-4 a run,
+  # so it needs the ANTHROPIC_API_KEY repository secret and scores only labels a person has reviewed; until both exist
+  # it reports a warning instead of a score.
+  extraction-eval:
+    needs: changes
+    if: needs.changes.outputs.llm == 'true'
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Pre-pass against the golden set (free)
+        run: npm run eval:extraction -- --prepass-only
+
+      - name: Claude extraction against the reviewed golden set (targets enforced)
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::warning::ANTHROPIC_API_KEY is not a repository secret, so the Claude extraction eval did not run."
+            exit 0
+          fi
+          npm run eval:extraction -- --ci
+
+      - name: Keep the eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extraction-eval
+          path: evals/extraction/results/
+          retention-days: 30

@@ -752,7 +752,7 @@ sequenceDiagram
 
 | Task | Volume | Model (default) | Mode | Notes |
 |---|---|---|---|---|
-| Answer extraction / classification | **High** | `claude-opus-5` at low effort | **Batch API (−50%)** + prompt caching + structured outputs | **Week-3 eval** against a 200-answer hand-labeled golden set, comparing with `claude-haiku-4-5` (cheaper tier). Switch the bulk route only if accuracy holds within the agreed tolerance ([§17](#17-decisions-needed-from-the-founder), D4) |
+| Answer extraction / classification | **High** | `claude-opus-5-5` at low effort (*was `claude-opus-5`; see the note below*) | **Batch API (−50%)** + prompt caching + structured outputs | **Week-3 eval** against a 200-answer hand-labeled golden set, comparing with `claude-haiku-4-5` (cheaper tier). Switch the bulk route only if accuracy holds within the agreed tolerance ([§17](#17-decisions-needed-from-the-founder), D4). Built in Phase 6: a free deterministic pre-pass plus Claude, one batch per run ([ADR-0007](adr/0007-answer-extraction.md)) |
 | Brand Kit extraction | Low | `claude-opus-5` | Sync, structured outputs | Up to 30 pages of text |
 | Prompt generation | Low | `claude-opus-5` | Sync, structured outputs | Intent coverage rules in the prompt |
 | Recommendation narratives | Medium | `claude-opus-5` | Batch | Evidence passed in; never free-form facts |
@@ -760,6 +760,8 @@ sequenceDiagram
 | Brief + draft | Low | `claude-opus-5` (higher effort) | Streaming | Brand voice + facts registry + research in context |
 | Content QC | Low | `claude-opus-5` | Structured outputs | Rubric scoring |
 | JSON-LD | Low | Typed templates + `claude-opus-5` field filling | Structured outputs | Validated before save |
+
+*2026-10-03:* Claude Opus 5.5 (`claude-opus-5-5`) has replaced Opus 5 as the current Opus model, with the same features at a lower price ($4 / $20 per million tokens, against $5 / $25). Answer extraction uses it from Phase 6 ([ADR-0007](adr/0007-answer-extraction.md)). The other rows move to it as their phases are built. On Opus 5.5, thinking can't be switched off; effort is the only control.
 
 **LLM engineering practices**
 - Prompts are versioned in the repo and traced in Langfuse.
@@ -1012,7 +1014,8 @@ These choices are about policy safety and long-term customer trust, and they are
 | Perplexity answer (Agent API, `perplexity/sonar`) | ≈ $0.004 per answer ($1/M tokens in and out + $0.0025 per web search; checked 2026-10-03, [ADR-0006](adr/0006-engine-adapters.md)). Was ≈ $0.006 on Sonar Chat Completions, which ended 2026-09-27 |
 | Google AI Overview (SERP API) | ≈ $0.01 per search (SerpApi Production tier, $150 for 15,000; checked 2026-10-03). An overview Google builds separately takes a second request, counted as a second search until an invoice shows otherwise |
 | Claude Opus 5 | $5 / $25 per M input/output tokens; Batch −50%; cache reads at a fraction of input price |
-| Claude Haiku 4.5 | $1 / $5 per M input/output tokens |
+| Claude Opus 5.5 | $4 / $20 per M input/output tokens; Batch −50%; cache reads $0.20 per M (checked 2026-10-03). Replaces Opus 5 for extraction ([ADR-0007](adr/0007-answer-extraction.md)) |
+| Claude Haiku 4.5 | $1 / $5 per M input/output tokens; caches only a prefix of 4,096 tokens or more |
 | Claude web search tool | $10 per 1K searches + tokens |
 
 **Extraction cost per answer** (~0.7K answer tokens + ~1.5K shared instructions/schema/entity list, ~0.4K output, Batch API, instructions cached):
@@ -1020,6 +1023,8 @@ These choices are about policy safety and long-term customer trust, and they are
 - `claude-haiku-4-5`: ≈ **$0.002**
 
 For the cached prefix to qualify, it must meet the model's minimum cacheable length. Padding it with few-shot examples also helps accuracy.
+
+*2026-10-03, from the golden set ([ADR-0007](adr/0007-answer-extraction.md)):* the assumptions above are low. Real answers average about 2,500 characters (Gemini about 5,300), Perplexity lists about 15 sources, and the shared instructions with four worked examples are about 3,900 tokens. The eval will record the real cost per answer for both models; the figures above stay until it does.
 
 ### 12.2 Cost per tracked prompt-run
 One prompt-run = 10 answers: ChatGPT ×3, Gemini ×3, Perplexity ×3, AI Overviews ×1.
@@ -1074,7 +1079,7 @@ The narrative shape of the build. For the actual checkable work items and the re
 |---|---|---|
 | **0** (pre-start) | Setup & long-lead items | Repo, CI; DigitalOcean provisioning (Droplet, Managed MySQL, Redis, Spaces, Cloudflare in front) per §7.11; provider accounts and budgets; **Google OAuth verification submitted**; ToS/Privacy/DPA drafts; 20 design-partner conversations started |
 | **1–2** | Foundations + crawler | Auth/orgs, database schema v1, job infrastructure, usage ledger; SSRF-safe fetcher; robots/sitemap parsing; readiness checks v0; **spikes on all 4 engine adapters** with raw storage; **design system, wireframes and the public site shell** (homepage, methodology v1, Terms, Privacy) |
-| **3** | Extraction + eval | Extraction schema; **200-answer golden set** labeled; eval of Opus 5 (low effort) vs Haiku 4.5; score formulas v0; decision **D4** recorded as an ADR |
+| **3** | Extraction + eval | Extraction schema; **200-answer golden set** labeled; eval of Opus 5.5 (low effort) vs Haiku 4.5; score formulas v0; decision **D4** recorded as an ADR |
 | **4** | 🚩 **M1: Free audit live** | Public audit (Turnstile, OTP, report page, email); rate limits; lead capture; audit analytics funnel; Terms and Privacy already live before any real email is collected. *Starts generating leads while the rest is built* |
 | **5–6** | Tracking core | Projects, Brand Kit, Prompt Manager, scheduler, orchestrator, batch extraction, entity resolution, rollups, significance tests |
 | **7–8** | 🚩 **M2: Design-partner beta** | Dashboard (overview, prompt matrix, competitors), Citation Intelligence; 10–15 design partners onboarded |
@@ -1149,7 +1154,7 @@ The narrative shape of the build. For the actual checkable work items and the re
 | **D1** | Beachhead customer | (a) In-house SMB self-serve · (b) Agencies first · (c) One vertical | **(a) + a vertical focus:** self-serve SMB on WordPress in 1–2 verticals where AI answers drive high-value decisions (B2B SaaS, or local professional services such as legal, dental and home services, where AEO Engine shows traction). Keep the Agency plan available |
 | **D2** | Pure software vs software + services | Software-only · Add a done-for-you tier | **Software-only for MVP.** Services later through vetted partners (v2), to protect margins and focus |
 | **D3** | Trial model | Free audit + 14-day trial (card) · No-card trial · Freemium tracking | **Free audit is the free tier; 14-day trial with card required.** Tracking has real variable costs |
-| **D4** | Bulk extraction model | `claude-opus-5` at low effort (default) · `claude-haiku-4-5` for bulk | **Decide from the week-3 golden-set eval.** Keep Opus 5 unless Haiku 4.5 matches it within the agreed tolerance (e.g., ≤ 2 points lower on mention detection) |
+| **D4** | Bulk extraction model | `claude-opus-5-5` at low effort (default; it replaced `claude-opus-5`) · `claude-haiku-4-5` for bulk | **Decide from the week-3 golden-set eval.** Keep Opus 5.5 unless Haiku 4.5 meets every [§10](#10-non-functional-requirements) target and is at most 2 points lower on mention detection. *2026-10-03: the eval and the 237-answer golden set are built; the labels await the founder's review and the Claude runs await an API key ([ADR-0007](adr/0007-answer-extraction.md)). The free pre-pass alone already agrees with the draft labels on 100% of mentions, so D4 is likely to turn on stance and rank* |
 | **D5** | Tracking cadence default | Weekly · Daily | **Weekly** (already 4× AEO Engine's monthly cadence), with daily as a paid add-on |
 | **D6** | Product name, domain, brand | AEO Corner · AeoAlgo · HeardOf · others screened (see note below) | ✅ **Decided 2026-09-28: AEO Corner.** Domains `aeocorner.com` + `aeocorner.ai` (unregistered at decision time). Always write it as "AEO Corner". Tagline: *"Corner your market in AI answers."* To do before M1: register both domains, a trademark clearance search for software (US classes 9/42), and the social handles |
 | **D7** | Data residency | US only · US + EU | **US at MVP.** Region-pinned EU in v2 if enterprise demand appears |

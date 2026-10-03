@@ -23,12 +23,15 @@ export const PROVIDER_LIMITS = Object.freeze({
   dataforseo: { capacity: 40, refillPerSec: 20 },
   perplexity_api: { capacity: 5, refillPerSec: 2 },
   serpapi: { capacity: 5, refillPerSec: 2 },
+  // Claude: a batch is one request however many answers it holds, so this mostly paces single-answer reads.
+  anthropic: { capacity: 10, refillPerSec: 4 },
 });
 
 export const ORG_CONCURRENCY = Object.freeze({
   default: { cap: 4, ttlMs: 10 * 60_000 },
   collect: { cap: 8, ttlMs: 10 * 60_000 },
   crawl: { cap: 2, ttlMs: 10 * 60_000 },
+  extract: { cap: 4, ttlMs: 10 * 60_000 },
   content: { cap: 2, ttlMs: 30 * 60_000 },
 });
 

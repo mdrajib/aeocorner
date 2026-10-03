@@ -1,0 +1,641 @@
+{
+  "about": "Imaginary customer projects for the extraction golden set (BUILD_PLAN Phase 6, ADR-0007). Real brands, so the AI engines answer about them; each project's first entity is 'the customer'. Names are chosen to include hard cases: everyday words (Notion, Wave, Brooks), renamed brands (Kit/ConvertKit, Brevo/Sendinblue, Angi/Angie's List, Bizee/Incfile) and look-alikes (Square/Squarespace).",
+  "projects": [
+    {
+      "key": "crm",
+      "entities": [
+        {
+          "key": "pipedrive",
+          "kind": "brand",
+          "name": "Pipedrive",
+          "aliases": [],
+          "domains": ["pipedrive.com"]
+        },
+        {
+          "key": "hubspot",
+          "kind": "competitor",
+          "name": "HubSpot",
+          "aliases": ["HubSpot CRM", "HubSpot Sales Hub"],
+          "domains": ["hubspot.com"]
+        },
+        {
+          "key": "salesforce",
+          "kind": "competitor",
+          "name": "Salesforce",
+          "aliases": ["Salesforce Sales Cloud", "Sales Cloud", "Salesforce Starter"],
+          "domains": ["salesforce.com"]
+        },
+        {
+          "key": "zoho",
+          "kind": "competitor",
+          "name": "Zoho CRM",
+          "aliases": ["Zoho", "Bigin"],
+          "domains": ["zoho.com"]
+        },
+        {
+          "key": "monday",
+          "kind": "competitor",
+          "name": "monday CRM",
+          "aliases": ["monday.com", "monday sales CRM", "Monday CRM"],
+          "domains": ["monday.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best CRM for a small B2B sales team?",
+          "search": "best crm for small b2b sales team"
+        },
+        {
+          "text": "Pipedrive vs HubSpot: which is better for a startup?",
+          "search": "pipedrive vs hubspot for startups"
+        },
+        {
+          "text": "What is an affordable CRM for real estate agents?",
+          "search": "affordable crm for real estate agents"
+        },
+        { "text": "Is Pipedrive worth the price in 2026?", "search": "is pipedrive worth it" },
+        {
+          "text": "Which CRM has the best email automation for small businesses?",
+          "search": "crm with best email automation small business"
+        },
+        {
+          "text": "What CRM integrates best with Gmail?",
+          "search": "crm that integrates with gmail"
+        }
+      ]
+    },
+    {
+      "key": "dental",
+      "entities": [
+        {
+          "key": "curve",
+          "kind": "brand",
+          "name": "Curve Dental",
+          "aliases": ["Curve Hero", "Curve"],
+          "domains": ["curvedental.com"]
+        },
+        {
+          "key": "dentrix",
+          "kind": "competitor",
+          "name": "Dentrix",
+          "aliases": ["Dentrix Ascend", "Dentrix G7"],
+          "domains": ["dentrix.com"]
+        },
+        {
+          "key": "opendental",
+          "kind": "competitor",
+          "name": "Open Dental",
+          "aliases": [],
+          "domains": ["opendental.com"]
+        },
+        {
+          "key": "eaglesoft",
+          "kind": "competitor",
+          "name": "Eaglesoft",
+          "aliases": ["Patterson Eaglesoft"],
+          "domains": ["pattersondental.com"]
+        },
+        {
+          "key": "denticon",
+          "kind": "competitor",
+          "name": "Denticon",
+          "aliases": ["Planet DDS"],
+          "domains": ["planetdds.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best cloud-based dental practice management software?",
+          "search": "best cloud based dental practice management software"
+        },
+        {
+          "text": "Which dental software is easiest for a new single-dentist practice?",
+          "search": "dental software for new practice"
+        },
+        {
+          "text": "Dentrix vs Curve Dental: which should I choose?",
+          "search": "dentrix vs curve dental"
+        },
+        {
+          "text": "What are the cheapest dental practice management systems?",
+          "search": "cheapest dental practice management software"
+        },
+        {
+          "text": "Which dental software has the best patient texting and online booking?",
+          "search": "dental software online booking patient texting"
+        },
+        {
+          "text": "What dental practice software do DSOs use?",
+          "search": "dental practice software for dso"
+        }
+      ]
+    },
+    {
+      "key": "notes",
+      "entities": [
+        {
+          "key": "notion",
+          "kind": "brand",
+          "name": "Notion",
+          "aliases": ["Notion AI"],
+          "domains": ["notion.so", "notion.com"]
+        },
+        {
+          "key": "confluence",
+          "kind": "competitor",
+          "name": "Confluence",
+          "aliases": ["Atlassian Confluence"],
+          "domains": ["atlassian.com"]
+        },
+        {
+          "key": "coda",
+          "kind": "competitor",
+          "name": "Coda",
+          "aliases": [],
+          "domains": ["coda.io"]
+        },
+        {
+          "key": "obsidian",
+          "kind": "competitor",
+          "name": "Obsidian",
+          "aliases": [],
+          "domains": ["obsidian.md"]
+        },
+        {
+          "key": "clickup",
+          "kind": "competitor",
+          "name": "ClickUp",
+          "aliases": ["ClickUp Docs"],
+          "domains": ["clickup.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best tool for a team wiki and internal documentation?",
+          "search": "best team wiki software"
+        },
+        {
+          "text": "Notion vs Confluence for a 50-person company?",
+          "search": "notion vs confluence"
+        },
+        {
+          "text": "What is the best note-taking app for personal knowledge management?",
+          "search": "best note taking app personal knowledge management"
+        },
+        {
+          "text": "Is Notion good for project management?",
+          "search": "is notion good for project management"
+        },
+        { "text": "What are good alternatives to Notion?", "search": "notion alternatives" },
+        {
+          "text": "Which documentation tool works offline?",
+          "search": "documentation app that works offline"
+        }
+      ]
+    },
+    {
+      "key": "accounting",
+      "entities": [
+        { "key": "xero", "kind": "brand", "name": "Xero", "aliases": [], "domains": ["xero.com"] },
+        {
+          "key": "quickbooks",
+          "kind": "competitor",
+          "name": "QuickBooks Online",
+          "aliases": ["QuickBooks", "QBO", "Intuit QuickBooks"],
+          "domains": ["quickbooks.intuit.com"]
+        },
+        {
+          "key": "freshbooks",
+          "kind": "competitor",
+          "name": "FreshBooks",
+          "aliases": [],
+          "domains": ["freshbooks.com"]
+        },
+        {
+          "key": "wave",
+          "kind": "competitor",
+          "name": "Wave",
+          "aliases": ["Wave Accounting", "Wave Financial"],
+          "domains": ["waveapps.com"]
+        },
+        {
+          "key": "zohobooks",
+          "kind": "competitor",
+          "name": "Zoho Books",
+          "aliases": [],
+          "domains": ["zoho.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best accounting software for a small business?",
+          "search": "best accounting software for small business"
+        },
+        {
+          "text": "Xero vs QuickBooks Online: which is better?",
+          "search": "xero vs quickbooks online"
+        },
+        {
+          "text": "Is there free accounting software for freelancers?",
+          "search": "free accounting software for freelancers"
+        },
+        {
+          "text": "Which accounting software do UK accountants recommend?",
+          "search": "accounting software uk accountants recommend"
+        },
+        {
+          "text": "What is the easiest bookkeeping software for a non-accountant?",
+          "search": "easiest bookkeeping software"
+        },
+        {
+          "text": "Which accounting app handles multiple currencies well?",
+          "search": "accounting software multi currency"
+        }
+      ]
+    },
+    {
+      "key": "email",
+      "entities": [
+        {
+          "key": "mailchimp",
+          "kind": "brand",
+          "name": "Mailchimp",
+          "aliases": ["Intuit Mailchimp"],
+          "domains": ["mailchimp.com"]
+        },
+        {
+          "key": "klaviyo",
+          "kind": "competitor",
+          "name": "Klaviyo",
+          "aliases": [],
+          "domains": ["klaviyo.com"]
+        },
+        {
+          "key": "kit",
+          "kind": "competitor",
+          "name": "Kit",
+          "aliases": ["ConvertKit"],
+          "domains": ["kit.com", "convertkit.com"]
+        },
+        {
+          "key": "brevo",
+          "kind": "competitor",
+          "name": "Brevo",
+          "aliases": ["Sendinblue"],
+          "domains": ["brevo.com", "sendinblue.com"]
+        },
+        {
+          "key": "activecampaign",
+          "kind": "competitor",
+          "name": "ActiveCampaign",
+          "aliases": [],
+          "domains": ["activecampaign.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best email marketing platform for a small online store?",
+          "search": "best email marketing for small online store"
+        },
+        { "text": "Mailchimp vs Klaviyo for Shopify?", "search": "mailchimp vs klaviyo shopify" },
+        {
+          "text": "What is the best email marketing tool for creators and newsletters?",
+          "search": "best email platform for newsletters creators"
+        },
+        {
+          "text": "What is a cheaper alternative to Mailchimp?",
+          "search": "cheaper alternative to mailchimp"
+        },
+        {
+          "text": "Which email marketing software has the best automation?",
+          "search": "email marketing software best automation"
+        },
+        { "text": "Is Mailchimp still free for small lists?", "search": "is mailchimp free" }
+      ]
+    },
+    {
+      "key": "homeservices",
+      "entities": [
+        {
+          "key": "angi",
+          "kind": "brand",
+          "name": "Angi",
+          "aliases": ["Angie's List", "Angi Leads"],
+          "domains": ["angi.com", "angieslist.com"]
+        },
+        {
+          "key": "thumbtack",
+          "kind": "competitor",
+          "name": "Thumbtack",
+          "aliases": [],
+          "domains": ["thumbtack.com"]
+        },
+        {
+          "key": "homeadvisor",
+          "kind": "competitor",
+          "name": "HomeAdvisor",
+          "aliases": [],
+          "domains": ["homeadvisor.com"]
+        },
+        {
+          "key": "yelp",
+          "kind": "competitor",
+          "name": "Yelp",
+          "aliases": [],
+          "domains": ["yelp.com"]
+        },
+        {
+          "key": "nextdoor",
+          "kind": "competitor",
+          "name": "Nextdoor",
+          "aliases": [],
+          "domains": ["nextdoor.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "How do I find a reliable plumber near me?",
+          "search": "how to find a reliable plumber"
+        },
+        {
+          "text": "What is the best app for finding local contractors?",
+          "search": "best app to find local contractors"
+        },
+        {
+          "text": "Angi vs Thumbtack: which is better for homeowners?",
+          "search": "angi vs thumbtack"
+        },
+        { "text": "Is HomeAdvisor legit?", "search": "is homeadvisor legit" },
+        {
+          "text": "Where can I get quotes for a kitchen remodel?",
+          "search": "get quotes kitchen remodel"
+        },
+        {
+          "text": "What is the best website for contractors to get leads?",
+          "search": "best website for contractor leads"
+        }
+      ]
+    },
+    {
+      "key": "legal",
+      "entities": [
+        {
+          "key": "legalzoom",
+          "kind": "brand",
+          "name": "LegalZoom",
+          "aliases": [],
+          "domains": ["legalzoom.com"]
+        },
+        {
+          "key": "rocketlawyer",
+          "kind": "competitor",
+          "name": "Rocket Lawyer",
+          "aliases": [],
+          "domains": ["rocketlawyer.com"]
+        },
+        {
+          "key": "zenbusiness",
+          "kind": "competitor",
+          "name": "ZenBusiness",
+          "aliases": [],
+          "domains": ["zenbusiness.com"]
+        },
+        {
+          "key": "bizee",
+          "kind": "competitor",
+          "name": "Bizee",
+          "aliases": ["Incfile"],
+          "domains": ["bizee.com", "incfile.com"]
+        },
+        {
+          "key": "northwest",
+          "kind": "competitor",
+          "name": "Northwest Registered Agent",
+          "aliases": ["Northwest"],
+          "domains": ["northwestregisteredagent.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best service to form an LLC online?",
+          "search": "best llc formation service"
+        },
+        {
+          "text": "LegalZoom vs ZenBusiness: which is better?",
+          "search": "legalzoom vs zenbusiness"
+        },
+        {
+          "text": "Is LegalZoom worth it for writing a will?",
+          "search": "is legalzoom good for wills"
+        },
+        {
+          "text": "What is the cheapest way to get a registered agent?",
+          "search": "cheapest registered agent service"
+        },
+        {
+          "text": "Can I use an online legal service instead of a lawyer for a small business contract?",
+          "search": "online legal service vs lawyer small business contract"
+        },
+        {
+          "text": "Which online legal service has the best customer support?",
+          "search": "online legal service best customer support"
+        }
+      ]
+    },
+    {
+      "key": "ecommerce",
+      "entities": [
+        {
+          "key": "shopify",
+          "kind": "brand",
+          "name": "Shopify",
+          "aliases": [],
+          "domains": ["shopify.com"]
+        },
+        {
+          "key": "woocommerce",
+          "kind": "competitor",
+          "name": "WooCommerce",
+          "aliases": [],
+          "domains": ["woocommerce.com"]
+        },
+        {
+          "key": "bigcommerce",
+          "kind": "competitor",
+          "name": "BigCommerce",
+          "aliases": [],
+          "domains": ["bigcommerce.com"]
+        },
+        {
+          "key": "squarespace",
+          "kind": "competitor",
+          "name": "Squarespace",
+          "aliases": ["Squarespace Commerce"],
+          "domains": ["squarespace.com"]
+        },
+        {
+          "key": "wix",
+          "kind": "competitor",
+          "name": "Wix",
+          "aliases": ["Wix eCommerce"],
+          "domains": ["wix.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best e-commerce platform for a new small business?",
+          "search": "best ecommerce platform for small business"
+        },
+        {
+          "text": "Shopify vs WooCommerce: which should I use?",
+          "search": "shopify vs woocommerce"
+        },
+        {
+          "text": "What is the cheapest way to sell products online?",
+          "search": "cheapest way to sell products online"
+        },
+        {
+          "text": "Which website builder is best for selling handmade goods?",
+          "search": "best website builder for selling handmade"
+        },
+        {
+          "text": "Is Square Online good for a restaurant website?",
+          "search": "square online for restaurants"
+        },
+        {
+          "text": "What platform do large online stores use?",
+          "search": "ecommerce platform for large stores"
+        }
+      ]
+    },
+    {
+      "key": "passwords",
+      "entities": [
+        {
+          "key": "onepassword",
+          "kind": "brand",
+          "name": "1Password",
+          "aliases": [],
+          "domains": ["1password.com"]
+        },
+        {
+          "key": "bitwarden",
+          "kind": "competitor",
+          "name": "Bitwarden",
+          "aliases": [],
+          "domains": ["bitwarden.com"]
+        },
+        {
+          "key": "lastpass",
+          "kind": "competitor",
+          "name": "LastPass",
+          "aliases": [],
+          "domains": ["lastpass.com"]
+        },
+        {
+          "key": "dashlane",
+          "kind": "competitor",
+          "name": "Dashlane",
+          "aliases": [],
+          "domains": ["dashlane.com"]
+        },
+        {
+          "key": "nordpass",
+          "kind": "competitor",
+          "name": "NordPass",
+          "aliases": [],
+          "domains": ["nordpass.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What is the best password manager for a family?",
+          "search": "best password manager for families"
+        },
+        {
+          "text": "1Password vs Bitwarden: which is more secure?",
+          "search": "1password vs bitwarden"
+        },
+        { "text": "Is LastPass safe to use after its data breach?", "search": "is lastpass safe" },
+        {
+          "text": "What is the best free password manager?",
+          "search": "best free password manager"
+        },
+        {
+          "text": "Which password manager should a small business use?",
+          "search": "password manager for small business"
+        },
+        {
+          "text": "Do I need a password manager if my browser saves passwords?",
+          "search": "password manager vs browser"
+        }
+      ]
+    },
+    {
+      "key": "running",
+      "entities": [
+        {
+          "key": "hoka",
+          "kind": "brand",
+          "name": "HOKA",
+          "aliases": ["Hoka One One"],
+          "domains": ["hoka.com"]
+        },
+        {
+          "key": "brooks",
+          "kind": "competitor",
+          "name": "Brooks",
+          "aliases": ["Brooks Running"],
+          "domains": ["brooksrunning.com"]
+        },
+        {
+          "key": "asics",
+          "kind": "competitor",
+          "name": "ASICS",
+          "aliases": [],
+          "domains": ["asics.com"]
+        },
+        {
+          "key": "newbalance",
+          "kind": "competitor",
+          "name": "New Balance",
+          "aliases": [],
+          "domains": ["newbalance.com"]
+        },
+        {
+          "key": "saucony",
+          "kind": "competitor",
+          "name": "Saucony",
+          "aliases": [],
+          "domains": ["saucony.com"]
+        }
+      ],
+      "questions": [
+        {
+          "text": "What are the best running shoes for beginners?",
+          "search": "best running shoes for beginners"
+        },
+        {
+          "text": "Which running shoes are best for plantar fasciitis?",
+          "search": "best running shoes plantar fasciitis"
+        },
+        {
+          "text": "Are HOKA shoes good for marathon training?",
+          "search": "hoka for marathon training"
+        },
+        {
+          "text": "What are the most cushioned running shoes?",
+          "search": "most cushioned running shoes"
+        },
+        {
+          "text": "Brooks Ghost vs HOKA Clifton: which is better?",
+          "search": "brooks ghost vs hoka clifton"
+        },
+        {
+          "text": "What running shoes do podiatrists recommend?",
+          "search": "running shoes podiatrists recommend"
+        }
+      ]
+    }
+  ]
+}

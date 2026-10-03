@@ -12,6 +12,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["tests/e2e/server.js"],
       "port": 3000
+    },
+    {
+      "name": "golden-review",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/golden-review.js"],
+      "port": 3999
     }
   ]
 }

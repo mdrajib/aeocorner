@@ -6,8 +6,7 @@ const h = authHarness();
 after(() => h.close());
 
 const secret = clerkKeys.CLERK_WEBHOOK_SECRET;
-let counter = 0;
-const nextId = () => `msg_test_${Date.now()}_${counter++}`;
+const nextId = () => h.fx.webhookId();
 
 function userData(clerkUser, overrides = {}) {
   return {

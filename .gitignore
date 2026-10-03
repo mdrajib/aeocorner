@@ -48,3 +48,6 @@ plugins/wordpress-connector/*.zip
 
 # Raw provider responses from `npm run engines:try -- --record`, reviewed before they become fixtures
 tests/fixtures/engines/recorded/
+
+# The extraction eval's cached Claude replies (re-created by `npm run eval:extraction`)
+evals/extraction/.cache/

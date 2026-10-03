@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Golden-set review</title>
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --card: #fff;
+        --ink: #1d1d1b;
+        --muted: #6b6b66;
+        --line: #e2e1dc;
+        --accent: #1f5eff;
+        --ok: #1b7f3b;
+        --warn: #a15c00;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+      header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--card);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        flex-wrap: wrap;
+      }
+      header h1 {
+        font-size: 15px;
+        margin: 0 12px 0 0;
+      }
+      header .count {
+        color: var(--muted);
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(150px, 230px) 1fr minmax(360px, 440px);
+        height: calc(100vh - 50px);
+      }
+      nav {
+        overflow: auto;
+        border-right: 1px solid var(--line);
+        background: var(--card);
+      }
+      nav button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: none;
+        padding: 7px 12px;
+        cursor: pointer;
+        font: inherit;
+      }
+      nav button.current {
+        background: #e8eefc;
+      }
+      nav .tag {
+        font-size: 11px;
+        padding: 0 6px;
+        border-radius: 8px;
+        margin-left: 4px;
+      }
+      .draft {
+        background: #fdf0dc;
+        color: var(--warn);
+      }
+      .reviewed {
+        background: #dcf3e3;
+        color: var(--ok);
+      }
+      section.answer {
+        overflow: auto;
+        padding: 16px 20px;
+      }
+      section.answer h2 {
+        font-size: 16px;
+        margin: 0 0 4px;
+      }
+      .meta {
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      pre.text {
+        white-space: pre-wrap;
+        font:
+          14px/1.6 system-ui,
+          sans-serif;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 12px 14px;
+      }
+      mark {
+        border-radius: 3px;
+        padding: 0 1px;
+      }
+      ol.sources {
+        color: var(--muted);
+        font-size: 12px;
+        word-break: break-all;
+      }
+      aside {
+        overflow: auto;
+        border-left: 1px solid var(--line);
+        background: var(--card);
+        padding: 14px 16px;
+      }
+      aside h3 {
+        font-size: 13px;
+        margin: 14px 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      td,
+      th {
+        padding: 4px 4px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: middle;
+        font-size: 13px;
+      }
+      th {
+        font-weight: 600;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      input[type='number'] {
+        width: 48px;
+      }
+      td select {
+        max-width: 7.5em;
+      }
+      select,
+      input,
+      textarea {
+        font: inherit;
+      }
+      textarea {
+        width: 100%;
+        min-height: 60px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+        position: sticky;
+        bottom: 0;
+        background: var(--card);
+        padding: 10px 0;
+      }
+      button.primary {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 8px 14px;
+        cursor: pointer;
+        font: inherit;
+      }
+      button.secondary {
+        background: none;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font: inherit;
+      }
+      .help {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status {
+        margin-left: auto;
+        color: var(--muted);
+      }
+      .swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
+      .name-cell {
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Golden-set review</h1>
+      <label
+        >Show
+        <select id="filter">
+          <option value="all">all</option>
+          <option value="draft">drafts only</option>
+          <option value="reviewed">reviewed only</option>
+        </select></label
+      >
+      <label
+        >Project
+        <select id="project">
+          <option value="">all</option>
+        </select></label
+      >
+      <label>Your name <input id="reviewer" size="12" placeholder="e.g. Rajib" /></label>
+      <span class="count" id="count"></span>
+      <span class="status" id="status"></span>
+    </header>
+    <main>
+      <nav id="list"></nav>
+      <section class="answer" id="answer"><p class="help">Pick an answer on the left.</p></section>
+      <aside id="form"></aside>
+    </main>
+    <script>
+      const COLORS = ['#ffe08a', '#b8e3ff', '#c9f2c7', '#ffc9de', '#e2d4ff', '#ffd8b0', '#c4f0ec'];
+      const TYPES = ['list', 'single_recommendation', 'comparison', 'explanatory', 'refusal'];
+      const STANCES = ['recommended', 'neutral', 'cautioned', 'not_recommended'];
+      const PROMINENCE = ['primary', 'secondary', 'passing'];
+      let data,
+        current = null;
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) =>
+        String(s ?? '').replace(
+          /[&<>"]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+        );
+
+      try {
+        $('reviewer').value = localStorage.getItem('reviewer') || '';
+      } catch {}
+      $('reviewer').addEventListener('change', () => {
+        try {
+          localStorage.setItem('reviewer', $('reviewer').value);
+        } catch {}
+      });
+
+      async function load() {
+        data = await (await fetch('/api/data')).json();
+        data.labelById = new Map(data.labels.map((l) => [l.id, l]));
+        data.projectByKey = new Map(data.projects.map((p) => [p.key, p]));
+        $('project').innerHTML =
+          '<option value="">all</option>' +
+          data.projects.map((p) => `<option>${esc(p.key)}</option>`).join('');
+        renderList();
+      }
+
+      function visible() {
+        const f = $('filter').value,
+          p = $('project').value;
+        return data.answers.filter((a) => {
+          const l = data.labelById.get(a.id);
+          if (p && a.project !== p) return false;
+          if (f === 'draft') return !l || l.status !== 'reviewed';
+          if (f === 'reviewed') return l?.status === 'reviewed';
+          return true;
+        });
+      }
+
+      function renderList() {
+        const items = visible();
+        const reviewed = data.answers.filter(
+          (a) => data.labelById.get(a.id)?.status === 'reviewed',
+        ).length;
+        $('count').textContent = `${reviewed} of ${data.answers.length} reviewed`;
+        $('list').innerHTML = items
+          .map((a) => {
+            const l = data.labelById.get(a.id);
+            const tag =
+              l?.status === 'reviewed'
+                ? '<span class="tag reviewed">reviewed</span>'
+                : '<span class="tag draft">draft</span>';
+            return `<button data-id="${esc(a.id)}" class="${a.id === current ? 'current' : ''}">${esc(a.id)}${tag}</button>`;
+          })
+          .join('');
+        for (const b of $('list').querySelectorAll('button'))
+          b.addEventListener('click', () => open(b.dataset.id));
+      }
+
+      /** Highlight every occurrence of each tracked entity's names, aliases and domains, one colour per entity. */
+      function highlight(text, entities) {
+        const lower = text.toLowerCase();
+        const hits = [];
+        entities.forEach((e, i) => {
+          for (const n of [e.name, ...(e.aliases || []), ...(e.domains || [])]) {
+            const needle = String(n).toLowerCase();
+            if (needle.length < 2) continue;
+            for (let at = lower.indexOf(needle); at !== -1; at = lower.indexOf(needle, at + 1))
+              hits.push({ start: at, end: at + needle.length, i });
+          }
+        });
+        hits.sort((a, b) => a.start - b.start || b.end - b.start - (a.end - a.start));
+        let out = '',
+          pos = 0;
+        for (const h of hits) {
+          if (h.start < pos) continue;
+          out +=
+            esc(text.slice(pos, h.start)) +
+            `<mark style="background:${COLORS[h.i % COLORS.length]}" title="${esc(entities[h.i].name)}">${esc(text.slice(h.start, h.end))}</mark>`;
+          pos = h.end;
+        }
+        return out + esc(text.slice(pos));
+      }
+
+      function open(id) {
+        current = id;
+        const a = data.answers.find((x) => x.id === id);
+        const project = data.projectByKey.get(a.project);
+        const label = data.labelById.get(id) || {
+          answer_type: 'list',
+          tracked: {},
+          others: [],
+          notes: '',
+        };
+        $('answer').innerHTML = `
+    <h2>${esc(a.question)}</h2>
+    <div class="meta">${esc(a.id)} · ${esc(a.engine)} via ${esc(a.provider)} · ${a.text.length} characters · label ${esc(label.status || 'none')}${label.labeled_by ? ' by ' + esc(label.labeled_by) : ''}${label.reviewed_by ? ', reviewed by ' + esc(label.reviewed_by) : ''}</div>
+    <pre class="text">${highlight(a.text, project.entities)}</pre>
+    <h3>Sources</h3>
+    <ol class="sources">${a.sources.map((s) => `<li>${esc(s.domain)} — ${esc(s.title || '')} <span>${esc(s.url)}</span></li>`).join('') || '<li>(none)</li>'}</ol>`;
+
+        const rows = project.entities
+          .map((e, i) => {
+            const t = label.tracked[e.key] || {
+              mentioned: false,
+              list_rank: null,
+              stance: null,
+              prominence: null,
+            };
+            const opts = (list, value) =>
+              '<option value="">—</option>' +
+              list.map((v) => `<option ${v === value ? 'selected' : ''}>${v}</option>`).join('');
+            return `<tr data-key="${esc(e.key)}">
+      <td class="name-cell"><span class="swatch" style="background:${COLORS[i % COLORS.length]}"></span>${esc(e.name)}${e.kind === 'brand' ? ' <b>(brand)</b>' : ''}</td>
+      <td><input type="checkbox" name="mentioned" ${t.mentioned ? 'checked' : ''} aria-label="named"></td>
+      <td><input type="number" name="list_rank" min="1" value="${t.list_rank ?? ''}" aria-label="list rank"></td>
+      <td><select name="stance" aria-label="stance">${opts(STANCES, t.stance)}</select></td>
+      <td><select name="prominence" aria-label="prominence">${opts(PROMINENCE, t.prominence)}</select></td>
+    </tr>`;
+          })
+          .join('');
+        $('form').innerHTML = `
+    <h3>Answer type</h3>
+    <select id="answer_type">${TYPES.map((t) => `<option ${t === label.answer_type ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    <h3>Tracked brands</h3>
+    <table><tr><th>Brand</th><th>Named</th><th>Rank</th><th>Stance</th><th>Prominence</th></tr>${rows}</table>
+    <p class="help">Rank only for list answers: the item the brand heads, counting options in reading order. Leave empty if it is named inside another item or outside the list. A highlight is a hint, not a mention: "learning curve" is not Curve Dental.</p>
+    <h3>Other brands named (one per line)</h3>
+    <textarea id="others">${esc((label.others || []).join('\n'))}</textarea>
+    <h3>Notes</h3>
+    <textarea id="notes">${esc(label.notes || '')}</textarea>
+    <div class="actions">
+      <button class="primary" id="save">Save as reviewed &amp; next (Ctrl+S)</button>
+      <button class="secondary" id="next">Skip</button>
+    </div>
+    <p class="help">Rules for each field: the extraction prompt (src/llm/extraction-prompt.js). Saving marks this answer reviewed under your name.</p>`;
+        $('save').addEventListener('click', save);
+        $('next').addEventListener('click', next);
+        renderList();
+        $('answer').scrollTop = 0;
+      }
+
+      function next() {
+        const items = visible();
+        const i = items.findIndex((a) => a.id === current);
+        if (items[i + 1]) open(items[i + 1].id);
+      }
+
+      async function save() {
+        const reviewer = $('reviewer').value.trim();
+        if (!reviewer) {
+          $('status').textContent = 'Enter your name first.';
+          $('reviewer').focus();
+          return;
+        }
+        const tracked = {};
+        for (const tr of $('form').querySelectorAll('tr[data-key]')) {
+          const mentioned = tr.querySelector('[name=mentioned]').checked;
+          const rank = tr.querySelector('[name=list_rank]').value;
+          tracked[tr.dataset.key] = {
+            mentioned,
+            list_rank: mentioned && rank ? Number(rank) : null,
+            stance: mentioned ? tr.querySelector('[name=stance]').value || null : null,
+            prominence: mentioned ? tr.querySelector('[name=prominence]').value || null : null,
+          };
+        }
+        const body = {
+          answer_type: $('answer_type').value,
+          tracked,
+          others: $('others')
+            .value.split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean),
+          notes: $('notes').value,
+          reviewer,
+        };
+        const missing = Object.entries(tracked).find(([, t]) => t.mentioned && !t.stance);
+        if (missing) {
+          $('status').textContent = `Pick a stance for ${missing[0]}.`;
+          return;
+        }
+        const res = await fetch(`/api/labels/${encodeURIComponent(current)}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const saved = await res.json();
+        if (!res.ok) {
+          $('status').textContent = `Not saved: ${saved.error}`;
+          return;
+        }
+        data.labelById.set(current, saved);
+        $('status').textContent = `Saved ${current}`;
+        next();
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          if (current) save();
+        }
+      });
+      $('filter').addEventListener('change', renderList);
+      $('project').addEventListener('change', renderList);
+      load();
+    </script>
+  </body>
+</html>

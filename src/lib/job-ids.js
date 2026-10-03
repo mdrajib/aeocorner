@@ -31,3 +31,16 @@ export const schedulerId = (name) => jobId('schedule', name.replaceAll('.', '_')
 
 /** The collection of one answer: one snapshot row, one job, however often it is asked for. */
 export const answerJobId = (snapshotId) => jobId('answer', snapshotId);
+
+/**
+ * Reading a run's answers with one Claude batch. `round` counts extraction passes over the same run (a later
+ * re-extraction is round 2), so a finished round's ID can't swallow the next one.
+ */
+export const extractRunJobId = (runId, round = 1) => jobId('extract', runId, `r${round}`);
+
+/** Waiting for one Claude batch and storing its results: one job per batch. */
+export const extractPollJobId = (batchId) => jobId('extract-poll', batchId);
+
+/** Reading one answer now. `reason` tells passes apart (e.g. the batch whose item failed). */
+export const extractAnswerJobId = (snapshotId, reason = 'now') =>
+  jobId('extract-answer', snapshotId, reason);

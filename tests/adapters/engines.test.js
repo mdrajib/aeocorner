@@ -325,6 +325,36 @@ describe('SerpApi (Google AI Overviews)', () => {
     assert.match(answer.text, /Curve Dental or Open Dental/);
   });
 
+  test('a page token whose follow-up Google left empty is "no_answer"; any other empty follow-up is an error', async () => {
+    const aio = adapters().get('serpapi', 'google_aio');
+    routes['GET /search.json'] = (req) =>
+      req.query.engine === 'google_ai_overview'
+        ? { body: fixture('serpapi/google-ai-overview-followup-empty.json') }
+        : { body: fixture('serpapi/google-aio-page-token.json') };
+    const handle = await aio.submit(task());
+    assert.deepEqual(
+      [handle.costMicros, handle.quantity],
+      [20_000, 2],
+      'both searches are charged',
+    );
+    const answer = aio.normalize(handle.raw, task());
+    assert.equal(answer.status, 'no_answer');
+    assert.equal(answer.text, '');
+
+    // Either of SerpApi's two statements is enough; with neither, an empty follow-up is a changed shape.
+    const without = (...keys) => {
+      const followUp = JSON.parse(fixture('serpapi/google-ai-overview-followup-empty.json'));
+      for (const key of keys) delete followUp[key];
+      return { ...handle.raw, followUp };
+    };
+    assert.equal(aio.normalize(without('error'), task()).status, 'no_answer');
+    assert.equal(aio.normalize(without('search_information'), task()).status, 'no_answer');
+    assert.throws(
+      () => aio.normalize(without('error', 'search_information'), task()),
+      providerError('bad_response'),
+    );
+  });
+
   test('no overview, or no results at all, is "no_answer" (the trigger rate), after one search', async () => {
     const aio = adapters().get('serpapi', 'google_aio');
     for (const file of ['serpapi/google-no-aio.json', 'serpapi/google-no-results.json']) {

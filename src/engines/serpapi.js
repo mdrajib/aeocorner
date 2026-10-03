@@ -12,6 +12,8 @@ import { PRICES } from './pricing.js';
  *   - it has an `ai_overview` with only a `page_token`: Google builds the overview separately, so a second
  *     request (`engine=google_ai_overview`) fetches it. The token expires within a minute, so it is fetched
  *     straight away, inside `submit`
+ *   - a page token whose follow-up says Google returned nothing ("Fully empty"): Google advertised an overview
+ *     but had none to show. Also `no_answer` (seen live 2026-10-03)
  *   - no `ai_overview` at all: Google showed none for this query. That is `no_answer`, a real result (it feeds
  *     the AI Overview trigger rate), never a failure and never "not mentioned"
  *
@@ -107,6 +109,19 @@ export function createSerpApiAdapter({
       };
       if (!raw?.search?.search_metadata) {
         throw new ProviderError(`${label}: not a search response`, { status: 'bad_response' });
+      }
+      // The results page promised a separate overview (a page token) and the follow-up for it has none. When
+      // SerpApi says why (Google returned nothing; the overview state is "Fully empty"), Google showed no overview:
+      // `no_answer`. Seen live 2026-10-03, stable across retries hours apart. Without that statement it stays an
+      // error, so a changed follow-up shape is never read as "Google showed none".
+      if (raw?.followUp && !raw.followUp.ai_overview) {
+        const state = String(raw.followUp.search_information?.ai_overview_state ?? '');
+        if (NO_RESULTS.test(String(raw.followUp.error ?? '')) || /fully empty/i.test(state)) {
+          return checkedAnswer({ ...base, status: 'no_answer', text: '', sources: [] });
+        }
+        throw new ProviderError(`${label}: the overview follow-up returned nothing we can read`, {
+          status: 'bad_response',
+        });
       }
       // No `ai_overview` at all: Google showed none. An overview we can't turn into text is a changed shape,
       // and must not be counted as "Google showed none".

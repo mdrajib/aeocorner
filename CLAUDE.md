@@ -93,6 +93,15 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - **`collect.answer`** stores the raw response first (`answers/<yyyy>/<mm>/<sha256>.json`, even when unreadable), then completes `forOrg(orgId).snapshots`. One ledger row per charge, keyed by attempt; a free call (polling DataForSEO) passes `usage: { free: true }` to `callProvider` and writes none. A queued provider is polled by the job throwing a `Deferral`.
 - **Fixtures in `tests/fixtures/engines/`:** `*-recorded-<date>.json` are real responses (Perplexity and SerpApi so far); the rest are hand-built from the providers' docs for errors and other cases a live call can't produce. `npm run engines:try -- --engine <engine> [--mode live] [--record] "<question>"` makes a real, paid call; `--record` writes to `recorded/` (gitignored) for review before it becomes a fixture. Tests never call a real provider.
 
+## Answer extraction (Phase 6; the why is in `docs/adr/0007-answer-extraction.md`)
+
+- **Two readers, one stored reading.** The deterministic pre-pass (`src/llm/prepass.js`) and Claude (`src/llm/extraction.js`) both read every answer. A brand counts as mentioned when either finds it (`mentions.detected_by`); where only one does, the answer goes to `review_items`. Claude's fields stay empty for a brand only the pre-pass found: never guess them. The pre-pass is linear in the answer's length, like the crawler's parsers, and has hostile-input tests.
+- **A reply is stored whole or not at all.** `readReply` rejects a refusal, `max_tokens`, broken JSON and the wrong shape; the answer's extraction is marked `failed` and its earlier rows stay. `forOrg(orgId).extractions.save()` replaces a snapshot's rows in one transaction and checks every entity ID against the project (the fact tables have no foreign keys).
+- **Changing the prompt or the schema means bumping `PROMPT_VERSION`** (`src/llm/extraction-prompt.js`). It changes `extraction_version` on every row and re-runs the eval. Keep the stable parts first (system prompt, then the tracked-brand block) so the cache holds.
+- **Models:** `claude-opus-5-5` at low effort (default; it replaced the spec's `claude-opus-5`) or `claude-haiku-4-5` (`EXTRACTION_MODEL`, `src/llm/models.js`). On Opus 5.5, thinking can't be switched off, so `effort` is the only control; Haiku 4.5 rejects `effort` altogether. Decision D4 between them comes from the golden set.
+- **Jobs:** `extract.batch` (one Batch API request per run, recorded in `runs.llm_batch_ids`), `extract.poll` (a `Deferral` until the batch ends, then one ledger row per batch keyed `extract.batch.<id>`), and `extract.answer` (one answer now). All go through `callProvider` with provider `anthropic`.
+- **The golden set is `evals/extraction/`:** see its README. `npm run eval:extraction -- --prepass-only` is free; anything else calls Claude and costs money. `npm run golden:review` is the local label-review page; `npm run golden:collect` makes paid provider calls.
+
 ## Schema rules
 
 - **Tenancy:**

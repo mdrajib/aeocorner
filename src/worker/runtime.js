@@ -10,6 +10,7 @@ import { createRateLimiter } from '../lib/rate-limit.js';
 import { Deferral, deferJob } from './deferral.js';
 import { collectHandlers } from './handlers/collect.js';
 import { crawlHandlers } from './handlers/crawl.js';
+import { extractHandlers } from './handlers/extract.js';
 import { systemHandlers } from './handlers/system.js';
 import { createProviderCaller } from './provider-call.js';
 import { createSpendGuard } from './spend-guard.js';
@@ -35,6 +36,9 @@ export const SCHEDULES = Object.freeze([
  *                                   at once instead of retrying
  * @param {object} [deps.collection] { adapters, store } for collect.answer: the engine adapters (src/engines) and the
  *                                   bucket raw answers go to; without it that job fails at once
+ * @param {object} [deps.extraction] { claude, store, model } for the extract.* jobs: the Claude client (src/llm/claude.js),
+ *                                   the bucket the answers are in, and the model key (src/llm/models.js); without it
+ *                                   those jobs fail at once
  */
 export function createWorkerRuntime({
   redis,
@@ -46,13 +50,20 @@ export function createWorkerRuntime({
   retry = {},
   crawler = null,
   collection = null,
+  extraction = null,
   now = () => new Date(),
   queueNames = Object.keys(QUEUES),
   concurrencyOverride = {},
 }) {
   const queues = createQueues({ connection: redis, prefix });
   const jobs = createJobClient(queues);
-  const handlers = { ...systemHandlers, ...crawlHandlers, ...collectHandlers, ...extraHandlers };
+  const handlers = {
+    ...systemHandlers,
+    ...crawlHandlers,
+    ...collectHandlers,
+    ...extractHandlers,
+    ...extraHandlers,
+  };
 
   const limiter = createRateLimiter(redis, { prefix });
   const concurrency = createConcurrencyLimiter(redis, { prefix });
@@ -82,6 +93,7 @@ export function createWorkerRuntime({
     callProvider,
     crawler,
     collection,
+    extraction,
     now,
     isHandled: (name) => typeof handlers[name] === 'function',
   };

@@ -3,6 +3,7 @@ import { createRenderer } from '../crawler/render.js';
 import { createSafeFetcher } from '../crawler/safe-fetch.js';
 import { createDb } from '../db/index.js';
 import { createAdapters } from '../engines/index.js';
+import { createClaude } from '../llm/claude.js';
 import { createObjectStore } from '../integrations/spaces.js';
 import { createAlerter } from '../lib/alerts.js';
 import { loadConfig } from '../lib/config.js';
@@ -55,6 +56,16 @@ if (adapters.list().length === 0) {
   logger.warn('No answer-engine provider credentials are set: collect.answer jobs will fail.');
 }
 
+// Reading answers with Claude (src/llm). The answers come from the same bucket collection wrote them to.
+const extraction = config.anthropic
+  ? {
+      claude: createClaude({ apiKey: config.anthropic.apiKey }),
+      store,
+      model: config.extraction.model,
+    }
+  : null;
+if (!extraction) logger.warn('ANTHROPIC_API_KEY is not set: extract.* jobs will fail.');
+
 const runtime = createWorkerRuntime({
   redis,
   prefix: config.redis.prefix,
@@ -63,6 +74,7 @@ const runtime = createWorkerRuntime({
   alerts: createAlerter({ logger, webhookUrl: config.alertWebhookUrl }),
   crawler: { fetcher, renderer, store },
   collection: { adapters, store },
+  extraction,
 });
 await runtime.start();
 logger.info(

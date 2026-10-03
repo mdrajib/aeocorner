@@ -31,9 +31,13 @@
     "staff:invite": "node scripts/staff-invite.js",
     "scan": "node scripts/scan-site.js",
     "engines:try": "node scripts/engine-try.js",
+    "golden:collect": "node scripts/golden-collect.js",
+    "golden:review": "node scripts/golden-review.js",
+    "eval:extraction": "node scripts/eval-extraction.js",
     "start": "node src/web/server.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@aws-sdk/client-s3": "^3.1145.0",
     "@bull-board/api": "^9.10.2",
     "@bull-board/express": "^9.10.2",
