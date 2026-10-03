@@ -6,7 +6,9 @@
 -- Design  : docs/DATABASE_SCHEMA.md (conventions, ERDs, query patterns,
 --           retention, grants). Read that first.
 -- Status  : Design artifact, 2026-09-28. Becomes the first Prisma migration
---           (prisma/migrations/0001_init/migration.sql). Migrations stay
+--           (prisma/migrations/0001_init/migration.sql). Since 2026-10-03 this file
+--           is the readable snapshot of 0001_init plus every later migration
+--           (0003 adds the domain-verification columns of projects). Migrations stay
 --           hand-written SQL; schema.prisma is generated from the database
 --           with `prisma db pull`, never edited by hand (§10.2).
 -- Auth    : Clerk handles sign-in, sessions and MFA (identity only).
@@ -475,6 +477,9 @@ CREATE TABLE projects (
   purge_after            DATETIME(3)   NULL,
   created_at             DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at             DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  domain_verify_token    CHAR(32)      NULL COMMENT 'random proof-of-ownership token; NULL until first requested',
+  domain_verified_at     DATETIME(3)   NULL COMMENT 'when ownership was proven; NULL = not verified',
+  domain_verify_method   ENUM('dns','file') NULL COMMENT 'how it was proven',
   active_domain          VARCHAR(253)  GENERATED ALWAYS AS (IF(deleted_at IS NULL, domain, NULL)) VIRTUAL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_projects_public_id (public_id),

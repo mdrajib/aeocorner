@@ -87,6 +87,17 @@ function showToast({ message, tone = 'info' }) {
 
 window.addEventListener('toast', (event) => showToast(event.detail ?? {}));
 
+// htmx and the signed-in app: every htmx request carries the page's CSRF token (the <meta name="csrf-token"> the app
+// layout writes), and a request that comes back 401 means the session ended, so the page reloads into sign-in
+// instead of showing an error fragment where a table should be.
+document.addEventListener('htmx:configRequest', (event) => {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  if (meta && meta.content) event.detail.headers['X-CSRF-Token'] = meta.content;
+});
+document.addEventListener('htmx:responseError', (event) => {
+  if (event.detail.xhr && event.detail.xhr.status === 401) window.location.reload();
+});
+
 // The free audit's live page (UI_DESIGN A8). The server renders the whole feed, so the page is complete without
 // this script; with it, the feed is swapped for the server's newer rendering as steps finish (server-sent events,
 // /audit/:id/events) and the visitor is sent to the report when it is ready. The HTML is our own server's output,

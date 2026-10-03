@@ -1,5 +1,7 @@
 import { DomainError, isForeignKeyViolation, isUniqueViolation } from '../errors.js';
 import { extractionRepos } from './org-extractions.js';
+import { projectRepos } from './org-projects.js';
+import { promptRepos } from './org-prompts.js';
 import { scanRepos } from './org-scans.js';
 import { snapshotRepos } from './org-snapshots.js';
 import { usageRepos } from './org-usage.js';
@@ -329,6 +331,8 @@ export function orgScopedRepos(prisma, orgId) {
     memberships,
     invitations,
     activity,
+    ...projectRepos(prisma, orgId, { appendActivity }),
+    ...promptRepos(prisma, orgId, { appendActivity }),
     ...usageRepos(prisma, orgId, { appendActivity }),
     ...scanRepos(prisma, orgId),
     ...snapshotRepos(prisma, orgId),

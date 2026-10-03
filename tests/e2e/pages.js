@@ -19,6 +19,13 @@ export const publicSitePages = pages.filter((p) => p.audience === 'public');
 export const appPages = [
   { name: 'new-org', as: 'newcomer', path: () => '/app/new-org' },
   { name: 'org-home', as: 'owner', path: (f) => `/app/o/${f.orgId}` },
+  { name: 'project-new', as: 'owner', path: (f) => `/app/o/${f.orgId}/projects/new` },
+  { name: 'project-home', as: 'owner', path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}` },
+  {
+    name: 'project-home-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}`,
+  },
   { name: 'team', as: 'owner', path: (f) => `/app/o/${f.orgId}/settings` },
   { name: 'team-no-access', as: 'viewer', status: 403, path: (f) => `/app/o/${f.orgId}/settings` },
   { name: 'invite-signed-out', as: null, path: (f) => `/invite/${f.tokens.signedOut}` },

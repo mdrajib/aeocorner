@@ -68,6 +68,8 @@ export function authHarness({
   staffProvider,
   cloudflareKeys,
   queues,
+  jobs,
+  domainVerifier,
 } = {}) {
   const db = connectTestDb();
   const fx = fixtures(db);
@@ -88,6 +90,8 @@ export function authHarness({
     mailer,
     cloudflareKeys,
     queues,
+    jobs,
+    ...(domainVerifier ? { domainVerifier } : {}),
   });
   const agent = request(app);
 

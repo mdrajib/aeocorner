@@ -22,7 +22,7 @@ A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perpl
 | `docs/ADMIN_OPERATIONS.md` | Internal admin console, staff roles, runbooks, background jobs, alerts |
 | `docs/UI_DESIGN.md` | UI rules, brand basics (a proposal until the founder approves it), the component kit, screen inventory, wireframes by sign-off group, key flows, and what every empty/loading/error/partial-data state says |
 | `docs/DATABASE_SCHEMA.md` | Schema design: conventions, table catalog, ERDs, query patterns, tenancy, retention, grants, Clerk and Prisma rules (§10), open decisions (§11) |
-| `docs/db/schema.sql` | DDL: 64 tables, 101 foreign keys, 18 CHECKs. Currently an identical copy of Prisma migration `0001_init` |
+| `docs/db/schema.sql` | DDL: 64 tables, 101 foreign keys, 18 CHECKs. A readable snapshot of Prisma migration `0001_init` plus later migrations (`0003`) |
 | `docs/db/seed_reference.sql` | Idempotent reference data (plans, engines, providers, seed domains). Currently an identical copy of migration `0002_reference_data` |
 | `docs/db/checks.sql` | CI guard rails. Every query must return zero rows |
 | `docs/adr/` | Architecture Decision Records — one-way-door technical decisions and why, written as they happen (not planned per phase) |
@@ -122,6 +122,16 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - **What a visitor sees is decided in `src/core/audit-progress.js`** (pure, tested): step states, answer cards, engine cards, the headline. An engine with no readable answer is "Couldn't check", never "Not mentioned"; a missing score is a `ui.stat` in the unknown state, never 0.
 - **The live page is complete in the HTML**; `components.js` swaps in the server's newer rendering (`partials/audit-feed.ejs`) and goes to the report on `done`. Nginx must not buffer `/audit/:id/events` (the config in `deploy/` has its own block for it).
 - **Browser tests:** `tests/e2e/server.js` mounts the real audit routes with a Redis prefix of its own, a Turnstile that passes and a job queue that only remembers; `/__e2e/audit/live` and `/finish` stand in for the worker. `tests/helpers/audit-fixtures.js` makes audits in any state for route and browser tests.
+
+## Projects and setup (Milestone 3; repositories in `src/db/repos/org-projects.js` and `org-prompts.js`, routes in `src/web/routes/projects.js`)
+
+- **A project is made with its brand entity and every live engine, in one transaction** (`forOrg().projects.create`). One live project per domain per organization; archiving frees the domain. A project's domain never changes. `sourceAuditPublicId` (the audit's secret address) is how a project is prefilled from an audit; an audit already owned by another organization is refused.
+- **Repositories that hang off a project:** `projectEngines`, `entities` (brand, competitors, aliases; the brand can't be switched off), `brandKits` (every save is a new immutable version; `expectedVersion` makes a stale screen fail with `STALE_VERSION`; the brand's aliases follow the kit) and `prompts` (text is immutable: a reword archives and replaces; `importMany` answers every row; `limit` is the plan's cap on active questions). Each has a leak test in `tests/tenancy/repositories.test.js` and the pinned key list there.
+- **Pure rules live in `src/core`:** `project-rules.js` (fields, weekly slot, name normalizing), `brand-kit.js` (Brand Kit v1 schema; competitors are NOT in it, they are `tracked_entities`), `prompt-rules.js` (duplicates, near duplicates, naming rule, intent coverage) and `domain-verification.js`.
+- **robots.txt is ignored only for a verified domain** (DNS TXT on `_aeocorner.<domain>` or `/.well-known/aeocorner-verification.txt`; `src/crawler/verify-domain.js`, through the safe fetcher). The crawl job reads `projects.domain_verified_at`; the free audit always obeys. This replaces the old "signed-in customer's own project" rule above.
+- **The first migration after `0001`/`0002` is `0003_domain_verification`.** `docs/db/schema.sql` is now the readable snapshot of 0001 plus later migrations. `prisma migrate deploy` on both dev and test databases, then `prisma generate`; `migrate diff` must say no difference.
+- **htmx requests carry the CSRF token** from `<meta name="csrf-token">` (header `X-CSRF-Token`), and a 401 reloads the page into sign-in (`components.js`).
+- **Not built yet:** the full Brand Kit extractor (3.06), the question generator (3.09), the audit prefill (3.11) and the onboarding, Brand Kit, Prompt Manager and client-seat screens (3.12–3.15).
 
 ## Schema rules
 

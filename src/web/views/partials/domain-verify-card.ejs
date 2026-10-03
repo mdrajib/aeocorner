@@ -1,0 +1,29 @@
+<%# Proof that the customer owns the site. Props: verification ({ verifiedAt, method, dns, file, result, available }), projectBase, csrfToken, canEdit. %>
+<% if (verification.verifiedAt) { %>
+<p><%- ui.badge({ text: 'Verified', tone: 'success', icon: 'check' }) %></p>
+<p class="text-ink-700 mt-2 text-sm">You proved this site is yours (<%= verification.method === 'dns' ? 'DNS record' : 'file on your site' %>). When we check it for you, we follow your own settings instead of its robots.txt.</p>
+<% } else { %>
+<p class="text-ink-700 text-sm">Until you verify, we read your site like any other and obey its robots.txt. Prove it’s yours with <strong>either</strong> option:</p>
+<% if (verification.result && verification.result.state === 'failed') { %>
+<div class="mt-3"><%- ui.banner({ tone: 'warning', title: 'We couldn’t verify it yet', text: [verification.result.reasons.dns, verification.result.reasons.file].filter(Boolean).join(' ') }) %></div>
+<% } else if (verification.result && verification.result.state === 'wait') { %>
+<div class="mt-3"><%- ui.banner({ tone: 'info', text: 'We just checked. Give it a few seconds and try again.' }) %></div>
+<% } else if (verification.result && verification.result.state === 'unavailable') { %>
+<div class="mt-3"><%- ui.banner({ tone: 'info', text: 'Verification isn’t available right now. Try again later.' }) %></div>
+<% } %>
+<h3 class="mt-4 text-base">Option 1: a DNS record</h3>
+<p class="text-ink-700 text-sm">Add this TXT record at your DNS provider:</p>
+<dl class="mt-2 grid gap-1 text-sm">
+  <div><dt class="text-ink-600 inline">Name: </dt><dd class="inline font-mono [overflow-wrap:anywhere]"><%= verification.dns.name %></dd></div>
+  <div><dt class="text-ink-600 inline">Value: </dt><dd class="inline font-mono [overflow-wrap:anywhere]"><%= verification.dns.value %></dd></div>
+</dl>
+<h3 class="mt-4 text-base">Option 2: a file on your site</h3>
+<p class="text-ink-700 text-sm">Publish a text file at <span class="font-mono [overflow-wrap:anywhere]"><%= verification.file.url %></span> that contains only:</p>
+<p class="mt-2 font-mono text-sm [overflow-wrap:anywhere]"><%= verification.file.body %></p>
+<% if (canEdit) { %>
+<form method="post" action="<%= projectBase %>/verify" class="mt-4 flex flex-wrap gap-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- ui.button({ label: 'Check now', type: 'submit', name: 'method', value: 'any', size: 'sm' }) %>
+</form>
+<% } %>
+<% } %>

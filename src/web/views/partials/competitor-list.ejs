@@ -1,0 +1,27 @@
+<%# Competitors of a project and the form to add one. Props: competitors, projectBase, csrfToken, canEdit. %>
+<% if (!competitors.length) { %>
+<p class="text-ink-700 text-sm">No competitors yet. Add the brands your customers compare you with. We’ll also suggest the ones AI mentions most.</p>
+<% } else { %>
+<ul class="divide-ink-200 divide-y">
+  <% for (const c of competitors) { %>
+  <li class="flex items-center justify-between gap-3 py-2">
+    <span class="min-w-0"><strong class="[overflow-wrap:anywhere]"><%= c.name %></strong><% if (c.primary_domain) { %> <span class="text-ink-600 text-sm [overflow-wrap:anywhere]"><%= c.primary_domain %></span><% } %></span>
+    <% if (canEdit) { %>
+    <form method="post" action="<%= projectBase %>/competitors/<%= c.id %>/remove">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- ui.button({ label: 'Remove', type: 'submit', variant: 'ghost', size: 'sm', attrs: { 'aria-label': 'Remove ' + c.name } }) %>
+    </form>
+    <% } %>
+  </li>
+  <% } %>
+</ul>
+<% } %>
+<p class="text-ink-600 mt-2 text-sm"><%= competitors.length %> of 10</p>
+<% if (canEdit && competitors.length < 10) { %>
+<form method="post" action="<%= projectBase %>/competitors" class="mt-4 flex flex-col gap-3" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- ui.field({ id: 'competitor-name', name: 'name', label: 'Competitor name', required: true, autocomplete: 'off' }) %>
+  <%- ui.field({ id: 'competitor-website', name: 'website', label: 'Website', placeholder: 'rival.com', inputmode: 'url', autocomplete: 'off' }) %>
+  <div><%- ui.button({ label: 'Add competitor', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
+</form>
+<% } %>

@@ -96,6 +96,16 @@ export function fixtures(db) {
       });
     },
 
+    /** A project as stored (including deleted_at), to prove another organization could not change it. */
+    projectRow: (projectId) => prisma.projects.findUnique({ where: { id: projectId } }),
+
+    /** Hand an audit to an organization, as signing up from its report will. */
+    claimAudit: (auditId, orgId) =>
+      prisma.audits.update({ where: { id: auditId }, data: { org_id: orgId } }),
+
+    /** A tracked entity as stored, including its generated columns (brand_project_id). */
+    entityRow: (entityId) => prisma.tracked_entities.findUnique({ where: { id: entityId } }),
+
     /** Set an organization's plan and its own daily cap directly, as the admin console will later. */
     setOrgSpend(orgId, { planCode, capUsd } = {}) {
       return prisma.organizations.update({
@@ -421,6 +431,8 @@ export function fixtures(db) {
         await prisma.usage_ledger.deleteMany({ where });
         await prisma.notifications.deleteMany({ where });
         // Scans reference projects, and take their pages and check results with them.
+        // An audit handed to an organization is removed with its own fixtures, not with the organization.
+        await prisma.audits.updateMany({ where, data: { org_id: null, project_id: null } });
         await prisma.site_scans.deleteMany({ where });
         await prisma.site_pages.deleteMany({ where });
         await prisma.claims.deleteMany({ where });
@@ -429,9 +441,12 @@ export function fixtures(db) {
         await prisma.review_items.deleteMany({ where });
         await prisma.answer_snapshots.deleteMany({ where });
         await prisma.entity_aliases.deleteMany({ where });
+        await prisma.project_engines.deleteMany({ where });
+        await prisma.brand_profiles.deleteMany({ where });
         await prisma.tracked_entities.deleteMany({ where });
         await prisma.runs.deleteMany({ where });
         await prisma.prompts.deleteMany({ where });
+        await prisma.prompt_clusters.deleteMany({ where });
         await prisma.projects.deleteMany({ where });
         await prisma.users.updateMany({
           where: { last_org_id: { in: orgs } },

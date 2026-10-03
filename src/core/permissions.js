@@ -25,6 +25,7 @@ const ALLOWED = {
   'members.manage': ['owner', 'admin'], // invite, change roles, remove (limits below)
   'billing.manage': ['owner'],
   'plan.manage': ['owner'],
+  'project.create': ['owner', 'admin', 'editor'], // a new project (until plan limits arrive in Milestone 8)
   'project.delete': ['owner'],
 };
 

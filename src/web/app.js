@@ -12,6 +12,9 @@ import { errorHandler, maintenanceMode, notFound } from './middleware/errors.js'
 import { pageRenderer } from './middleware/render.js';
 import { sameOriginOnly } from './middleware/same-origin.js';
 import { securityHeaders } from './middleware/security.js';
+import { createDomainVerifier } from '../crawler/verify-domain.js';
+import { createSafeFetcher } from '../crawler/safe-fetch.js';
+import { createJobClient } from '../lib/jobs.js';
 import { appRoutes } from './routes/app.js';
 import { auditRoutes, auditStubRoutes } from './routes/audit.js';
 import { authRoutes } from './routes/auth.js';
@@ -38,6 +41,7 @@ const PUBLIC_DIR = join(WEB_DIR, 'public');
  *   mailer         sends transactional email.
  *   audit          { otp, limiter, turnstile, mail, jobs, funnel }: what the free audit needs (src/web/routes/audit.js).
  *                  Without it (or without a database) the audit form says the audit isn't open yet.
+ *   jobs           adds jobs (the first scan of a new project). Defaults to a client on `queues`; none means no job is queued.
  *   queues         the BullMQ queues (src/lib/queues.js). When given, the staff console shows them at /queues.
  *   extraRoutes(app) lets a test mount a route (e.g. one that throws) ahead of the 404 and error handlers.
  */
@@ -50,6 +54,8 @@ export function createApp({
   mailer = createMailer({ config, logger }),
   queues = null,
   audit = null,
+  jobs = null,
+  domainVerifier = db ? createDomainVerifier({ fetcher: createSafeFetcher() }) : null,
   cloudflareKeys,
   extraRoutes,
 } = {}) {
@@ -105,7 +111,18 @@ export function createApp({
   if (db) {
     const auth = createAuthMiddleware({ config, provider, db });
     app.use(authRoutes({ config, provider, auth }));
-    app.use('/app', appRoutes({ config, db, auth, mailer, logger }));
+    app.use(
+      '/app',
+      appRoutes({
+        config,
+        db,
+        auth,
+        mailer,
+        logger,
+        verifier: domainVerifier,
+        jobs: jobs ?? (queues ? createJobClient(queues) : null),
+      }),
+    );
     app.use('/invite', inviteRoutes({ config, db, auth, provider }));
   }
   if (!config.isProduction) app.use('/_styleguide', styleguideRoutes(config));

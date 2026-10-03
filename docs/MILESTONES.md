@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Execution order for the rest of the MVP: Phases 7–15 of [BUILD_PLAN.md](BUILD_PLAN.md), reorganized into 11 sequential milestones of single-action tasks |
 | **Date** | 2026-10-03 |
-| **Status** | In progress. Milestone 1 (audit engine) is built. Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
+| **Status** | In progress. Milestone 1 (audit engine) is built. Milestone 3: the project, engines, competitors, aliases, Brand Kit versions, Prompt Manager and domain-verification backends are built (3.01–3.05, 3.07, 3.08, 3.10); the full Brand Kit extractor, the question generator, the audit prefill and the onboarding, Brand Kit, Prompt Manager and client-seat screens are next. Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
 | **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) (phase detail and required tests) · [MVP.md](MVP.md) §13 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §7 · [UI_DESIGN.md](UI_DESIGN.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. How to read this plan
@@ -199,16 +199,16 @@ flowchart LR
 
 | # | Task | Needs |
 |---|---|---|
-| 3.01 | 🔒 Add the htmx CSRF header, the `<meta>` token and reload-on-401 | — |
-| 3.02 | 🔒 Build `forOrg().projects` create, read, update, archive | — |
-| 3.03 | Store the engines chosen per project (`project_engines`) | 3.02 |
-| 3.04 | Build domain verification (DNS TXT or a file on the site) | 3.02 |
-| 3.05 | Ignore `robots.txt` only for verified domains | 3.04 |
-| 3.06 | Extend the Brand Kit extractor to the full profile, versioned | 3.02 |
-| 3.07 | Build `tracked_entities` and `entity_aliases` repositories | 3.02 |
-| 3.08 | Build the Prompt Manager repository: generate, import, edit | 3.02 |
-| 3.09 | Enforce the intent-coverage rules in the generator (MVP §7.7) | 3.08 |
-| 3.10 | Queue the first readiness scan when a project is created | 3.02 |
+| 3.01 | ✅ 2026-10-03 🔒 Add the htmx CSRF header, the `<meta>` token and reload-on-401 | — |
+| 3.02 | ✅ 2026-10-03 🔒 Build `forOrg().projects` create, read, update, archive (repository, create form, project page, leak tests) | — |
+| 3.03 | ✅ 2026-10-03 Store the engines chosen per project (`project_engines`) (repository; the on/off screen comes with onboarding) | 3.02 |
+| 3.04 | ✅ 2026-10-03 Build domain verification (DNS TXT or a file on the site) (DNS TXT or file; repository, checker, card on the project page) | 3.02 |
+| 3.05 | ✅ 2026-10-03 Ignore `robots.txt` only for verified domains (the crawl job obeys robots.txt until the domain is verified) | 3.04 |
+| 3.06 | Extend the Brand Kit extractor to the full profile, versioned (versioned storage and history are built as `brandKits`; the full-profile extractor is not) | 3.02 |
+| 3.07 | ✅ 2026-10-03 Build `tracked_entities` and `entity_aliases` repositories (brand, competitors, aliases; competitors form on the project page) | 3.02 |
+| 3.08 | ✅ 2026-10-03 Build the Prompt Manager repository: generate, import, edit (repository only; the screen is 3.14) | 3.02 |
+| 3.09 | Enforce the intent-coverage rules in the generator (MVP §7.7) (the rules are built in `src/core/prompt-rules.js`; the generator is not) | 3.08 |
+| 3.10 | ✅ 2026-10-03 Queue the first readiness scan when a project is created (a new project queues its first scan) | 3.02 |
 | 3.11 | Prefill a new project from the visitor's audit ("track weekly") | 3.02 |
 | 3.12 | Build the onboarding screens: brand → competitors → questions → integrations | 3.01, 3.06, 3.07, 3.08 |
 | 3.13 | Build the Brand Kit screen | 3.01, 3.06 |

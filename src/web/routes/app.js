@@ -15,6 +15,7 @@ import { renderEmail } from '../../lib/email.js';
 import { hashToken, newToken } from '../../lib/tokens.js';
 import { normalizeWebsite } from '../../lib/url.js';
 import { csrfProtection } from '../auth/csrf.js';
+import { projectRoutes } from './projects.js';
 import { notFound } from '../middleware/errors.js';
 
 const INVITE_TTL_DAYS = 7;
@@ -35,6 +36,22 @@ const NOTICES = {
   ],
   'last-owner': ['danger', 'An organization needs at least one owner, so that change wasn’t made.'],
   'not-allowed': ['danger', 'Your role doesn’t allow that.'],
+  'project-created': [
+    'success',
+    'Your project is ready. We’re checking your site in the background.',
+  ],
+  verified: [
+    'success',
+    'Your website is verified. We now follow your own instructions, not its robots.txt, when we check it for you.',
+  ],
+  'competitor-added': ['success', 'Competitor added.'],
+  'competitor-removed': ['success', 'Competitor removed.'],
+  'competitor-exists': ['warning', 'That competitor is already on the list.'],
+  'competitor-invalid': [
+    'danger',
+    'Enter the competitor’s name, and a website like rival.com if you add one.',
+  ],
+  'competitors-full': ['warning', 'You can track up to 10 competitors. Remove one to add another.'],
   'too-many-invites': ['danger', 'There are already 50 invitations waiting. Cancel some first.'],
 };
 
@@ -55,7 +72,7 @@ export function suggestOrgName(domainInput) {
     .join(' ');
 }
 
-export function appRoutes({ config, db, auth, mailer, logger }) {
+export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verifier = null }) {
   const router = Router();
 
   // Everything under /app: signed-in only, never cached, never indexed.
@@ -151,12 +168,18 @@ export function appRoutes({ config, db, auth, mailer, logger }) {
 
   // --- One organization -------------------------------------------------------------------------------
   const org = Router({ mergeParams: true });
+  const projectsApi = projectRoutes({ db, jobs, auth, logger, appPage, verifier });
 
   org.use((req, res, next) => {
     const base = `/app/o/${req.org.public_id}`;
     res.locals.orgBase = base;
     res.locals.nav = [
-      { href: base, label: 'Overview', icon: 'chart', current: req.path === '/' },
+      {
+        href: base,
+        label: 'Overview',
+        icon: 'chart',
+        current: req.path === '/' || req.path.startsWith('/projects'),
+      },
       ...(res.locals.can('members.manage')
         ? [
             {
@@ -171,11 +194,25 @@ export function appRoutes({ config, db, auth, mailer, logger }) {
     next();
   });
 
-  org.get('/', (req, res) => {
-    appPage(res, 'org-home', {
-      meta: { title: `${req.org.name} | AEO Corner`, description: 'Your AEO Corner overview.' },
-    });
+  org.get('/', async (req, res, next) => {
+    try {
+      const only = await projectsApi.visibleIds(req);
+      const projects = await req.orgDb.projects.list(only ? { onlyIds: only } : {});
+      appPage(res, 'org-home', {
+        projects: projects.map((p) => ({
+          publicId: p.public_id,
+          name: p.name,
+          domain: p.domain,
+          status: p.status,
+        })),
+        meta: { title: `${req.org.name} | AEO Corner`, description: 'Your AEO Corner overview.' },
+      });
+    } catch (err) {
+      next(err);
+    }
   });
+
+  org.use(projectsApi.router);
 
   const teamMeta = (req) => ({
     title: `Team · ${req.org.name} | AEO Corner`,

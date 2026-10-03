@@ -1,9 +1,29 @@
-<%# The empty authenticated shell for one organization. Real screens (projects, dashboard) arrive from Phase 8. %>
-<h1 class="text-3xl"><%= org.name %></h1>
-<p class="text-ink-700 mt-2">You’re signed in as <strong><%= roleLabel %></strong>.</p>
-<div class="mt-6">
-  <%- ui.state({ kind: 'empty', title: 'No projects yet', text: 'A project tracks one brand’s website across AI answer engines. You’ll be able to create your first one here soon.' }) %>
+<%# The organization's overview: its projects (or the prompt to create the first one). Props: projects ([{ publicId, name, domain, status }]). %>
+<div class="flex flex-wrap items-baseline justify-between gap-3">
+  <h1 class="text-3xl"><%= org.name %></h1>
+  <% if (can('project.create')) { %><%- ui.button({ label: 'New project', href: orgBase + '/projects/new', size: 'sm' }) %><% } %>
 </div>
+<p class="text-ink-700 mt-2">You’re signed in as <strong><%= roleLabel %></strong>.</p>
+<% if (!projects.length) { %>
+<div class="mt-6">
+  <% if (can('project.create')) { %>
+  <%- ui.state({ kind: 'empty', title: 'No projects yet', text: 'A project tracks one brand’s website across AI answer engines. Create your first one to see how often AI mentions you.', action: { label: 'Create a project', href: orgBase + '/projects/new' } }) %>
+  <% } else { %>
+  <%- ui.state({ kind: 'empty', title: 'No projects yet', text: 'Ask an owner, admin or editor to create the first project.' }) %>
+  <% } %>
+</div>
+<% } else { %>
+<%
+const rows = projects.map((p) => ({
+  name: { html: '<a href="' + ui.esc(orgBase + '/projects/' + p.publicId) + '">' + ui.esc(p.name) + '</a>' },
+  domain: p.domain,
+  status: { html: ui.badge({ text: p.status === 'onboarding' ? 'Setting up' : p.status.charAt(0).toUpperCase() + p.status.slice(1), tone: p.status === 'active' ? 'success' : 'neutral' }) },
+}));
+-%>
+<div class="mt-6">
+  <%- ui.table({ caption: 'Projects in ' + org.name, captionHidden: true, stack: true, columns: [{ key: 'name', label: 'Project' }, { key: 'domain', label: 'Website' }, { key: 'status', label: 'Status' }], rows }) %>
+</div>
+<% } %>
 <% if (can('members.manage')) { %>
-<p class="text-ink-700 mt-6 text-sm">Meanwhile, you can <a href="<%= orgBase %>/settings">invite your team</a>.</p>
+<p class="text-ink-700 mt-6 text-sm">Need to add someone? <a href="<%= orgBase %>/settings">Invite your team</a>.</p>
 <% } %>

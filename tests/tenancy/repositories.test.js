@@ -886,6 +886,139 @@ describe('free-audit lookups (global by design: an audit belongs to a lead, not 
   });
 });
 
+describe('projects, engines, competitors and aliases (Milestone 3)', () => {
+  let bBrandEntity;
+  let bCompetitor;
+  let bAlias;
+  let bAudit;
+
+  before(async () => {
+    await A.scoped.projects.create({
+      name: 'Twin Dental',
+      domain: `twin-a-${Date.now().toString(36)}.example.test`,
+      country: 'US',
+      language: 'en',
+    });
+    bBrandEntity = (await B.scoped.entities.list(bProject.id))[0];
+    bCompetitor = await fx.entity(bProject, { kind: 'competitor', name: 'Twin Rival' });
+    bAlias = await B.scoped.entities.addAlias(bCompetitor.id, { kind: 'name', value: 'Twin R' });
+    bAudit = await fx.audit();
+    await fx.adoptAudit(bAudit.public_id);
+    await fx.claimAudit(bAudit.id, B.org.id);
+  });
+
+  test('projects: A cannot read, list, edit or archive B’s project', async () => {
+    assert.equal(await A.scoped.projects.get(bProject.id), null);
+    assert.equal(await A.scoped.projects.getByPublicId(bProject.public_id), null);
+    assert.ok(!ids(await A.scoped.projects.list()).includes(String(bProject.id)));
+    assert.ok(!ids(await A.scoped.projects.list({ onlyIds: [bProject.id] })).length);
+    await refuses(A.scoped.projects.update(bProject.id, { city: 'Leak' }), 'NOT_FOUND');
+    await refuses(A.scoped.projects.archive(bProject.id), 'NOT_FOUND');
+    assert.equal((await fx.projectRow(bProject.id)).deleted_at, null);
+    assert.equal((await fx.projectRow(bProject.id)).city, '');
+  });
+
+  test('projects.create(): A cannot seed a project from an audit B already owns', async () => {
+    await refuses(
+      A.scoped.projects.create({
+        name: 'Stolen',
+        domain: `stolen-${Date.now().toString(36)}.example.test`,
+        country: 'US',
+        language: 'en',
+        sourceAuditPublicId: bAudit.public_id,
+      }),
+      'NOT_FOUND',
+    );
+  });
+
+  test('projectEngines: A cannot read or change the engines of B’s project', async () => {
+    await refuses(A.scoped.projectEngines.list(bProject.id), 'NOT_FOUND');
+    await refuses(A.scoped.projectEngines.setEnabled(bProject.id, ['chatgpt']), 'NOT_FOUND');
+    assert.ok(Array.isArray(await B.scoped.projectEngines.list(bProject.id)));
+  });
+
+  test('entities: A cannot list, add to, change or alias B’s brand and competitors', async () => {
+    await refuses(A.scoped.entities.list(bProject.id), 'NOT_FOUND');
+    await refuses(
+      A.scoped.entities.addCompetitor(bProject.id, { name: 'Planted Rival' }),
+      'NOT_FOUND',
+    );
+    await refuses(A.scoped.entities.update(bCompetitor.id, { name: 'Hijacked' }), 'NOT_FOUND');
+    await refuses(A.scoped.entities.update(bBrandEntity.id, { name: 'Hijacked' }), 'NOT_FOUND');
+    await refuses(A.scoped.entities.setStatus(bCompetitor.id, 'ignored'), 'NOT_FOUND');
+    await refuses(
+      A.scoped.entities.addAlias(bCompetitor.id, { kind: 'exclude', value: 'Planted rule' }),
+      'NOT_FOUND',
+    );
+    await refuses(A.scoped.entities.removeAlias(bAlias.id), 'NOT_FOUND');
+
+    const mine = await B.scoped.entities.list(bProject.id);
+    assert.ok(mine.some((e) => e.name === 'Twin Rival' && e.status === 'active'));
+    assert.ok(mine.some((e) => e.id === bCompetitor.id && e.aliases.length === 1));
+    assert.ok(!mine.some((e) => /Hijacked|Planted/.test(e.name)));
+  });
+  test('brandKits: A cannot read, list or write B’s Brand Kit, and B’s versions stay as they were', async () => {
+    const kit = { identity: { brandName: 'Twin Dental', domains: [] } };
+    await B.scoped.brandKits.save(bProject.id, { kit, source: 'extracted', expectedVersion: null });
+    await refuses(A.scoped.brandKits.current(bProject.id), 'NOT_FOUND');
+    await refuses(A.scoped.brandKits.get(bProject.id, 1), 'NOT_FOUND');
+    await refuses(A.scoped.brandKits.history(bProject.id), 'NOT_FOUND');
+    await refuses(
+      A.scoped.brandKits.save(bProject.id, {
+        kit: { identity: { brandName: 'Hijacked', domains: [] } },
+        source: 'edited',
+        expectedVersion: 1,
+      }),
+      'NOT_FOUND',
+    );
+    const mine = await B.scoped.brandKits.history(bProject.id);
+    assert.equal(mine.length, 1);
+    assert.equal(mine[0].data.identity.brandName, 'Twin Dental');
+    assert.equal((await fx.projectRow(bProject.id)).brand_profile_version, 1);
+  });
+  test('prompts: A cannot list, add to, change, switch or import into B’s questions', async () => {
+    const { prompt: bPrompt } = await B.scoped.prompts.add(bProject.id, {
+      text: 'Which twin dentist is the best one?',
+      intent: 'discovery',
+    });
+    await refuses(A.scoped.prompts.list(bProject.id), 'NOT_FOUND');
+    await refuses(A.scoped.prompts.clusters(bProject.id), 'NOT_FOUND');
+    await refuses(
+      A.scoped.prompts.add(bProject.id, {
+        text: 'Planted question about twins',
+        intent: 'discovery',
+      }),
+      'NOT_FOUND',
+    );
+    await refuses(
+      A.scoped.prompts.edit(bPrompt.id, { text: 'Hijacked wording for the twin' }),
+      'NOT_FOUND',
+    );
+    await refuses(A.scoped.prompts.edit(bPrompt.id, { priority: 3 }), 'NOT_FOUND');
+    await refuses(A.scoped.prompts.setStatus(bPrompt.id, 'archived'), 'NOT_FOUND');
+    await refuses(
+      A.scoped.prompts.importMany(bProject.id, [
+        { text: 'Planted import about twins', intent: 'discovery' },
+      ]),
+      'NOT_FOUND',
+    );
+
+    const mine = await B.scoped.prompts.list(bProject.id);
+    const kept = mine.find((p) => p.id === bPrompt.id);
+    assert.deepEqual(
+      [kept.text, kept.status, kept.priority],
+      ['Which twin dentist is the best one?', 'active', 2],
+    );
+    assert.ok(!mine.some((p) => /Planted|Hijacked/.test(p.text)));
+  });
+  test('verification: A cannot read B’s token or mark B’s site verified', async () => {
+    await refuses(A.scoped.projects.verification(bProject.id), 'NOT_FOUND');
+    await refuses(A.scoped.projects.markVerified(bProject.id, 'dns'), 'NOT_FOUND');
+    const row = await fx.projectRow(bProject.id);
+    assert.equal(row.domain_verified_at, null);
+  });
+});
+
 describe('coverage: no repository function without a leak test', () => {
   // Update this list in the same commit that adds a function to org-scoped.js or org-usage.js.
   const COVERED = {
@@ -895,6 +1028,20 @@ describe('coverage: no repository function without a leak test', () => {
     usage: ['recent', 'record', 'spentSinceMicros'],
     spend: ['pause', 'resume', 'state'],
     notifications: ['createOnce', 'forUser'],
+    projects: [
+      'archive',
+      'create',
+      'get',
+      'getByPublicId',
+      'list',
+      'markVerified',
+      'update',
+      'verification',
+    ],
+    brandKits: ['current', 'get', 'history', 'save'],
+    projectEngines: ['list', 'setEnabled'],
+    prompts: ['add', 'clusters', 'edit', 'importMany', 'list', 'setStatus'],
+    entities: ['addAlias', 'addCompetitor', 'list', 'removeAlias', 'setStatus', 'update'],
     scans: ['checks', 'create', 'fail', 'finish', 'get', 'knownPages', 'pages', 'recent', 'start'],
     snapshots: ['complete', 'create', 'fail', 'forRun', 'get', 'submitted'],
     extractions: [
@@ -942,11 +1089,16 @@ describe('coverage: no repository function without a leak test', () => {
     }
     assert.deepEqual(Object.keys(scoped).sort(), [
       'activity',
+      'brandKits',
+      'entities',
       'extractions',
       'invitations',
       'memberships',
       'notifications',
       'orgId',
+      'projectEngines',
+      'projects',
+      'prompts',
       'scans',
       'snapshots',
       'spend',

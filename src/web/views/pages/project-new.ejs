@@ -1,0 +1,21 @@
+<%# B1: create a project. Props: values, errors, countries, languages; locals: orgBase, csrfToken. %>
+<div class="mx-auto max-w-xl">
+  <%- ui.stepper({ label: 'Project setup', steps: ['Brand', 'Competitors', 'Questions', 'Connect', 'Start'], current: 0 }) %>
+  <h1 class="mt-8 text-3xl">Create a project</h1>
+  <p class="text-ink-700 mt-2">A project tracks one brand’s website. We’ll check the site now and fill in what we can.</p>
+  <form method="post" action="<%= orgBase %>/projects" class="mt-6 flex flex-col gap-4" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', text: 'Please check the highlighted fields and try again.' }) %><% } %>
+    <%- ui.field({ id: 'project-website', name: 'website', label: 'Website', required: true, autocomplete: 'url', inputmode: 'url', placeholder: 'acme-dental.com', value: values.website, error: errors.website, hint: 'The site you want AI engines to mention.' }) %>
+    <%- ui.field({ id: 'project-name', name: 'name', label: 'Brand name', required: true, autocomplete: 'organization', value: values.name, error: errors.name, hint: 'How customers say it, like “Acme Dental”.' }) %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- ui.field({ id: 'project-country', name: 'country', label: 'Country', type: 'select', required: true, options: countries, value: values.country, error: errors.country, hint: 'Where your customers ask from.' }) %>
+      <%- ui.field({ id: 'project-language', name: 'language', label: 'Language', type: 'select', required: true, options: languages, value: values.language, error: errors.language }) %>
+    </div>
+    <%- ui.field({ id: 'project-city', name: 'city', label: 'City', value: values.city, error: errors.city, autocomplete: 'off', hint: 'Only for businesses that serve one area, like “Austin, TX”.' }) %>
+    <div class="flex flex-wrap gap-3">
+      <%- ui.button({ label: 'Create project', type: 'submit' }) %>
+      <%- ui.button({ label: 'Cancel', href: orgBase, variant: 'secondary' }) %>
+    </div>
+  </form>
+</div>

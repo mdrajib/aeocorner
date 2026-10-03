@@ -25,6 +25,7 @@ const MATRIX = {
   'members.manage': { owner: true, admin: true, editor: false, viewer: false },
   'billing.manage': { owner: true, admin: false, editor: false, viewer: false },
   'plan.manage': { owner: true, admin: false, editor: false, viewer: false },
+  'project.create': { owner: true, admin: true, editor: true, viewer: false },
   'project.delete': { owner: true, admin: false, editor: false, viewer: false },
 };
 

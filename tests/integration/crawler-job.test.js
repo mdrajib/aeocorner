@@ -170,11 +170,29 @@ describe('a scan as a job', () => {
 });
 
 describe('robots.txt and the project owner', () => {
-  test('a project whose site shuts every crawler out is still scanned, because its owner asked', async () => {
-    const mine = await fx.project(org.org.id, 'Shut-out site');
+  test('a project whose owner has not proven the site obeys robots.txt, like any other site', async () => {
+    const mine = await fx.project(org.org.id, 'Unverified shut-out site');
     targets.set(mine.domain, closed.origin('closed.test'));
     const scan = await ask(org, mine);
-    const job = await waitForJob(queue(), `scan-${scan.id}`, ['completed'], { timeoutMs: 60_000 });
+    await waitForJob(queue(), `scan-${scan.id}`, ['completed'], { timeoutMs: 60_000 });
+    const done = await org.scoped.scans.get(scan.id);
+    assert.doesNotMatch((done.category_scores?.notes ?? []).join(' '), /project owner asked/);
+    const pages = await org.scoped.scans.pages(scan.id);
+    assert.ok(
+      pages.some((p) => p.error === 'disallowed_by_robots'),
+      'robots.txt was obeyed',
+    );
+    assert.ok(pages.length < 6, 'the pages it forbids were not fetched');
+  });
+
+  test('a verified project is scanned even when robots.txt shuts every crawler out, because its owner asked', async () => {
+    const mine = await fx.project(org.org.id, 'Verified shut-out site');
+    await org.scoped.projects.markVerified(mine.id, 'dns');
+    targets.set(mine.domain, closed.origin('closed.test'));
+    const scan = await ask(org, mine);
+    const job = await waitForJob(queue(), `scan-${scan.id}`, ['completed'], {
+      timeoutMs: 60_000,
+    });
     assert.notEqual(job.returnvalue.status, 'failed');
     const done = await org.scoped.scans.get(scan.id);
     assert.ok(done.readiness_score !== null);

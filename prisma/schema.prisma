@@ -948,6 +948,9 @@ model projects {
   created_at                              DateTime                @default(now())
   updated_at                              DateTime                @default(now())
   active_domain                           String?                 @db.VarChar(253)
+  domain_verify_token                     String?                 @db.Char(32)
+  domain_verified_at                      DateTime?
+  domain_verify_method                    projects_domain_verify_method?
   action_outcomes                         action_outcomes[]
   audits_audits_project_idToprojects      audits[]                @relation("audits_project_idToprojects")
   brand_profiles                          brand_profiles[]
@@ -2221,6 +2224,11 @@ enum content_items_status {
   published
   failed
   archived
+}
+
+enum projects_domain_verify_method {
+  dns
+  file
 }
 
 enum projects_cadence {

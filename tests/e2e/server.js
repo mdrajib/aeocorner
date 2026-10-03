@@ -98,6 +98,20 @@ async function invite(email, role, { ttl = 7 * DAY } = {}) {
   return token;
 }
 
+// A project with two competitors, for the project screens.
+const project = await scoped.projects.create({
+  name: 'Sample Dental',
+  domain: `sample-${unique()}.example.test`,
+  country: 'US',
+  language: 'en',
+  createdByUserId: people.owner.id,
+});
+await scoped.entities.addCompetitor(project.id, {
+  name: 'Rival Smiles',
+  primaryDomain: 'rival.example.test',
+});
+await scoped.entities.addCompetitor(project.id, { name: 'BrightSmile' });
+
 const tokens = {
   signedOut: await invite(`new.hire.${unique()}@example.test`, 'editor'),
   accept: await invite(people.invitee.email, 'viewer'),
@@ -109,6 +123,7 @@ const fixtureInfo = {
     return auditSeeds;
   },
   orgId: org.public_id,
+  projectId: project.public_id,
   tokens,
   unknownToken: 'x'.repeat(43),
   roles: Object.keys(people),

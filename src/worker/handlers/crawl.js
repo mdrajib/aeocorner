@@ -32,6 +32,11 @@ async function crawlScan(ctx, data, job) {
     return { scanId: data.scanId, status: scan.status, repeated: true };
   }
 
+  // robots.txt is ignored only for a site its owner has proven is theirs (a DNS record or a file, ADR-0005). Until then
+  // a project is scanned like any other site: politely, and not at all where robots.txt says so.
+  const project = await scoped.projects.get(projectId);
+  const ownerVerified = Boolean(project?.domain_verified_at);
+
   await scoped.scans.start(scanId);
   try {
     const target = crawler.targetFor ? crawler.targetFor(scan.domain) : scan.domain;
@@ -40,9 +45,8 @@ async function crawlScan(ctx, data, job) {
       renderer: crawler.renderer ?? null,
       store: crawler.store,
       now: ctx.now,
-      // A scan of an organization's own project is the owner's request, so robots.txt does not stop it (ADR-0005).
-      // The free audit, which reads strangers' sites, keeps the default and obeys it.
-      respectRobots: false,
+      // The owner's request counts only once ownership is verified; the free audit never has an owner, so it obeys.
+      respectRobots: !ownerVerified,
       log: (event, details) => ctx.logger.debug({ scan: data.scanId, event, ...details }, 'crawl'),
     });
     await scoped.scans.finish(scanId, result);

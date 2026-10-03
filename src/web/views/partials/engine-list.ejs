@@ -1,0 +1,9 @@
+<%# The engines a project is checked on. Props: engines ([{ engine_code, enabled }]), names. Switching them is part of setup, later. %>
+<ul class="divide-ink-200 divide-y">
+  <% for (const e of engines) { %>
+  <li class="flex items-center justify-between gap-3 py-2">
+    <span><%= names[e.engine_code] || e.engine_code %></span>
+    <%- ui.badge({ text: e.enabled ? 'On' : 'Off', tone: e.enabled ? 'success' : 'neutral' }) %>
+  </li>
+  <% } %>
+</ul>
