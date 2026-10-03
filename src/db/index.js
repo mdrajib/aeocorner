@@ -1,4 +1,5 @@
 import { createPrisma } from './client.js';
+import { abuseRepo } from './repos/abuse.js';
 import { auditsRepo } from './repos/audits.js';
 import { leadsRepo } from './repos/leads.js';
 import { invitationLinksRepo } from './repos/invitation-links.js';
@@ -31,6 +32,7 @@ export function createDb(options) {
     webhookEvents: webhookEventsRepo(prisma),
     staff: staffRepo(prisma),
     audits: auditsRepo(prisma),
+    abuse: abuseRepo(prisma),
     leads: leadsRepo(prisma),
     system: systemRepos(prisma),
     reference: referenceRepos(prisma),

@@ -75,3 +75,25 @@ export function evaluateSpend({ spentMicros, capMicros, pausedUntil, now }) {
   if (!overCap && pausedUntil instanceof Date) return { action: 'resume', until: null };
   return { action: 'none', until: pausedUntil ?? null };
 }
+
+/**
+ * The free audit's daily budget, across every visitor (MVP §17 risk R9: abuse of the free audit is a cost drain).
+ * One audit is budgeted at about $0.60 (MVP §12.3), so $60 a day is about 100 audits, a lot more than the funnel
+ * should bring in at first and a ceiling that bounds a bot's damage. It is a config value
+ * (`AUDIT_DAILY_BUDGET_USD`), not a plan limit: an audit has no organization.
+ */
+export const DEFAULT_AUDIT_DAILY_BUDGET_USD = 60;
+
+/**
+ * Should a new audit start? Yes while today's audit spend is under the budget. Audits already running finish: the
+ * budget stops new work, it does not cut a visitor off halfway, so a day can end a little over. Closed until the
+ * next UTC midnight.
+ */
+export function evaluateAuditBudget({ spentMicros, capMicros, now }) {
+  const open = spentMicros < capMicros;
+  return {
+    open,
+    until: open ? null : nextResetAt(now),
+    remainingMicros: Math.max(0, capMicros - spentMicros),
+  };
+}

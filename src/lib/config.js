@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
-import { toMicros } from '../core/spend.js';
+import { DEFAULT_AUDIT_DAILY_BUDGET_USD, toMicros } from '../core/spend.js';
 
 // Empty strings in .env mean "not set" — treat them as undefined so optional keys stay optional.
 const optional = (schema) => z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
@@ -14,6 +14,8 @@ const envSchema = z.object({
   TRUST_PROXY: optional(z.coerce.number().int().min(0)),
   MAINTENANCE_MODE: z.stringbool().default(false),
   TURNSTILE_SITE_KEY: optional(z.string().min(1)),
+  TURNSTILE_SECRET_KEY: optional(z.string().min(1)),
+  AUDIT_DAILY_BUDGET_USD: optional(z.coerce.number().positive().max(10_000)),
   POSTHOG_API_KEY: optional(z.string().min(1)),
   POSTHOG_HOST: optional(z.url()),
   POSTHOG_ASSETS_HOST: optional(z.url()),
@@ -285,6 +287,8 @@ export function loadConfig(env = process.env) {
     trustProxy: e.TRUST_PROXY ?? (isProduction ? 1 : 0),
     maintenance: e.MAINTENANCE_MODE,
     turnstileSiteKey: e.TURNSTILE_SITE_KEY ?? null,
+    turnstileSecretKey: e.TURNSTILE_SECRET_KEY ?? null,
+    auditDailyBudgetUsd: e.AUDIT_DAILY_BUDGET_USD ?? DEFAULT_AUDIT_DAILY_BUDGET_USD,
     posthog,
     appSecret: e.APP_SECRET ?? DEV_APP_SECRET,
     databaseUrl: e.DATABASE_URL ?? null,

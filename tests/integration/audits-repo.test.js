@@ -97,6 +97,19 @@ describe('an audit’s life', () => {
     assert.equal((await db.audits.get(finished.id)).status, 'complete');
   });
 
+  test('a failed audit keeps the reason, and the report email is marked once', async () => {
+    const audit = await fx.audit();
+    await db.audits.verify(audit.id);
+    assert.equal(await db.audits.fail(audit.id, 'site_unreadable'), true);
+    assert.deepEqual((await db.audits.get(audit.id)).sub_scores, { failure: 'site_unreadable' });
+
+    assert.equal(await db.audits.markReportEmailed(audit.id), true);
+    const first = (await db.audits.get(audit.id)).report_emailed_at;
+    assert.ok(first);
+    assert.equal(await db.audits.markReportEmailed(audit.id), false, 'the first time stays');
+    assert.deepEqual((await db.audits.get(audit.id)).report_emailed_at, first);
+  });
+
   test('an unknown report address finds nothing', async () => {
     assert.equal(await db.audits.getByPublicId('01ARZ3NDEKTSV4RRFFQ69G5FAV'), null);
   });
@@ -146,5 +159,128 @@ describe('answers', () => {
     assert.equal(chatgpt.text_excerpt, 'final');
     assert.equal(gemini.status, 'failed');
     assert.equal(gemini.brand_present, null, 'a failed answer is not "not mentioned"');
+  });
+});
+
+describe('what an audit costs', () => {
+  const entry = (key, costUsd) => ({
+    meter: 'answer_collect',
+    providerCode: 'dataforseo',
+    unit: 'request',
+    costUsd,
+    idempotencyKey: key,
+  });
+
+  test('a retried job writes the same key and the cost is counted once', async () => {
+    const audit = await fx.audit();
+    const key = `audit-run.${audit.id}.chatgpt.0`;
+    const first = await db.audits.ledger.record(audit.id, entry(key, '0.004'));
+    const again = await db.audits.ledger.record(audit.id, entry(key, '0.004'));
+    assert.equal(first.recorded, true);
+    assert.equal(again.recorded, false);
+    assert.equal(again.entry.id, first.entry.id);
+    await db.audits.ledger.record(audit.id, entry(`${key}.b`, '0.25'));
+    assert.equal(await db.audits.ledger.costMicros(audit.id), 254_000);
+  });
+
+  test('a key another audit used is a clash, not that audit’s row', async () => {
+    const [one, two] = [await fx.audit(), await fx.audit()];
+    const key = `audit-run.shared.${one.id}`;
+    await db.audits.ledger.record(one.id, entry(key, '0.004'));
+    await assert.rejects(db.audits.ledger.record(two.id, entry(key, '0.004')), {
+      code: 'KEY_IN_USE',
+    });
+  });
+
+  test('a negative cost and an unknown audit are refused', async () => {
+    const audit = await fx.audit();
+    await assert.rejects(db.audits.ledger.record(audit.id, entry('neg-1', '-0.1')), {
+      code: 'INVALID',
+    });
+    await assert.rejects(db.audits.ledger.record(999_999_999n, entry('nobody-1', '0.1')), {
+      code: 'NOT_FOUND',
+    });
+  });
+});
+
+describe('serving a repeat audit from an earlier one', () => {
+  const finished = async (domain, over = {}) => {
+    const audit = await fx.audit({ domain, inputUrl: `https://${domain}/`, ...over });
+    await db.audits.verify(audit.id);
+    await db.audits.saveSetup(audit.id, {
+      brandKitLite: { brand_name: 'Acme' },
+      prompts: [{ promptIdx: 0, text: 'q' }],
+      suggestedCompetitors: [],
+    });
+    await db.audits.saveAnswer(audit.id, answer());
+    await db.audits.finish(audit.id, {
+      status: 'complete',
+      readinessScore: 70,
+      visibilityScore: 40,
+      aeoScore: 58,
+      topFixes: [{ rank: 1, id: 'check-A1' }],
+      costUsd: '0.42',
+    });
+    return db.audits.get(audit.id);
+  };
+  const domainName = () => `reuse-${Math.random().toString(36).slice(2)}.example.test`;
+
+  test('finds the latest complete audit of the same domain within a day, and nothing else', async () => {
+    const domain = domainName();
+    const source = await finished(domain);
+    const found = await db.audits.findReusable({ domain });
+    assert.equal(found.id, source.id);
+
+    const later = new Date(Date.now() + 25 * 3_600_000);
+    assert.equal(await db.audits.findReusable({ domain, now: later }), null, 'older than 24 hours');
+    assert.equal(await db.audits.findReusable({ domain: domainName() }), null, 'another domain');
+    assert.equal(
+      await db.audits.findReusable({ domain, competitorDomain: 'rival.example' }),
+      null,
+      'a different competitor was asked for',
+    );
+    assert.equal(await db.audits.findReusable({ domain, excludeAuditId: source.id }), null);
+  });
+
+  test('a partial, failed or still-running audit is never a source', async () => {
+    const domain = domainName();
+    const partial = await fx.audit({ domain, inputUrl: `https://${domain}/` });
+    await db.audits.verify(partial.id);
+    await db.audits.finish(partial.id, { status: 'partial', readinessScore: 50 });
+    const failed = await fx.audit({ domain, inputUrl: `https://${domain}/` });
+    await db.audits.verify(failed.id);
+    await db.audits.fail(failed.id, 'site_unreadable');
+    const running = await fx.audit({ domain, inputUrl: `https://${domain}/` });
+    await db.audits.verify(running.id);
+    await db.audits.start(running.id);
+    assert.equal(await db.audits.findReusable({ domain }), null);
+  });
+
+  test('a served audit has the same results, no cost of its own, and shows the source’s answers and scan', async () => {
+    const domain = domainName();
+    const source = await finished(domain);
+    const scan = await db.audits.scans.start({ auditId: source.id, rubricVersion: 'r-test' });
+    await db.audits.scans.finish(scan.id, scanResult());
+
+    const copy = await fx.audit({ domain, inputUrl: `https://${domain}/` });
+    await db.audits.verify(copy.id);
+    assert.equal(await db.audits.completeFromCache(copy.id, source), true);
+    assert.equal(await db.audits.completeFromCache(copy.id, source), false, 'once');
+
+    const served = await db.audits.get(copy.id);
+    assert.equal(served.status, 'complete');
+    assert.equal(served.cached_from_audit_id, source.id);
+    assert.deepEqual(
+      [served.readiness_score, served.visibility_score, served.aeo_score],
+      [70, 40, 58],
+    );
+    assert.deepEqual(served.top_fixes, [{ rank: 1, id: 'check-A1' }]);
+    assert.deepEqual(served.prompts, source.prompts);
+    assert.equal(served.cost_usd.toString(), '0', 'the copy cost nothing');
+    assert.equal((await db.audits.answers(copy.id)).length, 1);
+    assert.equal((await db.audits.scans.forAudit(copy.id)).id, scan.id);
+
+    // A copy is never the source of a later copy: the cache does not outlive its 24 hours by being copied.
+    assert.equal((await db.audits.findReusable({ domain })).id, source.id);
   });
 });

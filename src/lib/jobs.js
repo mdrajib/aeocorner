@@ -53,6 +53,11 @@ export const JOBS = Object.freeze({
   // Read one answer now (a batch item that failed; the free audit in Phase 7).
   'extract.answer': { queue: 'extract', schema: z.object({ orgId: id, snapshotId: id }) },
 
+  // Run one free audit from start to finish (Milestone 1, MVP F1): read the site, work out the brand, ask four engines
+  // five questions, score and list the fixes. The domain, the visitor and everything else come from the audit row;
+  // the payload is only its ID.
+  'audit.run': { queue: 'audit', schema: z.object({ auditId: id }) },
+
   // A job that goes through the whole path (queue, retries, rate limit, spend cap, ledger) and does nothing
   // else. It is the Phase 3 exit test, and the way to prove the plumbing on a new machine.
   'system.noop': {

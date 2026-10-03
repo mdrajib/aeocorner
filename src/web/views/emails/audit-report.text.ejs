@@ -1,0 +1,12 @@
+Your AEO report for <%= domain %> is ready
+
+<% if (aeoScore !== null) { -%>
+Your AEO Score is <%= aeoScore %> out of 100.
+<% } else { -%>
+We couldn't work out a single score this time, because part of the check didn't finish. The report shows everything we did manage to check.
+<% } -%>
+
+Open your report:
+<%- reportUrl %>
+
+It shows what ChatGPT, Perplexity, Gemini and Google AI Overviews said about <%= domain %>, how ready your site is for them, and the top fixes to make first.

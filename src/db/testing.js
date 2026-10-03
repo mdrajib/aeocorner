@@ -345,6 +345,10 @@ export function fixtures(db) {
     ledgerRow: (idempotencyKey) =>
       prisma.usage_ledger.findUnique({ where: { idempotency_key: idempotencyKey } }),
 
+    /** Every ledger row an audit wrote, oldest first: to check what a job charged. */
+    auditLedgerRows: (auditId) =>
+      prisma.usage_ledger.findMany({ where: { audit_id: auditId }, orderBy: { id: 'asc' } }),
+
     suspendStaff(staffId) {
       return prisma.staff_users.update({ where: { id: staffId }, data: { status: 'suspended' } });
     },
@@ -423,6 +427,7 @@ export function fixtures(db) {
       }
       if (auditIds.length) {
         // An audit's scans are not deleted with it (the foreign key is NO ACTION); its answers are.
+        await prisma.usage_ledger.deleteMany({ where: { audit_id: { in: auditIds } } });
         await prisma.site_scans.deleteMany({ where: { audit_id: { in: auditIds } } });
         await prisma.audits.deleteMany({ where: { id: { in: auditIds } } });
       }

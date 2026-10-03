@@ -7,7 +7,10 @@ import { createJobClient, JOBS } from '../lib/jobs.js';
 import { createHealthTracker } from '../lib/provider-health.js';
 import { closeQueues, createQueues, QUEUES } from '../lib/queues.js';
 import { createRateLimiter } from '../lib/rate-limit.js';
+import { DEFAULT_AUDIT_DAILY_BUDGET_USD } from '../core/spend.js';
+import { createAuditBudget } from './audit-budget.js';
 import { Deferral, deferJob } from './deferral.js';
+import { auditHandlers } from './handlers/audit.js';
 import { collectHandlers } from './handlers/collect.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { extractHandlers } from './handlers/extract.js';
@@ -36,6 +39,11 @@ export const SCHEDULES = Object.freeze([
  *                                   at once instead of retrying
  * @param {object} [deps.collection] { adapters, store } for collect.answer: the engine adapters (src/engines) and the
  *                                   bucket raw answers go to; without it that job fails at once
+ * @param {object} [deps.audit]      { dailyBudgetUsd, mail, setupModel, extractionModel } for audit.run: what all free audits may
+ *                                   spend in a UTC day, the sender of the report email (src/lib/audit-mail.js, optional),
+ *                                   and the model keys for the Brand Kit/questions (default haiku45) and for reading
+ *                                   answers (default: the extraction model). audit.run also needs `crawler`,
+ *                                   `collection` and `extraction`; without them it fails at once
  * @param {object} [deps.extraction] { claude, store, model } for the extract.* jobs: the Claude client (src/llm/claude.js),
  *                                   the bucket the answers are in, and the model key (src/llm/models.js); without it
  *                                   those jobs fail at once
@@ -51,6 +59,7 @@ export function createWorkerRuntime({
   crawler = null,
   collection = null,
   extraction = null,
+  audit = {},
   now = () => new Date(),
   queueNames = Object.keys(QUEUES),
   concurrencyOverride = {},
@@ -59,6 +68,7 @@ export function createWorkerRuntime({
   const jobs = createJobClient(queues);
   const handlers = {
     ...systemHandlers,
+    ...auditHandlers,
     ...crawlHandlers,
     ...collectHandlers,
     ...extractHandlers,
@@ -79,6 +89,14 @@ export function createWorkerRuntime({
     now,
   });
 
+  const auditBudget = createAuditBudget({
+    db,
+    alerts,
+    logger,
+    capUsd: audit.dailyBudgetUsd ?? DEFAULT_AUDIT_DAILY_BUDGET_USD,
+    now,
+  });
+
   const ctx = {
     db,
     redis,
@@ -94,6 +112,7 @@ export function createWorkerRuntime({
     crawler,
     collection,
     extraction,
+    audit: { ...audit, budget: auditBudget },
     now,
     isHandled: (name) => typeof handlers[name] === 'function',
   };

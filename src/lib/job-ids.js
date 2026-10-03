@@ -44,3 +44,6 @@ export const extractPollJobId = (batchId) => jobId('extract-poll', batchId);
 /** Reading one answer now. `reason` tells passes apart (e.g. the batch whose item failed). */
 export const extractAnswerJobId = (snapshotId, reason = 'now') =>
   jobId('extract-answer', snapshotId, reason);
+
+/** The one run of a free audit: asking twice (a retried request, a double click on verify) is one job. */
+export const auditRunJobId = (auditId) => jobId('audit', auditId);

@@ -6,8 +6,10 @@ import { createAdapters } from '../engines/index.js';
 import { createClaude } from '../llm/claude.js';
 import { createObjectStore } from '../integrations/spaces.js';
 import { createAlerter } from '../lib/alerts.js';
+import { createAuditMail } from '../lib/audit-mail.js';
 import { loadConfig } from '../lib/config.js';
 import { createLogger } from '../lib/logger.js';
+import { createMailer } from '../lib/mailer.js';
 import { closeRedis, createRedis, evictionPolicy } from '../lib/redis.js';
 import { createWorkerRuntime } from './runtime.js';
 
@@ -75,6 +77,11 @@ const runtime = createWorkerRuntime({
   crawler: { fetcher, renderer, store },
   collection: { adapters, store },
   extraction,
+  // The free audit: its own daily budget, and the "report ready" email (logged, not sent, without RESEND_API_KEY).
+  audit: {
+    dailyBudgetUsd: config.auditDailyBudgetUsd,
+    mail: createAuditMail({ mailer: createMailer({ config, logger }), baseUrl: config.baseUrl }),
+  },
 });
 await runtime.start();
 logger.info(

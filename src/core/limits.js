@@ -33,6 +33,8 @@ export const ORG_CONCURRENCY = Object.freeze({
   crawl: { cap: 2, ttlMs: 10 * 60_000 },
   extract: { cap: 4, ttlMs: 10 * 60_000 },
   content: { cap: 2, ttlMs: 30 * 60_000 },
+  // One free audit's own calls (it has no organization): four engines at once, a few reads by Claude alongside.
+  audit: { cap: 6, ttlMs: 10 * 60_000 },
 });
 
 export const providerLimits = (provider) => PROVIDER_LIMITS[provider] ?? PROVIDER_LIMITS.default;

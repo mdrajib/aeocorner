@@ -1,0 +1,10 @@
+<h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.25;color:<%= t['ink-950'] %>;">Your AEO report for <%= domain %> is ready</h1>
+<% if (aeoScore !== null) { %>
+<p style="margin:0 0 20px 0;">Your AEO Score is <strong><%= aeoScore %> out of 100</strong>.</p>
+<% } else { %>
+<p style="margin:0 0 20px 0;">We couldn’t work out a single score this time, because part of the check didn’t finish. The report shows everything we did manage to check.</p>
+<% } %>
+<p style="margin:0 0 24px 0;"><a href="<%= reportUrl %>" style="display:inline-block;padding:12px 24px;background-color:<%= t['brand-600'] %>;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">Open your report</a></p>
+<p style="margin:0 0 8px 0;color:<%= t['ink-700'] %>;">It shows what ChatGPT, Perplexity, Gemini and Google AI Overviews said about <%= domain %>, how ready your site is for them, and the top fixes to make first.</p>
+<p style="margin:0 0 8px 0;color:<%= t['ink-700'] %>;">If the button doesn’t work, copy this address into your browser:</p>
+<p style="margin:0;word-break:break-all;color:<%= t['ink-700'] %>;"><a href="<%= reportUrl %>" style="color:<%= t['brand-700'] %>;"><%= reportUrl %></a></p>

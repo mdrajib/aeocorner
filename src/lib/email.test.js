@@ -9,6 +9,11 @@ import { emailTokens } from './email-tokens.js';
 const context = { baseUrl: 'https://aeocorner.com' };
 const sample = {
   'verification-code': { code: '482915', expiresMinutes: 10 },
+  'audit-report': {
+    domain: 'acme.example',
+    aeoScore: 59,
+    reportUrl: 'https://aeocorner.com/report/01ARZ3NDEKTSV4RRFFQ69G5FAV',
+  },
   invitation: {
     inviterName: 'Maya Chen',
     orgName: 'Acme Dental',
@@ -53,6 +58,20 @@ test('verification-code: the code and expiry appear in both variants and the sub
   }
   assert.match(email.html, /aeocorner\.com/);
   assert.match(email.text, /https:\/\/aeocorner\.com/);
+});
+
+test('audit-report: the score and the link are in both variants; no score says so instead of showing 0', () => {
+  const data = sample['audit-report'];
+  const scored = renderEmail('audit-report', data, context);
+  for (const body of [scored.html, scored.text]) {
+    assert.match(body, /59 out of 100/);
+    assert.match(body, /report\/01ARZ3NDEKTSV4RRFFQ69G5FAV/);
+  }
+  const unscored = renderEmail('audit-report', { ...data, aeoScore: null }, context);
+  for (const body of [unscored.html, unscored.text]) {
+    assert.doesNotMatch(body, /out of 100/);
+    assert.match(body, /couldn.t work out a single score/);
+  }
 });
 
 test('the unsubscribe link only appears when one is supplied (marketing emails only)', () => {

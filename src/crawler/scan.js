@@ -596,6 +596,19 @@ export async function runSiteScan(
       renderedKey: rendered?.ok ? rendered.key : null,
       renderError: rendered && !rendered.ok ? rendered.error : null,
     })),
+    // What the lite Brand Kit reads (src/llm/brand-kit.js): the first readable pages, home page first, each cut to a
+    // few thousand characters. Page text is a stranger's: it is only ever fenced and sent to the model, never acted on.
+    brandPages: readableNow.slice(0, 6).map((p) => ({
+      url: p.finalUrl ?? p.url,
+      title: p.facts.title,
+      text: [
+        p.facts.metaDescription,
+        ...p.facts.headings.slice(0, 12).map((h) => h.text),
+        p.facts.text.slice(0, 2500),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    })),
     robotsOverridden: overridden.size > 0,
     pagesPlanned: planned,
     pagesFetched: pages.filter((p) => p.status !== null).length,

@@ -821,14 +821,49 @@ describe('free-audit lookups (global by design: an audit belongs to a lead, not 
     assert.equal(await db.audits.scans.checks(orgScan.id).then((c) => c.length), 0);
   });
 
+  test('an audit’s ledger rows are not an organization’s spend, and an organization’s are not the audits’', async () => {
+    const audit = await fx.audit();
+    const since = new Date(Date.now() - 3_600_000);
+    const entry = (key, costUsd) => ({
+      meter: 'answer_collect',
+      providerCode: 'dataforseo',
+      unit: 'request',
+      costUsd,
+      idempotencyKey: key,
+    });
+    const orgBefore = await db.forOrg(A.org.id).usage.spentSinceMicros(since);
+    const auditsBefore = await db.audits.ledger.spentSinceMicros(since);
+
+    await db.audits.ledger.record(audit.id, entry(`tenancy-audit-${audit.id}`, '0.004'));
+    assert.equal(await db.forOrg(A.org.id).usage.spentSinceMicros(since), orgBefore);
+    const rowsOf = (org) =>
+      db
+        .forOrg(org.id)
+        .usage.recent({ limit: 500 })
+        .then((rows) => rows.filter((r) => r.audit_id !== null));
+    assert.deepEqual(await rowsOf(A.org), [], 'no organization sees an audit’s ledger row');
+    assert.deepEqual(await rowsOf(B.org), []);
+
+    await db.forOrg(A.org.id).usage.record(entry(`tenancy-org-${A.org.id}-${audit.id}`, '0.5'));
+    assert.equal(
+      await db.audits.ledger.spentSinceMicros(since),
+      auditsBefore + 4_000,
+      'only the audit’s own cost is in the audit budget',
+    );
+  });
+
   test('the audit repositories are a reviewed list; add a function, add its test, list it', () => {
     assert.deepEqual(Object.keys(db.audits).sort(), [
       'answers',
+      'completeFromCache',
       'create',
       'fail',
+      'findReusable',
       'finish',
       'get',
       'getByPublicId',
+      'ledger',
+      'markReportEmailed',
       'saveAnswer',
       'saveSetup',
       'scans',
@@ -841,7 +876,13 @@ describe('free-audit lookups (global by design: an audit belongs to a lead, not 
       'forAudit',
       'start',
     ]);
-    assert.deepEqual(Object.keys(db.leads).sort(), ['capture', 'markVerified']);
+    assert.deepEqual(Object.keys(db.audits.ledger).sort(), [
+      'costMicros',
+      'record',
+      'spentSinceMicros',
+    ]);
+    assert.deepEqual(Object.keys(db.leads).sort(), ['capture', 'get', 'markVerified']);
+    assert.deepEqual(Object.keys(db.abuse).sort(), ['active', 'block', 'unblock']);
   });
 });
 

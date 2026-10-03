@@ -43,6 +43,10 @@ export function leadsRepo(prisma) {
       return prisma.leads.findUnique({ where: { email: address } });
     },
 
+    async get(leadId) {
+      return prisma.leads.findUnique({ where: { id: leadId } });
+    },
+
     /** The visitor proved they own the address. The first time stays; returns the lead as it now is. */
     async markVerified(leadId, at = new Date()) {
       await prisma.leads.updateMany({

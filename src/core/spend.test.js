@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import {
   dailyCapMicros,
   DEFAULT_DAILY_CAP_USD,
+  evaluateAuditBudget,
   evaluateSpend,
   fromMicros,
   nextResetAt,
@@ -127,5 +128,40 @@ describe('spend guard decisions', () => {
 
   test('a cap of zero pauses at once', () => {
     assert.equal(decide('0.00', null, noon, 0).action, 'pause');
+  });
+});
+
+describe('the free audit’s daily budget', () => {
+  const budget = toMicros('60');
+
+  test('is open under the budget and closed at it, until the next UTC midnight', () => {
+    const now = at('2026-10-03T13:00:00Z');
+    assert.deepEqual(
+      evaluateAuditBudget({ spentMicros: toMicros('59.999999'), capMicros: budget, now }),
+      {
+        open: true,
+        until: null,
+        remainingMicros: 1,
+      },
+    );
+    const closed = evaluateAuditBudget({ spentMicros: budget, capMicros: budget, now });
+    assert.equal(closed.open, false);
+    assert.equal(closed.remainingMicros, 0);
+    assert.equal(closed.until.toISOString(), '2026-10-04T00:00:00.000Z');
+  });
+
+  test('a day that ended a little over the budget (audits already running finish) stays closed, remaining 0', () => {
+    const over = evaluateAuditBudget({
+      spentMicros: toMicros('60.45'),
+      capMicros: budget,
+      now: at('2026-10-03T23:59:59Z'),
+    });
+    assert.equal(over.open, false);
+    assert.equal(over.remainingMicros, 0);
+  });
+
+  test('the new day starts at zero', () => {
+    const now = at('2026-10-04T00:00:00Z');
+    assert.equal(evaluateAuditBudget({ spentMicros: 0, capMicros: budget, now }).open, true);
   });
 });

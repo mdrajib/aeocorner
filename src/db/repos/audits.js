@@ -1,5 +1,6 @@
 import { ulid } from '../../lib/ulid.js';
-import { DomainError } from '../errors.js';
+import { toMicros } from '../../core/spend.js';
+import { DomainError, isUniqueViolation } from '../errors.js';
 import { transaction } from '../transaction.js';
 import { clip, toDate, writeScanResult } from './scan-results.js';
 
@@ -19,6 +20,15 @@ import { clip, toDate, writeScanResult } from './scan-results.js';
 const ACTIVE = ['queued', 'running'];
 
 export function auditsRepo(prisma) {
+  /** The audit whose answers and scan this audit shows: itself, or the one it was served from. */
+  async function sourceOf(auditId) {
+    const row = await prisma.audits.findUnique({
+      where: { id: auditId },
+      select: { cached_from_audit_id: true },
+    });
+    return row?.cached_from_audit_id ?? auditId;
+  }
+
   const audits = {
     /** A new audit, waiting for the visitor to prove they own the email address. */
     async create({ inputUrl, domain, competitorDomain = null, leadId = null, ipHash = null }) {
@@ -61,6 +71,62 @@ export function auditsRepo(prisma) {
       return result.count === 1;
     },
 
+    /**
+     * A finished audit of the same domain (and the same competitor, if one was named) from the last `maxAgeHours`
+     * that a new request can be served from (MVP F1: "the same domain within 24 h is served from cache"). Only a
+     * `complete` audit counts: a partial one is missing answers and the visitor deserves a fresh try. An audit that
+     * was itself served from another is never the source, so a cache never ages by being copied.
+     */
+    async findReusable({
+      domain,
+      competitorDomain = null,
+      excludeAuditId,
+      now = new Date(),
+      maxAgeHours = 24,
+    }) {
+      return prisma.audits.findFirst({
+        where: {
+          domain,
+          competitor_domain: competitorDomain,
+          status: 'complete',
+          cached_from_audit_id: null,
+          finished_at: { gte: new Date(now.getTime() - maxAgeHours * 3_600_000) },
+          ...(excludeAuditId ? { id: { not: excludeAuditId } } : {}),
+        },
+        orderBy: { finished_at: 'desc' },
+      });
+    },
+
+    /**
+     * Finish a queued or running audit from an earlier one: the same scores, fixes, questions and Brand Kit, with
+     * `cached_from_audit_id` saying where they came from and no cost of its own. Returns false if the audit had
+     * already finished.
+     */
+    async completeFromCache(auditId, source) {
+      const now = new Date();
+      const done = await prisma.audits.updateMany({
+        where: { id: auditId, status: { in: ACTIVE } },
+        data: {
+          status: 'complete',
+          cached_from_audit_id: source.id,
+          brand_kit_lite: source.brand_kit_lite ?? undefined,
+          prompts: source.prompts ?? undefined,
+          suggested_competitors: source.suggested_competitors ?? undefined,
+          readiness_score: source.readiness_score,
+          visibility_score: source.visibility_score,
+          aeo_score: source.aeo_score,
+          sub_scores: source.sub_scores ?? undefined,
+          top_fixes: source.top_fixes ?? [],
+          rubric_version: source.rubric_version,
+          extraction_version: source.extraction_version,
+          cost_usd: 0,
+          started_at: now,
+          finished_at: now,
+        },
+      });
+      return done.count === 1;
+    },
+
     /** The Brand Kit (lite), the five questions and the competitors we suggest. Replaces an earlier attempt's. */
     async saveSetup(auditId, { brandKitLite, prompts, suggestedCompetitors }) {
       await prisma.audits.update({
@@ -96,19 +162,38 @@ export function auditsRepo(prisma) {
       return done.count === 1;
     },
 
-    /** Give up: every attempt failed. A finished audit stays as it is. */
-    async fail(auditId) {
+    /** The report email went out. The first time stays; false means it had already been recorded. */
+    async markReportEmailed(auditId, at = new Date()) {
       const result = await prisma.audits.updateMany({
-        where: { id: auditId, status: { in: ACTIVE } },
-        data: { status: 'failed', finished_at: new Date() },
+        where: { id: auditId, report_emailed_at: null },
+        data: { report_emailed_at: at },
       });
       return result.count === 1;
     },
 
-    /** What the five questions cost so far, from the answers: the audit's own total is written at `finish`. */
+    /**
+     * Give up: every attempt failed. A finished audit stays as it is. `reason` is a short code for the team and
+     * the report page ("site_unreadable"), kept with the sub-scores since a failed audit has none.
+     */
+    async fail(auditId, reason = null) {
+      const result = await prisma.audits.updateMany({
+        where: { id: auditId, status: { in: ACTIVE } },
+        data: {
+          status: 'failed',
+          finished_at: new Date(),
+          ...(reason ? { sub_scores: { failure: String(reason).slice(0, 100) } } : {}),
+        },
+      });
+      return result.count === 1;
+    },
+
+    /**
+     * The answers an audit shows. An audit served from an earlier one (`completeFromCache`) shows that audit's: it
+     * asked nothing itself.
+     */
     async answers(auditId) {
       return prisma.audit_answers.findMany({
-        where: { audit_id: auditId },
+        where: { audit_id: await sourceOf(auditId) },
         orderBy: [{ prompt_idx: 'asc' }, { engine_code: 'asc' }],
       });
     },
@@ -187,7 +272,7 @@ export function auditsRepo(prisma) {
 
     async forAudit(auditId) {
       return prisma.site_scans.findFirst({
-        where: { audit_id: auditId, org_id: null },
+        where: { audit_id: await sourceOf(auditId), org_id: null },
         orderBy: { id: 'desc' },
       });
     },
@@ -200,5 +285,66 @@ export function auditsRepo(prisma) {
     },
   };
 
-  return { ...audits, scans };
+  /**
+   * What an audit costs, in the same ledger as everything else but with no organization on the row (the schema
+   * allows `org_id` NULL for exactly this). A retried job writes the same key and nothing is counted twice.
+   */
+  const ledger = {
+    async record(auditId, entry) {
+      const costMicros = toMicros(entry.costUsd);
+      if (costMicros < 0) throw new DomainError('INVALID', 'A cost cannot be negative.');
+      const audit = await prisma.audits.findUnique({
+        where: { id: auditId },
+        select: { id: true },
+      });
+      if (!audit) throw new DomainError('NOT_FOUND');
+      const data = {
+        org_id: null,
+        audit_id: auditId,
+        meter: entry.meter,
+        provider_code: entry.providerCode,
+        model: entry.model ?? null,
+        quantity: entry.quantity ?? 1,
+        unit: entry.unit,
+        tokens_in: entry.tokensIn ?? null,
+        tokens_out: entry.tokensOut ?? null,
+        tokens_cached: entry.tokensCached ?? null,
+        cost_usd: String(entry.costUsd),
+        ref_type: 'audit',
+        ref_id: auditId,
+        idempotency_key: entry.idempotencyKey,
+        ...(entry.occurredAt ? { occurred_at: entry.occurredAt } : {}),
+      };
+      try {
+        return { recorded: true, entry: await prisma.usage_ledger.create({ data }) };
+      } catch (err) {
+        if (!isUniqueViolation(err, 'uq_usage_ledger_idem')) throw err;
+        const existing = await prisma.usage_ledger.findFirst({
+          where: { idempotency_key: entry.idempotencyKey, audit_id: auditId, org_id: null },
+        });
+        if (!existing) throw new DomainError('KEY_IN_USE');
+        return { recorded: false, entry: existing };
+      }
+    },
+
+    /** All free audits' spend since `since`, in micro-dollars: what the daily audit budget is measured against. */
+    async spentSinceMicros(since) {
+      const { _sum } = await prisma.usage_ledger.aggregate({
+        where: { org_id: null, audit_id: { not: null }, occurred_at: { gte: since } },
+        _sum: { cost_usd: true },
+      });
+      return toMicros(_sum.cost_usd?.toString() ?? '0');
+    },
+
+    /** One audit's cost so far, in micro-dollars (written to `audits.cost_usd` when it finishes). */
+    async costMicros(auditId) {
+      const { _sum } = await prisma.usage_ledger.aggregate({
+        where: { org_id: null, audit_id: auditId },
+        _sum: { cost_usd: true },
+      });
+      return toMicros(_sum.cost_usd?.toString() ?? '0');
+    },
+  };
+
+  return { ...audits, scans, ledger };
 }

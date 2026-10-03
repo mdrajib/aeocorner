@@ -14,6 +14,12 @@ after(async () => {
 const address = () => `Lead-${Math.random().toString(36).slice(2)}@Example.TEST`;
 
 describe('lead capture', () => {
+  test('a lead is found again by its ID, and an unknown ID finds nothing', async () => {
+    const lead = await fx.lead({ email: address() });
+    assert.equal((await db.leads.get(lead.id)).email, lead.email);
+    assert.equal(await db.leads.get(999_999_999n), null);
+  });
+
   test('an unticked consent box is stored as no consent', async () => {
     const lead = await fx.lead({ email: address(), consent: false, consentVersion: 'v1' });
     assert.equal(lead.consent_marketing, false);

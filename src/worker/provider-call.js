@@ -14,6 +14,11 @@ import { Deferral } from './deferral.js';
  *   6. the ledger     one `usage_ledger` row, keyed so a retry can't write it twice
  *   7. spend check    that row may have taken the organization over its cap -> pause now, not in 15 minutes
  *
+ * A free audit has no organization, so it passes `auditId` instead of `orgId`. Everything above still applies except
+ * the two things that belong to an organization: step 1 (an audit is held back by the audit budget, checked once when
+ * the audit starts, because a visitor's audit is never cut off halfway) and step 7, and the ledger row is the audit's
+ * own (`db.audits.ledger`). Its concurrency slots are per audit.
+ *
  * Waiting (1-4) throws a `Deferral`, which the worker turns into a delayed job that does not use up an attempt.
  * The caller's function must return `{ value, usage }` where `usage` describes what the call cost; a call that
  * returns no usage is a bug (every paid call is written to the ledger), so it throws. A call the provider does not
@@ -34,20 +39,30 @@ export function createProviderCaller({
   return async function callProvider(job, params, fn) {
     const { provider, engine = '', scope, idempotencyKey, cost = 1 } = params;
     // Job payloads carry IDs as strings (JSON has no BigInt); the database layer wants BigInt.
-    const orgId = BigInt(params.orgId);
+    const auditId = params.auditId == null ? null : BigInt(params.auditId);
+    if ((auditId === null) === (params.orgId == null)) {
+      throw new TypeError(
+        'A provider call belongs to an organization or to an audit, not both or neither',
+      );
+    }
+    const orgId = auditId === null ? BigInt(params.orgId) : null;
+    // What the concurrency slots are counted per: the organization, or this one audit.
+    const owner = auditId === null ? orgId : `audit-${auditId}`;
     const projectId = params.projectId == null ? undefined : BigInt(params.projectId);
     const jobKey = String(job.id);
 
-    const pausedUntil = await spendGuard.pausedUntil(orgId);
-    if (pausedUntil) {
-      throw new Deferral(pausedUntil.getTime() - now().getTime(), 'spend cap reached');
+    if (orgId !== null) {
+      const pausedUntil = await spendGuard.pausedUntil(orgId);
+      if (pausedUntil) {
+        throw new Deferral(pausedUntil.getTime() - now().getTime(), 'spend cap reached');
+      }
     }
 
     const verdict = await health.admit(provider, engine);
     if (verdict === 'deny') throw new Deferral(jitter(60_000), `breaker open for ${provider}`);
 
     const slot = orgConcurrency(scope);
-    if (!(await concurrency.acquire(scope, orgId, slot, jobKey))) {
+    if (!(await concurrency.acquire(scope, owner, slot, jobKey))) {
       throw new Deferral(jitter(2_000), 'organization is at its concurrency limit');
     }
 
@@ -91,20 +106,19 @@ export function createProviderCaller({
       // rate limit and its health, but it is not a cost, so it writes no ledger row. It has to say so explicitly.
       if (usage.free === true) return { value: outcome.value, ledger: null };
 
-      const ledger = await db.forOrg(orgId).usage.record({
-        projectId,
-        providerCode: provider,
-        idempotencyKey,
-        ...usage,
-      });
+      const entry = { providerCode: provider, idempotencyKey, ...usage };
+      const ledger =
+        auditId === null
+          ? await db.forOrg(orgId).usage.record({ projectId, ...entry })
+          : await db.audits.ledger.record(auditId, entry);
       if (!ledger.recorded) {
         logger.info({ idempotencyKey }, 'Ledger row already written: a retry is not counted twice');
       }
 
-      await spendGuard.check(orgId);
+      if (orgId !== null) await spendGuard.check(orgId);
       return { value: outcome.value, ledger };
     } finally {
-      await concurrency.release(scope, orgId, jobKey);
+      await concurrency.release(scope, owner, jobKey);
     }
   };
 }

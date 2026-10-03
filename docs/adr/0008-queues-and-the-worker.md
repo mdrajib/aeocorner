@@ -54,3 +54,12 @@ The page was run for the first time in a real browser, with the real content sec
 - **A provider is only as safe as the door it goes through.** A new provider call that bypasses `callProvider` loses the spend cap, the breaker, the rate limit and the ledger at once. [CLAUDE.md](../../CLAUDE.md) states the rule; nothing but review enforces it yet.
 - **The numbers are first guesses.** The provider rate limits (see ADR-0006's note), the organization slot sizes and the plan caps were set from documents, not from load. Milestone 10's load test and cost test are where they get measured, and this ADR should be updated with what they show.
 - **Two sources for the rate-limit and concurrency logic** means a change to either is two edits and a test run. That is the price of having both testable and atomic.
+
+## Addendum, 2026-10-03: a free audit has no organization
+
+The free audit (Milestone 1) spends money before any organization exists, so `callProvider` takes **`auditId` instead of `orgId`** (exactly one of the two; passing both or neither throws). Everything else in decision 6 still applies. Two things change, because they belong to an organization:
+
+- **No per-organization spend pause and no spend check after the ledger write.** An audit is held back by **the daily audit budget** instead ([`src/worker/audit-budget.js`](../../src/worker/audit-budget.js), `AUDIT_DAILY_BUDGET_USD`, default $60, about 100 audits). It is checked **once, when `audit.run` first picks an audit up**, not before each call: a visitor's audit is never cut off halfway, so a day can end a little over. When the budget is spent, a new audit is delayed to the next UTC midnight and one alert is raised for the day. An audit served from a recent one costs nothing and is served even then.
+- **The ledger row is the audit's own** (`usage_ledger` with `org_id` NULL and `audit_id` set, through `db.audits.ledger`), and concurrency slots are counted **per audit** (scope `audit`, 6 at once), because the organization slot would otherwise be one shared slot for every visitor.
+
+The same two reasons mean the audit's spend is **not** in any organization's spend (a tenancy test checks both directions).

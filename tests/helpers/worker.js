@@ -21,6 +21,7 @@ export async function startRuntime({
   crawler,
   collection,
   extraction,
+  audit,
 } = {}) {
   const connection = connectTestRedis();
   const alerts = memoryAlerter();
@@ -38,6 +39,7 @@ export async function startRuntime({
     crawler,
     collection,
     extraction,
+    audit,
   });
   await runtime.start({ schedule });
   return {

@@ -128,32 +128,32 @@ flowchart LR
 | 1.02 | 🔒 Finish `scan-results.js` and move `org-scans` onto it ✅ 2026-10-03 | — |
 | 1.03 | Persist audit-owned scans (`site_scans.audit_id`, no organization) ✅ 2026-10-03 | 1.01, 1.02 |
 | 1.04 | List the audit lookups in the tenancy coverage test as reviewed cross-org access ✅ 2026-10-03 | 1.01 |
-| 1.05 | 🔒 Build the shared Brand Kit extractor, lite mode (`src/llm/brand-kit.js`) | — |
-| 1.06 | 🔒 Build the shared question generator, 5-question audit mode | — |
-| 1.07 | 🔒 Build the visibility scorer in `src/core` (pure) | — |
-| 1.08 | Build the fix-list generator from readiness checks and answer gaps | 1.07 |
+| 1.05 | 🔒 Build the shared Brand Kit extractor, lite mode (`src/llm/brand-kit.js`) ✅ 2026-10-03 | — |
+| 1.06 | 🔒 Build the shared question generator, 5-question audit mode ✅ 2026-10-03 | — |
+| 1.07 | 🔒 Build the visibility scorer in `src/core` (pure) ✅ 2026-10-03 | — |
+| 1.08 | Build the fix-list generator from readiness checks and answer gaps ✅ 2026-10-03 | 1.07 |
 | 1.09 | Store `audit_answers` per engine and question ✅ 2026-10-03 | 1.01 |
-| 1.10 | Build the `audit.run` job: scan → brand kit → questions → collect ×4 → sync extract → score → fixes | 1.03, 1.05, 1.06, 1.08, 1.09 |
-| 1.11 | Add a daily global audit budget to the spend guard | — |
-| 1.12 | Reuse a recent audit of the same domain instead of re-running | 1.10 |
-| 1.13 | Build OTP codes: issue, store hashed, expire, limit attempts | 1.01 |
-| 1.14 | Verify Cloudflare Turnstile tokens server-side | — |
-| 1.15 | Rate-limit audits by IP, email and domain; write `abuse_blocks` | 1.01 |
+| 1.10 | Build the `audit.run` job: scan → brand kit → questions → collect ×4 → sync extract → score → fixes ✅ 2026-10-03 | 1.03, 1.05, 1.06, 1.08, 1.09 |
+| 1.11 | Add a daily global audit budget to the spend guard ✅ 2026-10-03 | — |
+| 1.12 | Reuse a recent audit of the same domain instead of re-running ✅ 2026-10-03 | 1.10 |
+| 1.13 | Build OTP codes: issue, store hashed, expire, limit attempts ✅ 2026-10-03 | 1.01 |
+| 1.14 | Verify Cloudflare Turnstile tokens server-side ✅ 2026-10-03 | — |
+| 1.15 | Rate-limit audits by IP, email and domain; write `abuse_blocks` ✅ 2026-10-03 | 1.01 |
 | 1.16 | Capture leads into `leads` with the consent flag as ticked ✅ 2026-10-03 | 1.01 |
-| 1.17 | Send the verification-code and report-ready emails through Resend | 1.13 |
+| 1.17 | Send the verification-code and report-ready emails through Resend ✅ 2026-10-03 | 1.13 |
 
 **Parallel:** two lanes from the start. **Lane A** (data): 1.01, 1.02 → 1.03, 1.04, 1.09, 1.13, 1.15, 1.16. **Lane B** (logic): 1.05, 1.06, 1.07, 1.11, 1.14 → 1.08. Both join at 1.10.
 
 **Definition of Done:**
-- [ ] Integration: a fixture-provider audit runs end to end and stores scan, answers, score and fixes.
-- [ ] Integration: a retried `audit.run` writes no duplicate rows or ledger entries.
-- [ ] Integration: OTP: right code passes; wrong, expired and over-limit codes fail.
-- [ ] Integration: Turnstile and rate-limit bypass attempts are rejected.
-- [ ] Integration: an unticked consent box is stored as no consent.
-- [ ] Unit: scorer and fix-list against hand-computed fixtures.
-- [ ] Unit: the global audit budget stops new audits at the cap.
+- [x] Integration: a fixture-provider audit runs end to end and stores scan, answers, score and fixes.
+- [x] Integration: a retried `audit.run` writes no duplicate rows or ledger entries.
+- [x] Integration: OTP: right code passes; wrong, expired and over-limit codes fail.
+- [x] Integration: Turnstile and rate-limit bypass attempts are rejected. (Rate limits, blocks and throwaway emails are integration-tested against Redis and MySQL; Turnstile is unit-tested against a fake Cloudflare, since a real token needs the keys from 0.13.)
+- [x] Integration: an unticked consent box is stored as no consent.
+- [x] Unit: scorer and fix-list against hand-computed fixtures.
+- [x] Unit: the global audit budget stops new audits at the cap.
 - [ ] Cost per audit from the ledger ≤ $0.75 on one live run.
-- [ ] Tenancy coverage test passes with the new lookups listed.
+- [x] Tenancy coverage test passes with the new lookups listed.
 
 ---
 
