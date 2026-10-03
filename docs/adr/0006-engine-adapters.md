@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted. Live check (Decision 9): Perplexity and SerpApi **passed on 2026-10-03**; DataForSEO (ChatGPT, Gemini) still open, no account yet |
+| **Status** | Accepted. Live check (Decision 9): Perplexity and SerpApi **passed on 2026-10-03**; all four providers **passed on 2026-10-03** (DataForSEO in live mode; its queued mode is not recorded, see Decision 9) |
 | **Date** | 2026-10-03 |
 | **Context of discovery** | [BUILD_PLAN.md Phase 5](../BUILD_PLAN.md#phase-5--engine-adapters-spikes): "prove the `EngineAdapter` contract against all four real providers… record the result in an ADR" |
 
@@ -38,12 +38,12 @@ While checking the providers' documentation on 2026-10-03 we found that **Perple
 | Perplexity Agent API, `perplexity/sonar` | $1 per million tokens in and out + $0.0025 per web search: about **$0.004** a typical answer (was ~$0.006 on Sonar) | Within **±50%**: token counts vary with the question; the ledger uses the reported cost |
 | SerpApi | The plan's price per search, `SERPAPI_COST_PER_SEARCH_USD` (default $0.010, the Production plan). An overview fetched with a page token takes a second request, **counted as a second search** until an invoice shows otherwise | Exact for the configured plan |
 
-**9. Live check (still to do).** One real call per provider, with a person reading the raw answer, recorded here:
+**9. Live check (done 2026-10-03).** One real call per provider, with a person reading the raw answer, recorded here:
 
 | Provider / engine | Command | Result | Date |
 |---|---|---|---|
-| DataForSEO / ChatGPT | `npm run engines:try -- --engine chatgpt --mode live --record "…"` | Not run: no account yet | — |
-| DataForSEO / Gemini | `… --engine gemini --mode live --record "…"` | Not run | — |
+| DataForSEO / ChatGPT | `npm run engines:try -- --engine chatgpt --mode live --record "…"` | ✅ `ok` in 16.1 s, model `gpt-5-6`, charged **$0.004** (estimate $0.004). 3 cited sources; the response also lists 33 pages ChatGPT searched, which the adapter ignores on purpose (a citation is a page the answer cites). Sources carry `?utm_source=chatgpt.com`, which the extraction step already strips. Recorded as `dataforseo/chatgpt-live-recorded-2026-10-03.json` | 2026-10-03 |
+| DataForSEO / Gemini | `… --engine gemini --mode live --record "…"` | ✅ `ok` in 14.2 s, charged **$0.004** (estimate $0.004), 5 sources. Two differences from the docs: the model comes back as a display name (`3.5 Flash-Lite`, not an ID like `gemini-3.5-flash`), so `model_version` is a label, not something to compare; and the answer text opens with two product names ("DentOS", "DentaMile") that no source mentions and that look invented, so extraction must keep treating a name with no source as a weak signal. Recorded as `dataforseo/gemini-live-recorded-2026-10-03.json` | 2026-10-03 |
 | Perplexity / Perplexity | `… --engine perplexity --record "…"` | ✅ `ok` in 8.2 s, model `perplexity/sonar`, 15 sources, charged **$0.00441** (estimate $0.004). The response matches the documented shape. It used 4,269 input tokens, not the ~1,000 assumed, and its cost includes a one-off prompt-cache write ($0.00093), so repeated questions may cost less. Recorded as `perplexity/agent-recorded-2026-10-03.json` | 2026-10-03 |
 | SerpApi / AI Overviews | `… --engine google_aio --query "…" --record "…"` | ✅ `ok` in 1.4 s, the overview on the results page itself (one search, no page token), 7 sources. One difference from the docs' example: real list items carry their title inside `snippet` with no `title` field; the adapter already handled that. Recorded as `serpapi/google-aio-recorded-2026-10-03.json` | 2026-10-03 |
 
@@ -51,7 +51,7 @@ While checking the providers' documentation on 2026-10-03 we found that **Perple
 
 ## Consequences
 
-- Most fixtures in `tests/fixtures/engines/` are **hand-built from the documented response shapes**; they stay for the cases a live call can't produce on demand (errors, queued tasks, page tokens, no overview). Real recordings now cover Perplexity and SerpApi; DataForSEO's are still to come.
+- Most fixtures in `tests/fixtures/engines/` are **hand-built from the documented response shapes**; they stay for the cases a live call can't produce on demand (errors, queued tasks, page tokens, no overview). Real recordings now cover all three providers. DataForSEO's are live-mode only: its queued mode (`task_post` then `task_get`, the cheap one weekly tracking uses) is replayed from hand-built fixtures, though it ran for real when the Phase 6 golden set was collected.
 - Only the four MVP primaries have adapters. The fallbacks in the `engines` table (OpenAI and Gemini APIs, DataForSEO for Perplexity and AI Overviews) do not exist yet; when a primary's breaker is open and its fallback has no adapter, the answer waits and then becomes "couldn't check". Routing already picks a fallback that does exist (tested with a stand-in).
 - Perplexity answers are a little cheaper than the spec assumed (~$0.004 rather than $0.006), so collection per prompt-run is about $0.033 rather than $0.035 ([MVP §12.2](../MVP.md#122-cost-per-tracked-prompt-run)).
 - A provider is only as available as its credentials: a worker without `DATAFORSEO_*`, `PERPLEXITY_API_KEY` or `SERPAPI_API_KEY` treats that provider as unavailable.

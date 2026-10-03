@@ -1,0 +1,195 @@
+{
+  "id": "10030949-2241-0629-0000-760ef9ffc720",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "12.9136 sec.",
+  "cost": 0.004,
+  "result_count": 1,
+  "path": ["v3", "ai_optimization", "gemini", "llm_scraper", "live", "advanced"],
+  "data": {
+    "api": "ai_optimization",
+    "function": "live",
+    "se": "gemini",
+    "keyword": "What is the best dental practice management software for a small clinic?",
+    "location_code": 2840,
+    "language_code": "en",
+    "device": "desktop",
+    "os": "windows"
+  },
+  "result": [
+    {
+      "keyword": "What is the best dental practice management software for a small clinic?",
+      "location_code": 2840,
+      "language_code": "en",
+      "model": "3.5 Flash-Lite",
+      "datetime": "2026-10-03 09:49:40 +00:00",
+      "markdown": "Choosing the best dental practice management software (PMS) for a small clinic depends on whether you prefer a **modern cloud-based platform** to reduce IT overhead or a **traditional system** with deep customizability.\n\nTop options for small dental clinics include:\n\nThe DentOS is an affordable, customizable workflow option that helps small clinics track patient data and scheduling efficiently.\n\nThe DentaMile Connect Software streamlines clinical manufacturing workflows and digital tracking for smaller operations.\n\n### Industry Favorites for Small Clinics (Non-Shopping Catalog Options)\n\n* **Open Dental:** Highly recommended on forums like DentalTown for small and independent practices.[medixdental.com](https://medixdental.com/best-dental-pms/#:~:text=Open%20Dental%20is%20our%20top%20recommendation%20for,in%20a%20market%20full%20of%20private-equity%20roll-ups.) It offers **deep customization, open architecture, and great value pricing**, though it requires managing your own database or IT setup.[www.curvedental.com](https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Open%20Dental%20takes%20a%20different%20approach.%20It,*%20Flexible%20integrations.%20*%20Lower%20entry%20pricing.)\n* **Curve Dental:** A fully **cloud-native platform** that bundles scheduling, charting, billing, and imaging.[www.curvedental.com](https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=*%204.%20Denticon%3A%20Built%20for%20Multi-Location%20Organizations.,Software.%20*%20Key%20Takeaways.%20*%20Final%20Perspective.) It eliminates the need for physical servers and manual backups, making it ideal for small teams wanting simplicity.[www.curvedental.com](https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Because%20it's%20cloud-native%2C%20practices%20eliminate%3A%20*%20Server,What%20practices%20often%20appreciate%20most%20is%20consolidation.)\n* **Dentrix Ascend:** A popular **cloud version of Dentrix** tailored for single-location and small group practices, offering robust reporting and trusted industry features without local server maintenance.[www.planetdds.com](https://www.planetdds.com/blog/10-best-dental-practice-management-software/#:~:text=6.%20*%20Dentrix%20Ascend.%20Dentrix%20Ascend%20is,portal%20for%20patient%20records%20and%20real-time%20data.)",
+      "sources": [
+        {
+          "type": "gemini_source",
+          "title": "7 Best Dental Practice Management Software (PMS) in 2026",
+          "snippet": " Open Dental is our top recommendation for groups that want control of \ntheir own platform. It is independently owned, a privately held Oregon \ncompany founded in...",
+          "domain": "medixdental.com",
+          "url": "https://medixdental.com/best-dental-pms/#:~:text=Open%20Dental%20is%20our%20top%20recommendation%20for,in%20a%20market%20full%20of%20private-equity%20roll-ups.",
+          "thumbnail": "https://encrypted-tbn3.gstatic.com/favicon-tbn?q=tbn%3AANd9GcR-pwUjrVHozI2VyNwdvQshrlxjR-kxZR7QMTtgP9bNsuqbG7AiR5YZKjXjsEjidBd4nbgvVowdMOxClFXc26sVwq9QhxPFXFq6cA",
+          "source_name": "Medix Dental IT",
+          "publication_date": null,
+          "markdown": "Highly recommended on forums like DentalTown for small and independent practices."
+        },
+        {
+          "type": "gemini_source",
+          "title": "The Best Dental Practice Management Software for 2026 (And How",
+          "snippet": " Open Dental takes a different approach. It is one of the few open-source \ndental PMS platforms available. Its strengths include: * Deep \ncustomization. * Direct ...",
+          "domain": "www.curvedental.com",
+          "url": "https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Open%20Dental%20takes%20a%20different%20approach.%20It,*%20Flexible%20integrations.%20*%20Lower%20entry%20pricing.",
+          "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcRjp144mnfCJ5QPCtxRJiOCzNyQiQuHFjwKHWQv7NWdDePI_bxlOH2tgMN1Xyhdu0rrNBcfGvFBfKPGQN--YTXzfbq02mhWJV4zR5IU2fo",
+          "source_name": "Curve Dental",
+          "publication_date": null,
+          "markdown": "It offers **deep customization, open architecture, and great value pricing**, though it requires managing your own database or IT setup."
+        },
+        {
+          "type": "gemini_source",
+          "title": "The Best Dental Practice Management Software for 2026 (And How",
+          "snippet": "* 4. Denticon: Built for Multi-Location Organizations. * 5. SoftDent: \nDesktop-Based Reliability. * 6. Curve Dental: Fully Unified Cloud-Native \nPlatform. * Conve...",
+          "domain": "www.curvedental.com",
+          "url": "https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=*%204.%20Denticon%3A%20Built%20for%20Multi-Location%20Organizations.,Software.%20*%20Key%20Takeaways.%20*%20Final%20Perspective.",
+          "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcRjp144mnfCJ5QPCtxRJiOCzNyQiQuHFjwKHWQv7NWdDePI_bxlOH2tgMN1Xyhdu0rrNBcfGvFBfKPGQN--YTXzfbq02mhWJV4zR5IU2fo",
+          "source_name": "Curve Dental",
+          "publication_date": null,
+          "markdown": "A fully **cloud-native platform** that bundles scheduling, charting, billing, and imaging."
+        },
+        {
+          "type": "gemini_source",
+          "title": "The Best Dental Practice Management Software for 2026 (And How",
+          "snippet": " Because it's cloud-native, practices eliminate: * Server replacements. * \nManual backups. * On-site updates. * VPN access headaches. Teams can access \nthe system...",
+          "domain": "www.curvedental.com",
+          "url": "https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Because%20it's%20cloud-native%2C%20practices%20eliminate%3A%20*%20Server,What%20practices%20often%20appreciate%20most%20is%20consolidation.",
+          "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcRjp144mnfCJ5QPCtxRJiOCzNyQiQuHFjwKHWQv7NWdDePI_bxlOH2tgMN1Xyhdu0rrNBcfGvFBfKPGQN--YTXzfbq02mhWJV4zR5IU2fo",
+          "source_name": "Curve Dental",
+          "publication_date": null,
+          "markdown": "It eliminates the need for physical servers and manual backups, making it ideal for small teams wanting simplicity."
+        },
+        {
+          "type": "gemini_source",
+          "title": "10 Best Dental Practice Management Software to Know - Planet DDS",
+          "snippet": " 6. * Dentrix Ascend. Dentrix Ascend is a cloud-based practice management \nsolution built for solo practices, multi-site organizations, and DSOs. It \noffers centr...",
+          "domain": "www.planetdds.com",
+          "url": "https://www.planetdds.com/blog/10-best-dental-practice-management-software/#:~:text=6.%20*%20Dentrix%20Ascend.%20Dentrix%20Ascend%20is,portal%20for%20patient%20records%20and%20real-time%20data.",
+          "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcStcA3ik9O_Bb67cDNSM-2lhHyOdtnn5hRjobkRHm151s0kMrSfW4dBJy9UD3vGnHn9dJAUwsxglMWLHbPKko-jl88nz5B92bq63jsj",
+          "source_name": "Planet DDS",
+          "publication_date": null,
+          "markdown": "A popular **cloud version of Dentrix** tailored for single-location and small group practices, offering robust reporting and trusted industry features without local server maintenance."
+        }
+      ],
+      "se_results_count": 0,
+      "item_types": ["gemini_text"],
+      "items_count": 6,
+      "items": [
+        {
+          "type": "gemini_text",
+          "rank_group": 1,
+          "rank_absolute": 1,
+          "markdown": "Choosing the best dental practice management software (PMS) for a small clinic depends on whether you prefer a **modern cloud-based platform** to reduce IT overhead or a **traditional system** with deep customizability.",
+          "original_text": "Choosing the best dental practice management software (PMS) for a small clinic depends on whether you prefer a modern cloud-based platform to reduce IT overhead or a traditional system with deep customizability.",
+          "sources": null
+        },
+        {
+          "type": "gemini_text",
+          "rank_group": 2,
+          "rank_absolute": 2,
+          "markdown": "Top options for small dental clinics include:",
+          "original_text": "Top options for small dental clinics include:",
+          "sources": null
+        },
+        {
+          "type": "gemini_text",
+          "rank_group": 3,
+          "rank_absolute": 3,
+          "markdown": "The DentOS is an affordable, customizable workflow option that helps small clinics track patient data and scheduling efficiently.",
+          "original_text": "The DentOS is an affordable, customizable workflow option that helps small clinics track patient data and scheduling efficiently.",
+          "sources": null
+        },
+        {
+          "type": "gemini_text",
+          "rank_group": 4,
+          "rank_absolute": 4,
+          "markdown": "The DentaMile Connect Software streamlines clinical manufacturing workflows and digital tracking for smaller operations.",
+          "original_text": "The DentaMile Connect Software streamlines clinical manufacturing workflows and digital tracking for smaller operations.",
+          "sources": null
+        },
+        {
+          "type": "gemini_text",
+          "rank_group": 5,
+          "rank_absolute": 5,
+          "markdown": "### Industry Favorites for Small Clinics (Non-Shopping Catalog Options)",
+          "original_text": "Industry Favorites for Small Clinics (Non-Shopping Catalog Options)",
+          "sources": null
+        },
+        {
+          "type": "gemini_text",
+          "rank_group": 6,
+          "rank_absolute": 6,
+          "markdown": "* **Open Dental:** Highly recommended on forums like DentalTown for small and independent practices.[medixdental.com](https://medixdental.com/best-dental-pms/#:~:text=Open%20Dental%20is%20our%20top%20recommendation%20for,in%20a%20market%20full%20of%20private-equity%20roll-ups.) It offers **deep customization, open architecture, and great value pricing**, though it requires managing your own database or IT setup.[www.curvedental.com](https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Open%20Dental%20takes%20a%20different%20approach.%20It,*%20Flexible%20integrations.%20*%20Lower%20entry%20pricing.)\n* **Curve Dental:** A fully **cloud-native platform** that bundles scheduling, charting, billing, and imaging.[www.curvedental.com](https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=*%204.%20Denticon%3A%20Built%20for%20Multi-Location%20Organizations.,Software.%20*%20Key%20Takeaways.%20*%20Final%20Perspective.) It eliminates the need for physical servers and manual backups, making it ideal for small teams wanting simplicity.[www.curvedental.com](https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Because%20it's%20cloud-native%2C%20practices%20eliminate%3A%20*%20Server,What%20practices%20often%20appreciate%20most%20is%20consolidation.)\n* **Dentrix Ascend:** A popular **cloud version of Dentrix** tailored for single-location and small group practices, offering robust reporting and trusted industry features without local server maintenance.[www.planetdds.com](https://www.planetdds.com/blog/10-best-dental-practice-management-software/#:~:text=6.%20*%20Dentrix%20Ascend.%20Dentrix%20Ascend%20is,portal%20for%20patient%20records%20and%20real-time%20data.)",
+          "original_text": "Open Dental: Highly recommended on forums like DentalTown for small and independent practices. It offers deep customization, open architecture, and great value pricing, though it requires managing your own database or IT setup.\nCurve Dental: A fully cloud-native platform that bundles scheduling, charting, billing, and imaging. It eliminates the need for physical servers and manual backups, making it ideal for small teams wanting simplicity.\nDentrix Ascend: A popular cloud version of Dentrix tailored for single-location and small group practices, offering robust reporting and trusted industry features without local server maintenance.",
+          "sources": [
+            {
+              "type": "gemini_source",
+              "title": "7 Best Dental Practice Management Software (PMS) in 2026",
+              "snippet": " Open Dental is our top recommendation for groups that want control of \ntheir own platform. It is independently owned, a privately held Oregon \ncompany founded in...",
+              "domain": "medixdental.com",
+              "url": "https://medixdental.com/best-dental-pms/#:~:text=Open%20Dental%20is%20our%20top%20recommendation%20for,in%20a%20market%20full%20of%20private-equity%20roll-ups.",
+              "thumbnail": "https://encrypted-tbn3.gstatic.com/favicon-tbn?q=tbn%3AANd9GcR-pwUjrVHozI2VyNwdvQshrlxjR-kxZR7QMTtgP9bNsuqbG7AiR5YZKjXjsEjidBd4nbgvVowdMOxClFXc26sVwq9QhxPFXFq6cA",
+              "source_name": "Medix Dental IT",
+              "publication_date": null,
+              "markdown": "Highly recommended on forums like DentalTown for small and independent practices."
+            },
+            {
+              "type": "gemini_source",
+              "title": "The Best Dental Practice Management Software for 2026 (And How",
+              "snippet": " Open Dental takes a different approach. It is one of the few open-source \ndental PMS platforms available. Its strengths include: * Deep \ncustomization. * Direct ...",
+              "domain": "www.curvedental.com",
+              "url": "https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Open%20Dental%20takes%20a%20different%20approach.%20It,*%20Flexible%20integrations.%20*%20Lower%20entry%20pricing.",
+              "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcRjp144mnfCJ5QPCtxRJiOCzNyQiQuHFjwKHWQv7NWdDePI_bxlOH2tgMN1Xyhdu0rrNBcfGvFBfKPGQN--YTXzfbq02mhWJV4zR5IU2fo",
+              "source_name": "Curve Dental",
+              "publication_date": null,
+              "markdown": "It offers **deep customization, open architecture, and great value pricing**, though it requires managing your own database or IT setup."
+            },
+            {
+              "type": "gemini_source",
+              "title": "The Best Dental Practice Management Software for 2026 (And How",
+              "snippet": "* 4. Denticon: Built for Multi-Location Organizations. * 5. SoftDent: \nDesktop-Based Reliability. * 6. Curve Dental: Fully Unified Cloud-Native \nPlatform. * Conve...",
+              "domain": "www.curvedental.com",
+              "url": "https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=*%204.%20Denticon%3A%20Built%20for%20Multi-Location%20Organizations.,Software.%20*%20Key%20Takeaways.%20*%20Final%20Perspective.",
+              "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcRjp144mnfCJ5QPCtxRJiOCzNyQiQuHFjwKHWQv7NWdDePI_bxlOH2tgMN1Xyhdu0rrNBcfGvFBfKPGQN--YTXzfbq02mhWJV4zR5IU2fo",
+              "source_name": "Curve Dental",
+              "publication_date": null,
+              "markdown": "A fully **cloud-native platform** that bundles scheduling, charting, billing, and imaging."
+            },
+            {
+              "type": "gemini_source",
+              "title": "The Best Dental Practice Management Software for 2026 (And How",
+              "snippet": " Because it's cloud-native, practices eliminate: * Server replacements. * \nManual backups. * On-site updates. * VPN access headaches. Teams can access \nthe system...",
+              "domain": "www.curvedental.com",
+              "url": "https://www.curvedental.com/dental-blog/best-dental-practice-management-software-2026#:~:text=Because%20it's%20cloud-native%2C%20practices%20eliminate%3A%20*%20Server,What%20practices%20often%20appreciate%20most%20is%20consolidation.",
+              "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcRjp144mnfCJ5QPCtxRJiOCzNyQiQuHFjwKHWQv7NWdDePI_bxlOH2tgMN1Xyhdu0rrNBcfGvFBfKPGQN--YTXzfbq02mhWJV4zR5IU2fo",
+              "source_name": "Curve Dental",
+              "publication_date": null,
+              "markdown": "It eliminates the need for physical servers and manual backups, making it ideal for small teams wanting simplicity."
+            },
+            {
+              "type": "gemini_source",
+              "title": "10 Best Dental Practice Management Software to Know - Planet DDS",
+              "snippet": " 6. * Dentrix Ascend. Dentrix Ascend is a cloud-based practice management \nsolution built for solo practices, multi-site organizations, and DSOs. It \noffers centr...",
+              "domain": "www.planetdds.com",
+              "url": "https://www.planetdds.com/blog/10-best-dental-practice-management-software/#:~:text=6.%20*%20Dentrix%20Ascend.%20Dentrix%20Ascend%20is,portal%20for%20patient%20records%20and%20real-time%20data.",
+              "thumbnail": "https://encrypted-tbn1.gstatic.com/favicon-tbn?q=tbn%3AANd9GcStcA3ik9O_Bb67cDNSM-2lhHyOdtnn5hRjobkRHm151s0kMrSfW4dBJy9UD3vGnHn9dJAUwsxglMWLHbPKko-jl88nz5B92bq63jsj",
+              "source_name": "Planet DDS",
+              "publication_date": null,
+              "markdown": "A popular **cloud version of Dentrix** tailored for single-location and small group practices, offering robust reporting and trusted industry features without local server maintenance."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

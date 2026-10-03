@@ -4,6 +4,12 @@ import { ExpressAdapter } from '@bull-board/express';
 import { Router } from 'express';
 import { sameOriginOnly } from '../middleware/same-origin.js';
 
+/** The queue a Bull Board request is about; `/api/queues/pause` and `/resume` are about all of them. */
+const queueNamed = (path) => {
+  const name = /^\/api\/queues\/([^/]+)/.exec(path)?.[1] ?? null;
+  return name === 'pause' || name === 'resume' ? null : name;
+};
+
 /**
  * Bull Board: the dashboard of every queue (waiting, active, delayed, failed), with retry and discard buttons
  * (ADMIN_OPERATIONS §3, module 3; MVP §7.8: failed jobs "shown in admin with a retry button").
@@ -16,8 +22,11 @@ import { sameOriginOnly } from '../middleware/same-origin.js';
  * no unrecorded changes.
  *
  * It is a third-party page, not part of the component kit (a reason UI_DESIGN's rule asks for): it ships its own
- * React build. It runs under our strict CSP unchanged; the only thing the policy stops is the Google Fonts
- * stylesheet it asks for, which we are glad not to send staff IP addresses to, so it uses system fonts.
+ * React build. It runs under our strict CSP unchanged and is fully usable (checked in a browser on 2026-10-03:
+ * every queue, a job's detail, pause with its confirmation). The policy does block two things, and each shows as a
+ * console error: the Google Fonts stylesheet it asks for, which we are glad not to send staff IP addresses to (it
+ * falls back to system fonts), and some inline styles, which on that day cost nothing visible. Do not loosen
+ * 'style-src' for this page without an ADR; if an upgrade makes the page unusable, that is the moment to decide.
  */
 export function queueBoard({ queues, staffAuth, db, logger }) {
   const adapter = new ExpressAdapter();
@@ -38,7 +47,7 @@ export function queueBoard({ queues, staffAuth, db, logger }) {
         staffId: req.staff.id,
         action: 'queue.write',
         targetType: 'queue',
-        targetId: /^\/api\/queues\/([^/]+)/.exec(req.path)?.[1] ?? null,
+        targetId: queueNamed(req.path),
         afterState: { method: req.method, path: req.originalUrl.split('?')[0] },
         ip: req.ip,
         userAgent: req.get('user-agent'),

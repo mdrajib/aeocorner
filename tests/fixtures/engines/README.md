@@ -24,4 +24,6 @@ npm run engines:try -- --engine chatgpt --mode live --record "What is the best d
 |---|---|---|
 | `perplexity/agent-recorded-2026-10-03.json` | live call, `perplexity/sonar` | 2026-10-03 |
 | `serpapi/google-aio-recorded-2026-10-03.json` | live call, Google US, English | 2026-10-03 |
+| `dataforseo/chatgpt-live-recorded-2026-10-03.json` | live call, ChatGPT (`gpt-5-6`), US, English | 2026-10-03 |
+| `dataforseo/gemini-live-recorded-2026-10-03.json` | live call, Gemini (`3.5 Flash-Lite`), US, English | 2026-10-03 |
 | everything else | documented shape, hand-built | 2026-10-03 |

@@ -778,6 +778,7 @@ sequenceDiagram
 - Retries use exponential backoff with jitter (max 5). Jobs that still fail stay in BullMQ's failed set (our dead-letter queue), shown in admin with a retry button. Partial runs are marked `partial` and are **excluded from trend significance** rather than counted as zeros.
 - Provider circuit breaker: an error rate > 10% over 15 min switches to the fallback adapter and alerts on-call.
 - Per-org **daily spend cap** from the usage ledger. Hitting it pauses collection and notifies the org.
+- *As built (2026-10-03, [ADR-0008](adr/0008-queues-and-the-worker.md)):* a separate worker process; eight queues (the seven above plus `system` for the hourly tick and the guards); a wait for a rate limit, an organization's cap, an open breaker or a spend pause is a delayed job that does not use up one of the five attempts; every provider call goes through one function that applies those checks and writes the ledger; the breaker needs at least 20 requests in the window before it can trip; money is whole micro-dollars and the day is the UTC day; and every change made in the queue dashboard is written to the audit log first, or refused.
 
 ### 7.9 Repository layout (planned)
 

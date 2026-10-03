@@ -67,6 +67,7 @@ export function authHarness({
   provider = fakeClerk(),
   staffProvider,
   cloudflareKeys,
+  queues,
 } = {}) {
   const db = connectTestDb();
   const fx = fixtures(db);
@@ -86,6 +87,7 @@ export function authHarness({
     staffProvider,
     mailer,
     cloudflareKeys,
+    queues,
   });
   const agent = request(app);
 

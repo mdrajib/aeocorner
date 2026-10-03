@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Phase-by-phase execution checklist for building the app |
 | **Date** | 2026-10-03 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered; Phase 1 engineering finished 2026-10-02; Phase 2 engineering finished 2026-10-02; Phase 5 engineering finished 2026-10-03; Phase 6 pipeline built 2026-10-03) |
-| **Status** | In progress — Phases 0, 1 and 2: engineering is done and tested locally; open items are founder/infra work (accounts, brand and wireframe sign-off, legal text, Clerk and Cloudflare setup), the first run against real Clerk, and the first GitHub CI run with the Phase 2 changes. Phase 3: code and tests done, the Bull Board page and docs pass still open. Phase 4: engineering done, not yet run in CI. Phase 5: engineering done; live calls verified for Perplexity and SerpApi; DataForSEO's credentials now work (they collected the Phase 6 golden set on 2026-10-03), but its recorded live check is still to do. Phase 6: pipeline, golden set and eval built and run; D4 is provisionally "keep Opus 5.5", final after the founder's label review. Phase 7 is next, when the founder asks for it |
+| **Status** | In progress — Phases 0, 1 and 2: engineering is done and tested locally; open items are founder/infra work (accounts, brand and wireframe sign-off, legal text, Clerk and Cloudflare setup), the first run against real Clerk, and the first GitHub CI run with the Phase 2 changes. Phase 3: code and tests done, the Bull Board page and docs pass still open. Phase 4: engineering done, not yet run in CI. Phase 5: complete, with a live call verified for every provider; DataForSEO's live check passed on 2026-10-03 and its two answers are recorded. Phase 6: pipeline, golden set and eval built and run; D4 is provisionally "keep Opus 5.5", final after the founder's label review. Phase 7 is next, when the founder asks for it |
 | **Companion docs** | [MVP.md](MVP.md) §13 (narrative timeline, team, Definition of Done) · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md) · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. Purpose and how to use this plan
@@ -172,27 +172,27 @@
 
 **Exit criteria:** sign-up, org creation, invitations and role checks work end to end against real MySQL — **met, with Clerk faked**; the cross-tenant suite exists and passes — **met**; no direct Prisma/raw-SQL calls exist outside `src/db/` — **met** (lint rule). **Not yet met:** the first run against real Clerk, and the founder's Clerk and Cloudflare setup.
 
-## Phase 3 — Job infrastructure & usage ledger
+## Phase 3 — Job infrastructure & usage ledger ✅ Complete 2026-10-03
 
-**Status (2026-10-02):** 🟠 **Started; code and the five required tests are written and passing locally, but the phase is not finished.** Still to do: tests for the Bull Board page on the staff host (`src/web/staff/queues.js`, written but never run in a browser or under the CSP), the docs pass (CLAUDE.md, MVP §7.8, ADMIN_OPERATIONS §6, an ADR for the queue design). *Done since: the CI changes shipped in `180e431` and GitHub Actions ran green on 2026-10-02; the integration test that failed once in a full run was found and fixed during Phase 4 (an "empty bucket" test that assumed the worker starts within two seconds, which a loaded machine misses; and a real MySQL deadlock when organizations are created at the same moment, now retried by `src/db/transaction.js`).* Redis for local work is the shared container on port 6379: use databases 14 (dev) and 15 (tests), never 0, never flush.
+**Status (2026-10-03):** ✅ **Complete.** The code and the five required tests were done on 2026-10-02 and GitHub Actions ran green that day. Closed on 2026-10-03: the Bull Board page on the staff host was run in a real browser under the strict CSP and is now tested (`tests/routes/staff-queues.test.js`, 13 tests; it found and fixed a wrong audit target for "pause all queues", and showed the policy blocks inline styles as well as the font, so the code comment was corrected), and the design is written up in [ADR-0008](adr/0008-queues-and-the-worker.md). *Found and fixed earlier: an "empty bucket" integration test that assumed the worker starts within two seconds, and a real MySQL deadlock when organizations are created at the same moment (now retried by `src/db/transaction.js`).* Redis for local work is the shared container on port 6379: use databases 14 (dev) and 15 (tests), never 0, never flush.
 
 **Goal:** BullMQ is running as a separate worker process with the scheduling, rate-limiting and cost-tracking primitives every later job depends on.
 
 **Work:**
-- [ ] `src/worker/index.js` entry point; Redis connection; one BullMQ queue per job type (audit, crawl, collect, extract, content, sync, digest) per [MVP §7.8](MVP.md#78-scheduling-concurrency--resilience).
-- [ ] Hourly job scheduler; deterministic job IDs (`project_id + slot`) so double-fires can't duplicate a run.
-- [ ] Per-provider Redis token buckets + per-org concurrency caps.
-- [ ] Retry policy: exponential backoff with jitter, max 5, failed jobs visible in Bull Board inside internal admin.
-- [ ] `usage_ledger` writes on every external call (provider + LLM), with `idempotency_key`.
-- [ ] Per-org daily spend cap check that pauses collection and notifies the org when hit.
-- [ ] Provider circuit breaker (>10% error rate over 15 min switches to fallback, alerts on-call).
+- [x] `src/worker/index.js` entry point; Redis connection; one BullMQ queue per job type (audit, crawl, collect, extract, content, sync, digest) per [MVP §7.8](MVP.md#78-scheduling-concurrency--resilience).
+- [x] Hourly job scheduler; deterministic job IDs (`project_id + slot`) so double-fires can't duplicate a run.
+- [x] Per-provider Redis token buckets + per-org concurrency caps.
+- [x] Retry policy: exponential backoff with jitter, max 5, failed jobs visible in Bull Board inside internal admin.
+- [x] `usage_ledger` writes on every external call (provider + LLM), with `idempotency_key`.
+- [x] Per-org daily spend cap check that pauses collection and notifies the org when hit.
+- [x] Provider circuit breaker (>10% error rate over 15 min switches to fallback, alerts on-call).
 
 **Tests required before moving on:**
-- [ ] Unit: token-bucket and concurrency-cap logic under simulated load.
-- [ ] Integration: enqueuing the same job ID twice results in one job, not two (idempotency).
-- [ ] Integration: a forced job failure retries with backoff and lands in the dead-letter set after max retries.
-- [ ] Integration: `usage_ledger` rows are never double-written on a retried job (idempotency key holds).
-- [ ] Unit: spend-cap logic pauses collection at the threshold and resumes correctly after reset.
+- [x] Unit: token-bucket and concurrency-cap logic under simulated load.
+- [x] Integration: enqueuing the same job ID twice results in one job, not two (idempotency).
+- [x] Integration: a forced job failure retries with backoff and lands in the dead-letter set after max retries.
+- [x] Integration: `usage_ledger` rows are never double-written on a retried job (idempotency key holds).
+- [x] Unit: spend-cap logic pauses collection at the threshold and resumes correctly after reset.
 
 **Exit criteria:** a hand-triggered no-op job runs through the full queue → retry → ledger path with nothing hard-coded to one project.
 
@@ -236,9 +236,9 @@
 
 **Not yet met:** a green CI run (the work is not pushed yet).
 
-## Phase 5 — Engine adapters (spikes)
+## Phase 5 — Engine adapters (spikes) ✅ Complete 2026-10-03
 
-**Status (2026-10-03):** 🟡 **Engineering complete and tested; live check passed for Perplexity and SerpApi (AI Overviews), still open for DataForSEO (ChatGPT, Gemini)**, which has no account yet. Real responses from both live calls are now test fixtures; the other fixtures are built by hand from the documented response shapes. **Found while checking the providers: Perplexity ended Sonar Chat Completions on 2026-09-27**, the API the spec was written against; the adapter uses its successor, the Agent API, with the `perplexity/sonar` model ([ADR-0006](adr/0006-engine-adapters.md)). Left to do: open the DataForSEO account, run its two live calls with `npm run engines:try`, record them, and fill in the rest of ADR-0006's results table.
+**Status (2026-10-03):** ✅ **Complete.** Engineering is done and tested, and the live check passed for all three providers (Perplexity, SerpApi, and DataForSEO for ChatGPT and Gemini). Real responses from the live calls are now test fixtures; the other fixtures are built by hand from the documented response shapes. **Found while checking the providers: Perplexity ended Sonar Chat Completions on 2026-09-27**, the API the spec was written against; the adapter uses its successor, the Agent API, with the `perplexity/sonar` model ([ADR-0006](adr/0006-engine-adapters.md)). Carried forward: the fallback adapters (MILESTONES task 4.12).
 
 **Goal:** prove the `EngineAdapter` contract ([MVP §7.5](MVP.md#75-engine-adapter-contract-design-sketch)) against all four real providers before building the orchestrator around them.
 
@@ -246,7 +246,7 @@
 - [x] `src/engines/` adapter per engine/provider pair: DataForSEO (ChatGPT + Gemini UI), Perplexity (Agent API, `perplexity/sonar`; Sonar Chat Completions ended 2026-09-27), SerpApi (AI Overviews). `createAdapters(config.providers)` builds one per provider whose credentials are set; a provider without credentials is unavailable.
 - [x] Each adapter implements `submit`/`poll`/`normalize`/`estimateCostUsd` (`src/engines/contract.js`; plus `estimateCostMicros`). Every error is a `ProviderError` that says whether retrying helps and whether it is the provider's fault (so our bad credentials can't trip its breaker). A response we can't read is an error, never "no answer"; Google showing no AI Overview is `no_answer`, a real result.
 - [x] Raw payload storage to Spaces + `answer_snapshots` insert + `usage_ledger` insert per answer: the `collect.answer` job (`src/worker/handlers/collect.js`) and `forOrg(orgId).snapshots`. The raw response and our reading of it are stored first as one JSON document (`answers/2026/10/<sha256>.json`), even when unreadable; one ledger row per charge, at the provider's own reported cost where it gives one; DataForSEO's queue is polled by the job deferring itself (no attempt used), and polling is free so it writes no ledger row (`callProvider` now accepts `usage: { free: true }`); the fallback provider is used when the primary's breaker is open, if it has an adapter. Provider rate limits in `src/core/limits.js`.
-- [ ] Record real provider responses as fixtures for the contract-test suite (§2). *Perplexity and SerpApi recorded 2026-10-03 (`*-recorded-2026-10-03.json`) and replayed by the tests; DataForSEO still to record. The hand-built files stay for errors and other cases a live call can't produce on demand.*
+- [x] Record real provider responses as fixtures for the contract-test suite (§2). *All three providers recorded 2026-10-03 (`*-recorded-2026-10-03.json`) and replayed by the tests; DataForSEO's are live mode only (its queued mode stays hand-built). The hand-built files stay for errors and other cases a live call can't produce on demand.*
 - [x] *Added in this phase:* `npm run engines:try -- --engine <engine> "<question>"`, a paid live call from the command line (no database), for the spike check and for recording fixtures; provider credentials and `PERPLEXITY_MODEL` / `SERPAPI_COST_PER_SEARCH_USD` in the config.
 - [ ] *Carried forward:* adapters for the fallbacks in the `engines` table (OpenAI and Gemini APIs; DataForSEO for Perplexity and AI Overviews). Until then a tripped primary means "couldn't check" for that engine.
 
@@ -254,12 +254,12 @@
 - [x] Contract tests per adapter, replayed from recorded fixtures (no live calls in CI): `tests/adapters/engines.test.js`, 17 tests over real HTTP to a server on this machine, checking what we send (endpoint, credentials, fields, locale) as well as what we read, and how every failure is classified (credentials, no credit, rate limit, server error, timeout, an answer cut short, an overview Google can't build right now, a page-token follow-up). *Replayed from the hand-built fixtures until real recordings replace them.*
 - [x] Unit: `normalize()` produces the same shape regardless of provider (text, sources[], model_version, locale): `src/engines/engines.test.js`, one zod schema for all four, plus "a changed shape is an error, never `no_answer`".
 - [x] Unit: `estimateCostUsd()` matches the provider's published pricing within a documented tolerance: DataForSEO exact, SerpApi exact for the configured plan, Perplexity within ±50% of its reported cost (ADR-0006 Decision 8).
-- [ ] Manual/spike check (not CI): one real, live call per provider succeeds and a human confirms the raw payload looks right — record the result in an ADR. *Perplexity ✅ and SerpApi ✅ on 2026-10-03 (ADR-0006 Decision 9: both match the documented shapes; Perplexity charged $0.00441 against a $0.004 estimate); DataForSEO not run, no account.*
+- [x] Manual/spike check (not CI): one real, live call per provider succeeds and a human confirms the raw payload looks right — record the result in an ADR. *All ✅ on 2026-10-03 (ADR-0006 Decision 9: Perplexity charged $0.00441 against a $0.004 estimate; ChatGPT and Gemini through DataForSEO each charged exactly $0.004; all match the documented shapes, with two small differences noted in the ADR).*
 - [x] Also: `collect.answer` as a queued job against real Redis and MySQL (`tests/integration/collect-job.test.js`, 12 tests): raw stored and hash-checked, snapshot completed, ledger rows equal provider charges (including a job that fails after paying), free polls, no-answer, non-retryable and retryable failures, an unreadable answer kept in storage, a queued task given up on after its deadline, the fallback route, and a forged payload naming another organization refused; the snapshot repository in the cross-tenant suite (`answer_snapshots` has no foreign keys, so the repository is the only guard), five mutations of its tenant filters all caught.
 
 **Local results (2026-10-03):** lint and Prettier clean; `npm test` 586 passing; `npm run test:routes` 156 (one failure in one full run, in the Clerk webhook retry test, not reproduced in three reruns or alone; that code is untouched by this phase); `npm run test:integration` 167; `npm run test:tenancy` 54; `npm run test:adapters` 55. `test:e2e` not run: no change under `src/web/` or `tailwind/`.
 
-**Exit criteria:** all four adapters pass their contract tests and have at least one verified live call; provider pricing is recorded in the usage ledger correctly — **contract tests and ledger pricing met; live calls verified for Perplexity and SerpApi, not yet for DataForSEO.**
+**Exit criteria:** all four adapters pass their contract tests and have at least one verified live call; provider pricing is recorded in the usage ledger correctly — **met (2026-10-03): contract tests, ledger pricing and a live call for every provider.** The fallback adapters stay carried forward (MILESTONES task 4.12).
 
 ## Phase 6 — Extraction pipeline & golden-set eval
 

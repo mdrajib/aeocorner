@@ -381,6 +381,10 @@ describe('SerpApi (Google AI Overviews)', () => {
   });
 });
 
+/** `engines:try --record` keeps the one task the provider returned; the server sends it inside this envelope. */
+const inEnvelope = (path) =>
+  JSON.stringify({ status_code: 20000, status_message: 'Ok.', tasks: [JSON.parse(fixture(path))] });
+
 describe('real recorded responses (live calls on 2026-10-03), replayed over HTTP', () => {
   test('Perplexity: the reported cost and the answer come through the whole adapter', async () => {
     const perplexity = adapters().get('perplexity_api', 'perplexity');
@@ -391,6 +395,38 @@ describe('real recorded responses (live calls on 2026-10-03), replayed over HTTP
     const answer = perplexity.normalize(await perplexity.poll(handle), task());
     normalizedAnswerSchema.parse(answer);
     assert.equal(answer.sources.length, 15);
+  });
+
+  test('DataForSEO ChatGPT: a live answer is one request, the cited sources only', async () => {
+    const chatgpt = adapters().get('dataforseo', 'chatgpt');
+    routes['POST /v3/ai_optimization/chat_gpt/llm_scraper/live/advanced'] = {
+      body: inEnvelope('dataforseo/chatgpt-live-recorded-2026-10-03.json'),
+    };
+    const handle = await chatgpt.submit(task({ mode: 'live' }));
+    assert.deepEqual([requests.length, handle.costMicros], [1, 4_000]);
+    const answer = chatgpt.normalize(await chatgpt.poll(handle), task());
+    normalizedAnswerSchema.parse(answer);
+    assert.equal(answer.status, 'ok');
+    assert.equal(answer.modelVersion, 'gpt-5-6');
+    // The recording lists 33 pages ChatGPT searched; only the 3 it cited are sources.
+    assert.deepEqual(
+      answer.sources.map((s) => new URL(s.url).hostname),
+      ['www.getpracticehelp.com', 'www.dental-practice-software.com', 'www.capterra.com'],
+    );
+  });
+
+  test('DataForSEO Gemini: a live answer is one request, with its sources', async () => {
+    const gemini = adapters().get('dataforseo', 'gemini');
+    routes['POST /v3/ai_optimization/gemini/llm_scraper/live/advanced'] = {
+      body: inEnvelope('dataforseo/gemini-live-recorded-2026-10-03.json'),
+    };
+    const handle = await gemini.submit(task({ engine: 'gemini', mode: 'live' }));
+    assert.deepEqual([requests.length, handle.costMicros], [1, 4_000]);
+    const answer = gemini.normalize(await gemini.poll(handle), task({ engine: 'gemini' }));
+    normalizedAnswerSchema.parse(answer);
+    assert.equal(answer.status, 'ok');
+    assert.equal(answer.modelVersion, '3.5 Flash-Lite');
+    assert.equal(answer.sources.length, 5);
   });
 
   test('SerpApi: an overview on the results page itself takes one search', async () => {

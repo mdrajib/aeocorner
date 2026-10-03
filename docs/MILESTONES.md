@@ -85,11 +85,11 @@ flowchart LR
 
 | # | Task | Needs | Gates |
 |---|---|---|---|
-| 0.01 | Confirm CI is green on `main` with Phases 4–6 pushed | — | Ticks Phase 1 and 4 CI boxes |
-| 0.02 | Test the Bull Board page on the staff host under the CSP | — | Phase 3 close |
-| 0.03 | Write the queue-design ADR and finish the Phase 3 docs pass | — | Phase 3 close |
-| 0.04 | Record live DataForSEO calls (ChatGPT, Gemini) as fixtures | — | 1.09 tests |
-| 0.05 | Fill in ADR-0006's results table | 0.04 | Phase 5 close |
+| 0.01 | ✅ 2026-10-03 Confirm CI is green on `main` with Phases 4–6 pushed | — | Ticks Phase 1 and 4 CI boxes |
+| 0.02 | ✅ 2026-10-03 Test the Bull Board page on the staff host under the CSP | — | Phase 3 close |
+| 0.03 | ✅ 2026-10-03 Write the queue-design ADR and finish the Phase 3 docs pass | — | Phase 3 close |
+| 0.04 | ✅ 2026-10-03 Record live DataForSEO calls (ChatGPT, Gemini) as fixtures | — | 1.09 tests |
+| 0.05 | ✅ 2026-10-03 Fill in ADR-0006's results table | 0.04 | Phase 5 close |
 | 0.06 | 👤 Review the golden-set labels (`npm run golden:review`) | — | 0.07 |
 | 0.07 | Re-score on reviewed labels and finalize D4 | 0.06 | Phase 6 close |
 | 0.08 | 👤 Add `ANTHROPIC_API_KEY` as a GitHub repository secret | — | Eval in CI |

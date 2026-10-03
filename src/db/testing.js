@@ -125,6 +125,14 @@ export function fixtures(db) {
       return staff;
     },
 
+    /** The audit-log rows a staff member's actions wrote, oldest first. */
+    staffAuditRows(staffId) {
+      return prisma.admin_audit_log.findMany({
+        where: { staff_user_id: staffId },
+        orderBy: { id: 'asc' },
+      });
+    },
+
     /** Write a membership_projects row directly, to prove the database itself refuses a cross-tenant project. */
     forceMembershipProject({ membershipId, projectId, orgId }) {
       return prisma.membership_projects.create({
@@ -401,6 +409,7 @@ export function fixtures(db) {
         },
       });
       if (staffIds.length) {
+        await prisma.admin_audit_log.deleteMany({ where: { staff_user_id: { in: staffIds } } });
         await prisma.staff_roles.deleteMany({ where: { staff_user_id: { in: staffIds } } });
         await prisma.staff_users.deleteMany({ where: { id: { in: staffIds } } });
       }
