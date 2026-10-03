@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted for the pipeline. **Decision D4 still open**: the golden set is collected and draft-labelled, but the labels await the founder's review and the Claude eval has not run (no `ANTHROPIC_API_KEY` on this machine yet) |
+| **Status** | Accepted for the pipeline. **Decision D4: keep Opus 5.5, provisionally** (first eval, 2026-10-03, on draft labels). It becomes final when the founder has reviewed the labels and the eval is re-scored on them (free: replies are cached) |
 | **Date** | 2026-10-03 |
 | **Context of discovery** | [BUILD_PLAN.md Phase 6](../BUILD_PLAN.md#phase-6--extraction-pipeline--golden-set-eval): "turn a raw answer into structured mentions/citations/claims, and settle decision D4 (bulk model choice) with real data" |
 
@@ -47,18 +47,29 @@ Decision D4 ([MVP §17](../MVP.md#17-decisions-needed-from-the-founder)) is whic
 
 **9. Results so far** (`npm run eval:extraction`, reports in `evals/extraction/results/`):
 
-| Reader | Labels | Mention agreement | Stance | Rank | Note |
-|---|---|---|---|---|---|
-| Pre-pass alone | 237 draft | **100%** (1,185 pairs; 99.9% before the link rule in decision 2) | — | — | The pre-pass reads no stance or rank |
-| Claude Opus 5.5 | — | not run | not run | not run | Needs `ANTHROPIC_API_KEY` |
-| Claude Haiku 4.5 | — | not run | not run | not run | Needs `ANTHROPIC_API_KEY` |
+First Claude run, 2026-10-03: all 237 answers, both models, answered one at a time at full price (not the Batch API), prompt `x1`, scored on the **draft** labels. "Stored" is what the app keeps (decision 1: both readers combined). Targets: mention ≥ 95%, stance ≥ 90%, rank ≥ 90%.
 
-What this already shows: with good aliases, **mention detection is met by the free pre-pass alone**, and under decision 1 Claude can only add mentions to it. D4 will therefore be decided on stance, rank and answer type (and on false mentions Claude adds), not on mention detection. If the reviewed labels confirm this, the 2-point mention tolerance in the D4 rule stops being the deciding test.
+| Reader | Mention | Stance | Rank | Answer type | False mentions | Cost per answer (full price) | Meets targets |
+|---|---|---|---|---|---|---|---|
+| Pre-pass alone | **100%** (1,185 pairs; 99.9% before the link rule in decision 2) | — | — | — | 0 | free | Mention only; it reads no stance or rank |
+| Claude Opus 5.5 (stored) | 99.9% | **92.0%** | **91.8%** | 86.5% | 1 | **$0.0254** (7.7 s) | ✅ all three |
+| Claude Haiku 4.5 (stored) | 99.3% | **85.5%** ❌ | 90.8% | 80.6% | 8 | **$0.0047** (5.6 s) | ❌ stance |
+| Claude Haiku 4.5 (alone) | 98.4% (11 brands missed) | 87.3% | 90.8% | 80.6% | 8 | | ❌ stance |
+
+**D4, provisional: keep Opus 5.5** (`decideD4`). Haiku is within the 2-point mention tolerance (0.6 points behind) but misses the stance target by 4.5 points, mostly by reading a recommendation as a caution (25 times) or as neutral (18). As expected, mention detection didn't decide it: the pre-pass already has it, and Claude's false mentions are what it adds.
+
+What the misses show:
+- **Opus's one false mention** (`email-q4-perplexity`, Mailchimp) came from the question ("a cheaper alternative to Mailchimp?"), not the answer. A line in the prompt saying a brand named only in the question isn't a mention should fix it; that is prompt `x2` and a new run (about $6 for Opus).
+- **Opus's stance misses** are split between "recommended" read as neutral or cautioned (22) and neutral read as recommended (18), so there's no single bias. Several may be label mistakes; the founder's review settles that.
+- **Opus's rank misses** are mostly ranks it left empty (30 of 43) where the label gave one. None of those 15 answers has a numbered list; the brands are in bullets or headed sections, and the labels counted their order as a rank. That is a rule to clarify in the prompt once the review shows which side is right.
+- **Answer type** (86.5%) has no target. It is reported, not decided on.
+
+Scores on reviewed labels go in this table when the review is done (`npm run eval:extraction -- --labels reviewed`, free).
 
 ## Consequences
 
-- **Cost per answer is higher than the spec assumed.** Real answers average 2,500 characters (Gemini 5,300, ChatGPT 2,300, AI Overviews 1,600, Perplexity 1,000), not about 700 tokens, and Perplexity lists about 15 sources. The extraction output plus low-effort thinking is unmeasured. [MVP §12.1](../MVP.md#121-cost-inputs) keeps its estimate until the eval records the real figure.
-- **Open until the key exists:** run `npm run eval:extraction` (both models), review the labels, run it again on reviewed labels, decide D4 and record it in decision 9 and MVP §17. Add `ANTHROPIC_API_KEY` as a GitHub repository secret, or the CI job warns instead of scoring.
+- **Cost per answer is about 60% higher than the spec assumed** (measured 2026-10-03). Real answers average 2,500 characters (Gemini 5,300, ChatGPT 2,300, AI Overviews 1,600, Perplexity 1,000), not about 700 tokens, and Perplexity lists about 15 sources. Opus 5.5 measured **$0.0254** per answer at full price, so about **$0.013 on the Batch API** against the spec's $0.008. Output is most of it: about 900 tokens of JSON per answer (excerpts and claims), $0.018 at full price. Low effort used **no thinking tokens** on any answer. Haiku 4.5 measured $0.0047 (about $0.0023 batched, close to the spec's $0.002), and its prefix did cache (4,894 tokens, over its 4,096 minimum). [MVP §12.1–12.3](../MVP.md#121-cost-inputs) has the margin consequence. Levers if it matters: shorter excerpts (the biggest output item), fewer claims per brand, or Haiku for low-stakes re-reads.
+- **Still open:** the founder's label review, a re-score on reviewed labels (free), then D4 is final in decision 9 and MVP §17. Add `ANTHROPIC_API_KEY` as a GitHub repository secret, or the CI job warns instead of scoring.
 - **Known gap:** if a worker dies between creating a batch and recording it on the run, the batch runs (and is charged) but its results are never read; the run's answers stay pending and a later `extract.batch` sends them again. Anthropic batches have no idempotency key. The admin console (Phase 10) should list batches Anthropic knows that no run recorded.
 - **Nothing triggers extraction automatically yet.** The tracking orchestrator (Phase 9) enqueues `extract.batch` when a run's collection is done; the free audit (Phase 7) uses `extract.answer`. Rollups (Phase 9) decide how `detected_by = prepass` mentions with no stance are counted.
 - **Found during collection, fixed the same day:** SerpApi returned two AI Overviews the adapter called "no readable text" (`crm-q1`, `dental-q5`). They were not a new layout. Google had advertised a separate overview and then returned an empty one, which SerpApi reports as "Fully empty". These are now read as `no_answer` ([ADR-0006](0006-engine-adapters.md) decision 2). Re-collecting the two questions would add two `no_answer` rows to the golden set; those don't affect extraction scores.

@@ -10,6 +10,6 @@ One-way-door technical decisions made while building AEO Corner, and the reasoni
 | [0004](0004-clerk-hosted-sign-in.md) | Sign-in through Clerk's hosted pages; sign-out and CSRF protection are ours | Accepted | 2026-10-02 |
 | [0005](0005-fetching-other-peoples-websites.md) | Fetching other people's websites: one safe fetcher, a browser that never touches the network, and robots.txt | Accepted | 2026-10-02 |
 | [0006](0006-engine-adapters.md) | Engine adapters: one contract, the raw answer first, and Perplexity through its Agent API | Accepted (live check open) | 2026-10-03 |
-| [0007](0007-answer-extraction.md) | Answer extraction: a free pre-pass, Claude through the Batch API, and a golden set that decides the model (D4) | Accepted (D4 open) | 2026-10-03 |
+| [0007](0007-answer-extraction.md) | Answer extraction: a free pre-pass, Claude through the Batch API, and a golden set that decides the model (D4) | Accepted (D4 provisional: keep Opus 5.5) | 2026-10-03 |
 
 **Format:** Status, Context, Decision, Consequences. Numbered sequentially, never renumbered or deleted — a reversed decision gets a new ADR marking the old one `Superseded by ADR-000N`, per [CLAUDE.md](../../CLAUDE.md)'s consistency rule.

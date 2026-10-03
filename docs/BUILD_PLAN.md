@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Phase-by-phase execution checklist for building the app |
 | **Date** | 2026-10-03 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered; Phase 1 engineering finished 2026-10-02; Phase 2 engineering finished 2026-10-02; Phase 5 engineering finished 2026-10-03; Phase 6 pipeline built 2026-10-03) |
-| **Status** | In progress — Phases 0, 1 and 2: engineering is done and tested locally; open items are founder/infra work (accounts, brand and wireframe sign-off, legal text, Clerk and Cloudflare setup), the first run against real Clerk, and the first GitHub CI run with the Phase 2 changes. Phase 3: code and tests done, the Bull Board page and docs pass still open. Phase 4: engineering done, not yet run in CI. Phase 5: engineering done; live calls verified for Perplexity and SerpApi; DataForSEO's credentials now work (they collected the Phase 6 golden set on 2026-10-03), but its recorded live check is still to do. Phase 6: pipeline, golden set and eval built; D4 waits for the founder's label review and an Anthropic API key. Phase 7 is next, when the founder asks for it |
+| **Status** | In progress — Phases 0, 1 and 2: engineering is done and tested locally; open items are founder/infra work (accounts, brand and wireframe sign-off, legal text, Clerk and Cloudflare setup), the first run against real Clerk, and the first GitHub CI run with the Phase 2 changes. Phase 3: code and tests done, the Bull Board page and docs pass still open. Phase 4: engineering done, not yet run in CI. Phase 5: engineering done; live calls verified for Perplexity and SerpApi; DataForSEO's credentials now work (they collected the Phase 6 golden set on 2026-10-03), but its recorded live check is still to do. Phase 6: pipeline, golden set and eval built and run; D4 is provisionally "keep Opus 5.5", final after the founder's label review. Phase 7 is next, when the founder asks for it |
 | **Companion docs** | [MVP.md](MVP.md) §13 (narrative timeline, team, Definition of Done) · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md) · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. Purpose and how to use this plan
@@ -263,7 +263,7 @@
 
 ## Phase 6 — Extraction pipeline & golden-set eval
 
-**Status (2026-10-03):** 🟡 **Pipeline built and tested; the golden set is collected and draft-labelled; decision D4 is open.** It waits for two things: the founder's review of the labels (`npm run golden:review`; founder decision 2026-10-03: Claude drafts, the founder corrects), and an `ANTHROPIC_API_KEY` to run the Claude side of the eval (the line in `.env` was still empty on 2026-10-03). The free pre-pass alone already agrees with the draft labels on all 1,185 "is the brand named" pairs, so D4 will most likely be decided on stance and rank. Everything is in [ADR-0007](adr/0007-answer-extraction.md). **The spec's `claude-opus-5` is now `claude-opus-5-5`**, its successor: same features, cheaper.
+**Status (2026-10-03):** 🟡 **Pipeline built and tested; both models evaluated; D4 provisionally "keep Opus 5.5".** On the draft labels Opus 5.5 meets every target (mention 99.9%, stance 92.0%, rank 91.8%) and Haiku 4.5 misses stance (85.5%). The eval cost about $7.10. D4 becomes final after the founder's review of the labels (`npm run golden:review`; founder decision 2026-10-03: Claude drafts, the founder corrects) and a re-score on them, which is free because replies are cached. **Extraction costs about 60% more than the spec assumed** (Opus ≈ $0.013 an answer batched, not $0.008), which lowers the Starter margin from ≈ 64% to ≈ 52% ([MVP §12.1](MVP.md#121-cost-inputs)). Everything is in [ADR-0007](adr/0007-answer-extraction.md). **The spec's `claude-opus-5` is now `claude-opus-5-5`**, its successor: same features, cheaper.
 
 **Goal:** turn a raw answer into structured mentions/citations/claims, and settle decision D4 (bulk model choice) with real data.
 
@@ -276,13 +276,13 @@
   - `models.js`: Opus 5.5 at low effort and Haiku 4.5, their prices, and cost in micro-dollars.
   - `claude.js`: the SDK wrapper; errors are classified like the engine adapters'.
 - [x] 200-answer golden set in `evals/`: **237 real answers** in `evals/extraction/answers.jsonl` (10 projects × 6 questions × 4 engines, collected 2026-10-03 for about $1.63; three AI Overview requests failed twice), and labels for all of them in `labels.jsonl`. *Claude drafted the labels; the founder's review is still to do (`npm run golden:review`).*
-- [x] Eval harness comparing `claude-opus-5-5` (low effort; it replaced the spec's `claude-opus-5`) vs `claude-haiku-4-5` against the golden set: `npm run eval:extraction` (`scripts/eval-extraction.js`; scoring and the D4 rule are in `src/llm/eval/score.js`). Replies are cached per model and prompt version; `--batch` runs at half price; `--prepass-only` is free. *Not yet run against Claude: no API key.*
+- [x] Eval harness comparing `claude-opus-5-5` (low effort; it replaced the spec's `claude-opus-5`) vs `claude-haiku-4-5` against the golden set: `npm run eval:extraction` (`scripts/eval-extraction.js`; scoring and the D4 rule are in `src/llm/eval/score.js`). Replies are cached per model and prompt version; `--batch` runs at half price; `--prepass-only` is free. *First run 2026-10-03, both models, all 237 answers: results in ADR-0007 decision 9.*
 - [x] `mentions`, `citations`, `claims` inserts from parsed batch results, keyed by `custom_id` (`s<snapshot>_<run date>`): `forOrg(orgId).extractions` (`src/db/repos/org-extractions.js`) and the `extract.batch`, `extract.poll` and `extract.answer` jobs (`src/worker/handlers/extract.js`). One ledger row per batch. Disagreements between the two readers go to `review_items`; untracked brands become `discovered` entities.
-- [ ] Decision D4 recorded (ADR-0007 decision 9 and [MVP §17](MVP.md#17-decisions-needed-from-the-founder)), after the labels are reviewed and both models have run.
+- [ ] Decision D4 recorded (ADR-0007 decision 9 and [MVP §17](MVP.md#17-decisions-needed-from-the-founder)). *Recorded as provisional (keep Opus 5.5) on draft labels; final after the label review and a re-score.*
 - [x] *Fixed along the way (a Phase 2 bug):* the Clerk webhook route test failed about one run in three. Every test file's cleanup deleted *all* webhook rows starting `msg_test_`, including rows another file was still using. Each fixtures instance now has its own prefix (`src/db/testing.js`, `webhookId()`).
 
 **Tests required before moving on:**
-- [ ] Eval run produces the accuracy numbers needed to decide D4, checked against the [MVP §10](MVP.md#10-non-functional-requirements) targets. *Pre-pass: 100% mention agreement on draft labels. Claude: waiting for the key and the review.*
+- [x] Eval run produces the accuracy numbers needed to decide D4, checked against the [MVP §10](MVP.md#10-non-functional-requirements) targets. *2026-10-03, draft labels: pre-pass 100% on mentions; Opus 5.5 meets all three targets; Haiku 4.5 misses stance. To repeat on reviewed labels.*
 - [x] Unit: the deterministic pre-pass alone (no LLM) on fixture answers: `src/llm/prepass.test.js` (names, possessives, domains, exclusions, overlaps, links, list items, non-English letters, citations, URL normalisation, and hostile input in linear time).
 - [x] Integration: a batch result with a malformed/partial LLM response is handled without corrupting `mentions`/`citations`: `tests/integration/extract-job.test.js`.
   - A reply cut off at `max_tokens`, broken JSON, the wrong shape and a refusal each mark the answer failed and write nothing, and an earlier reading of the same answer survives intact.
@@ -294,7 +294,7 @@
 
 **Local results (2026-10-03):** lint and Prettier clean; `npm test` 632 passing; `npm run test:routes` 156 (four clean runs in a row after the webhook fix); `npm run test:integration` 176; `npm run test:tenancy` 60; `npm run test:adapters` 57; `npm audit --omit=dev` 0 vulnerabilities. `test:e2e` not run: no change under `src/web/` or `tailwind/`.
 
-**Exit criteria:** D4 is decided and recorded as an ADR ([MVP §17](MVP.md#17-decisions-needed-from-the-founder)); the eval runs in CI going forward. **Not yet met:** D4 waits for the label review and the API key. The CI job is in place, but it scores Claude only once the repository secret exists.
+**Exit criteria:** D4 is decided and recorded as an ADR ([MVP §17](MVP.md#17-decisions-needed-from-the-founder)); the eval runs in CI going forward. **Not yet met:** D4 is provisional until the label review. The CI job is in place, but it scores Claude only once `ANTHROPIC_API_KEY` is a repository secret.
 
 ## Phase 7 — Free audit (🚩 M1)
 
