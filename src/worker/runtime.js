@@ -16,6 +16,7 @@ import { crawlHandlers } from './handlers/crawl.js';
 import { extractHandlers } from './handlers/extract.js';
 import { setupHandlers } from './handlers/setup.js';
 import { systemHandlers } from './handlers/system.js';
+import { trackingHandlers } from './handlers/tracking.js';
 import { createProviderCaller } from './provider-call.js';
 import { createSpendGuard } from './spend-guard.js';
 
@@ -45,6 +46,7 @@ export const SCHEDULES = Object.freeze([
  *                                   and the model keys for the Brand Kit/questions (default haiku45) and for reading
  *                                   answers (default: the extraction model). audit.run also needs `crawler`,
  *                                   `collection` and `extraction`; without them it fails at once
+ * @param {object} [deps.tracking]   { timing } overrides for how often a run looks again and when it gives up (src/worker/handlers/tracking.js); tests use tiny values
  * @param {object} [deps.extraction] { claude, store, model } for the extract.* jobs: the Claude client (src/llm/claude.js),
  *                                   the bucket the answers are in, and the model key (src/llm/models.js); without it
  *                                   those jobs fail at once
@@ -60,6 +62,7 @@ export function createWorkerRuntime({
   crawler = null,
   collection = null,
   extraction = null,
+  tracking = null,
   audit = {},
   now = () => new Date(),
   queueNames = Object.keys(QUEUES),
@@ -74,6 +77,7 @@ export function createWorkerRuntime({
     ...collectHandlers,
     ...extractHandlers,
     ...setupHandlers,
+    ...trackingHandlers,
     ...extraHandlers,
   };
 
@@ -114,6 +118,7 @@ export function createWorkerRuntime({
     crawler,
     collection,
     extraction,
+    tracking,
     audit: { ...audit, budget: auditBudget },
     now,
     isHandled: (name) => typeof handlers[name] === 'function',

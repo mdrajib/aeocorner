@@ -27,6 +27,26 @@ export const appPages = [
     path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}`,
   },
   {
+    name: 'project-home-incomplete-check',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}`,
+  },
+  {
+    name: 'project-home-running-check',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.runningProjectId}`,
+  },
+  {
+    name: 'project-home-incomplete-check-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}`,
+  },
+  {
+    name: 'project-setup-start-tracking-on',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}/setup/start`,
+  },
+  {
     name: 'project-brand',
     as: 'owner',
     path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/brand`,

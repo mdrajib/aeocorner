@@ -1,0 +1,16 @@
+<%# The latest check of a project and the button for an extra one. Props: lastRun ({ state, tone, title, text, running, finishedLabel }), runNow ({ label, left, inProgress }), tracking, canEdit, projectBase, csrfToken. %>
+<% if (!tracking) { %>
+<p class="text-ink-700 text-sm">Tracking is switched off while you set up. <% if (canEdit) { %><a href="<%= projectBase %>/setup/start">Review and start tracking</a>.<% } %></p>
+<% } else { %>
+<div class="flex flex-col gap-3">
+  <%- ui.banner({ tone: lastRun.tone === 'neutral' ? 'info' : lastRun.tone, title: lastRun.title, text: lastRun.text + (lastRun.finishedLabel ? ' Finished ' + lastRun.finishedLabel + '.' : '') }) %>
+  <% if (canEdit) { %>
+  <form method="post" action="<%= projectBase %>/run-now" class="flex flex-wrap items-center gap-3">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.button({ label: 'Run a check now', type: 'submit', variant: 'secondary', size: 'sm', disabled: runNow.inProgress || runNow.left === 0 }) %>
+    <span class="text-ink-700 text-sm"><%= runNow.inProgress ? 'A check is running.' : runNow.label %></span>
+  </form>
+  <% } %>
+  <p class="text-ink-700 text-sm">We also check every week by ourselves.</p>
+</div>
+<% } %>

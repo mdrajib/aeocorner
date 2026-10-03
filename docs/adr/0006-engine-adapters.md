@@ -49,6 +49,21 @@ While checking the providers' documentation on 2026-10-03 we found that **Perple
 
 **10. Rate limits** (`src/core/limits.js`) are set well under each provider's stated ceiling, because our polling shares the budget: DataForSEO 20/s (its limit is 2,000 a minute), Perplexity and SerpApi 2/s until the account tier and plan are known. Re-measure after the live check.
 
+**11. Degraded modes: no fallback adapters for the MVP (decided 2026-10-03, Milestone 4 task 4.12).** MVP §13.3 asks for a fallback or a documented degraded mode per engine. We chose the degraded mode, because a fallback adapter is a second provider to build, test and pay a monthly minimum for, and each engine's primary has been reliable in the live checks above. What happens when a primary is down, which is the same for all four engines:
+
+| Engine | Primary | Fallback in the `engines` table | If the primary is down |
+|---|---|---|---|
+| ChatGPT | DataForSEO | OpenAI Responses API (not built) | The answers wait, then become "couldn't check" |
+| Gemini | DataForSEO | Gemini API (not built) | Same |
+| Perplexity | Perplexity Agent API | DataForSEO LLM Responses (not built) | Same |
+| Google AI Overviews | SerpApi | DataForSEO SERP (not built) | Same |
+
+- **Waiting is not failing.** While a primary's circuit breaker is open the answers' jobs are put back for a minute at a time without using up an attempt. A run waits for its answers for up to 4 hours (`TRACKING.collectDeadlineMs`), so an outage shorter than that is ridden out and the run finishes complete.
+- **After the deadline** the answers still missing are marked failed ("couldn't check") and the run finishes with what it has: `partial` if some engines answered, `failed` if none did. The staff alert for an open breaker has already gone out (Phase 3).
+- **What the customer sees** is "The last check is incomplete: N of M answers couldn't be checked. They're left out of your numbers: they are not counted as 'not mentioned'" ([UI_DESIGN](../UI_DESIGN.md) and `src/core/run-status.js`), and "Couldn't check" in the cells of that engine. A day with an incomplete engine is left out of that engine's trend tests (`src/core/trends.js`), so our outage is never reported as the customer's decline.
+- **The next weekly run starts clean.** Nothing is carried over: an engine that was down last week is asked again.
+- **When this stops being enough:** the first week an engine is incomplete for two runs in a row for a paying customer. Then the fallback for that engine is built (the adapter contract above is unchanged by it) and this table is updated.
+
 ## Consequences
 
 - Most fixtures in `tests/fixtures/engines/` are **hand-built from the documented response shapes**; they stay for the cases a live call can't produce on demand (errors, queued tasks, page tokens, no overview). Real recordings now cover all three providers. DataForSEO's are live-mode only: its queued mode (`task_post` then `task_get`, the cheap one weekly tracking uses) is replayed from hand-built fixtures, though it ran for real when the Phase 6 golden set was collected.

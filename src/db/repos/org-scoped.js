@@ -4,6 +4,7 @@ import { projectRepos } from './org-projects.js';
 import { promptRepos } from './org-prompts.js';
 import { scanRepos } from './org-scans.js';
 import { snapshotRepos } from './org-snapshots.js';
+import { trackingRepos } from './org-tracking.js';
 import { usageRepos } from './org-usage.js';
 import { transaction } from '../transaction.js';
 
@@ -337,5 +338,6 @@ export function orgScopedRepos(prisma, orgId) {
     ...scanRepos(prisma, orgId),
     ...snapshotRepos(prisma, orgId),
     ...extractionRepos(prisma, orgId),
+    ...trackingRepos(prisma, orgId),
   };
 }

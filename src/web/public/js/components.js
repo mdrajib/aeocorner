@@ -123,3 +123,45 @@ document.addEventListener('htmx:responseError', (event) => {
       setTimeout(() => window.location.reload(), 8000);
   });
 })();
+
+// Pages that wait for a job (a project being read, a first check running) set `refreshSeconds`, and the app layout
+// writes a [data-auto-refresh] bar. The page reloads itself every few seconds, with three guards: the visitor can stop
+// it (WCAG 2.2.1: a timed refresh must be switchable), it waits while the tab is in the background, and it never
+// reloads over something the visitor has typed but not yet saved. Without this script the page is still correct.
+(function () {
+  const root = document.querySelector('[data-auto-refresh]');
+  if (!root) return;
+  const seconds = Number(root.dataset.autoRefresh);
+  if (!(seconds >= 3 && seconds <= 120)) return;
+
+  const edited = (field) => {
+    if (field.type === 'checkbox' || field.type === 'radio')
+      return field.checked !== field.defaultChecked;
+    if (field.tagName === 'SELECT')
+      return Array.from(field.options).some((o) => o.selected !== o.defaultSelected);
+    return field.value !== field.defaultValue;
+  };
+  const typing = () =>
+    Array.from(
+      document.querySelectorAll('input:not([type=hidden]):not([type=submit]), textarea, select'),
+    ).some(edited);
+
+  let timer;
+  const tick = () => {
+    if (document.hidden || typing()) {
+      timer = setTimeout(tick, seconds * 1000);
+      return;
+    }
+    window.location.reload();
+  };
+  timer = setTimeout(tick, seconds * 1000);
+
+  const stop = root.querySelector('[data-auto-refresh-stop]');
+  if (stop)
+    stop.addEventListener('click', () => {
+      clearTimeout(timer);
+      stop.hidden = true;
+      const text = root.querySelector('[data-auto-refresh-text]');
+      if (text) text.textContent = 'Updating is stopped. Reload the page to see the latest.';
+    });
+})();

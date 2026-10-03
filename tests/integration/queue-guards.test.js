@@ -554,19 +554,25 @@ describe('the hourly scheduler', () => {
     assert.ok(perProject[String(due.id)] && perProject[String(missed.id)]);
   });
 
-  test('with no tracking handler registered yet, projects are noted but nothing is enqueued', async () => {
+  test('an active project that is due gets its tracking.start job, with the week in its ID', async () => {
+    // No worker on the collect queue here: the job stays waiting, so its ID and payload can be read.
     const h = await runtimeFor({ queueNames: ['system'], now: () => at });
     const org = await fx.org();
-    await fx.project(org.org.id, 'Waiting for Phase 9', { status: 'active', slotHour: HOUR });
+    const due = await fx.project(org.org.id, 'Waiting for its run', {
+      status: 'active',
+      slotHour: HOUR,
+    });
     const id = uid();
     await h.runtime.jobs.add('scheduler.tick', {}, { jobId: id });
     const result = (await waitForJob(h.queue('system'), id, ['completed'])).returnvalue;
     assert.ok(result.due >= 1);
-    assert.equal(result.started, 0);
-    assert.deepEqual(await h.queue('collect').getJobCounts('waiting', 'delayed', 'active'), {
-      waiting: 0,
-      delayed: 0,
-      active: 0,
+    assert.equal(result.started, result.due);
+    const job = await h.queue('collect').getJob(trackingRunJobId(due.id, WEEK));
+    assert.ok(job, 'the run was queued under its fixed ID');
+    assert.deepEqual(job.data, {
+      orgId: String(org.org.id),
+      projectId: String(due.id),
+      weekKey: WEEK,
     });
   });
 });

@@ -13,8 +13,8 @@ import { lines, withNotice } from './project-helpers.js';
  * pre-filled from what we found, so a customer mostly confirms. The steps use the same repositories as the Brand Kit
  * and Prompt Manager screens: this is a guided order, not a second copy of the data.
  *
- * The last step shows what is ready. It does not switch tracking on: weekly runs arrive with Milestone 4, and marking
- * a project active before then would make the scheduler pick it up with nothing to run.
+ * The last step shows what is ready and, for someone who can edit, offers "Start tracking" (routes in
+ * project-tracking.js): it switches the project to active and starts its first check at once.
  */
 
 export const STEPS = Object.freeze(['brand', 'competitors', 'questions', 'connect', 'start']);

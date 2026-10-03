@@ -8,6 +8,7 @@ import {
 } from '../../core/project-rules.js';
 import { fromLiteKit } from '../../core/brand-kit.js';
 import { checkCoverage } from '../../core/prompt-rules.js';
+import { describeRun, isRunning, runNowLabel } from '../../core/run-status.js';
 import { requestScan } from '../../crawler/request-scan.js';
 import { DomainError } from '../../db/index.js';
 import { brandKitJobId, slotOf } from '../../lib/job-ids.js';
@@ -16,9 +17,10 @@ import { normalizeWebsite } from '../../lib/url.js';
 import { clearAuditClaim, readAuditClaim } from '../auth/audit-claim.js';
 import { notFound } from '../middleware/errors.js';
 import { brandRoutes } from './project-brand.js';
-import { idFrom, returnPath, withNotice } from './project-helpers.js';
+import { dateLabel, idFrom, returnPath, withNotice } from './project-helpers.js';
 import { questionRoutes } from './project-questions.js';
 import { setupRoutes } from './project-setup.js';
+import { trackingRoutes } from './project-tracking.js';
 
 /**
  * Projects inside one organization (Milestone 3): the list, "create a project", and one project's page.
@@ -237,7 +239,11 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
       const only = project ? await visibleIds(req) : null;
       if (!project || (only && !only.includes(project.id))) return notFound(req, res);
       req.project = project;
-      res.locals.project = { name: project.name, publicId: project.public_id };
+      res.locals.project = {
+        name: project.name,
+        publicId: project.public_id,
+        status: project.status,
+      };
       res.locals.projectBase = `${res.locals.orgBase}/projects/${project.public_id}`;
       return next();
     } catch (err) {
@@ -248,13 +254,19 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   const edit = auth.requirePermission('strategy.edit');
 
   async function renderProject(req, res, { verifyResult = null, status } = {}) {
-    const [entities, engines, proof, kit, active] = await Promise.all([
+    const [entities, engines, proof, kit, active, runs, usage] = await Promise.all([
       req.orgDb.entities.list(req.project.id),
       req.orgDb.projectEngines.list(req.project.id),
       req.orgDb.projects.verification(req.project.id),
       req.orgDb.brandKits.current(req.project.id),
       req.orgDb.prompts.list(req.project.id, { status: 'active' }),
+      req.orgDb.runs.recent(req.project.id, { limit: 1 }),
+      req.orgDb.quota.runNowUsage(),
     ]);
+    const latest = runs[0] ?? null;
+    const lastRun = describeRun(latest);
+    // A running check refreshes the page by itself, for as long as it is plausibly still running.
+    if (lastRun.running) res.locals.refreshSeconds = 10;
     appPage(
       res,
       'project-home',
@@ -273,6 +285,16 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
         setupOpen:
           req.project.status === 'onboarding' &&
           (!kit || !checkCoverage(active, { hasCity: Boolean(req.project.city) }).ok),
+        lastRun: {
+          ...lastRun,
+          finishedLabel: lastRun.finishedAt ? dateLabel(lastRun.finishedAt) : null,
+        },
+        runNow: {
+          label: runNowLabel(usage),
+          left: Math.max(0, usage.limit - usage.used),
+          inProgress: isRunning(latest),
+        },
+        tracking: req.project.status === 'active',
         countryName: COUNTRIES[req.project.country] ?? req.project.country,
         languageName: LANGUAGES[req.project.language] ?? req.project.language,
         meta: {
@@ -437,6 +459,7 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   brandRoutes(router, { jobs, logger, appPage, edit });
   questionRoutes(router, { jobs, logger, appPage, edit });
   setupRoutes(router, { jobs, logger, appPage, edit });
+  trackingRoutes(router, { jobs, logger, edit });
 
   return { router, visibleIds };
 }

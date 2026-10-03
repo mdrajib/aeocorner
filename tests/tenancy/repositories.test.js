@@ -1019,6 +1019,116 @@ describe('projects, engines, competitors and aliases (Milestone 3)', () => {
   });
 });
 
+describe('tracking runs, rollups, changes and quota', () => {
+  // cell_results, cell_entity_results and metric_daily are fact tables with no foreign keys, so these functions are
+  // the only thing between one organization and another's runs.
+  let aProject;
+  let bRun;
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Tracked A');
+    ({ run: bRun } = await B.scoped.runs.start({
+      projectId: bProject.id,
+      slotKey: '2026-W40',
+      trigger: 'manual',
+    }));
+  });
+
+  test('start(): A cannot make a run on B’s project, and the slot is per project', async () => {
+    const bRunsBefore = (await B.scoped.runs.recent(bProject.id)).length;
+    await refuses(
+      A.scoped.runs.start({ projectId: bProject.id, slotKey: '2026-W41', trigger: 'manual' }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    assert.equal((await B.scoped.runs.recent(bProject.id)).length, bRunsBefore);
+    const own = await A.scoped.runs.start({
+      projectId: aProject.id,
+      slotKey: '2026-W40',
+      trigger: 'manual',
+    });
+    assert.equal(own.created, true, 'the same slot on another project is its own run');
+    assert.equal(own.run.org_id, A.org.id);
+  });
+
+  test('get(), recent(), plan(), progress() and cells(): B’s run is invisible from A', async () => {
+    assert.equal(await A.scoped.runs.get(bRun.id), null);
+    assert.deepEqual(await A.scoped.runs.recent(bProject.id), []);
+    const plan = await A.scoped.runs.plan(bRun.id);
+    assert.deepEqual([plan.run, plan.prompts, plan.engines], [null, [], []]);
+    assert.equal(await A.scoped.runs.progress(bRun.id), null);
+    assert.deepEqual(await A.scoped.runs.cells(bRun.id), []);
+  });
+
+  test('begin(), advance(), finish(), settle(), expirePending() and expireUnread(): A cannot move B’s run', async () => {
+    assert.equal(await A.scoped.runs.begin(bRun.id, { promptsCount: 1, tasksPlanned: 1 }), false);
+    assert.equal(await A.scoped.runs.advance(bRun.id, 'extracting'), false);
+    await refuses(A.scoped.runs.finish(bRun.id, 'failed'), 'RUN_NOT_IN_ORG');
+    await refuses(A.scoped.runs.settle(bRun.id), 'RUN_NOT_IN_ORG');
+    await refuses(A.scoped.runs.expirePending(bRun.id), 'RUN_NOT_IN_ORG');
+    await refuses(A.scoped.runs.expireUnread(bRun.id), 'RUN_NOT_IN_ORG');
+    const row = await B.scoped.runs.get(bRun.id);
+    assert.deepEqual(
+      [row.status, row.started_at, row.finished_at, row.tasks_planned],
+      ['queued', null, null, 0],
+    );
+  });
+
+  test('noteFirstRun(): A cannot stamp B’s project', async () => {
+    assert.equal(await A.scoped.runs.noteFirstRun(bProject.id), false);
+    assert.equal((await fx.projectRow(bProject.id)).first_run_at, null);
+  });
+
+  test('rollupDay() and range(): A cannot roll up or read B’s metrics', async () => {
+    await fx.seedMetrics(bProject, [
+      {
+        date: '2026-10-01',
+        engine: 'perplexity',
+        entityKind: 'brand',
+        nAnswers: 30,
+        kMentioned: 9,
+      },
+    ]);
+    await refuses(
+      A.scoped.metrics.rollupDay(bProject.id, new Date('2026-10-01')),
+      'PROJECT_NOT_IN_ORG',
+    );
+    assert.deepEqual(
+      await A.scoped.metrics.range(bProject.id, { from: '2026-09-01', to: '2026-10-31' }),
+      [],
+    );
+    const mine = await B.scoped.metrics.range(bProject.id, {
+      from: '2026-09-01',
+      to: '2026-10-31',
+    });
+    assert.equal(mine.length, 1);
+    assert.equal(mine[0].kMentioned, 9, 'B’s row is as it was');
+  });
+
+  test('detect() and forProject(): A cannot read B’s history or write events on it', async () => {
+    await refuses(
+      A.scoped.changes.detect(bProject.id, { asOf: '2026-10-26' }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    assert.deepEqual(await A.scoped.changes.forProject(bProject.id), []);
+  });
+
+  test('startTracking(): A cannot switch B’s project on', async () => {
+    await refuses(A.scoped.projects.startTracking(bProject.id), 'NOT_FOUND', 'PROJECT_NOT_IN_ORG');
+    assert.equal((await fx.projectRow(bProject.id)).status, 'onboarding');
+  });
+
+  test('takeRunNow(), returnRunNow() and runNowUsage(): each organization has its own allowance', async () => {
+    const now = new Date('2026-10-10T00:00:00Z');
+    const before = await B.scoped.quota.runNowUsage({ now });
+    const taken = await A.scoped.quota.takeRunNow({ now });
+    assert.equal(taken.allowed, true);
+    assert.deepEqual(await B.scoped.quota.runNowUsage({ now }), before);
+    await A.scoped.quota.returnRunNow({ now });
+    assert.equal((await A.scoped.quota.runNowUsage({ now })).used, 0);
+    assert.deepEqual(await B.scoped.quota.runNowUsage({ now }), before);
+  });
+});
+
 describe('coverage: no repository function without a leak test', () => {
   // Update this list in the same commit that adds a function to org-scoped.js or org-usage.js.
   const COVERED = {
@@ -1035,9 +1145,28 @@ describe('coverage: no repository function without a leak test', () => {
       'getByPublicId',
       'list',
       'markVerified',
+      'startTracking',
       'update',
       'verification',
     ],
+    runs: [
+      'advance',
+      'begin',
+      'cells',
+      'expirePending',
+      'expireUnread',
+      'finish',
+      'get',
+      'noteFirstRun',
+      'plan',
+      'progress',
+      'recent',
+      'settle',
+      'start',
+    ],
+    metrics: ['range', 'rollupDay'],
+    changes: ['detect', 'forProject'],
+    quota: ['returnRunNow', 'runNowUsage', 'takeRunNow'],
     brandKits: ['current', 'get', 'history', 'save'],
     projectEngines: ['list', 'setEnabled'],
     prompts: ['add', 'clusters', 'edit', 'importMany', 'list', 'setStatus'],
@@ -1090,15 +1219,19 @@ describe('coverage: no repository function without a leak test', () => {
     assert.deepEqual(Object.keys(scoped).sort(), [
       'activity',
       'brandKits',
+      'changes',
       'entities',
       'extractions',
       'invitations',
       'memberships',
+      'metrics',
       'notifications',
       'orgId',
       'projectEngines',
       'projects',
       'prompts',
+      'quota',
+      'runs',
       'scans',
       'snapshots',
       'spend',

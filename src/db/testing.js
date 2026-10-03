@@ -96,6 +96,48 @@ export function fixtures(db) {
       });
     },
 
+    /** Switch engines on for a project, as project creation does (the helper above makes a bare project). */
+    async engines(project, codes = ['perplexity']) {
+      await prisma.project_engines.createMany({
+        data: codes.map((engine_code) => ({
+          project_id: project.id,
+          org_id: project.org_id,
+          engine_code,
+          enabled: true,
+        })),
+      });
+    },
+
+    /**
+     * Write daily rollup rows directly, to give a project history without running weeks of tracking. Each row:
+     * `{ date, engine, entityKind ('brand' or a competitor's entity id), nAnswers, kMentioned, ... }`. The brand
+     * is the project's brand entity, made here if it has none.
+     */
+    async seedMetrics(project, rows) {
+      let brand = await prisma.tracked_entities.findFirst({
+        where: { project_id: project.id, kind: 'brand' },
+      });
+      if (!brand) brand = await this.entity(project, { kind: 'brand', name: `Brand ${unique()}` });
+      await prisma.metric_daily.createMany({
+        data: rows.map((r) => ({
+          org_id: project.org_id,
+          project_id: project.id,
+          metric_date: new Date(`${r.date}T00:00:00Z`),
+          engine_code: r.engine,
+          entity_id: r.entityKind === 'brand' ? brand.id : BigInt(r.entityKind),
+          cells_total: r.cellsTotal ?? 1,
+          cells_partial: r.cellsPartial ?? 0,
+          n_answers: r.nAnswers ?? 0,
+          k_mentioned: r.kMentioned ?? 0,
+          k_recommended: r.kRecommended ?? 0,
+          k_cited: r.kCited ?? 0,
+          citations_total: r.citationsTotal ?? 0,
+          citations_entity: r.citationsEntity ?? 0,
+        })),
+      });
+      return brand;
+    },
+
     /** A project as stored (including deleted_at), to prove another organization could not change it. */
     projectRow: (projectId) => prisma.projects.findUnique({ where: { id: projectId } }),
 
@@ -256,15 +298,29 @@ export function fixtures(db) {
     },
 
     /** A tracking run of a project (the orchestrator arrives in Phase 9). */
-    async run(project, { runDate = new Date() } = {}) {
+    async run(
+      project,
+      {
+        runDate = new Date(),
+        status = 'collecting',
+        trigger = 'manual',
+        counts = {},
+        queuedAt,
+      } = {},
+    ) {
       return prisma.runs.create({
         data: {
           org_id: project.org_id,
           project_id: project.id,
           slot_key: `m-${ulid()}`,
-          trigger_type: 'manual',
+          trigger_type: trigger,
           run_date: new Date(runDate.toISOString().slice(0, 10)),
-          status: 'collecting',
+          status,
+          ...(queuedAt ? { queued_at: queuedAt } : {}),
+          ...(['complete', 'partial', 'failed'].includes(status)
+            ? { finished_at: new Date() }
+            : {}),
+          ...counts,
         },
       });
     },
@@ -435,6 +491,11 @@ export function fixtures(db) {
         await prisma.audits.updateMany({ where, data: { org_id: null, project_id: null } });
         await prisma.site_scans.deleteMany({ where });
         await prisma.site_pages.deleteMany({ where });
+        await prisma.cell_entity_results.deleteMany({ where });
+        await prisma.cell_results.deleteMany({ where });
+        await prisma.metric_daily.deleteMany({ where });
+        await prisma.change_events.deleteMany({ where });
+        await prisma.quota_usage.deleteMany({ where });
         await prisma.claims.deleteMany({ where });
         await prisma.mentions.deleteMany({ where });
         await prisma.citations.deleteMany({ where });

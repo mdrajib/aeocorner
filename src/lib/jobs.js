@@ -20,12 +20,17 @@ export const JOBS = Object.freeze({
   // Every 5 minutes: compute error rates, trip or reset circuit breakers, copy health to MySQL.
   'guard.provider_health': { queue: 'system', schema: z.object({}) },
 
-  // The first step of a project's weekly run. The orchestrator that handles it arrives with Phase 9; until
-  // then nothing is enqueued because no project is "active" yet.
+  // The first step of a project's weekly run: make the run for the slot (once), then plan it.
   'tracking.start': {
     queue: 'collect',
     schema: z.object({ orgId: id, projectId: id, weekKey: z.string().regex(/^\d{4}-W\d{2}$/) }),
   },
+
+  // Plan a run that already has its row: a first run or a "run now". The scheduled run is made by `tracking.start`.
+  'tracking.run': { queue: 'collect', schema: z.object({ orgId: id, runId: id }) },
+  // Move one run along: wait for its answers, have them read, then build its cells, rollup and change events. It
+  // waits by deferring itself, so it is one job per run for the run's whole life.
+  'tracking.advance': { queue: 'collect', schema: z.object({ orgId: id, runId: id }) },
 
   // Read one project's website and score its AI readiness (Phase 4, MVP F1/F2). Whoever asks first creates the
   // scan row ("queued"); the job carries only its ID. The website to read comes from the project, never the payload.

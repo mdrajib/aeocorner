@@ -18,7 +18,7 @@ const ro = !canEdit;
   <p class="text-ink-700 mt-2">We read your website and filled in what we could. Correct anything that’s wrong.</p>
   <div class="mt-6 flex flex-col gap-4">
     <% if (conflict) { %><%- ui.banner({ tone: 'warning', title: 'Someone saved a newer version first.', text: 'Your changes weren’t saved. The form now shows the newest version: check it and continue.' }) %><% } %>
-    <% if (reading) { %><%- ui.banner({ tone: 'info', title: 'We’re reading your website.', text: 'This takes a minute or two and this page refreshes by itself. You can start typing, but a refresh would replace what’s unsaved.' }) %><% } %>
+    <% if (reading) { %><%- ui.banner({ tone: 'info', title: 'We’re reading your website.', text: 'This takes a minute or two and this page refreshes by itself. It won’t refresh while you’re typing.' }) %><% } %>
     <% if (readFailed) { %><%- ui.banner({ tone: 'warning', title: 'We couldn’t read your website yet.', text: 'Fill in the basics below. You can ask us to try again from the Brand Kit page.' }) %><% } %>
     <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', title: 'This step wasn’t saved.', text: Object.values(errors)[0] }) %><% } %>
     <form method="post" action="<%= setupBase %>/brand" class="flex flex-col gap-4" novalidate>
@@ -85,10 +85,27 @@ const ro = !canEdit;
   <div class="mt-6">
     <%- ui.card({ headingLevel: 2, html: ui.fragment('partials/setup-summary', { hasKit, version, competitors, prompts, coverage, engines, names: ENGINE_NAMES, projectBase }) }) %>
   </div>
-  <p class="text-ink-700 mt-4 text-sm">Your Brand Kit and questions are saved. Weekly checks of the AI engines start once tracking is switched on for your account, and you can change any of this before then.</p>
+  <% const trackingOn = project.status === 'active'; const ready = prompts.length > 0 && engines.some((e) => e.enabled); -%>
+  <% if (trackingOn) { %>
+  <p class="text-ink-700 mt-4 text-sm">Tracking is on. We check the AI engines every week, and you can ask for an extra check from your project page.</p>
+  <% } else if (canEdit && ready) { %>
+  <p class="text-ink-700 mt-4 text-sm">Your Brand Kit and questions are saved. When you start tracking we ask each AI engine your questions straight away, which takes a few minutes, and then again every week. You can change anything later.</p>
+  <% } else if (canEdit) { %>
+  <%- ui.banner({ tone: 'warning', title: 'Not ready to start.', text: 'Add at least one question and keep one AI engine switched on, then come back here.' }) %>
+  <% } else { %>
+  <p class="text-ink-700 mt-4 text-sm">Someone who can edit this project needs to start tracking.</p>
+  <% } %>
   <div class="mt-6 flex flex-wrap gap-3">
     <%- ui.button({ label: 'Back', href: previous, variant: 'secondary' }) %>
+    <% if (!trackingOn && canEdit && ready) { %>
+    <form method="post" action="<%= setupBase %>/start">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- ui.button({ label: 'Start tracking', type: 'submit', iconRight: 'arrow-right' }) %>
+    </form>
+    <%- ui.button({ label: 'Not yet', href: projectBase, variant: 'secondary' }) %>
+    <% } else { %>
     <%- ui.button({ label: 'Go to your project', href: projectBase }) %>
+    <% } %>
   </div>
   <% } %>
 </div>

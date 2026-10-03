@@ -21,6 +21,7 @@ export async function startRuntime({
   crawler,
   collection,
   extraction,
+  tracking,
   audit,
 } = {}) {
   const connection = connectTestRedis();
@@ -39,6 +40,7 @@ export async function startRuntime({
     crawler,
     collection,
     extraction,
+    tracking,
     audit,
   });
   await runtime.start({ schedule });

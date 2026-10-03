@@ -1,7 +1,7 @@
 <%#
   Authenticated app shell: sidebar + top bar + content.
   Locals: nav ([{ href, label, icon, current }]), user ({ name }), org ({ publicId, name }), orgs ([{ publicId, name }]),
-  csrfToken, project ({ name }), flash ([{ tone, text }]).
+  csrfToken, project ({ name }), flash ([{ tone, text }]), refreshSeconds (optional: reload the page every so many seconds).
 %><!doctype html>
 <html lang="en">
 <head>
@@ -46,6 +46,13 @@
       </header>
       <main id="main" tabindex="-1" class="flex-1 p-4 sm:p-6 lg:p-8">
         <% for (const f of (typeof flash !== 'undefined' ? flash : [])) { %><div class="mb-4"><%- ui.banner({ tone: f.tone, text: f.text, dismissible: true }) %></div><% } %>
+<%# A page that waits for a job (res.locals.refreshSeconds) reloads itself; the visitor can stop it (components.js). %>
+        <% if (typeof refreshSeconds !== 'undefined' && refreshSeconds) { %>
+        <div class="text-ink-700 mb-4 flex flex-wrap items-center gap-3 text-sm" data-auto-refresh="<%= refreshSeconds %>">
+          <span data-auto-refresh-text>This page updates by itself.</span>
+          <%- ui.button({ label: 'Stop updating', variant: 'ghost', size: 'sm', attrs: { 'data-auto-refresh-stop': '' } }) %>
+        </div>
+        <% } %>
 <%- body %>
       </main>
     </div>

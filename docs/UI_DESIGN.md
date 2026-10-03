@@ -126,7 +126,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | B4 | Onboarding 2: competitors | 5 | `…/competitors` | app | Phase 8 | B |
 | B5 | Onboarding 3: buyer questions | 5 | `…/questions` | app | Phase 8 | B |
 | B6 | Onboarding 4: connect (optional) | 5 | `…/connect` | app | Phase 8 / 12 | B |
-| B7 | Onboarding 5: start tracking, then "baseline in progress" | 5, 6 | `…/start` | app | Phase 8 / 9 | B |
+| B7 | Onboarding 5: start tracking, then "baseline in progress" | 5, 6 | `…/start` | app | **Milestone 4 ✅ 2026-10-03** (the last step offers "Start tracking"; the project page has an "AI checks" card with the latest check, "Run a check now" and the month's allowance) | B |
 | B8 | Brand Kit editor with version history | 5, 7 | `/app/p/:id/brand` | app | Phase 8 | B |
 | B9 | Prompt Manager (list, filters, CSV import, duplicates) | 5, 7 | `/app/p/:id/questions` | app | Phase 8 | B |
 | C1 | **Dashboard** (score, engines, competitors, trend, top actions) | 6 Baseline | `/app/p/:id` | app | Phase 10 | C |
@@ -404,6 +404,8 @@ flowchart LR
 |---|---|---|
 | An engine failed or timed out | *Couldn't check* cell or tile (hatched, help icon); gap in trend lines; incomplete-data banner while a retry is pending | "Not mentioned", 0, 0%, or a line dropping to zero |
 | Run still collecting | *Checking…*; "Updating: 60% of answers collected"; existing data stays visible | A blank page or a spinner over old data |
+| The last check was incomplete | "N of M answers couldn't be checked. They're left out of your numbers: they are not counted as 'not mentioned'" (`src/core/run-status.js`) | A number for the missing answers, or a drop in a trend |
+| The last check read nothing | "Couldn't read any answers. No number is guessed" | A zero score |
 | Google AI Overview didn't appear for a search | *No AI Overview* (info, not a miss) | "Not mentioned" |
 | Only one sample (free audit) | A note: "1-sample snapshot" and a link to the methodology | Confidence ranges that imply more samples |
 | Change inside normal noise | Grey arrow and "within normal variation" | Green or red |

@@ -284,6 +284,38 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
       });
     },
 
+    /**
+     * Switch tracking on: an `onboarding` project becomes `active`, so the hourly scheduler picks it up at its weekly
+     * slot. It needs at least one active question and one enabled engine (NOT_READY otherwise). Already active:
+     * nothing changes (`changed: false`). A paused or archived project cannot be started (PROJECT_NOT_TRACKABLE).
+     */
+    async startTracking(projectId, { actorUserId } = {}) {
+      return transaction(prisma, async (tx) => {
+        const project = await ownProject(tx, projectId);
+        if (project.status === 'active') return { changed: false, project };
+        if (project.status !== 'onboarding') throw new DomainError('PROJECT_NOT_TRACKABLE');
+        const [questions, engines] = await Promise.all([
+          tx.prompts.count({ where: { project_id: project.id, org_id: orgId, status: 'active' } }),
+          tx.project_engines.count({
+            where: { project_id: project.id, org_id: orgId, enabled: true },
+          }),
+        ]);
+        if (questions === 0 || engines === 0) throw new DomainError('NOT_READY');
+        const updated = await tx.projects.update({
+          where: { id: project.id },
+          data: { status: 'active' },
+        });
+        await appendActivity(tx, {
+          actorUserId,
+          action: 'project.tracking_started',
+          targetType: 'project',
+          targetId: project.id,
+          summary: `Tracking started for ${project.name}`,
+        });
+        return { changed: true, project: updated };
+      });
+    },
+
     /** Archive a project: it leaves every list, its domain is free again, and it is purged after 30 days. */
     async archive(projectId, { actorUserId } = {}) {
       return transaction(prisma, async (tx) => {

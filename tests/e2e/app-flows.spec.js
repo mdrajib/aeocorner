@@ -152,3 +152,25 @@ test('the app pages obey the strict CSP: no console errors while using them', as
   await expect(page.getByRole('link', { name: '+ Create another organization' })).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test('a page waiting for a check updates by itself, and the visitor can stop that', async ({
+  page,
+  request,
+}) => {
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'owner',
+    next: `/app/o/${f.orgId}/projects/${f.runningProjectId}`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+  await expect(page.getByText('Your first check is running').first()).toBeVisible();
+  await expect(page.getByText('This page updates by itself.')).toBeVisible();
+  // No meta refresh: a visitor must be able to switch a timed refresh off.
+  await expect(page.locator('meta[http-equiv="refresh"]')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Stop updating' }).click();
+  await expect(
+    page.getByText('Updating is stopped. Reload the page to see the latest.'),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Stop updating' })).toBeHidden();
+});

@@ -88,6 +88,29 @@ const NOTICES = {
     'Enter the competitor’s name, and a website like rival.com if you add one.',
   ],
   'competitors-full': ['warning', 'You can track up to 10 competitors. Remove one to add another.'],
+  'tracking-started': [
+    'success',
+    'Tracking is on. Your first check is running and takes a few minutes.',
+  ],
+  'tracking-not-ready': [
+    'warning',
+    'Add at least one question and keep one AI engine switched on, then start tracking.',
+  ],
+  'tracking-unavailable': ['danger', 'This project can’t be tracked right now.'],
+  'tracking-on-no-first-run': [
+    'warning',
+    'Tracking is on, but we couldn’t start the first check just now. It runs at its weekly time, or press “Run a check now” in a minute.',
+  ],
+  'run-started': [
+    'success',
+    'The check has started. It takes a few minutes, and this page shows when it finishes.',
+  ],
+  'run-in-progress': ['warning', 'A check is already running, so another wasn’t started.'],
+  'run-now-limit': [
+    'warning',
+    'This month’s extra checks are used up. The weekly check still runs by itself.',
+  ],
+  'run-now-inactive': ['warning', 'Switch tracking on first, then you can check on demand.'],
   'too-many-invites': ['danger', 'There are already 50 invitations waiting. Cancel some first.'],
 };
 

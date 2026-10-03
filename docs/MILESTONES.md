@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Execution order for the rest of the MVP: Phases 7–15 of [BUILD_PLAN.md](BUILD_PLAN.md), reorganized into 11 sequential milestones of single-action tasks |
 | **Date** | 2026-10-03 |
-| **Status** | In progress. Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
+| **Status** | In progress. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
 | **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) (phase detail and required tests) · [MVP.md](MVP.md) §13 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §7 · [UI_DESIGN.md](UI_DESIGN.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. How to read this plan
@@ -236,26 +236,26 @@ flowchart LR
 
 | # | Task | Needs |
 |---|---|---|
-| 4.01 | 🔒 Build the `runs` repository keyed by project + slot | — |
-| 4.02 | Build the hourly scheduler that finds due projects | 4.01 |
-| 4.03 | 🔒 Build the orchestrator: questions × engines × samples → `collect.answer` jobs | 4.01 |
-| 4.04 | Route extraction: Batch API for weekly runs, synchronous for a first run | 4.03 |
-| 4.05 | Write `cell_results` and `cell_entity_results` | 4.04 |
-| 4.06 | Mark runs complete, partial or failed | 4.05 |
-| 4.07 | Build the daily rollup into `metric_daily` (sums, never rates) | 4.05 |
-| 4.08 | 🔒 Build the significance test in `src/core` (pure) | — |
-| 4.09 | Emit `change_events` for significant changes | 4.07, 4.08 |
-| 4.10 | Build "run now" against the plan quota (`quota_usage`) | 4.03 |
-| 4.11 | Start the first run as soon as onboarding finishes | 4.03 |
-| 4.12 | Build the fallback adapters, or document each engine's degraded mode | — |
+| 4.01 | ✅ 2026-10-03 🔒 Build the `runs` repository keyed by project + slot (`forOrg().runs`: `start` is idempotent on the slot, a run only moves forward, ten starts at once make one run) | — |
+| 4.02 | ✅ 2026-10-03 Build the hourly scheduler that finds due projects (the Phase 3 tick now has its handler: it queues `tracking.start` for each active project whose slot is due, once per project per week) | 4.01 |
+| 4.03 | ✅ 2026-10-03 🔒 Build the orchestrator: questions × engines × samples → `collect.answer` jobs (`tracking.start`, `tracking.run`, `tracking.advance` in `src/worker/handlers/tracking.js`; planning is safe to repeat, advancing is a state machine whose state is the database) | 4.01 |
+| 4.04 | ✅ 2026-10-03 Route extraction: Batch API for weekly runs, synchronous for a first run (`runs.extraction_mode`; a "check now" is also synchronous) | 4.03 |
+| 4.05 | ✅ 2026-10-03 Write `cell_results` and `cell_entity_results` (`runs.settle`, one transaction, replaced on repeat; an answer collected but not read counts as "couldn't check", never as "not mentioned") | 4.04 |
+| 4.06 | ✅ 2026-10-03 Mark runs complete, partial or failed (answers still out at the 4-hour deadline become "couldn't check" and the run finishes with the rest) | 4.05 |
+| 4.07 | ✅ 2026-10-03 Build the daily rollup into `metric_daily` (sums, never rates) (`metrics.rollupDay`: one row per engine × tracked entity, replaced on repeat) | 4.05 |
+| 4.08 | ✅ 2026-10-03 🔒 Build the significance test in `src/core` (pure) (`significance.js`: Wilson interval, two-proportion z-test, p < 0.05 and at least 5 points, 20 answers per window) | — |
+| 4.09 | ✅ 2026-10-03 Emit `change_events` for significant changes (`trends.js` + `changes.detect`: the last 28 days against the 28 before, per engine and overall; a day an engine did not finish cleanly is left out of that engine's windows) | 4.07, 4.08 |
+| 4.10 | ✅ 2026-10-03 Build "run now" against the plan quota (`quota_usage`) ("Run a check now" on the project page; the allowance is taken in one statement so ten clicks take exactly the allowance. Plans have no "run now" number yet, so 4 a month is a placeholder until task 0.17) | 4.03 |
+| 4.11 | ✅ 2026-10-03 Start the first run as soon as onboarding finishes ("Start tracking" on the last setup step switches the project to active and starts its first check; it takes this week's slot, so the scheduler does not run it again) | 4.03 |
+| 4.12 | ✅ 2026-10-03 Build the fallback adapters, or document each engine's degraded mode (documented, no fallback adapters for the MVP: [ADR-0006 decision 11](adr/0006-engine-adapters.md)) | — |
 
 **Parallel:** 4.08 and 4.12 are independent from day one. The pipeline 4.01 → 4.03 → 4.04 → 4.05 → 4.07 → 4.09 is strictly sequential.
 
 **Definition of Done:**
-- [ ] Integration: a scheduled run on fixture adapters produces the expected fact rows and rollups.
-- [ ] Integration: the same slot fired twice counts once.
-- [ ] Unit: significance test matches known statistical fixtures.
-- [ ] Unit: a failed or partial collection is left out of trends, never counted as "not mentioned".
+- [x] Integration: a scheduled run on fixture adapters produces the expected fact rows and rollups. (`tests/integration/tracking-run.test.js`)
+- [x] Integration: the same slot fired twice counts once.
+- [x] Unit: significance test matches known statistical fixtures. (`src/core/significance.test.js`)
+- [x] Unit: a failed or partial collection is left out of trends, never counted as "not mentioned". (`tracking.test.js`, `trends.test.js`)
 - [ ] Staging: a real project completes its weekly run unattended.
 - [ ] Cost per prompt-run from the ledger ≤ $0.12.
 

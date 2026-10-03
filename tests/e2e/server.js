@@ -161,6 +161,34 @@ await scoped.prompts.importMany(
 const firstPrompt = (await scoped.prompts.list(project.id))[0];
 const editorSeat = await scoped.memberships.getByUser(people.editor.id);
 
+// Two projects with tracking on: one whose last check was incomplete, one whose check is still running.
+async function trackedProject(name, run) {
+  const tracked = await scoped.projects.create({
+    name,
+    domain: `${name.toLowerCase().replace(/\W+/g, '-')}-${unique()}.example.test`,
+    country: 'US',
+    language: 'en',
+    createdByUserId: people.owner.id,
+  });
+  await scoped.prompts.add(tracked.id, {
+    text: `What is the best ${name} option?`,
+    intent: 'discovery',
+  });
+  await scoped.projects.startTracking(tracked.id, { actorUserId: people.owner.id });
+  await fx.run(tracked, run);
+  return tracked;
+}
+const incompleteProject = await trackedProject('Partial Dental', {
+  status: 'partial',
+  trigger: 'schedule',
+  counts: { tasks_planned: 8, tasks_ok: 6, tasks_no_answer: 0, tasks_failed: 2 },
+});
+const runningProject = await trackedProject('Running Dental', {
+  status: 'collecting',
+  trigger: 'onboarding',
+  counts: { tasks_planned: 8 },
+});
+
 const tokens = {
   signedOut: await invite(`new.hire.${unique()}@example.test`, 'editor'),
   accept: await invite(people.invitee.email, 'viewer'),
@@ -173,6 +201,8 @@ const fixtureInfo = {
   },
   orgId: org.public_id,
   projectId: project.public_id,
+  incompleteProjectId: incompleteProject.public_id,
+  runningProjectId: runningProject.public_id,
   promptId: String(firstPrompt.id),
   membershipId: String(editorSeat.id),
   tokens,

@@ -20,8 +20,9 @@ async function schedulerTick(ctx, data) {
   for (const slot of slots) {
     const projects = await ctx.db.system.scheduling.dueProjects({ hour: slot.hour });
     due += projects.length;
-    // The orchestrator that handles a run arrives with Phase 9. Until a handler exists, enqueuing would only
-    // create jobs that can never succeed, so nothing is enqueued and the tick says so in its result.
+    // `tracking.start` is handled by src/worker/handlers/tracking.js. A worker without a handler for it (a test
+    // that replaces the handlers) would only create jobs that can never succeed, so nothing is enqueued and the
+    // tick says so in its result.
     if (!ctx.isHandled('tracking.start')) continue;
     for (const p of projects) {
       await ctx.jobs.add(

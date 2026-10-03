@@ -23,6 +23,12 @@ export function jobId(...parts) {
 /** The weekly tracking run of one project: the same ID for every firing of the same slot. */
 export const trackingRunJobId = (projectId, weekKey) => jobId('run', projectId, weekKey);
 
+/** Planning one run that already has its row (a first run or a "run now"): the run is the identity. */
+export const trackingPlanJobId = (runId) => jobId('plan', runId);
+
+/** Moving one run along (collect, read, roll up): one job per run, which waits by deferring itself. */
+export const trackingAdvanceJobId = (runId) => jobId('advance', runId);
+
 /** The one scan of a website: a scan has its own ID in the database, so asking twice for it is one job. */
 export const scanJobId = (scanId) => jobId('scan', scanId);
 

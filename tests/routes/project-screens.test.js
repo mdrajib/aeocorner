@@ -505,7 +505,13 @@ describe('the Prompt Manager screen', () => {
     // While we wait the page says so and refreshes itself.
     const waiting = await owner.get(res.headers.location).expect(200);
     assert.match(waiting.text, /We’re writing your questions/);
-    assert.match(waiting.text, /<meta http-equiv="refresh" content="8">/);
+    assert.match(waiting.text, /data-auto-refresh="8"/);
+    assert.doesNotMatch(
+      waiting.text,
+      /http-equiv="refresh"/,
+      'a visitor must be able to stop it, so no meta refresh',
+    );
+    assert.match(waiting.text, /data-auto-refresh-stop/);
 
     await scoped.prompts.importMany(project.id, questions(50), { limit: 50 });
     const full = await owner.post(`${base}/questions/generate`).expect(303);
