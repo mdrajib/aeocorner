@@ -1,0 +1,19 @@
+<%# What is ready at the end of setup. Props: hasKit, version, competitors, prompts, coverage, engines, names, projectBase. %>
+<ul class="divide-ink-200 divide-y">
+  <li class="flex items-center justify-between gap-3 py-3">
+    <span><strong>Brand Kit</strong> <span class="text-ink-700 text-sm"><%= hasKit ? 'Version ' + version + ' saved' : 'Not saved yet' %></span></span>
+    <a href="<%= projectBase %>/brand" class="text-sm">Open</a>
+  </li>
+  <li class="flex items-center justify-between gap-3 py-3">
+    <span><strong>Competitors</strong> <span class="text-ink-700 text-sm"><%= competitors.length %> tracked<%= competitors.length < 3 ? ', three or more is better' : '' %></span></span>
+    <a href="<%= projectBase %>/brand?tab=competitors" class="text-sm">Open</a>
+  </li>
+  <li class="flex items-center justify-between gap-3 py-3">
+    <span><strong>Questions</strong> <span class="text-ink-700 text-sm"><%= prompts.length %> in use<%= coverage.ok ? '' : ', see what’s missing' %></span></span>
+    <span class="flex items-center gap-3"><%- ui.badge({ text: coverage.ok ? 'Complete' : 'Needs attention', tone: coverage.ok ? 'success' : 'warning' }) %><a href="<%= projectBase %>/questions" class="text-sm">Open</a></span>
+  </li>
+  <li class="py-3">
+    <strong>AI engines</strong>
+    <span class="text-ink-700 text-sm"><%= engines.filter((e) => e.enabled).map((e) => names[e.engine_code] ?? e.engine_code).join(', ') || 'None switched on' %></span>
+  </li>
+</ul>

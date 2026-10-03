@@ -7,6 +7,7 @@ import { reportUrl } from '../../lib/audit-mail.js';
 import { scoreBand } from '../../lib/funnel.js';
 import { isUlid } from '../../lib/ulid.js';
 import { normalizeWebsite } from '../../lib/url.js';
+import { setAuditClaim } from '../auth/audit-claim.js';
 import { homeFaq } from '../content/faq.js';
 import { publicPages } from '../pages.js';
 
@@ -584,6 +585,8 @@ export function auditRoutes({ config, db, audit: svc, logger, now = () => new Da
 
   router.get('/r/:publicId/track', load, async (req, res) => {
     funnel('audit_track_clicked', {});
+    // The report's address is a secret, so it travels in a short-lived cookie, not in the sign-up URL (src/web/auth/audit-claim.js).
+    setAuditClaim(req, res, req.audit.public_id);
     res.redirect(302, `/app/new-org?domain=${encodeURIComponent(req.audit.domain)}`);
   });
 

@@ -3,6 +3,7 @@
 // database is the test database, seeded with a small organization. A /__e2e route signs a browser in as a
 // seeded person. Nothing in this file ships: it lives under tests/ and nothing in src/ imports it.
 import { randomBytes } from 'node:crypto';
+import { INTENT_LABELS } from '../../src/core/prompt-rules.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
 import { createAuditLimiter } from '../../src/lib/audit-limits.js';
 import { createAuditMail } from '../../src/lib/audit-mail.js';
@@ -14,6 +15,7 @@ import { createOtpStore } from '../../src/lib/otp.js';
 import { hashToken, newToken } from '../../src/lib/tokens.js';
 import { createApp } from '../../src/web/app.js';
 import { auditFixtures } from '../helpers/audit-fixtures.js';
+import { generatedSet } from '../helpers/question-sets.js';
 import { connectTestRedis } from '../helpers/redis.js';
 
 const config = loadConfig(process.env);
@@ -111,6 +113,53 @@ await scoped.entities.addCompetitor(project.id, {
   primaryDomain: 'rival.example.test',
 });
 await scoped.entities.addCompetitor(project.id, { name: 'BrightSmile' });
+await scoped.entities.addCompetitor(project.id, {
+  name: 'Suggested Dental Co',
+  primaryDomain: 'suggested.example.test',
+  source: 'brand_kit',
+  status: 'suggested',
+});
+// A Brand Kit with two versions, and a full question set, for the Brand Kit, Prompt Manager and setup screens.
+await scoped.brandKits.save(project.id, {
+  kit: {
+    identity: {
+      brandName: 'Sample Dental',
+      aliases: ['Sample'],
+      category: 'family dental practice',
+      definition: 'A family dental practice in Austin.',
+      geography: 'Austin, Texas',
+    },
+    offerings: { items: [{ name: 'Check-ups', price: '$99' }, { name: 'Braces' }] },
+  },
+  source: 'extracted',
+  expectedVersion: null,
+  actorUserId: people.owner.id,
+});
+await scoped.brandKits.save(project.id, {
+  kit: {
+    identity: { brandName: 'Sample Dental', category: 'family dental practice' },
+    offerings: {
+      items: [{ name: 'Check-ups', price: '$99' }],
+      audiences: ['families'],
+      differentiators: ['Open on Saturdays'],
+    },
+    facts: [{ label: 'Founded', value: '2009' }],
+    voice: { tone: ['friendly'], readingLevel: 'plain' },
+  },
+  source: 'edited',
+  expectedVersion: 1,
+  actorUserId: people.owner.id,
+});
+await scoped.prompts.importMany(
+  project.id,
+  generatedSet(30, { brand: 'Sample Dental' }).map((q) => ({
+    ...q,
+    clusterName: INTENT_LABELS[q.intent],
+  })),
+  { source: 'generated', limit: 50 },
+);
+const firstPrompt = (await scoped.prompts.list(project.id))[0];
+const editorSeat = await scoped.memberships.getByUser(people.editor.id);
 
 const tokens = {
   signedOut: await invite(`new.hire.${unique()}@example.test`, 'editor'),
@@ -124,6 +173,8 @@ const fixtureInfo = {
   },
   orgId: org.public_id,
   projectId: project.public_id,
+  promptId: String(firstPrompt.id),
+  membershipId: String(editorSeat.id),
   tokens,
   unknownToken: 'x'.repeat(43),
   roles: Object.keys(people),

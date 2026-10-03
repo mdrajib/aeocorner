@@ -1,0 +1,18 @@
+<%# Brand Kit: facts. Props: kit, errors, projectBase, csrfToken, version, next, canEdit. %>
+<%
+const ro = !canEdit;
+const blank = { label: '', value: '' };
+const facts = kit.facts.concat(Array.from({ length: Math.min(3, 50 - kit.facts.length) }, () => blank));
+-%>
+<%- ui.fragment('partials/brand-form-open', { section: 'facts', projectBase, csrfToken, version, next: locals.next, errors, canEdit }) %>
+  <p class="text-ink-700 text-sm">Checkable facts an AI assistant might need: the year you opened, certifications, guarantees, hours. We never write content that contradicts them.</p>
+  <fieldset class="flex flex-col gap-4">
+    <legend class="sr-only">Facts</legend>
+    <% facts.forEach((f, i) => { %>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <%- ui.field({ id: 'fact-label-' + i, name: 'fact_label', label: 'Fact', value: f.label, disabled: ro, placeholder: 'Founded' }) %>
+      <%- ui.field({ id: 'fact-value-' + i, name: 'fact_value', label: 'Value', value: f.value, disabled: ro, placeholder: '2009' }) %>
+    </div>
+    <% }) %>
+  </fieldset>
+<%- ui.fragment('partials/brand-form-close', { canEdit }) %>

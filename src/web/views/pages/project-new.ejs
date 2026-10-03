@@ -1,8 +1,9 @@
-<%# B1: create a project. Props: values, errors, countries, languages; locals: orgBase, csrfToken. %>
+<%# B1: create a project. Props: values, errors, countries, languages, fromAudit (the audited domain, or null); locals: orgBase, csrfToken. %>
 <div class="mx-auto max-w-xl">
   <%- ui.stepper({ label: 'Project setup', steps: ['Brand', 'Competitors', 'Questions', 'Connect', 'Start'], current: 0 }) %>
   <h1 class="mt-8 text-3xl">Create a project</h1>
   <p class="text-ink-700 mt-2">A project tracks one brand’s website. We’ll check the site now and fill in what we can.</p>
+  <% if (fromAudit) { %><div class="mt-4"><%- ui.banner({ tone: 'info', title: 'Pre-filled from your free audit.', text: 'We used what we learned about ' + fromAudit + '. Check the details and create the project.' }) %></div><% } %>
   <form method="post" action="<%= orgBase %>/projects" class="mt-6 flex flex-col gap-4" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', text: 'Please check the highlighted fields and try again.' }) %><% } %>

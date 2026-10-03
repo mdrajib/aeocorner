@@ -53,6 +53,27 @@ export const JOBS = Object.freeze({
   // Read one answer now (a batch item that failed; the free audit in Phase 7).
   'extract.answer': { queue: 'extract', schema: z.object({ orgId: id, snapshotId: id }) },
 
+  // Read a project's website and draft its full Brand Kit (Milestone 3, MVP F2). `baseVersion` is the kit version the
+  // request started from (0 = none): a kit saved since means a person got there first, and the draft is dropped.
+  'brandkit.extract': {
+    queue: 'content',
+    schema: z.object({
+      orgId: id,
+      projectId: id,
+      baseVersion: z.number().int().min(0).max(100_000),
+    }),
+  },
+  // Write a project's question set from its Brand Kit (Milestone 3, MVP F3). The set is saved as active questions
+  // (source "generated") that the customer can pause, reword or archive in the Prompt Manager.
+  'questions.generate': {
+    queue: 'content',
+    schema: z.object({
+      orgId: id,
+      projectId: id,
+      count: z.number().int().min(25).max(50).default(30),
+    }),
+  },
+
   // Run one free audit from start to finish (Milestone 1, MVP F1): read the site, work out the brand, ask four engines
   // five questions, score and list the fixes. The domain, the visitor and everything else come from the audit row;
   // the payload is only its ID.

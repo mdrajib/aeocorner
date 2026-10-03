@@ -1,8 +1,8 @@
 <%#
   E4 (Phase 2 part): members, roles and invitations.
-  Props: members, invitations, inviteRoles, values, errors; layout locals: orgBase, csrfToken, org.
-  Inline form instead of the wireframe's modal: it works without JavaScript. The project picker for limited
-  client seats arrives with projects (Phase 8).
+  Props: members, invitations, inviteRoles, projects, values, errors; layout locals: orgBase, csrfToken, org.
+  Inline form instead of the wireframe's modal: it works without JavaScript. A client seat (limited to selected
+  projects) is chosen in the invite form or on the member's access page.
 %>
 <h1 class="text-3xl">Team</h1>
 <p class="text-ink-700 mt-2">Who can use <strong><%= org.name %></strong>, and what they can do.</p>
@@ -12,6 +12,7 @@ const memberRows = members.map((m) => ({
   name: { html: ui.esc(m.name) + (m.isYou ? ' <span class="text-ink-600">(you)</span>' : '') },
   email: m.email,
   role: { html: ui.fragment('partials/member-role-cell', { member: m, orgBase, csrfToken }) },
+  access: { html: ui.fragment('partials/member-access-cell', { member: m, orgBase }) },
   actions: { html: ui.fragment('partials/member-remove-cell', { member: m, orgBase, csrfToken }) },
 }));
 const inviteRows = invitations.map((i) => ({
@@ -26,11 +27,11 @@ const inviteRows = invitations.map((i) => ({
   <%- ui.card({ title: 'Members', headingLevel: 2, padded: false, html: ui.table({
     caption: 'Members of ' + org.name,
     captionHidden: true, flush: true, stack: true,
-    columns: [{ key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'role', label: 'Role' }, { key: 'actions', label: 'Actions' }],
+    columns: [{ key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'role', label: 'Role' }, { key: 'access', label: 'Can see' }, { key: 'actions', label: 'Actions' }],
     rows: memberRows,
   }) }) %>
 
-  <%- ui.card({ title: 'Invite a teammate', headingLevel: 2, html: ui.fragment('partials/invite-form', { orgBase, csrfToken, values, errors, roles: inviteRoles }) }) %>
+  <%- ui.card({ title: 'Invite a teammate', headingLevel: 2, html: ui.fragment('partials/invite-form', { orgBase, csrfToken, values, errors, roles: inviteRoles, projects }) }) %>
 
   <%- ui.card({ title: 'Waiting for an answer', headingLevel: 2, padded: false, html: ui.table({
     caption: 'Invitations waiting for an answer',

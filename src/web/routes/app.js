@@ -14,7 +14,9 @@ import { DomainError } from '../../db/index.js';
 import { renderEmail } from '../../lib/email.js';
 import { hashToken, newToken } from '../../lib/tokens.js';
 import { normalizeWebsite } from '../../lib/url.js';
+import { readAuditClaim } from '../auth/audit-claim.js';
 import { csrfProtection } from '../auth/csrf.js';
+import { chosenProjects, memberAccessRoutes } from './member-access.js';
 import { projectRoutes } from './projects.js';
 import { notFound } from '../middleware/errors.js';
 
@@ -43,6 +45,40 @@ const NOTICES = {
   verified: [
     'success',
     'Your website is verified. We now follow your own instructions, not its robots.txt, when we check it for you.',
+  ],
+  'engines-saved': ['success', 'Engines saved. The next check uses them.'],
+  'engines-none': ['warning', 'At least one engine has to stay on, so nothing was changed.'],
+  'engines-invalid': ['danger', 'That engine isn’t available, so nothing was changed.'],
+  'access-saved': ['success', 'Access updated.'],
+  'competitor-tracked': ['success', 'We’ll track that competitor.'],
+  'brand-saved': ['success', 'Brand Kit saved. The earlier version is kept in the history.'],
+  'brand-restored': [
+    'success',
+    'That version is now the current Brand Kit, saved as a new version.',
+  ],
+  'reading-site': [
+    'success',
+    'We’re reading your website again. A new version appears here in a minute or two.',
+  ],
+  'queue-down': [
+    'warning',
+    'We couldn’t start that just now. Nothing was lost: try again in a minute.',
+  ],
+  'question-added': ['success', 'Question added.'],
+  'question-added-similar': [
+    'warning',
+    'Question added, but it looks like one you already have. Check the warning in the list.',
+  ],
+  'question-saved': ['success', 'Question saved.'],
+  'question-status': ['success', 'Question updated.'],
+  'question-limit': [
+    'warning',
+    'All the questions your plan allows are in use. Archive one to make room.',
+  ],
+  'question-invalid': ['danger', 'That change wasn’t understood, so nothing was changed.'],
+  'questions-queued': [
+    'success',
+    'We’re writing your questions. They appear here in a minute or two.',
   ],
   'competitor-added': ['success', 'Competitor added.'],
   'competitor-removed': ['success', 'Competitor removed.'],
@@ -99,7 +135,7 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
   });
 
   router.use(
-    express.urlencoded({ extended: false, limit: '20kb' }),
+    express.urlencoded({ extended: false, limit: '120kb' }),
     csrfProtection({ secret: config.appSecret }),
   );
 
@@ -119,6 +155,12 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
 
   // --- Create an organization -------------------------------------------------------------------------
   router.get('/new-org', (req, res) => {
+    // Someone who already has an organization and came from a report ("Track this every week") goes straight to a
+    // new project in the one they used last, prefilled from that report.
+    if (readAuditClaim(req) && req.memberships.length > 0) {
+      const last = req.memberships.find(({ org }) => org.id === req.user.last_org_id);
+      return res.redirect(302, `/app/o/${(last ?? req.memberships[0]).org.public_id}/projects/new`);
+    }
     const suggestion = suggestOrgName(typeof req.query.domain === 'string' ? req.query.domain : '');
     appPage(res, 'new-org', {
       values: { name: suggestion },
@@ -154,6 +196,8 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
         return shown({ name: 'Enter a name for your organization.' });
       try {
         const { org } = await db.organizations.createWithOwner({ user: req.user, name });
+        // Coming from a report: the next thing is the project for the site that was audited.
+        if (readAuditClaim(req)) return res.redirect(303, `/app/o/${org.public_id}/projects/new`);
         return res.redirect(303, `/app/o/${org.public_id}?notice=org-created`);
       } catch (err) {
         if (err instanceof DomainError && err.code === 'INVALID_NAME') {
@@ -220,9 +264,10 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
   });
 
   async function renderSettings(req, res, { values = {}, errors = {}, status } = {}) {
-    const [members, invitations] = await Promise.all([
+    const [members, invitations, projects] = await Promise.all([
       req.orgDb.memberships.list(),
       req.orgDb.invitations.listPending(),
+      req.orgDb.projects.list(),
     ]);
     const actorRole = req.membership.role;
     appPage(
@@ -236,6 +281,11 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
           role: m.role,
           isYou: m.user_id === req.user.id,
           canRemove: canRemoveMember(actorRole, m.role),
+          access:
+            m.project_access === 'selected'
+              ? `${m.projectIds.length} project${m.projectIds.length === 1 ? '' : 's'}`
+              : 'Every project',
+          canLimit: !['owner', 'admin'].includes(m.role),
           roleChoices: roleChoicesFor(actorRole, m.role),
         })),
         invitations: invitations.map((i) => ({
@@ -248,6 +298,7 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
           value: r,
           label: `${roleLabel(r)} — ${roleDescription(r)}`,
         })),
+        projects: projects.map((p) => ({ publicId: p.public_id, name: p.name })),
         values,
         errors,
         meta: teamMeta(req),
@@ -272,6 +323,8 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
       next(err);
     }
   });
+
+  memberAccessRoutes(org, { auth, appPage });
 
   org.post('/members/:id/role', manage, async (req, res, next) => {
     try {
@@ -354,12 +407,28 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
 
   org.post('/invitations', manage, async (req, res, next) => {
     try {
-      const values = { email: text(req.body.email, 320), role: text(req.body.role, 20) };
+      const values = {
+        email: text(req.body.email, 320),
+        role: text(req.body.role, 20),
+        access: req.body.access === 'selected' ? 'selected' : 'all',
+        projects: Array.isArray(req.body.project)
+          ? req.body.project
+          : [req.body.project].filter(Boolean),
+      };
       const parsed = emailSchema.safeParse(values.email);
       const errors = {};
       if (!parsed.success) errors.email = 'Enter a valid email address.';
       if (!isRole(values.role) || !canInvite(req.membership.role, values.role)) {
         errors.role = 'Choose a role you’re allowed to give.';
+      }
+      // A client seat: limited to the projects chosen. Owners and admins always see everything.
+      const chosen = await chosenProjects(req.orgDb, {
+        access: values.access,
+        publicIds: req.body.project,
+      });
+      if (chosen.error) errors.access = chosen.error;
+      else if (chosen.access === 'selected' && ['owner', 'admin'].includes(values.role)) {
+        errors.access = 'Owners and admins always see every project.';
       }
       if (Object.keys(errors).length)
         return renderSettings(req, res, { values, errors, status: 422 });
@@ -374,6 +443,8 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
         invitation = await req.orgDb.invitations.create({
           email: parsed.data,
           role: values.role,
+          projectAccess: chosen.access,
+          projectIds: chosen.projectIds,
           inviterUserId: req.user.id,
           tokenHash: hashToken(token),
           expiresAt: expiry(),

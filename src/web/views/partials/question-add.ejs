@@ -1,0 +1,11 @@
+<%# Add one question. Props: values, error, intentFormOptions, projectBase, csrfToken. %>
+<form method="post" action="<%= projectBase %>/questions" class="flex flex-col gap-3" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- ui.field({ id: 'add-text', name: 'text', label: 'Question', type: 'textarea', rows: 3, required: true, value: values.text, error: error, hint: 'Write it the way a buyer would ask an AI assistant.' }) %>
+  <div class="flex flex-col gap-3">
+    <%- ui.field({ id: 'add-intent', name: 'intent', label: 'Kind', type: 'select', required: true, options: intentFormOptions, value: values.intent ?? 'discovery' }) %>
+    <%- ui.field({ id: 'add-priority', name: 'priority', label: 'Priority', type: 'select', options: [{ value: '1', label: '1 (most important)' }, { value: '2', label: '2' }, { value: '3', label: '3' }], value: String(values.priority ?? 2) }) %>
+    <%- ui.field({ id: 'add-topic', name: 'topic', label: 'Topic', value: values.topic }) %>
+  </div>
+  <div><%- ui.button({ label: 'Add question', type: 'submit', variant: 'secondary' }) %></div>
+</form>

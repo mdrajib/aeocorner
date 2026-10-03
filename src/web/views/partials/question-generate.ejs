@@ -1,0 +1,10 @@
+<%# "Write questions for me". Props: activeCount, limit, projectBase, csrfToken. %>
+<p class="text-ink-700 text-sm">We write questions from your Brand Kit and competitors: a mix of finding options, comparing, solving a problem and asking about you. It takes about a minute. You can change, pause or archive any of them.</p>
+<% if (activeCount >= limit) { %>
+<p class="text-ink-700 mt-3 text-sm">All <%= limit %> questions are in use. Archive some to write new ones.</p>
+<% } else { %>
+<form method="post" action="<%= projectBase %>/questions/generate" class="mt-3">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- ui.button({ label: activeCount ? 'Write more questions' : 'Write my questions', type: 'submit', variant: 'secondary' }) %>
+</form>
+<% } %>

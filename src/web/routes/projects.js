@@ -1,11 +1,24 @@
 import { Router } from 'express';
 import { dnsRecord, fileProof } from '../../core/domain-verification.js';
-import { COUNTRIES, LANGUAGES, checkProjectFields } from '../../core/project-rules.js';
+import {
+  COUNTRIES,
+  LANGUAGES,
+  checkProjectFields,
+  normalizeEntityName,
+} from '../../core/project-rules.js';
+import { fromLiteKit } from '../../core/brand-kit.js';
+import { checkCoverage } from '../../core/prompt-rules.js';
 import { requestScan } from '../../crawler/request-scan.js';
 import { DomainError } from '../../db/index.js';
+import { brandKitJobId, slotOf } from '../../lib/job-ids.js';
 import { isUlid } from '../../lib/ulid.js';
 import { normalizeWebsite } from '../../lib/url.js';
+import { clearAuditClaim, readAuditClaim } from '../auth/audit-claim.js';
 import { notFound } from '../middleware/errors.js';
+import { brandRoutes } from './project-brand.js';
+import { idFrom, returnPath, withNotice } from './project-helpers.js';
+import { questionRoutes } from './project-questions.js';
+import { setupRoutes } from './project-setup.js';
 
 /**
  * Projects inside one organization (Milestone 3): the list, "create a project", and one project's page.
@@ -37,12 +50,77 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
     description: 'Create a project.',
   });
 
-  const form = (req, res, { values = {}, errors = {}, status } = {}) =>
+  /**
+   * The free audit this visitor pressed "Track this every week" on, if it is theirs to use: finished, verified, and not
+   * already owned by another organization. Anything else is simply not offered, and the form is blank.
+   */
+  async function claimedAudit(req) {
+    const publicId = readAuditClaim(req);
+    if (!publicId) return null;
+    const audit = await db.audits.getByPublicId(publicId);
+    if (!audit || !['complete', 'partial'].includes(audit.status)) return null;
+    if (audit.org_id !== null && audit.org_id !== req.org.id) return null;
+    return audit;
+  }
+
+  /**
+   * The audit's lite Brand Kit as the project's first version, and its suggested competitors as suggestions. Nothing here
+   * may lose the project: a failure is logged and the setup steps are simply blank. Returns the kit version made (0 = none).
+   */
+  async function prefillFromAudit(req, project, audit) {
+    try {
+      let version = 0;
+      const kit = fromLiteKit(audit.brand_kit_lite, { domain: project.domain });
+      if (kit) {
+        // The name the customer confirmed on the form is the brand's name; the audit's wording stays as an alias.
+        const found = audit.brand_kit_lite?.brand_name;
+        kit.identity.brandName = project.name;
+        if (found && normalizeEntityName(found) !== normalizeEntityName(project.name)) {
+          kit.identity.aliases = [...new Set([found, ...kit.identity.aliases])].slice(0, 20);
+        }
+        const saved = await req.orgDb.brandKits.save(project.id, {
+          kit,
+          source: 'audit',
+          expectedVersion: null,
+          actorUserId: req.user.id,
+        });
+        version = saved.version;
+      }
+      for (const c of Array.isArray(audit.suggested_competitors)
+        ? audit.suggested_competitors
+        : []) {
+        try {
+          await req.orgDb.entities.addCompetitor(
+            project.id,
+            {
+              name: c?.name,
+              primaryDomain: c?.domain ?? null,
+              source: 'audit',
+              status: 'suggested',
+            },
+            { actorUserId: req.user.id },
+          );
+        } catch (err) {
+          if (!(err instanceof DomainError)) throw err; // a repeat or a name we can't use: skip it
+        }
+      }
+      return version;
+    } catch (err) {
+      logger.error(
+        { err, projectId: String(project.id) },
+        'Could not prefill the project from its audit',
+      );
+      return 0;
+    }
+  }
+
+  const form = (req, res, { values = {}, errors = {}, status, audit = null } = {}) =>
     appPage(
       res,
       'project-new',
       {
         values: { country: 'US', language: 'en', ...values },
+        fromAudit: audit ? audit.domain : null,
         errors,
         countries: COUNTRY_OPTIONS,
         languages: LANGUAGE_OPTIONS,
@@ -51,7 +129,17 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
       status ? { status } : {},
     );
 
-  router.get('/projects/new', create, (req, res) => form(req, res));
+  router.get('/projects/new', create, async (req, res, next) => {
+    try {
+      const audit = await claimedAudit(req);
+      const values = audit
+        ? { website: audit.domain, name: audit.brand_kit_lite?.brand_name ?? '' }
+        : {};
+      return form(req, res, { values, audit });
+    } catch (err) {
+      return next(err);
+    }
+  });
 
   router.post('/projects', create, async (req, res, next) => {
     try {
@@ -63,17 +151,21 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
         city: text(req.body.city, 128),
       };
       const errors = {};
+      const audit = await claimedAudit(req);
       const site = normalizeWebsite(values.website);
       if (!site.ok) errors.website = 'Enter your website, like acme-dental.com.';
       const checked = checkProjectFields({ ...values, website: undefined });
       if (!checked.ok) Object.assign(errors, checked.errors);
-      if (Object.keys(errors).length) return form(req, res, { values, errors, status: 422 });
+      if (Object.keys(errors).length) return form(req, res, { values, errors, status: 422, audit });
 
+      const domain = site.domain.replace(/^www\./, '');
       let project;
       try {
         project = await req.orgDb.projects.create({
           ...checked.value,
-          domain: site.domain.replace(/^www\./, ''),
+          domain,
+          // Only when the website is the one that was audited: a different site is a different project.
+          ...(audit && audit.domain === domain ? { sourceAuditPublicId: audit.public_id } : {}),
           createdByUserId: req.user.id,
         });
       } catch (err) {
@@ -82,6 +174,7 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
             values,
             errors: { website: 'This organization already has a project for that website.' },
             status: 422,
+            audit,
           });
         }
         if (err instanceof DomainError && err.code === 'INVALID_DOMAIN') {
@@ -89,10 +182,16 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
             values,
             errors: { website: 'Enter your website, like acme-dental.com.' },
             status: 422,
+            audit,
           });
         }
         throw err;
       }
+
+      // A project made from an audit starts with what the audit found: its Brand Kit and the competitors it suggested.
+      const fromAudit = Boolean(project.source_audit_id && audit);
+      const prefilledVersion = fromAudit ? await prefillFromAudit(req, project, audit) : 0;
+      if (fromAudit) clearAuditClaim(res);
 
       // The first readiness scan starts at once so the checklist is ready when the setup steps are done. A queue
       // that is down must not lose the project: the scan can be started again from the project page.
@@ -105,10 +204,25 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
         } catch (err) {
           logger.error({ err, projectId: String(project.id) }, 'Could not queue the first scan');
         }
+        // The Brand Kit is drafted from the website at the same time, so the first setup step is pre-filled. A
+        // project made from an audit already has the audit's kit (version 1) and the reading builds on it.
+        try {
+          const baseVersion = prefilledVersion;
+          await jobs.add(
+            'brandkit.extract',
+            { orgId: String(req.org.id), projectId: String(project.id), baseVersion },
+            { jobId: brandKitJobId(project.id, baseVersion, slotOf(new Date())) },
+          );
+        } catch (err) {
+          logger.error(
+            { err, projectId: String(project.id) },
+            'Could not queue the Brand Kit reading',
+          );
+        }
       }
       return res.redirect(
         303,
-        `${res.locals.orgBase}/projects/${project.public_id}?notice=project-created`,
+        `${res.locals.orgBase}/projects/${project.public_id}/setup/brand?notice=project-created`,
       );
     } catch (err) {
       next(err);
@@ -134,10 +248,12 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   const edit = auth.requirePermission('strategy.edit');
 
   async function renderProject(req, res, { verifyResult = null, status } = {}) {
-    const [entities, engines, proof] = await Promise.all([
+    const [entities, engines, proof, kit, active] = await Promise.all([
       req.orgDb.entities.list(req.project.id),
       req.orgDb.projectEngines.list(req.project.id),
       req.orgDb.projects.verification(req.project.id),
+      req.orgDb.brandKits.current(req.project.id),
+      req.orgDb.prompts.list(req.project.id, { status: 'active' }),
     ]);
     appPage(
       res,
@@ -153,6 +269,10 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
           result: verifyResult,
           available: Boolean(verifier),
         },
+        // Setup is open until there is a Brand Kit and a question set that meets the coverage rules.
+        setupOpen:
+          req.project.status === 'onboarding' &&
+          (!kit || !checkCoverage(active, { hasCity: Boolean(req.project.city) }).ok),
         countryName: COUNTRIES[req.project.country] ?? req.project.country,
         languageName: LANGUAGES[req.project.language] ?? req.project.language,
         meta: {
@@ -209,11 +329,11 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
 
   // --- Competitors (onboarding step 2; the project page shows the same form) ------------------------------
   const MAX_COMPETITORS = 10;
-  const idFrom = (value) => (/^\d{1,18}$/.test(String(value)) ? BigInt(value) : null);
 
   router.post('/projects/:pid/competitors', edit, async (req, res, next) => {
     try {
-      const back = (notice) => res.redirect(303, `${res.locals.projectBase}?notice=${notice}`);
+      const back = (notice) =>
+        res.redirect(303, withNotice(returnPath(res.locals.projectBase, req.body.next), notice));
       const name = text(req.body.name, 255);
       const website = text(req.body.website, 300);
       if (name.length < 2) return back('competitor-invalid');
@@ -224,7 +344,9 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
         primaryDomain = site.domain.replace(/^www\./, '');
       }
       const current = await req.orgDb.entities.list(req.project.id, { kind: 'competitor' });
-      if (current.filter((e) => e.status !== 'ignored').length >= MAX_COMPETITORS) {
+      if (
+        current.filter((e) => ['active', 'paused'].includes(e.status)).length >= MAX_COMPETITORS
+      ) {
         return back('competitors-full');
       }
       try {
@@ -258,11 +380,63 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
         : null;
       if (!own) return notFound(req, res);
       await req.orgDb.entities.setStatus(own.id, 'ignored', { actorUserId: req.user.id });
-      return res.redirect(303, `${res.locals.projectBase}?notice=competitor-removed`);
+      return res.redirect(
+        303,
+        withNotice(returnPath(res.locals.projectBase, req.body.next), 'competitor-removed'),
+      );
     } catch (err) {
       next(err);
     }
   });
+
+  // Which AI engines this project is checked on. At least one stays on, and only live engines can be chosen.
+  router.post('/projects/:pid/engines', edit, async (req, res, next) => {
+    try {
+      const chosen = Array.isArray(req.body.engine)
+        ? req.body.engine
+        : typeof req.body.engine === 'string'
+          ? [req.body.engine]
+          : [];
+      try {
+        await req.orgDb.projectEngines.setEnabled(req.project.id, chosen);
+      } catch (err) {
+        if (err instanceof DomainError && err.code === 'NO_ENGINES') {
+          return res.redirect(303, withNotice(res.locals.projectBase, 'engines-none'));
+        }
+        if (err instanceof DomainError && err.code === 'UNKNOWN_ENGINE') {
+          return res.redirect(303, withNotice(res.locals.projectBase, 'engines-invalid'));
+        }
+        throw err;
+      }
+      return res.redirect(303, withNotice(res.locals.projectBase, 'engines-saved'));
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // Confirm a competitor we suggested: from now on it is tracked.
+  router.post('/projects/:pid/competitors/:eid/track', edit, async (req, res, next) => {
+    try {
+      const entityId = idFrom(req.params.eid);
+      const all = entityId
+        ? await req.orgDb.entities.list(req.project.id, { kind: 'competitor' })
+        : [];
+      const own = all.find((e) => e.id === entityId && e.status === 'suggested');
+      if (!own) return notFound(req, res);
+      const target = returnPath(res.locals.projectBase, req.body.next);
+      if (all.filter((e) => ['active', 'paused'].includes(e.status)).length >= MAX_COMPETITORS) {
+        return res.redirect(303, withNotice(target, 'competitors-full'));
+      }
+      await req.orgDb.entities.setStatus(own.id, 'active', { actorUserId: req.user.id });
+      return res.redirect(303, withNotice(target, 'competitor-tracked'));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  brandRoutes(router, { jobs, logger, appPage, edit });
+  questionRoutes(router, { jobs, logger, appPage, edit });
+  setupRoutes(router, { jobs, logger, appPage, edit });
 
   return { router, visibleIds };
 }

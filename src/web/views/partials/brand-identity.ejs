@@ -1,0 +1,13 @@
+<%# Brand Kit: identity. Props: kit, errors, projectBase, csrfToken, version, next, canEdit, submitLabel. %>
+<% const id = kit.identity; const ro = !canEdit; %>
+<%- ui.fragment('partials/brand-form-open', { section: 'identity', projectBase, csrfToken, version, next: locals.next, errors, canEdit }) %>
+  <%- ui.field({ id: 'identity-brandName', name: 'brandName', label: 'Brand name', required: true, value: id.brandName, error: errors['identity.brandName'], disabled: ro, hint: 'How customers say it, like “Acme Dental”.' }) %>
+  <%- ui.field({ id: 'identity-aliases', name: 'aliases', label: 'Also known as', type: 'textarea', rows: 3, value: id.aliases.join('\n'), error: errors['identity.aliases'], disabled: ro, hint: 'One per line: abbreviations and other spellings. We match these in AI answers.' }) %>
+  <%- ui.field({ id: 'identity-definition', name: 'definition', label: 'One-line description', type: 'textarea', rows: 2, value: id.definition, error: errors['identity.definition'], disabled: ro, hint: 'What the business is and does, in plain words.' }) %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <%- ui.field({ id: 'identity-category', name: 'category', label: 'Category', value: id.category, error: errors['identity.category'], disabled: ro, hint: 'The market, like “family dental practice”.' }) %>
+    <%- ui.field({ id: 'identity-geography', name: 'geography', label: 'Where you operate', value: id.geography, error: errors['identity.geography'], disabled: ro }) %>
+  </div>
+  <%- ui.field({ id: 'identity-legalName', name: 'legalName', label: 'Legal name', value: id.legalName, error: errors['identity.legalName'], disabled: ro }) %>
+  <%- ui.field({ id: 'identity-domains', name: 'domains', label: 'Websites', type: 'textarea', rows: 2, value: id.domains.join('\n'), error: errors['identity.domains'], disabled: ro, hint: 'One per line. A mention of these counts as your brand.' }) %>
+<%- ui.fragment('partials/brand-form-close', { canEdit, label: locals.submitLabel }) %>

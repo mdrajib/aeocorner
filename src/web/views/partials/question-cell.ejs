@@ -1,0 +1,3 @@
+<%# One question and what is wrong with it, if anything. Props: p, warnings. %>
+<span class="[overflow-wrap:anywhere]"><%= p.text %></span>
+<% for (const w of warnings) { %><span class="text-warning-800 mt-1 flex items-start gap-1.5 text-sm"><%- ui.icon({ name: 'alert', size: 16, class: 'mt-0.5 shrink-0' }) %><span><%= w %></span></span><% } %>

@@ -1,8 +1,22 @@
-<%# Invite a teammate by email. Props: orgBase, csrfToken, values ({ email, role }), errors ({ email, role }), roles ([{ value, label }]). %>
+<%# Invite a teammate by email. Props: orgBase, csrfToken, values ({ email, role, access, projects }), errors ({ email, role, access }), roles ([{ value, label }]), projects ([{ publicId, name }]). %>
 <form method="post" action="<%= orgBase %>/invitations" class="flex flex-col gap-4" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', text: 'Please check the highlighted fields and try again.' }) %><% } %>
   <%- ui.field({ id: 'invite-email', name: 'email', type: 'email', label: 'Email address', required: true, autocomplete: 'off', value: values.email, error: errors.email, hint: 'They’ll need to sign in or sign up with this address to accept.' }) %>
   <%- ui.field({ id: 'invite-role', name: 'role', type: 'select', label: 'Role', required: true, value: values.role || 'viewer', error: errors.role, options: roles }) %>
+  <% if (projects.length) { %>
+  <fieldset class="flex flex-col gap-2">
+    <legend class="label">Projects they can see</legend>
+    <%- ui.radio({ id: 'invite-access-all', name: 'access', value: 'all', label: 'Every project', checked: values.access !== 'selected' }) %>
+    <%- ui.radio({ id: 'invite-access-selected', name: 'access', value: 'selected', label: 'Only the projects I choose', hint: 'For a client: they see just these projects, and nothing else here.', checked: values.access === 'selected' }) %>
+    <% if (errors.access) { %><p class="field-error"><%- ui.icon({ name: 'alert-circle', size: 16 }) %><span><%= errors.access %></span></p><% } %>
+  </fieldset>
+  <fieldset class="flex flex-col gap-1">
+    <legend class="label">Chosen projects <span class="text-ink-600 font-normal">(when limiting)</span></legend>
+    <% projects.forEach((p, i) => { %>
+    <%- ui.checkbox({ id: 'invite-project-' + i, name: 'project', value: p.publicId, label: p.name, checked: (values.projects || []).includes(p.publicId) }) %>
+    <% }) %>
+  </fieldset>
+  <% } %>
   <div><%- ui.button({ label: 'Send invitation', type: 'submit' }) %></div>
 </form>

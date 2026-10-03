@@ -43,6 +43,8 @@ const KEPT_HEADERS = [
 export const SCAN_LIMITS = Object.freeze({
   maxKeyPages: MAX_KEY_PAGES,
   maxRenderedPages: MAX_RENDERED_PAGES,
+  /** How many readable pages are handed on for the Brand Kit: 6 for the free audit's lite kit, more for a customer's. */
+  brandPages: 6,
   /** Stop starting new steps after this long; whatever finished is reported as a partial scan. */
   maxDurationMs: 4 * 60_000,
   maxSitemapUrls: 10_000,
@@ -598,7 +600,7 @@ export async function runSiteScan(
     })),
     // What the lite Brand Kit reads (src/llm/brand-kit.js): the first readable pages, home page first, each cut to a
     // few thousand characters. Page text is a stranger's: it is only ever fenced and sent to the model, never acted on.
-    brandPages: readableNow.slice(0, 6).map((p) => ({
+    brandPages: readableNow.slice(0, policy.brandPages).map((p) => ({
       url: p.finalUrl ?? p.url,
       title: p.facts.title,
       text: [

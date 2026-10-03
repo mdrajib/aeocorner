@@ -1,0 +1,13 @@
+<%# Buttons for one question. Props: p, projectBase, csrfToken. %>
+<div class="flex flex-wrap gap-1">
+  <% if (p.status !== 'archived') { %><%- ui.button({ label: 'Edit', href: projectBase + '/questions/' + p.id + '/edit', variant: 'ghost', size: 'sm', attrs: { 'aria-label': 'Edit: ' + p.text.slice(0, 60) } }) %><% } %>
+  <% const moves = p.status === 'active' ? [['paused', 'Pause']] : p.status === 'paused' ? [['active', 'Turn on']] : [['active', 'Restore']]; %>
+  <% if (p.status !== 'archived') moves.push(['archived', 'Archive']); %>
+  <% for (const [status, label] of moves) { %>
+  <form method="post" action="<%= projectBase %>/questions/<%= p.id %>/status">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="status" value="<%= status %>">
+    <%- ui.button({ label, type: 'submit', variant: 'ghost', size: 'sm', attrs: { 'aria-label': label + ': ' + p.text.slice(0, 60) } }) %>
+  </form>
+  <% } %>
+</div>

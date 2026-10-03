@@ -1,0 +1,69 @@
+<%# The Prompt Manager (B9): a project's buyer questions.
+    Props: prompts, flags (Map of prompt id -> warnings), coverage, activeCount, limit, filters, clusters, intentOptions, intentFormOptions,
+           generating, slow, addValues, addError, importReport, importError, importText, canEdit;
+    locals: project, projectBase, orgBase, csrfToken. %>
+<%
+const INTENT_LABELS = { discovery: 'Finding options', comparison: 'Comparing', problem_solution: 'Solving a problem', brand: 'About the brand', local: 'Near me', transactional: 'Buying' };
+const STATUS = { active: { text: 'On', tone: 'success' }, paused: { text: 'Paused', tone: 'neutral' }, archived: { text: 'Archived', tone: 'neutral' } };
+const columns = [
+  { key: 'question', label: 'Question' },
+  { key: 'topic', label: 'Topic' },
+  { key: 'intent', label: 'Kind' },
+  { key: 'priority', label: 'Priority', numeric: true },
+  { key: 'status', label: 'Status' },
+  { key: 'actions', label: 'Actions' },
+];
+const tableRows = prompts.map((p) => ({
+  question: { html: ui.fragment('partials/question-cell', { p, warnings: flags.get(p.id) ?? [] }) },
+  topic: p.clusterName ?? '',
+  intent: INTENT_LABELS[p.intent] ?? p.intent,
+  priority: String(p.priority),
+  status: { html: ui.badge(STATUS[p.status] ?? { text: p.status }) },
+  actions: { html: canEdit ? ui.fragment('partials/question-actions', { p, projectBase, csrfToken }) : '' },
+}));
+const topicOptions = [{ value: '', label: 'All topics' }, ...clusters.map((c) => ({ value: String(c.id), label: c.name }))];
+const statusOptions = [{ value: '', label: 'On and paused' }, { value: 'active', label: 'On' }, { value: 'paused', label: 'Paused' }, { value: 'archived', label: 'Archived' }];
+const filtered = Boolean(filters.q || filters.intent || filters.status || filters.clusterId);
+-%>
+<nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <a href="<%= projectBase %>"><%= project.name %></a> <span aria-hidden="true">/</span> <span>Questions</span></nav>
+<h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= project.name %></h1>
+<%- ui.fragment('partials/project-nav', { projectBase, current: 'questions' }) %>
+
+<div class="mt-6 flex flex-col gap-6">
+  <% if (generating) { %><%- ui.banner({ tone: 'info', title: 'We’re writing your questions.', text: 'This takes a minute or two. This page refreshes by itself.' }) %><% } %>
+  <% if (slow) { %><%- ui.banner({ tone: 'warning', title: 'This is taking longer than usual.', text: 'We’ll keep trying in the background. You can add questions yourself in the meantime, or ask us to try again.' }) %><% } %>
+
+  <% if (importReport) { %>
+  <%- ui.fragment('partials/import-report', { report: importReport }) %>
+  <% } %>
+
+  <%- ui.card({ title: 'Your question set', headingLevel: 2, html: ui.fragment('partials/question-coverage', { coverage, activeCount, limit }) }) %>
+
+  <section aria-labelledby="questions-list-heading">
+    <h2 id="questions-list-heading" class="text-xl">All questions</h2>
+    <form method="get" action="<%= projectBase %>/questions" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end" role="search">
+      <%- ui.field({ id: 'filter-q', name: 'q', label: 'Search', type: 'search', value: filters.q }) %>
+      <%- ui.field({ id: 'filter-topic', name: 'topic', label: 'Topic', type: 'select', options: topicOptions, value: filters.clusterId ? String(filters.clusterId) : '' }) %>
+      <%- ui.field({ id: 'filter-intent', name: 'intent', label: 'Kind', type: 'select', options: intentOptions, value: filters.intent }) %>
+      <%- ui.field({ id: 'filter-status', name: 'status', label: 'Status', type: 'select', options: statusOptions, value: filters.status }) %>
+      <div class="flex gap-2 pb-1"><%- ui.button({ label: 'Filter', type: 'submit', variant: 'secondary' }) %><% if (filtered) { %><%- ui.button({ label: 'Clear', href: projectBase + '/questions', variant: 'ghost' }) %><% } %></div>
+    </form>
+    <div class="mt-4">
+      <% if (!prompts.length && !filtered) { %>
+      <%- ui.state({ kind: 'empty', title: 'No questions yet', text: 'Questions are what real buyers ask AI assistants. We write a set from your Brand Kit in about a minute, or you can add your own.', icon: 'inbox' }) %>
+      <% } else { %>
+      <%- ui.table({ caption: 'Questions', captionHidden: true, columns, rows: tableRows, stack: true, emptyText: 'No question matches those filters.' }) %>
+      <% } %>
+    </div>
+  </section>
+
+  <% if (canEdit) { %>
+  <div class="grid gap-6 lg:grid-cols-2">
+    <%- ui.card({ title: 'Add a question', headingLevel: 2, html: ui.fragment('partials/question-add', { values: addValues, error: addError, intentFormOptions, projectBase, csrfToken }) }) %>
+    <div class="flex flex-col gap-6">
+      <%- ui.card({ title: 'Write questions for me', headingLevel: 2, html: ui.fragment('partials/question-generate', { activeCount, limit, projectBase, csrfToken }) }) %>
+      <%- ui.card({ title: 'Import from a spreadsheet', headingLevel: 2, html: ui.fragment('partials/question-import', { importError, importText, projectBase, csrfToken }) }) %>
+    </div>
+  </div>
+  <% } %>
+</div>

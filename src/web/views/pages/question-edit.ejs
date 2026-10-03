@@ -1,0 +1,19 @@
+<%# Change one question. Props: prompt, values, error, intentOptions; locals: project, projectBase, orgBase, csrfToken. %>
+<div class="mx-auto max-w-xl">
+  <nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= projectBase %>/questions">Questions</a> <span aria-hidden="true">/</span> <span>Edit</span></nav>
+  <h1 class="mt-2 text-3xl">Edit question</h1>
+  <p class="text-ink-700 mt-2">Changing the words starts a fresh line on your charts: the old wording is kept as history, so trends never mix two different questions.</p>
+  <form method="post" action="<%= projectBase %>/questions/<%= prompt.id %>" class="mt-6 flex flex-col gap-4" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.field({ id: 'edit-text', name: 'text', label: 'Question', type: 'textarea', rows: 3, required: true, value: values.text, error: error }) %>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <%- ui.field({ id: 'edit-intent', name: 'intent', label: 'Kind', type: 'select', required: true, options: intentOptions, value: values.intent }) %>
+      <%- ui.field({ id: 'edit-priority', name: 'priority', label: 'Priority', type: 'select', options: [{ value: '1', label: '1 (most important)' }, { value: '2', label: '2' }, { value: '3', label: '3' }], value: String(values.priority) }) %>
+      <%- ui.field({ id: 'edit-topic', name: 'topic', label: 'Topic', value: values.topic }) %>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <%- ui.button({ label: 'Save', type: 'submit' }) %>
+      <%- ui.button({ label: 'Cancel', href: projectBase + '/questions', variant: 'secondary' }) %>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,25 @@
+<%# Brand Kit: voice. Props: kit, errors, projectBase, csrfToken, version, next, canEdit. %>
+<%
+const ro = !canEdit;
+const v = kit.voice;
+const blank = { name: '', bio: '', credentials: '' };
+const personas = v.personas.concat(Array.from({ length: Math.min(1, 5 - v.personas.length) }, () => blank));
+-%>
+<%- ui.fragment('partials/brand-form-open', { section: 'voice', projectBase, csrfToken, version, next: locals.next, errors, canEdit }) %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <%- ui.field({ id: 'voice-tone', name: 'tone', label: 'Tone', type: 'textarea', rows: 3, value: v.tone.join('\n'), error: errors['voice.tone'], disabled: ro, hint: 'One word per line, like “friendly”.' }) %>
+    <%- ui.field({ id: 'voice-readingLevel', name: 'readingLevel', label: 'Reading level', value: v.readingLevel, error: errors['voice.readingLevel'], disabled: ro, hint: 'Like “plain, around grade 8”.' }) %>
+    <%- ui.field({ id: 'voice-use', name: 'use', label: 'Words and phrases to use', type: 'textarea', rows: 3, value: v.use.join('\n'), error: errors['voice.use'], disabled: ro, hint: 'One per line.' }) %>
+    <%- ui.field({ id: 'voice-avoid', name: 'avoid', label: 'Words and phrases to avoid', type: 'textarea', rows: 3, value: v.avoid.join('\n'), error: errors['voice.avoid'], disabled: ro, hint: 'One per line.' }) %>
+  </div>
+  <fieldset class="flex flex-col gap-4">
+    <legend class="label">Authors and experts</legend>
+    <% personas.forEach((p, i) => { %>
+    <div class="border-ink-200 grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
+      <%- ui.field({ id: 'persona-name-' + i, name: 'persona_name', label: 'Name', value: p.name, disabled: ro }) %>
+      <%- ui.field({ id: 'persona-credentials-' + i, name: 'persona_credentials', label: 'Credentials', value: p.credentials, disabled: ro }) %>
+      <div class="sm:col-span-2"><%- ui.field({ id: 'persona-bio-' + i, name: 'persona_bio', label: 'Short bio', value: p.bio, disabled: ro }) %></div>
+    </div>
+    <% }) %>
+  </fieldset>
+<%- ui.fragment('partials/brand-form-close', { canEdit }) %>

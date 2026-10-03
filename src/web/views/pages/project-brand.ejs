@@ -1,0 +1,40 @@
+<%# The Brand Kit screen (B8): the kit in sections, the project's competitors, and every saved version.
+    Props: kit, version, sourceLabel, savedOn, tab, sectionErrors ({ [section]: { [path]: message } }), history,
+           competitors, suggested, reading (we are still reading the website), readFailed, canEdit, conflict;
+    locals: project, projectBase, orgBase, csrfToken. %>
+<%
+const none = {};
+const form = (section) => ({ kit, errors: sectionErrors[section] ?? none, projectBase, csrfToken, version, canEdit });
+const tabs = [
+  { id: 'identity', label: 'Identity', html: ui.fragment('partials/brand-identity', form('identity')) },
+  { id: 'offerings', label: 'Offerings', html: ui.fragment('partials/brand-offerings', form('offerings')) },
+  { id: 'facts', label: 'Facts', html: ui.fragment('partials/brand-facts', form('facts')) },
+  { id: 'voice', label: 'Voice', html: ui.fragment('partials/brand-voice', form('voice')) },
+  { id: 'competitors', label: 'Competitors', html: ui.fragment('partials/competitor-list', { competitors, suggested, projectBase, csrfToken, canEdit, next: 'brand' }) },
+];
+-%>
+<nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <a href="<%= projectBase %>"><%= project.name %></a> <span aria-hidden="true">/</span> <span>Brand Kit</span></nav>
+<h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= project.name %></h1>
+<%- ui.fragment('partials/project-nav', { projectBase, current: 'brand' }) %>
+
+<div class="mt-6 flex flex-col gap-4">
+  <% if (conflict) { %><%- ui.banner({ tone: 'warning', title: 'Someone saved a newer version first.', text: 'Your changes weren’t saved, so theirs aren’t lost. The page now shows the newest version: make your change again on top of it.' }) %><% } %>
+  <% if (reading) { %><%- ui.banner({ tone: 'info', title: 'We’re reading your website.', text: 'We’ll fill in what we can find. This takes a minute or two; this page refreshes by itself.' }) %><% } %>
+  <% if (readFailed) { %><%- ui.banner({ tone: 'warning', title: 'We couldn’t read your website yet.', text: 'Fill in the basics below, or ask us to try again.' }) %><% } %>
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <p class="text-ink-700 text-sm"><% if (version) { %>Version <%= version %> · <%= sourceLabel %> · <%= savedOn %><% } else { %>Not saved yet<% } %></p>
+    <% if (canEdit) { %>
+    <form method="post" action="<%= projectBase %>/brand/reread">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- ui.button({ label: 'Read my website again', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+    </form>
+    <% } %>
+  </div>
+
+  <%- ui.card({ title: 'Your Brand Kit', headingLevel: 2, html: ui.tabs({ id: 'brand-kit', label: 'Brand Kit sections', tabs, initial: tab }) }) %>
+
+  <% if (history.length) { %>
+  <%- ui.card({ title: 'Versions', headingLevel: 2, html: ui.fragment('partials/brand-history', { history, projectBase, csrfToken, canEdit }) }) %>
+  <% } %>
+</div>

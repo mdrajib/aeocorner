@@ -59,14 +59,23 @@ describe('creating a project', () => {
 
     const before = added.length;
     const res = await owner.post(`/app/o/${orgId}/projects`, form()).expect(303);
-    assert.match(res.headers.location, /\?notice=project-created$/);
-    const page = await owner.get(res.headers.location).expect(200);
+    assert.match(res.headers.location, /\/setup\/brand\?notice=project-created$/);
+    const setup = await owner.get(res.headers.location).expect(200);
+    assert.match(setup.text, /Confirm your brand/);
+    assert.match(setup.text, /Your project is ready/);
+    const page = await owner.get(res.headers.location.replace(/\/setup\/brand.*/, '')).expect(200);
     assert.match(page.text, /Route Dental/);
-    assert.match(page.text, /Your project is ready/);
     assert.match(page.text, /ChatGPT/);
-    assert.equal(added.length, before + 1);
-    assert.equal(added.at(-1).name, 'crawl.readiness');
-    assert.deepEqual(Object.keys(added.at(-1).data).sort(), ['orgId', 'projectId', 'scanId']);
+    assert.match(page.text, /Continue setup/);
+
+    // The first scan and the first reading of the website are both queued, carrying IDs and nothing else.
+    const queued = added.slice(before);
+    assert.deepEqual(queued.map((j) => j.name).sort(), ['brandkit.extract', 'crawl.readiness']);
+    const scan = queued.find((j) => j.name === 'crawl.readiness');
+    assert.deepEqual(Object.keys(scan.data).sort(), ['orgId', 'projectId', 'scanId']);
+    const reading = queued.find((j) => j.name === 'brandkit.extract');
+    assert.deepEqual(Object.keys(reading.data).sort(), ['baseVersion', 'orgId', 'projectId']);
+    assert.equal(reading.data.baseVersion, 0);
   });
 
   test('the organization overview lists the project', async () => {

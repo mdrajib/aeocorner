@@ -1,0 +1,7 @@
+<%# Import questions from pasted spreadsheet rows. Props: importError, importText, projectBase, csrfToken. %>
+<p class="text-ink-700 text-sm">Paste rows from a spreadsheet or CSV: question, kind, topic, priority (only the question is needed). Up to 500 at a time.</p>
+<form method="post" action="<%= projectBase %>/questions/import" class="mt-3 flex flex-col gap-3" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- ui.field({ id: 'import-csv', name: 'csv', label: 'Questions', type: 'textarea', rows: 6, required: true, value: importText, error: importError, placeholder: 'best family dentist in Austin,discovery,Finding a dentist,1' }) %>
+  <div><%- ui.button({ label: 'Import', type: 'submit', variant: 'secondary' }) %></div>
+</form>

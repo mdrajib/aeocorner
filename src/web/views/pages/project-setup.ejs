@@ -1,0 +1,94 @@
+<%# The setup steps of a new project (B3 to B7). One view, one branch per step.
+    Props: step, stepIndex, stepLabels, title, kit, version, reading, readFailed, conflict, errors, competitors, suggested, prompts,
+           coverage, limit, generating, slow, engines, hasKit, canEdit;
+    locals: project, projectBase, orgBase, csrfToken. %>
+<%
+const setupBase = projectBase + '/setup';
+const INTENT_LABELS = { discovery: 'Finding options', comparison: 'Comparing', problem_solution: 'Solving a problem', brand: 'About the brand', local: 'Near me', transactional: 'Buying' };
+const ENGINE_NAMES = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', gemini: 'Gemini', google_aio: 'Google AI Overviews' };
+const previous = stepIndex > 0 ? setupBase + '/' + ['brand', 'competitors', 'questions', 'connect', 'start'][stepIndex - 1] : null;
+const ro = !canEdit;
+-%>
+<div class="mx-auto max-w-2xl">
+  <%- ui.stepper({ label: 'Project setup', steps: stepLabels, current: stepIndex }) %>
+  <p class="text-ink-700 mt-8 text-sm"><%= project.name %></p>
+  <h1 class="mt-1 text-3xl"><%= title %></h1>
+
+  <% if (step === 'brand') { %>
+  <p class="text-ink-700 mt-2">We read your website and filled in what we could. Correct anything that’s wrong.</p>
+  <div class="mt-6 flex flex-col gap-4">
+    <% if (conflict) { %><%- ui.banner({ tone: 'warning', title: 'Someone saved a newer version first.', text: 'Your changes weren’t saved. The form now shows the newest version: check it and continue.' }) %><% } %>
+    <% if (reading) { %><%- ui.banner({ tone: 'info', title: 'We’re reading your website.', text: 'This takes a minute or two and this page refreshes by itself. You can start typing, but a refresh would replace what’s unsaved.' }) %><% } %>
+    <% if (readFailed) { %><%- ui.banner({ tone: 'warning', title: 'We couldn’t read your website yet.', text: 'Fill in the basics below. You can ask us to try again from the Brand Kit page.' }) %><% } %>
+    <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', title: 'This step wasn’t saved.', text: Object.values(errors)[0] }) %><% } %>
+    <form method="post" action="<%= setupBase %>/brand" class="flex flex-col gap-4" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="expectedVersion" value="<%= version ?? '' %>">
+      <%- ui.field({ id: 'setup-brandName', name: 'brandName', label: 'Brand name', required: true, value: kit.identity.brandName, error: errors['identity.brandName'], disabled: ro }) %>
+      <%- ui.field({ id: 'setup-aliases', name: 'aliases', label: 'Also known as', type: 'textarea', rows: 2, value: kit.identity.aliases.join('\n'), disabled: ro, hint: 'One per line. We look for these in AI answers too.' }) %>
+      <%- ui.field({ id: 'setup-definition', name: 'definition', label: 'One-line description', type: 'textarea', rows: 2, value: kit.identity.definition, disabled: ro }) %>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <%- ui.field({ id: 'setup-category', name: 'category', label: 'Category', value: kit.identity.category, disabled: ro }) %>
+        <%- ui.field({ id: 'setup-geography', name: 'geography', label: 'Where you operate', value: kit.identity.geography, disabled: ro }) %>
+      </div>
+      <%- ui.field({ id: 'setup-products', name: 'products', label: 'Products and services', type: 'textarea', rows: 4, value: kit.offerings.items.map((i) => i.name).join('\n'), disabled: ro, hint: 'One per line.' }) %>
+      <div class="flex flex-wrap gap-3">
+        <% if (canEdit) { %><%- ui.button({ label: 'Looks right', type: 'submit', iconRight: 'arrow-right' }) %><% } else { %><%- ui.button({ label: 'Next', href: setupBase + '/competitors' }) %><% } %>
+      </div>
+    </form>
+  </div>
+
+  <% } else if (step === 'competitors') { %>
+  <p class="text-ink-700 mt-2">The brands your customers compare you with. We ask the AI engines about them too, so you can see how you stack up.</p>
+  <div class="mt-6"><%- ui.card({ title: 'Competitors', headingLevel: 2, html: ui.fragment('partials/competitor-list', { competitors, suggested, projectBase, csrfToken, canEdit, next: 'setup' }) }) %></div>
+  <div class="mt-6 flex flex-wrap gap-3">
+    <%- ui.button({ label: 'Back', href: previous, variant: 'secondary' }) %>
+    <% if (canEdit) { %>
+    <form method="post" action="<%= setupBase %>/competitors">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- ui.button({ label: 'Continue', type: 'submit', iconRight: 'arrow-right' }) %>
+    </form>
+    <% } else { %><%- ui.button({ label: 'Next', href: setupBase + '/questions' }) %><% } %>
+  </div>
+
+  <% } else if (step === 'questions') { %>
+  <p class="text-ink-700 mt-2">These are the questions we ask AI engines about your market, every week. Change, pause or add to them.</p>
+  <div class="mt-6 flex flex-col gap-4">
+    <% if (generating) { %><%- ui.banner({ tone: 'info', title: 'We’re writing your questions.', text: 'This takes a minute or two. This page refreshes by itself.' }) %><% } %>
+    <% if (slow) { %><%- ui.banner({ tone: 'warning', title: 'This is taking longer than usual.', text: 'We’ll keep trying in the background. You can add your own questions or ask us to try again.' }) %><% } %>
+    <% if (!prompts.length) { %>
+      <%- ui.state({ kind: generating ? 'loading' : 'empty', title: generating ? 'Writing your questions…' : 'No questions yet', text: generating ? '' : 'We can write a set from your Brand Kit in about a minute.', actionHtml: (!generating && canEdit) ? ui.fragment('partials/question-generate', { activeCount: 0, limit, projectBase, csrfToken }) : '' }) %>
+    <% } else { %>
+      <%- ui.card({ title: 'Your question set', headingLevel: 2, html: ui.fragment('partials/question-coverage', { coverage, activeCount: prompts.length, limit }) }) %>
+      <%- ui.card({ title: 'A few of them', headingLevel: 2, html: ui.fragment('partials/setup-question-sample', { prompts: prompts.slice(0, 8), labels: INTENT_LABELS, total: prompts.length }) }) %>
+    <% } %>
+  </div>
+  <div class="mt-6 flex flex-wrap gap-3">
+    <%- ui.button({ label: 'Back', href: previous, variant: 'secondary' }) %>
+    <%- ui.button({ label: 'Review and edit all', href: projectBase + '/questions', variant: 'secondary' }) %>
+    <%- ui.button({ label: 'Looks good', href: setupBase + '/connect', iconRight: 'arrow-right' }) %>
+  </div>
+
+  <% } else if (step === 'connect') { %>
+  <p class="text-ink-700 mt-2">Optional. Connecting lets us apply fixes with your approval and show how AI answers change your traffic. You can do this later.</p>
+  <div class="mt-6 grid gap-4 sm:grid-cols-2">
+    <%- ui.card({ title: 'WordPress', headingLevel: 2, html: '<p class="text-ink-700 text-sm">Apply fixes to your site with your approval.</p><p class="mt-3">' + ui.badge({ text: 'Coming soon', tone: 'neutral' }) + '</p>' }) %>
+    <%- ui.card({ title: 'Google Analytics and Search Console', headingLevel: 2, html: '<p class="text-ink-700 text-sm">See visits that come from AI assistants.</p><p class="mt-3">' + ui.badge({ text: 'Coming soon', tone: 'neutral' }) + '</p>' }) %>
+  </div>
+  <div class="mt-6 flex flex-wrap gap-3">
+    <%- ui.button({ label: 'Back', href: previous, variant: 'secondary' }) %>
+    <%- ui.button({ label: 'Do this later', href: setupBase + '/start', iconRight: 'arrow-right' }) %>
+  </div>
+
+  <% } else { %>
+  <p class="text-ink-700 mt-2">Here is what we have for <%= project.name %>.</p>
+  <div class="mt-6">
+    <%- ui.card({ headingLevel: 2, html: ui.fragment('partials/setup-summary', { hasKit, version, competitors, prompts, coverage, engines, names: ENGINE_NAMES, projectBase }) }) %>
+  </div>
+  <p class="text-ink-700 mt-4 text-sm">Your Brand Kit and questions are saved. Weekly checks of the AI engines start once tracking is switched on for your account, and you can change any of this before then.</p>
+  <div class="mt-6 flex flex-wrap gap-3">
+    <%- ui.button({ label: 'Back', href: previous, variant: 'secondary' }) %>
+    <%- ui.button({ label: 'Go to your project', href: projectBase }) %>
+  </div>
+  <% } %>
+</div>

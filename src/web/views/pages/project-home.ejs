@@ -1,17 +1,22 @@
-<%# One project's page for now: where it is in setup, its engines, and its competitors. Props: entities, engines, countryName, languageName;
-    locals: project, projectBase, orgBase, csrfToken, can. The Brand Kit and Prompt Manager join it as tabs next. %>
+<%# One project's page for now: where it is in setup, its engines, and its competitors. Props: entities, engines, countryName, languageName, setupOpen;
+    locals: project, projectBase, orgBase, csrfToken, can. %>
 <%
 const ENGINE_NAMES = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', gemini: 'Gemini', google_aio: 'Google AI Overviews' };
-const competitors = entities.filter((e) => e.kind === 'competitor' && e.status !== 'ignored');
+const competitors = entities.filter((e) => e.kind === 'competitor' && ['active', 'paused'].includes(e.status));
+const suggested = entities.filter((e) => e.kind === 'competitor' && e.status === 'suggested');
 const brand = entities.find((e) => e.kind === 'brand');
 const canEdit = can('strategy.edit');
 -%>
 <nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <span><%= project.name %></span></nav>
 <h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= project.name %></h1>
 <p class="text-ink-700 mt-1"><%= brand ? brand.primary_domain : '' %> · <%= countryName %> · <%= languageName %></p>
+<%- ui.fragment('partials/project-nav', { projectBase, current: 'overview' }) %>
+<% if (setupOpen && canEdit) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'info', title: 'Setup isn’t finished.', html: '<a href="' + ui.esc(projectBase) + '/setup/brand">Continue setup</a> to confirm your brand, competitors and questions.' }) %></div>
+<% } %>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-2">
-  <%- ui.card({ title: 'Competitors', headingLevel: 2, html: ui.fragment('partials/competitor-list', { competitors, projectBase, csrfToken, canEdit }) }) %>
+  <%- ui.card({ title: 'Competitors', headingLevel: 2, html: ui.fragment('partials/competitor-list', { competitors, suggested, projectBase, csrfToken, canEdit }) }) %>
   <%- ui.card({ title: 'Website ownership', headingLevel: 2, html: ui.fragment('partials/domain-verify-card', { verification, projectBase, csrfToken, canEdit }) }) %>
-  <%- ui.card({ title: 'AI engines we check', headingLevel: 2, html: ui.fragment('partials/engine-list', { engines, names: ENGINE_NAMES }) }) %>
+  <%- ui.card({ title: 'AI engines we check', headingLevel: 2, html: ui.fragment('partials/engine-list', { engines, names: ENGINE_NAMES, canEdit, projectBase, csrfToken }) }) %>
 </div>

@@ -46,6 +46,7 @@ export function createUi({ viewsDir, cache }) {
     'logo',
     'meter',
     'modal',
+    'radio',
     'stat',
     'state',
     'stepper',

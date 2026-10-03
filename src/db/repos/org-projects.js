@@ -122,15 +122,17 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         return await transaction(prisma, async (tx) => {
           // The audit's secret address is the proof the visitor ran it; one already owned by another organization is refused.
           let sourceAuditId = null;
+          let auditHasProject = false;
           if (sourceAuditPublicId != null) {
             const audit = await tx.audits.findFirst({
               where: { public_id: String(sourceAuditPublicId) },
-              select: { id: true, org_id: true },
+              select: { id: true, org_id: true, project_id: true },
             });
             if (!audit || (audit.org_id !== null && audit.org_id !== orgId)) {
               throw new DomainError('NOT_FOUND');
             }
             sourceAuditId = audit.id;
+            auditHasProject = audit.project_id !== null;
           }
           const project = await tx.projects.create({
             data: {
@@ -144,6 +146,13 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
               created_by_user_id: createdByUserId ?? null,
             },
           });
+          if (sourceAuditId !== null) {
+            // Signing up from a report claims it: it now belongs to this organization (and to its first project).
+            await tx.audits.update({
+              where: { id: sourceAuditId },
+              data: { org_id: orgId, ...(auditHasProject ? {} : { project_id: project.id }) },
+            });
+          }
           await tx.tracked_entities.create({
             data: {
               org_id: orgId,
@@ -361,7 +370,12 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
     },
 
     /** Add a competitor (or, for the audit prefill, an entity found elsewhere). The brand is made with the project. */
-    async addCompetitor(projectId, { name, primaryDomain, source = 'user' }, { actorUserId } = {}) {
+    async addCompetitor(
+      projectId,
+      { name, primaryDomain, source = 'user', status = 'active' },
+      { actorUserId } = {},
+    ) {
+      if (!['active', 'suggested'].includes(status)) throw new DomainError('INVALID_STATUS');
       const clean = String(name ?? '')
         .trim()
         .replace(/\s+/g, ' ');
@@ -380,6 +394,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
               name_normalized: normalizeEntityName(clean),
               primary_domain: domain,
               source,
+              status,
             },
           });
           await appendActivity(tx, {

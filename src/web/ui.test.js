@@ -115,6 +115,7 @@ test('components escape their text props', () => {
     ui.banner({ title: evil, text: evil }),
     ui.field({ name: 'a', label: evil, hint: evil, error: evil, value: evil }),
     ui.checkbox({ name: 'a', label: evil, error: evil }),
+    ui.radio({ id: 'r', name: 'a', value: 'x', label: evil, hint: evil }),
     ui.card({ title: evil }),
     ui.stat({ label: evil, value: evil, note: evil }),
     ui.state({ title: evil, text: evil }),

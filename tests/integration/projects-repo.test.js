@@ -82,6 +82,26 @@ describe('creating a project', () => {
       'NOT_FOUND',
     );
   });
+
+  test('creating from an audit claims it for the organization and its first project, once', async () => {
+    const audit = await fx.audit();
+    assert.equal(audit.org_id, null);
+    const first = await A.scoped.projects.create({
+      ...input(),
+      sourceAuditPublicId: audit.public_id,
+    });
+    const claimed = await db.audits.get(audit.id);
+    assert.equal(claimed.org_id, A.org.id);
+    assert.equal(claimed.project_id, first.id);
+
+    // A second project from the same audit (another website of the same business) does not take it over.
+    const second = await A.scoped.projects.create({
+      ...input(),
+      sourceAuditPublicId: audit.public_id,
+    });
+    assert.equal(second.source_audit_id, audit.id);
+    assert.equal((await db.audits.get(audit.id)).project_id, first.id);
+  });
 });
 
 describe('editing and archiving', () => {
@@ -202,6 +222,28 @@ describe('brand, competitors and aliases', () => {
     await A.scoped.entities.removeAlias(alias.id);
     assert.equal((await A.scoped.entities.list(p.id))[0].aliases.length, 1);
     await refuses(A.scoped.entities.removeAlias(alias.id), 'NOT_FOUND');
+  });
+});
+
+describe('suggested competitors', () => {
+  test('are stored as suggestions until confirmed, and the status must be one we allow', async () => {
+    const p = await A.scoped.projects.create(input());
+    const suggested = await A.scoped.entities.addCompetitor(p.id, {
+      name: 'Suggested Smiles',
+      source: 'audit',
+      status: 'suggested',
+    });
+    assert.equal(suggested.status, 'suggested');
+    assert.equal(suggested.source, 'audit');
+    const tracked = await A.scoped.entities.setStatus(suggested.id, 'active');
+    assert.equal(tracked.status, 'active');
+    await refuses(
+      A.scoped.entities.addCompetitor(p.id, { name: 'Sneaky Smiles', status: 'ignored' }),
+      'INVALID_STATUS',
+    );
+    // The default is unchanged: a competitor a person types in is tracked at once.
+    const typed = await A.scoped.entities.addCompetitor(p.id, { name: 'Typed Smiles' });
+    assert.equal(typed.status, 'active');
   });
 });
 

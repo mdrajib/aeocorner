@@ -1,0 +1,10 @@
+<%# A few of a project's questions, for the setup step. Props: prompts, labels, total. %>
+<ul class="divide-ink-200 divide-y text-sm">
+  <% for (const p of prompts) { %>
+  <li class="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+    <span class="text-ink-600 w-32 shrink-0"><%= labels[p.intent] ?? p.intent %></span>
+    <span class="min-w-0 flex-1 [overflow-wrap:anywhere]"><%= p.text %></span>
+  </li>
+  <% } %>
+</ul>
+<% if (total > prompts.length) { %><p class="text-ink-600 mt-2 text-sm">and <%= total - prompts.length %> more.</p><% } %>

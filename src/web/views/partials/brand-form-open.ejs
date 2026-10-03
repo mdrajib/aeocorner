@@ -1,0 +1,7 @@
+<%# The top of one Brand Kit section's form. Props: section, projectBase, csrfToken, version, next, errors, canEdit. %>
+<form method="post" action="<%= projectBase %>/brand" class="flex flex-col gap-4" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="section" value="<%= section %>">
+  <input type="hidden" name="expectedVersion" value="<%= version ?? '' %>">
+  <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
+  <% if (Object.keys(errors).length) { %><%- ui.banner({ tone: 'danger', title: 'This section wasn’t saved.', text: Object.values(errors)[0] }) %><% } %>

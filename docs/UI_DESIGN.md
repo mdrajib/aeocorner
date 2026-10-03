@@ -78,7 +78,7 @@ Every phase follows these. They are short on purpose.
 | Component | Call | What it is for | Notes |
 |---|---|---|---|
 | Button | `ui.button` | Actions and button-styled links | `primary`, `secondary`, `ghost`, `danger`, `signal`; `sm/md/lg`; disabled; busy (spinner) |
-| Form field | `ui.field`, `ui.checkbox` | Text, URL, email, textarea, select, checkbox | Label, hint and error are wired to the input (`aria-describedby`, `aria-invalid`); "(optional)" is added automatically |
+| Form field | `ui.field`, `ui.checkbox`, `ui.radio` | Text, URL, email, textarea, select, checkbox, radio (a group goes in a `<fieldset>` with a `<legend>`) | Label, hint and error are wired to the input (`aria-describedby`, `aria-invalid`); "(optional)" is added automatically |
 | Card | `ui.card` | Grouping | Optional title, header actions, footer |
 | Table | `ui.table` | Data tables | Required caption; scrolls sideways inside its own box on narrow screens, never the page. Options: `stack` (below 640px each row becomes a small card of label/value lines; use it when cells hold actions, such as role selectors), `flush` (fills a card: no second border), `captionHidden` (when a heading already says it; the caption stays for screen readers) |
 | Tabs | `ui.tabs` | Switching panels | Arrow keys, Home/End; first panel visible without JavaScript |

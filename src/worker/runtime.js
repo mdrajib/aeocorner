@@ -14,6 +14,7 @@ import { auditHandlers } from './handlers/audit.js';
 import { collectHandlers } from './handlers/collect.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { extractHandlers } from './handlers/extract.js';
+import { setupHandlers } from './handlers/setup.js';
 import { systemHandlers } from './handlers/system.js';
 import { createProviderCaller } from './provider-call.js';
 import { createSpendGuard } from './spend-guard.js';
@@ -72,6 +73,7 @@ export function createWorkerRuntime({
     ...crawlHandlers,
     ...collectHandlers,
     ...extractHandlers,
+    ...setupHandlers,
     ...extraHandlers,
   };
 

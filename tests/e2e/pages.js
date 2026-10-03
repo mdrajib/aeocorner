@@ -26,6 +26,41 @@ export const appPages = [
     as: 'viewer',
     path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}`,
   },
+  {
+    name: 'project-brand',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/brand`,
+  },
+  {
+    name: 'project-brand-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/brand`,
+  },
+  {
+    name: 'project-questions',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/questions`,
+  },
+  {
+    name: 'project-questions-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/questions`,
+  },
+  {
+    name: 'question-edit',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/questions/${f.promptId}/edit`,
+  },
+  ...['brand', 'competitors', 'questions', 'connect', 'start'].map((step) => ({
+    name: `project-setup-${step}`,
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/setup/${step}`,
+  })),
+  {
+    name: 'member-access',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/members/${f.membershipId}/access`,
+  },
   { name: 'team', as: 'owner', path: (f) => `/app/o/${f.orgId}/settings` },
   { name: 'team-no-access', as: 'viewer', status: 403, path: (f) => `/app/o/${f.orgId}/settings` },
   { name: 'invite-signed-out', as: null, path: (f) => `/invite/${f.tokens.signedOut}` },

@@ -1,0 +1,13 @@
+<%# The tabs of one project. Props: projectBase, current ('overview' | 'brand' | 'questions'). %>
+<%
+const items = [
+  { id: 'overview', label: 'Overview', href: projectBase },
+  { id: 'brand', label: 'Brand Kit', href: projectBase + '/brand' },
+  { id: 'questions', label: 'Questions', href: projectBase + '/questions' },
+];
+-%>
+<nav aria-label="This project" class="border-ink-200 mt-4 flex flex-wrap gap-x-5 gap-y-1 border-b">
+  <% for (const item of items) { %>
+  <a href="<%= item.href %>" class="<%= item.id === current ? 'border-brand-600 text-ink-900 border-b-2 font-semibold' : 'text-ink-700 hover:text-ink-900' %> -mb-px py-2 text-sm"<% if (item.id === current) { %> aria-current="page"<% } %>><%= item.label %></a>
+  <% } %>
+</nav>

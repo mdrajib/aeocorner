@@ -1,0 +1,20 @@
+<%# Every saved version of a Brand Kit, newest first. Props: history ([{ version, sourceLabel, author, savedOn, changed, current }]), projectBase, csrfToken, canEdit. %>
+<ul class="divide-ink-200 divide-y">
+  <% for (const h of history) { %>
+  <li class="flex flex-wrap items-center justify-between gap-3 py-2">
+    <span class="min-w-0 text-sm">
+      <strong>Version <%= h.version %></strong>
+      <% if (h.current) { %><%- ui.badge({ text: 'Current', tone: 'brand' }) %><% } %>
+      <span class="text-ink-700"> · <%= h.sourceLabel %><% if (h.author) { %> by <%= h.author %><% } %> · <%= h.savedOn %></span>
+      <% if (h.changed.length) { %><span class="text-ink-600 block">Changed: <%= h.changed.join(', ') %></span><% } %>
+    </span>
+    <% if (canEdit && !h.current) { %>
+    <form method="post" action="<%= projectBase %>/brand/restore">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="version" value="<%= h.version %>">
+      <%- ui.button({ label: 'Restore', type: 'submit', variant: 'ghost', size: 'sm', attrs: { 'aria-label': 'Restore version ' + h.version } }) %>
+    </form>
+    <% } %>
+  </li>
+  <% } %>
+</ul>

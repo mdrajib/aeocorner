@@ -632,6 +632,19 @@ describe('the report', () => {
     assert.equal(eventsNamed('audit_track_clicked').length >= 1, true);
   });
 
+  test('the report’s address travels in a short-lived HttpOnly cookie, never in the sign-up URL', async () => {
+    const audit = await finishedAudit();
+    const res = await agent.get(`/r/${audit.public_id}/track`).expect(302);
+    assert.doesNotMatch(res.headers.location, new RegExp(audit.public_id));
+    const cookie = res.headers['set-cookie'].find((c) => c.startsWith('aeo_audit='));
+    assert.ok(cookie, 'the claim cookie is set');
+    assert.ok(cookie.startsWith(`aeo_audit=${audit.public_id}`));
+    assert.match(cookie, /HttpOnly/i);
+    assert.match(cookie, /Path=\/app/);
+    assert.match(cookie, /SameSite=Lax/i);
+    assert.match(cookie, /Max-Age=7200|Expires=/i);
+  });
+
   test('a report view is a funnel event with the score band and nothing identifying', async () => {
     const audit = await finishedAudit();
     await agent.get(`/r/${audit.public_id}`).expect(200);

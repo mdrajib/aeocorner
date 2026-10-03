@@ -1,0 +1,10 @@
+<%# Does the set cover the kinds of question it should? Props: coverage ({ ok, total, counts, problems }), activeCount, limit. %>
+<%- ui.meter({ id: 'question-meter', label: 'Questions in use', value: activeCount, max: limit }) %>
+<% if (coverage.ok) { %>
+<p class="text-ink-700 mt-3 text-sm">This set covers every kind of question buyers ask: finding options, comparing, solving a problem and asking about you.</p>
+<% } else { %>
+<p class="mt-3 text-sm font-semibold">To get a reliable picture:</p>
+<ul class="text-ink-700 mt-1 list-disc pl-5 text-sm">
+  <% for (const problem of coverage.problems) { %><li><%= problem %></li><% } %>
+</ul>
+<% } %>

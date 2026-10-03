@@ -1,0 +1,22 @@
+<%# What an import did with every line. Props: report ({ added, restored, duplicate, invalid, overLimit, lines }). %>
+<%
+const RESULT = { added: { text: 'Added', tone: 'success' }, restored: { text: 'Restored', tone: 'success' }, duplicate: { text: 'Already tracked', tone: 'neutral' }, invalid: { text: 'Not imported', tone: 'danger' }, over_limit: { text: 'Over your plan', tone: 'warning' } };
+const done = report.added + report.restored;
+const skipped = report.lines.length - done;
+-%>
+<%- ui.banner({
+  tone: skipped === 0 ? 'success' : done === 0 ? 'danger' : 'warning',
+  title: done + ' of ' + report.lines.length + ' question' + (report.lines.length === 1 ? '' : 's') + ' imported.',
+  text: skipped === 0 ? '' : skipped + ' weren’t imported. The list below says why, line by line.',
+}) %>
+<% if (skipped > 0) { %>
+<ul class="divide-ink-200 mt-3 divide-y text-sm">
+  <% for (const l of report.lines.filter((x) => x.result !== 'added' && x.result !== 'restored')) { %>
+  <li class="flex flex-wrap items-start gap-2 py-2">
+    <span class="text-ink-600 w-16 shrink-0">Line <%= l.line %></span>
+    <%- ui.badge(RESULT[l.result] ?? { text: l.result }) %>
+    <span class="min-w-0 flex-1 [overflow-wrap:anywhere]"><% if (l.text) { %><%= l.text %> <% } %><span class="text-ink-600"><%= l.error %></span></span>
+  </li>
+  <% } %>
+</ul>
+<% } %>

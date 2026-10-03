@@ -1,0 +1,37 @@
+<%# Which projects one member can see (client seats). Props: target ({ id, name, email, role, access, projectIds, alwaysAll }), projects ([{ id, publicId, name }]), error;
+    locals: orgBase, csrfToken, org. %>
+<div class="mx-auto max-w-xl">
+  <nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>/settings">Team</a> <span aria-hidden="true">/</span> <span>Access</span></nav>
+  <h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= target.name %></h1>
+  <p class="text-ink-700 mt-1 [overflow-wrap:anywhere]"><%= target.email %> · <%= target.role.charAt(0).toUpperCase() + target.role.slice(1) %></p>
+
+  <% if (target.alwaysAll) { %>
+  <div class="mt-6"><%- ui.banner({ tone: 'info', title: 'Sees every project.', text: 'Owners and admins always see every project. To limit this person, change their role first.' }) %></div>
+  <div class="mt-6"><%- ui.button({ label: 'Back to the team', href: orgBase + '/settings', variant: 'secondary' }) %></div>
+  <% } else { %>
+  <p class="text-ink-700 mt-3">Use this for a client: they sign in to see the projects you choose, and nothing else in <%= org.name %>.</p>
+  <form method="post" action="<%= orgBase %>/members/<%= target.id %>/access" class="mt-6 flex flex-col gap-5" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (error) { %><%- ui.banner({ tone: 'danger', text: error }) %><% } %>
+    <fieldset class="flex flex-col gap-2">
+      <legend class="label">Projects this person can see</legend>
+      <%- ui.radio({ id: 'access-all', name: 'access', value: 'all', label: 'Every project', checked: target.access === 'all' }) %>
+      <%- ui.radio({ id: 'access-selected', name: 'access', value: 'selected', label: 'Only the projects I choose', checked: target.access === 'selected' }) %>
+    </fieldset>
+    <% if (!projects.length) { %>
+    <p class="text-ink-700 text-sm">There are no projects yet. Create one before limiting someone to it.</p>
+    <% } else { %>
+    <fieldset class="flex flex-col gap-1">
+      <legend class="label">Chosen projects</legend>
+      <% for (const p of projects) { %>
+      <%- ui.checkbox({ id: 'project-' + p.id, name: 'project', value: p.publicId, label: p.name, checked: target.projectIds.includes(p.id) }) %>
+      <% } %>
+    </fieldset>
+    <% } %>
+    <div class="flex flex-wrap gap-3">
+      <%- ui.button({ label: 'Save access', type: 'submit' }) %>
+      <%- ui.button({ label: 'Cancel', href: orgBase + '/settings', variant: 'secondary' }) %>
+    </div>
+  </form>
+  <% } %>
+</div>

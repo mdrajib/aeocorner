@@ -1,0 +1,4 @@
+<%# The bottom of a section's form. Props: canEdit, label. %>
+  <% if (canEdit) { %><div><%- ui.button({ label: locals.label ?? 'Save', type: 'submit' }) %></div>
+  <% } else { %><p class="text-ink-600 text-sm">You can view the Brand Kit. Editors can change it.</p><% } %>
+</form>

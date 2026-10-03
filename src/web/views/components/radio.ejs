@@ -1,0 +1,9 @@
+<%
+// Props: id (required, unique on the page), name, value (required), label (required), checked, hint, disabled
+// One option of a group. Put the group in a <fieldset> with a <legend> so screen readers name it.
+const hintId = locals.hint ? locals.id + '-hint' : null;
+-%>
+<div class="choice">
+  <input class="radio" type="radio" id="<%= locals.id %>" name="<%= locals.name %>" value="<%= locals.value %>"<% if (locals.checked) { %> checked<% } %><% if (locals.disabled) { %> disabled<% } %><% if (hintId) { %> aria-describedby="<%= hintId %>"<% } %>>
+  <label for="<%= locals.id %>" class="text-ink-900 text-sm"><%= locals.label %><% if (locals.hint) { %><span class="hint block" id="<%= hintId %>"><%= locals.hint %></span><% } %></label>
+</div>

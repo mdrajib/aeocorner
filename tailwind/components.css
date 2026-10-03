@@ -122,6 +122,10 @@
     @apply border-ink-400 text-brand-600 mt-1 size-5 shrink-0 rounded;
   }
 
+  .radio {
+    @apply border-ink-400 text-brand-600 mt-1 size-5 shrink-0 rounded-full;
+  }
+
   /* ---------- Cards, tables ---------- */
   .card {
     @apply border-ink-200 shadow-card rounded-xl border bg-white;

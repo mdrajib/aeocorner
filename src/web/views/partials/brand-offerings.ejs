@@ -1,0 +1,22 @@
+<%# Brand Kit: offerings. Props: kit, errors, projectBase, csrfToken, version, next, canEdit, submitLabel. %>
+<%
+const ro = !canEdit;
+const o = kit.offerings;
+const blank = { name: '', url: '', description: '', price: '' };
+const items = o.items.concat(Array.from({ length: Math.min(3, 30 - o.items.length) }, () => blank));
+-%>
+<%- ui.fragment('partials/brand-form-open', { section: 'offerings', projectBase, csrfToken, version, next: locals.next, errors, canEdit }) %>
+  <fieldset class="flex flex-col gap-4">
+    <legend class="label">Products and services</legend>
+    <% items.forEach((item, i) => { %>
+    <div class="border-ink-200 grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
+      <%- ui.field({ id: 'offering-name-' + i, name: 'offering_name', label: 'Name', value: item.name, disabled: ro }) %>
+      <%- ui.field({ id: 'offering-price-' + i, name: 'offering_price', label: 'Price', value: item.price, disabled: ro, hint: 'Only if you publish one.' }) %>
+      <%- ui.field({ id: 'offering-url-' + i, name: 'offering_url', label: 'Page', value: item.url, disabled: ro, inputmode: 'url' }) %>
+      <%- ui.field({ id: 'offering-description-' + i, name: 'offering_description', label: 'Description', value: item.description, disabled: ro }) %>
+    </div>
+    <% }) %>
+  </fieldset>
+  <%- ui.field({ id: 'offerings-audiences', name: 'audiences', label: 'Who you sell to', type: 'textarea', rows: 3, value: o.audiences.join('\n'), error: errors['offerings.audiences'], disabled: ro, hint: 'One per line, like “families with young children”.' }) %>
+  <%- ui.field({ id: 'offerings-differentiators', name: 'differentiators', label: 'What sets you apart', type: 'textarea', rows: 3, value: o.differentiators.join('\n'), error: errors['offerings.differentiators'], disabled: ro, hint: 'One per line. Claims you can back up.' }) %>
+<%- ui.fragment('partials/brand-form-close', { canEdit, label: locals.submitLabel }) %>

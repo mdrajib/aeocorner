@@ -90,6 +90,11 @@ const modalFooter = ui.button({ label: 'Cancel', variant: 'secondary', attrs: { 
       <%- ui.field({ id: 'sg-textarea', name: 'sg_textarea', label: 'One-line description', type: 'textarea', rows: 3, hint: 'What you do, for whom, and where.' }) %>
       <%- ui.checkbox({ id: 'sg-check', name: 'sg_check', label: 'Send me tips about AI visibility', hint: 'Optional. Separate from receiving your report.' }) %>
       <%- ui.checkbox({ id: 'sg-check-error', name: 'sg_check_error', label: 'I agree to the Terms of Service', error: 'You need to agree to continue.' }) %>
+      <fieldset class="flex flex-col gap-2">
+        <legend class="label">Who can see this project</legend>
+        <%- ui.radio({ id: 'sg-radio-all', name: 'sg_radio', value: 'all', label: 'Everyone on the team', checked: true }) %>
+        <%- ui.radio({ id: 'sg-radio-some', name: 'sg_radio', value: 'some', label: 'Only the people I choose', hint: 'Use this for a client seat.' }) %>
+      </fieldset>
     </div>
     <h3 class="mt-10 text-lg">Audit form (compact)</h3>
     <div class="card card-body mt-3 max-w-xl"><%- ui.auditForm({ idPrefix: 'sg', variant: 'compact', errors: { url: 'Enter your website address, like yourcompany.com.' } }) %></div>

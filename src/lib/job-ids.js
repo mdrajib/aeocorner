@@ -47,3 +47,18 @@ export const extractAnswerJobId = (snapshotId, reason = 'now') =>
 
 /** The one run of a free audit: asking twice (a retried request, a double click on verify) is one job. */
 export const auditRunJobId = (auditId) => jobId('audit', auditId);
+
+/**
+ * Reading a project's website into a Brand Kit. A job is "this project, starting from this kit version, in this
+ * ten-minute slot": a double click is one job, a retry after the slot is a new one, and a kit saved in between
+ * (the version moved) makes a stale job a no-op.
+ */
+export const brandKitJobId = (projectId, baseVersion, slot) =>
+  jobId('brandkit', projectId, `v${baseVersion}`, `s${slot}`);
+
+/** Writing a project's question set: this project, with this many active questions, in this ten-minute slot. */
+export const questionsJobId = (projectId, active, slot) =>
+  jobId('questions', projectId, `n${active}`, `s${slot}`);
+
+/** The ten-minute slot a time falls in. */
+export const slotOf = (date) => Math.floor(date.getTime() / 600_000);

@@ -1,0 +1,2 @@
+<%# Which projects one member can see, with a link to change it. Props: member ({ id, name, access, canLimit }), orgBase. %>
+<%= member.access %><% if (member.canLimit) { %> <a href="<%= orgBase %>/members/<%= member.id %>/access" class="text-sm" aria-label="Change what <%= member.name %> can see">Change</a><% } %>
