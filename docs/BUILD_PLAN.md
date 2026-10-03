@@ -296,6 +296,8 @@
 
 **Exit criteria:** D4 is decided and recorded as an ADR ([MVP §17](MVP.md#17-decisions-needed-from-the-founder)); the eval runs in CI going forward. **Not yet met:** D4 is provisional until the label review. The CI job is in place, but it scores Claude only once `ANTHROPIC_API_KEY` is a repository secret.
 
+> **From Phase 7 on, the execution order and the tick-off list are in [MILESTONES.md](MILESTONES.md)** (2026-10-03): Phases 7–15 reorganized into Milestones 0–10 of single-action tasks, each with prerequisites, a Definition of Done and its parallel lanes. The phase sections below stay as the reference for the detail and the required tests; mark a phase `✅ Complete` here when its milestone is done.
+
 ## Phase 7 — Free audit (🚩 M1)
 
 **Goal:** the first public-facing, revenue-relevant surface — F1 end to end, target under 10 minutes.
