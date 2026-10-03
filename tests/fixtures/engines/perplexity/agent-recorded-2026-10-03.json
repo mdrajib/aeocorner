@@ -1,0 +1,230 @@
+{
+  "background": false,
+  "completed_at": 1791002237,
+  "created_at": 1791002237,
+  "error": null,
+  "frequency_penalty": 0,
+  "id": "resp_ce305dde-ffad-4f96-affc-a4f4b4a7680d",
+  "incomplete_details": null,
+  "instructions": "Answer in the language with code \"en\".",
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "metadata": {},
+  "model": "perplexity/sonar",
+  "object": "response",
+  "output": [
+    {
+      "queries": [
+        "best dental practice management software small practice 2026 US",
+        "dental practice management software reviews small dental office Dentrix Eaglesoft Open Dental Curve Dental",
+        "Open Dental pricing cloud dental software small practice"
+      ],
+      "results": [
+        {
+          "id": 1,
+          "last_updated": "2026-08-26",
+          "snippet": "Open Dental Software's only upfront cost is the first month of support fees.\nFees vary depending on number of locations, number of providers, and any additional functionality required.\nMonthly support fees include:\n- The software.\n- Updates as they are released.\n- Phone, chat, and email technical support with our experienced techs (up to two specific issues per call).\nAfter the initial contract, fees automatically continue on a month to month basis.\n...\n|**Open Dental Software License and Support**|United States|Initial Rate: $199/month/location or office|12 months|Covers all computers per location or office for up to 3 providers.\nMobile treatment units are each treated as one physical location for billing purposes.\nCustomer hosts the program locally or manages hosting it remotely (Self-Hosted).\nThe Current Reduced Rate is defined as the fee published on the day the office reaches the 13th month.Offices which started at an initial rate of $179 (prior to February 2nd, 2026) will keep that rate for the entire initial 12 month period, rather than $199.|\n|**Open Dental Software License and Support**|United States|Reduced to a lower rate after 12 consecutive months Current Reduced Rate: $149/month/location|month to month|Covers all computers per location or office for up to 3 providers.\n...\n|**Open Dental Cloud**|United States|See Open Dental Cloud for pricing.|12 months|Customers may switch to Self-Hosted at any time instead without penalty.|\n...\n|**Volume**|4 - 9 offices|$169/month/office or location|Reduced to $149/month/office after an office is on support for 12 consecutive months.|Reduced to $149/month/office after an office is on support for 12 consecutive months.|",
+          "source": "web",
+          "title": "Fees for Support and Services",
+          "url": "https://www.opendental.com/site/fees.html"
+        },
+        {
+          "id": 2,
+          "last_updated": "2026-08-23",
+          "snippet": "**Monthly Support Fee (U.S.)**\n$199 per month per location or office (12 month contract)\n- Includes the software, full telephone support, and all software releases as they come out.\n- Includes access to the Acquire and Video Capture Imaging Module features.\n- Includes access to Web Forms, Patient Portal, emailed eReminders, emailed Automated Thank-You Messages, and emailed General Messages.\n- Covers all computers per location or office for up to 3 dentists.\nMobile treatment units are each treated as one physical location for billing purposes.\n- After 12 months, the monthly fee drops to the currently published reduced rate.\n- The initial contract is for 12 months and automatically continues after that on a month-to-month basis.\nMost users remain on the support plan so that they can continue to receive new versions and telephone support.\nThe software comes with a 90 day money-back guarantee.\n...\n\"Full telephone support\" does not include training.",
+          "source": "web",
+          "title": "Open Dental: Ordering",
+          "url": "https://opendental.com/site/order.html"
+        },
+        {
+          "id": 3,
+          "last_updated": "2026-08-25",
+          "snippet": "Open Dental Cloud is a hosted solution managed by Open Dental Software.\n...\nNote: Open Dental Cloud is only available for US customers.\nThe service is currently in limited release.\n...\nThe total monthly cost for Open Dental Cloud varies depending on the needs of the practice.\nAn official quote will be provided before signup.\n...\n|**Monthly Cloud Hosting and Support**|$430/month/location or office|Covers one provider, includes 15 concurrent sessions** and 50GB of OpenDentImages storage.\nMust be signed up for automatic credit card payments.Discounts are available for multiple locations sharing one database.\nContact Support for details.|\n|**Additional Providers** (not counting hygienists)|$150/month/provider|Includes 10 additional concurrent sessions and 50GB of OpenDentImages storage for each additional provider.|\n|**Additional Sessions**|$18/month/session|Allows for 1 additional concurrent session.|\n|**Additional OpenDentImages Storage**|$0.40/GB over the monthly allotment|1GB of additional storage.Fee is based on the largest size recorded for the OpenDentImages folder, at any time during the billing cycle.\nFees are applied each billing cycle the allotment is exceeded.|\n|**Migration**|$400|One-time charge per signup.\nCollected before a Migration (Test or Final) is started.|\n*Open Dental Cloud service fees are non-refundable after services have been rendered.\n**A session is one Open Dental Cloud user interface instance.\n...\n- Automatic nightly backups handled by Open Dental",
+          "source": "web",
+          "title": "Open Dental Cloud: Open Dental",
+          "url": "https://www.opendental.com/site/opendentalcloud.html"
+        },
+        {
+          "date": "2025-02-06",
+          "id": 4,
+          "last_updated": "2026-09-23",
+          "snippet": "- Server-based: $179/month\n- Month 13 and beyond: $129/month\n- Cloud-based: $430/mo/location\n...\nThis bundle includes eClipboard, integrated texting, eConfirmations, ODMobile, web scheduling, and more.\nServices cost $165/month and are FREE to install!\n...\nOpen Dental offers both cloud and server-based options for hosting their practice management software.\nIt is robust, reliable, and relatively “light” to store on Windows systems.\nOpen Dental’s cloud-based system is hosted in the cloud and is accessed via a web browser.\n...\nThere are NO Open Dental software download fees.\nIf you do not require a data conversion, the only fee you will be charged for will be the first month’s support fee and any optional training conducted by Open Dental.",
+          "source": "web",
+          "title": "Open Dental: Designed by Dentists for Dentists",
+          "url": "https://www.benco.com/practice-solutions/practice-software-and-it-solutions/open-dental/"
+        },
+        {
+          "id": 5,
+          "last_updated": "2026-09-19",
+          "snippet": "Open Dental Software is the better fit for small businesses, with higher satisfaction scores and strong small-business reviewer sentiment.",
+          "source": "web",
+          "title": "Dentrix vs. Open Dental Comparison 2026 - G2",
+          "url": "https://www.g2.com/compare/dentrix-vs-open-dental"
+        },
+        {
+          "date": "2026-03-13",
+          "id": 6,
+          "last_updated": "2026-09-29",
+          "snippet": "Open Dental operates under an open-source licensing model, making it the only major dental practice management software with freely available source code.",
+          "source": "web",
+          "title": "Best Dental Practice Management Software US (2026) - Pabau",
+          "url": "https://pabau.com/blog/top-7-dental-practice-software-in-the-us-2026-guide/"
+        },
+        {
+          "date": "2026-03-12",
+          "id": 7,
+          "last_updated": "2026-09-16",
+          "snippet": "Open Dental ties charted treatments to claim-ready output within the same patient record so clinical entry flows into reimbursement work.\nEaglesoft links scheduled care, documented procedures, and reimbursement steps inside one system, which helps production-heavy practices maintain workflow continuity.",
+          "source": "web",
+          "title": "Top 10 Best Dental Practice Managment Software of 2026 - Gitnux",
+          "url": "https://gitnux.org/best/dental-practice-managment-software/"
+        },
+        {
+          "date": "2026-05-28",
+          "id": 8,
+          "last_updated": "2026-09-25",
+          "snippet": "$400 – $1,200 / month depending on the number of operatories, support plan level, and add-on modules.\nA typical three-operatory practice with standard support pays **$500 – $700 per month**.\nServer hardware adds **$2,000 – $5,000** every three to five years.\nAnnual contract, auto-renewing.\n...\nPrice\n$400 - $600 / month per location plus an annual support plan.\nRoughly **$200 per month** for a solo dentist, climbing to around **$1,500 per month** for ten users under their per-user model.\nAnnual support plan required.\n...\n## 3. Open Dental\nPrice\n$199 / month in year one, then drops to **$149 per month** Flat rate per location, no per-provider fees.\nMonth-to-month — no annual lock-in.\n...\nOpen Dental charges a flat fee per location, currently around $179 to $199 per month for the first year, with no per-provider fees.\nA practice with three dentists pays the same as a solo practice.\n...\n$299 - $500 / month per location, all-inclusive.",
+          "source": "web",
+          "title": "Dentist-Reviewed: Best Dental Practice Management Software",
+          "url": "https://revupdental.com/best-dental-practice-management-systems/"
+        },
+        {
+          "date": "2026-07-14",
+          "id": 9,
+          "last_updated": "2026-09-24",
+          "snippet": "- **Best for configurability and data ownership:** Open Dental offers self-hosted or cloud with transparent support fees from $199/month per location.\n...\n|5|Open Dental|Configurable, cost-control|Buyers who value data ownership and flexibility|From $199/month/location|4.3/5|\n...\nOpen Dental is a highly configurable dental practice management system that offers both self-hosted and cloud deployment, which puts the cloud vs server decision directly in your hands.\n...\n**Open Dental pricing:** Open Dental publishes support and service fees on its site: an initial rate of $199/month per location, dropping to $149/month per location after 12 consecutive months, with a separate Canada rate of $164/month.\nOpen Dental Cloud pricing varies by practice needs.\nThere is no free tier.",
+          "source": "web",
+          "title": "7 Best dental practice management software tools for 2026",
+          "url": "https://www.guideflow.com/blog/dental-practice-management-software"
+        },
+        {
+          "date": "2026-10-02",
+          "id": 10,
+          "last_updated": "2026-10-03",
+          "snippet": "Open Dental is our top recommendation for groups that want control of their own platform.\n...\nPricing is transparent and published: $199 per location per month for the first year, then $149, covering every computer at a location for up to three providers.\n...\nCurve Dental is a cloud-only platform with no server option, and Curve SuperHero is its current all-in-one flagship, succeeding the earlier Curve Hero.\n...\nFor groups, Curve markets consolidated reporting, the ability to toggle between locations on one screen, and shared patient records without duplicate databases.\n...\nCurve’s heritage is single-location and small-group cloud, and its dedicated DSO tooling is comparatively newer, so a large enterprise group should pressure-test cross-location reporting and scale against a same-size reference before committing.",
+          "source": "web",
+          "title": "7 Best Dental Practice Management Software (PMS) in 2026",
+          "url": "https://medixdental.com/best-dental-pms/"
+        },
+        {
+          "date": "2026-02-19",
+          "id": 11,
+          "last_updated": "2026-09-29",
+          "snippet": "SMB\nOn-premise dental practice management system from Henry Schein used across thousands of North American dental offices.\n...\nSMB\nOpen-source, on-premise dental practice management software with self-hosted or cloud-hosted options.\n...\nEaglesoft fits multi-provider practices that need chart-to-billing traceability plus reporting for production and collections tied to charge workflows.",
+          "source": "web",
+          "title": "worldmetrics.org › best › dentist-practiceBest Dentist Practice Management Software | 2026 Rankings",
+          "url": "https://worldmetrics.org/best/dentist-practice-management-software/"
+        },
+        {
+          "date": "2026-09-04",
+          "id": 12,
+          "last_updated": "2026-09-25",
+          "snippet": "**Open Dental US support: $199/month per location** according to Open Dental (2026) for the first 12 months (up to 3 providers).\n**Open Dental reduced support: $149/month per location** according to Open Dental (2026) after 12 consecutive months, with extra providers at $20/month and an eServices Bundle at $165/month per location.\n...\n- Open Dental's official US fee is $199 then $149, not $100.\n...\n|Open Dental|$199/mo then $149/mo per location (vendor)|Server or Cloud (separate SKU)|eServices Bundle $165/mo; extra providers $20/mo|\n...\nOpen Dental also publishes ODTouch at $85/month per location (up to 4 devices), eServices Bundle at $165, Web Sched Recall at $75, and DoseSpot eRx at $57/month per prescribing provider with EPCS.\n...\n### Open Dental — best when you want the vendor price sheet and the source\nBest fit: tech-comfortable practices that will self-host, pay $199 then $149, and optionally buy eServices a la carte.\nSchools are free on the fees page.\nExtra providers $20/month.\n...\nPublished: Open Dental $199/$149 plus optional eServices.\nCloud roundup figures: $300–$500 per location per month.",
+          "source": "web",
+          "title": "7 Best Dental Practice Management Platforms 2026",
+          "url": "https://ustechautomations.com/resources/blog/best-dental-practice-management-software-2026"
+        },
+        {
+          "date": "2026-07-08",
+          "id": 13,
+          "last_updated": "2026-10-02",
+          "snippet": "Eaglesoft is an on-site, server-based practice management system from Patterson Dental, one of the largest dental supply distributors in the country.\n...\nOpen Dental is an open-source (meaning the underlying code is publicly available and can be modified by anyone) practice management system.\nKnown for a low base cost of around $179 per month per location in the first year, it appeals to tech-savvy practices that want to build and manage their own setup.\n...\nCurve Dental is a browser-based practice management system with one of the longer track records in cloud-based dental software.",
+          "source": "web",
+          "title": "What Is the Best Dental Practice Management Software in ...",
+          "url": "https://www.oryxdental.com/best-dental-practice-management-software/"
+        },
+        {
+          "date": "2026-07-24",
+          "id": 14,
+          "last_updated": "2026-07-30",
+          "snippet": "|Price|$199/month per location (12-month contract), per Open Dental's published fee schedule|Pricing varies by practice size; contact vendor for current rates|\n...\n**Verdict:** Open Dental wins on price and configurability for practices with IT support; Curve Dental is the better fit for practices that want a fully managed, zero-server setup.\n...\nAt $199 per month per location — covering software, all updates, and phone support for up to three dentists — it undercuts most comparable platforms significantly.\n...\nOpen Dental’s fee structure is straightforward.\nThe only upfront cost is the first month’s support fee.\nAfter that, $199/month covers:\n- The software itself, installed across all computers at one location\n- All software releases as they’re published\n- Phone, chat, and email technical support\n- eServices: eReminders, eConfirmations, Web Forms, Patient Portal, Web Scheduling, and Integrated Texting\n- Access to the Acquire and Video Capture Imaging Module\n...\nOpen Dental runs on-premise by default (a cloud option exists), which means your IT setup, your backups, and your server maintenance are largely your responsibility.\nCloud-native platforms like Curve Dental handle all of that for you — at a higher monthly cost and with less control over your data.\n...\nThe current U.S. monthly support fee is $199 per location on a 12-month contract.\nThis covers the software for all computers at that location (up to three dentists), all software updates, phone/chat/email support, and the full eServices suite including patient reminders, texting, and web scheduling.",
+          "source": "web",
+          "title": "Open Dental Review: Practice Management Software Assessed",
+          "url": "https://digitaldentistry.dev/articles/open-dental-review-practice-management-software-assessed/"
+        },
+        {
+          "date": "2026-03-05",
+          "id": 15,
+          "last_updated": "2026-10-01",
+          "snippet": "The platform delivers scheduling, **charting**, imaging, and billing through browser-based access, enabling location flexibility for multi-site teams.",
+          "source": "web",
+          "title": "Navigating the Best Dental Office Software for Your Practice",
+          "url": "https://www.curvedental.com/dental-blog/navigating-the-best-dental-office-software-for-your-practice"
+        }
+      ],
+      "type": "search_results"
+    },
+    {
+      "content": [
+        {
+          "annotations": [],
+          "text": "For a **small, independent clinic in the U.S., Open Dental is a strong default choice**—especially if keeping costs down and having flexibility matter more than having a fully managed cloud system.\n\n**Why it’s a good fit**\n- Its published U.S. support fee is **$199 per location per month for the first 12 months**, then currently **$149/month**. That covers the software, updates, and support for up to three providers.\n- It’s configurable and can suit practices that want control over their setup.\n- You can self-host it or look into its hosted option. The hosted service is priced separately; the available information lists a starting fee of **$430/month per location** for one provider, with additional fees possible.\n\n**Main trade-off:** Self-hosting means arranging and maintaining the server, backups, and IT support yourself. If you want a vendor-managed, browser-based system and are willing to pay more, compare **Curve Dental** as well.\n\nBefore choosing, ask each vendor for a quote that includes migration, imaging, e-prescribing, patient communications, training, and support. Also have staff try the scheduling, charting, and billing workflows using your clinic’s real-world scenarios.",
+          "type": "output_text"
+        }
+      ],
+      "id": "msg_4827e917-c769-4eee-aa9a-d330f26dbbd9",
+      "role": "assistant",
+      "status": "completed",
+      "type": "message"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "reasoning": null,
+  "safety_identifier": null,
+  "service_tier": "default",
+  "status": "completed",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search",
+      "search_context_size": "low",
+      "user_location": {
+        "country": "US"
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "",
+  "usage": {
+    "cost": {
+      "cache_creation_cost": 0.00093,
+      "currency": "USD",
+      "input_cost": 0.00014,
+      "output_cost": 0.00084,
+      "tool_calls_cost": 0.0025,
+      "tool_calls_cost_details": {
+        "search_web": 0.0025
+      },
+      "total_cost": 0.00441
+    },
+    "input_tokens": 4269,
+    "input_tokens_details": {
+      "cache_creation_input_tokens": 3704,
+      "cache_read_input_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 337,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "tool_calls_details": {
+      "search_web": {
+        "cost_usd": 0.0025,
+        "invocation": 1
+      }
+    },
+    "total_tokens": 4606
+  },
+  "user": null
+}

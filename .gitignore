@@ -45,3 +45,6 @@ plugins/wordpress-connector/*.zip
 
 # Local stand-in for Spaces (raw crawled pages written by a laptop with no DO_SPACES_* keys)
 .data/
+
+# Raw provider responses from `npm run engines:try -- --record`, reviewed before they become fixtures
+tests/fixtures/engines/recorded/

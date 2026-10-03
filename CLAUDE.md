@@ -91,7 +91,7 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - **"No answer" must be something the provider said** (no AI Overview shown, DataForSEO 40102). A response we can't read is `bad_response`, an error; never `no_answer`. A new adapter gets a "changed shape throws" test.
 - **Perplexity is the Agent API** (`/v1/agent`, model `perplexity/sonar`): Sonar Chat Completions ended on 2026-09-27.
 - **`collect.answer`** stores the raw response first (`answers/<yyyy>/<mm>/<sha256>.json`, even when unreadable), then completes `forOrg(orgId).snapshots`. One ledger row per charge, keyed by attempt; a free call (polling DataForSEO) passes `usage: { free: true }` to `callProvider` and writes none. A queued provider is polled by the job throwing a `Deferral`.
-- **Fixtures in `tests/fixtures/engines/` are hand-built from the providers' docs** until the accounts exist; `npm run engines:try -- --engine <engine> [--mode live] [--record] "<question>"` makes a real, paid call and records a replacement. Tests never call a real provider.
+- **Fixtures in `tests/fixtures/engines/`:** `*-recorded-<date>.json` are real responses (Perplexity and SerpApi so far); the rest are hand-built from the providers' docs for errors and other cases a live call can't produce. `npm run engines:try -- --engine <engine> [--mode live] [--record] "<question>"` makes a real, paid call; `--record` writes to `recorded/` (gitignored) for review before it becomes a fixture. Tests never call a real provider.
 
 ## Schema rules
 

@@ -1,0 +1,462 @@
+{
+  "search_metadata": {
+    "id": "6ac08693bd17316e02a6d20c",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/hvXRMKVEk-2jJeVQv9NIMYcK6hFaburhQCaWdsFMZgU/6ac08693bd17316e02a6d20c.json",
+    "markdown_endpoint": "https://serpapi.com/searches/hvXRMKVEk-2jJeVQv9NIMYcK6hFaburhQCaWdsFMZgU/6ac08693bd17316e02a6d20c.md",
+    "pixel_position_endpoint": "https://serpapi.com/searches/hvXRMKVEk-2jJeVQv9NIMYcK6hFaburhQCaWdsFMZgU/6ac08693bd17316e02a6d20c.json_with_pixel_position",
+    "created_at": "2026-10-03 04:37:39 UTC",
+    "processed_at": "2026-10-03 04:37:39 UTC",
+    "google_url": "https://www.google.com/search?q=best+dental+practice+management+software&oq=best+dental+practice+management+software&hl=en&gl=us&sourceid=chrome&ie=UTF-8",
+    "raw_html_file": "https://serpapi.com/searches/hvXRMKVEk-2jJeVQv9NIMYcK6hFaburhQCaWdsFMZgU/6ac08693bd17316e02a6d20c.html",
+    "total_time_taken": 0.54
+  },
+  "search_parameters": {
+    "engine": "google",
+    "q": "best dental practice management software",
+    "google_domain": "google.com",
+    "hl": "en",
+    "gl": "us",
+    "device": "desktop"
+  },
+  "search_information": {
+    "query_displayed": "best dental practice management software",
+    "total_results": 97,
+    "time_taken_displayed": 0.17,
+    "organic_results_state": "Results for exact spelling"
+  },
+  "inline_videos": [
+    {
+      "position": 1,
+      "title": "Top 10 Best Dental Clinic Management Systems in 2026",
+      "link": "https://www.youtube.com/watch?v=KPLykxUunjw",
+      "thumbnail": "https://serpapi.com/searches/6ac08693bd17316e02a6d20c/images/0rXoCs8cZCSqROTL2bTHRi3Cg56azsxlTv--xKpX5Hw.jpeg",
+      "channel": "RevUp Dental",
+      "duration": "8:06",
+      "platform": "YouTube",
+      "date": "May 26, 2025",
+      "snippet": "Dentrix, Eaglesoft, Open Dental, Dentacon, and Curve Dental are top choices. Consider your needs, tech comfort, & team size for the best fit.",
+      "short_clip": "https://encrypted-vtbn0.gstatic.com/video?q=tbn:ANd9GcSFbrE1_SPzPDpe96LlD_3w6cKx__ivIwCj8Q"
+    },
+    {
+      "position": 2,
+      "title": "What's the best dental practice management software? How to ...",
+      "link": "https://www.youtube.com/watch?v=EvUtGiv63fI",
+      "thumbnail": "https://serpapi.com/searches/6ac08693bd17316e02a6d20c/images/rI2lRYe2QJfudvXkiJPYc2dZ4T6xjoQM--meWct5MFU.jpeg",
+      "channel": "Dental Claim Support",
+      "duration": "2:54",
+      "platform": "YouTube",
+      "date": "Jan 24, 2024",
+      "snippet": "Consider cloud-based PMS for remote access, but ensure reliable internet. Evaluate reporting needs, budget, and user-friendliness."
+    },
+    {
+      "position": 3,
+      "title": "The Top Dental Practice Management Software?",
+      "link": "https://www.youtube.com/watch?v=xcFC-YZTqNA",
+      "thumbnail": "https://serpapi.com/searches/6ac08693bd17316e02a6d20c/images/iTKWiRphGdKRTGwdDb2sSOG1k6qZRQl-Btz_P16eGgU.jpeg",
+      "channel": "Dental Claim Support",
+      "duration": "7:04",
+      "platform": "YouTube",
+      "date": "Aug 4, 2022",
+      "snippet": "Open Dental is the most popular dental software, winning a survey of 100+ employees. Dentrix, Eaglesoft, and Curve follow."
+    },
+    {
+      "position": 4,
+      "title": "Dental Practice Management Software Buying Guide",
+      "link": "https://www.youtube.com/watch?v=rtB7fXYBnu0",
+      "thumbnail": "https://serpapi.com/searches/6ac08693bd17316e02a6d20c/images/0aIegnJ6tbkKX_Ob6i7MkmVA81-CSjvmKnR1mgzAcYA.jpeg",
+      "channel": "Dentalcompare",
+      "duration": "1:19",
+      "platform": "YouTube",
+      "date": "Feb 6, 2012"
+    }
+  ],
+  "related_questions": [
+    {
+      "question": "What is a dental practice manager?",
+      "type": "ai_overview",
+      "page_token": "UYvje3icHdBdboIwAADg7DJ7nIWCiyZmCdqiqHUttNC-LFiGKAWcdv7wtrvsVDvNsl3ge_i-vs2-rX8eLpW1x_N4MLher0-7rtuZ9yfdNYP8fG_1QOfGbHNdj4fPQ-el1BP0uQimH4uA8uNRzBiIDX6lvXC34c1l6HZQ2CzXWAKBooDPSUh7pmRLynVazWWqEhX60xgbLlp8ZsDuFVeLHN3KpPbbNB3ZHHYgFQIK5Nw3OCJFyGakxweaFXPpBFa6Nllx_6Iz7SS9kDQhPLs7sQDEpw3oty72Y6f21i6uCtQBfv9zqo1uI_VuAqt57TG3mOY1s-mhEgwZuEH-uagLlfcFRFVxImEUyEzxNfIghQrKxlIN2ZD3KkhYt6ec9fpgGjGLliQTcQKiTjbCE3y04sB4ZM6MwlEtXe_G6WOpLxP4-P85eSsbOz6eut0v4UWA7g",
+      "serpapi_ai_overview_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=UYvje3icHdBdboIwAADg7DJ7nIWCiyZmCdqiqHUttNC-LFiGKAWcdv7wtrvsVDvNsl3ge_i-vs2-rX8eLpW1x_N4MLher0-7rtuZ9yfdNYP8fG_1QOfGbHNdj4fPQ-el1BP0uQimH4uA8uNRzBiIDX6lvXC34c1l6HZQ2CzXWAKBooDPSUh7pmRLynVazWWqEhX60xgbLlp8ZsDuFVeLHN3KpPbbNB3ZHHYgFQIK5Nw3OCJFyGakxweaFXPpBFa6Nllx_6Iz7SS9kDQhPLs7sQDEpw3oty72Y6f21i6uCtQBfv9zqo1uI_VuAqt57TG3mOY1s-mhEgwZuEH-uagLlfcFRFVxImEUyEzxNfIghQrKxlIN2ZD3KkhYt6ec9fpgGjGLliQTcQKiTjbCE3y04sB4ZM6MwlEtXe_G6WOpLxP4-P85eSsbOz6eut0v4UWA7g",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyBhIGRlbnRhbCBwcmFjdGljZSBtYW5hZ2VyPyIsImxrIjoiR2lGM2FHRjBJR2x6SUdFZ1pHVnVkR0ZzSUhCeVlXTjBhV05sSUcxaGJtRm5aWEkiLCJicyI6ImM0V09zUXJDUUJCRXNkM0staEJkaldKcHVNcnVFQXV4c0xaZUw2czVpSW5zYlFqLXZTQ2NLRWFzNTgyYmdUM01qaVVwaG9pRUJkZEtGZDZFdkFiUGVLV2FMaXpPWm1iYV9hUGdBUE9rMHBKeG5hOXNqdEpXaktGLWxrSlV1VHU3TUZuM3dXRWZCMXVZSk4xR2ZCazREY2ZtckIwSk80dG1fTHJWaThBT2x1LWZUaHdWZmRXMHhiZHNaTXp2ZURoNEFBIiwiaWQiOiJmY19rNGJBYXZUME43Q3Z3YmtQc3R6UzZBTV8zIn0=",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyBhIGRlbnRhbCBwcmFjdGljZSBtYW5hZ2VyPyIsImxrIjoiR2lGM2FHRjBJR2x6SUdFZ1pHVnVkR0ZzSUhCeVlXTjBhV05sSUcxaGJtRm5aWEkiLCJicyI6ImM0V09zUXJDUUJCRXNkM0staEJkaldKcHVNcnVFQXV4c0xaZUw2czVpSW5zYlFqLXZTQ2NLRWFzNTgyYmdUM01qaVVwaG9pRUJkZEtGZDZFdkFiUGVLV2FMaXpPWm1iYV9hUGdBUE9rMHBKeG5hOXNqdEpXaktGLWxrSlV1VHU3TUZuM3dXRWZCMXVZSk4xR2ZCazREY2ZtckIwSk80dG1fTHJWaThBT2x1LWZUaHdWZmRXMHhiZHNaTXp2ZURoNEFBIiwiaWQiOiJmY19rNGJBYXZUME43Q3Z3YmtQc3R6UzZBTV8zIn0%3D"
+    },
+    {
+      "question": "What is the 80/20 rule in dentistry?",
+      "type": "ai_overview",
+      "page_token": "opzZN3icHdBdboIwAADg7DI-SivOTROzBAEHmV1a2gJ9WUpRC-VPRXG87S471U6zZTf48n19V0Vjfh5uuu-7y8qyhmGYHtv2WO2nqq0teflslKVkVWVSmdXiaQFfDmrtXQNncwoczLqOuwREVHPEern35jNByVvMUzuDuRQbWKQwvHGvKncGnWLmexh2RcT1ScFw4P6yQL4fqdofaNwnmKEAs_4a2QoITtyd6xjB9ZXwkEvQSfUazHEddiJBMS_1mHN8p55oCYAgcpERTDxKKjCCz3di8-vekIZRBmJXRBlYjrnpttJUF-bqUoLQ7Gt9emeQye2febvcMJ-XkpHG0_kZbUMnTQTbeXMb28JO6x4rmyzYKBxK2gIzMqqyqrkbVrnLpQJ6iH0_oDVMciPOcnSSrDne6Qz2GE8O6ra2J_-f649D3a-6c3v8BcNPgwQ",
+      "serpapi_ai_overview_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=opzZN3icHdBdboIwAADg7DI-SivOTROzBAEHmV1a2gJ9WUpRC-VPRXG87S471U6zZTf48n19V0Vjfh5uuu-7y8qyhmGYHtv2WO2nqq0teflslKVkVWVSmdXiaQFfDmrtXQNncwoczLqOuwREVHPEern35jNByVvMUzuDuRQbWKQwvHGvKncGnWLmexh2RcT1ScFw4P6yQL4fqdofaNwnmKEAs_4a2QoITtyd6xjB9ZXwkEvQSfUazHEddiJBMS_1mHN8p55oCYAgcpERTDxKKjCCz3di8-vekIZRBmJXRBlYjrnpttJUF-bqUoLQ7Gt9emeQye2febvcMJ-XkpHG0_kZbUMnTQTbeXMb28JO6x4rmyzYKBxK2gIzMqqyqrkbVrnLpQJ6iH0_oDVMciPOcnSSrDne6Qz2GE8O6ra2J_-f649D3a-6c3v8BcNPgwQ",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyB0aGUgODAvMjAgcnVsZSBpbiBkZW50aXN0cnk/IiwibGsiOiJHaU4zYUdGMElHbHpJSFJvWlNBNE1DQXlNQ0J5ZFd4bElHbHVJR1JsYm5ScGMzUnllUSIsImJzIjoiYzRXT3NRckNRQkJFc2QzSy1oQmRqV0pwdU1ydUVBdXhzTFplTDZzNWlJbnNiUWotdlNDY0tFYXM1ODJiZ1QzTWppVXBob2lFQmRkS0ZkNkV2QWJQZUtXYUxpek9abWJhX2FQZ0FQT2swcEp4bmE5c2p0SldqS0YtbGtKVXVUdTdNRm4zd1dFZkIxdVlKTjFHZkJrNERjZm1yQjBKTzR0bV9MclZpOEFPbHUtZlRod1ZmZFcweGJkc1pNenZlRGg0QUEiLCJpZCI6ImZjX2s0YkFhdlQwTjdDdndia1BzdHpTNkFNXzMifQ==",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyB0aGUgODAvMjAgcnVsZSBpbiBkZW50aXN0cnk%2FIiwibGsiOiJHaU4zYUdGMElHbHpJSFJvWlNBNE1DQXlNQ0J5ZFd4bElHbHVJR1JsYm5ScGMzUnllUSIsImJzIjoiYzRXT3NRckNRQkJFc2QzSy1oQmRqV0pwdU1ydUVBdXhzTFplTDZzNWlJbnNiUWotdlNDY0tFYXM1ODJiZ1QzTWppVXBob2lFQmRkS0ZkNkV2QWJQZUtXYUxpek9abWJhX2FQZ0FQT2swcEp4bmE5c2p0SldqS0YtbGtKVXVUdTdNRm4zd1dFZkIxdVlKTjFHZkJrNERjZm1yQjBKTzR0bV9MclZpOEFPbHUtZlRod1ZmZFcweGJkc1pNenZlRGg0QUEiLCJpZCI6ImZjX2s0YkFhdlQwTjdDdndia1BzdHpTNkFNXzMifQ%3D%3D"
+    },
+    {
+      "question": "What is Archie dental software?",
+      "type": "ai_overview",
+      "page_token": "T74yaHicHdBdboIwAADg7DI-arHiEhOzhAn-BUwLbaEvC7ZotS2gMvl52112qp1my07wJd_Xt7mU-uflqZqmfiwmk7Ztx-eqOptiLCo7yR99KSYiN-aYC72Yv86dt5NY-p9b7_229RCpa7rCIO6dG4b1oWBuKrQ7S4LaSzT3sO4cagiQSaDijcpYGhBmQUuMrBgVnWRRk5URyEs5xUYd4k3QH4mikUM6dFVTBE0k7KOXDh7yjQwPKb3kTHlZGqTcqjK2Lk0H5HDGMS7V9piirrC7KTLeLVorwEE3MFLHIlD7SFOnSHEbDrRjPr8I1mRMYzdcIxBZU9GVBrGP9wndQV_Je7Te_TmchP4MIshhZhskIJ6TgXsJri6I4EFcjSVa6sPqDLClIXcky8odFCuKE58-CuveEtCcZDs6iecSjv4_lx8n2yzqe3X-BWcXhLI",
+      "serpapi_ai_overview_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=T74yaHicHdBdboIwAADg7DI-arHiEhOzhAn-BUwLbaEvC7ZotS2gMvl52112qp1my07wJd_Xt7mU-uflqZqmfiwmk7Ztx-eqOptiLCo7yR99KSYiN-aYC72Yv86dt5NY-p9b7_229RCpa7rCIO6dG4b1oWBuKrQ7S4LaSzT3sO4cagiQSaDijcpYGhBmQUuMrBgVnWRRk5URyEs5xUYd4k3QH4mikUM6dFVTBE0k7KOXDh7yjQwPKb3kTHlZGqTcqjK2Lk0H5HDGMS7V9piirrC7KTLeLVorwEE3MFLHIlD7SFOnSHEbDrRjPr8I1mRMYzdcIxBZU9GVBrGP9wndQV_Je7Te_TmchP4MIshhZhskIJ6TgXsJri6I4EFcjSVa6sPqDLClIXcky8odFCuKE58-CuveEtCcZDs6iecSjv4_lx8n2yzqe3X-BWcXhLI",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyBBcmNoaWUgZGVudGFsIHNvZnR3YXJlPyIsImxrIjoiR2g1M2FHRjBJR2x6SUdGeVkyaHBaU0JrWlc1MFlXd2djMjltZEhkaGNtVSIsImJzIjoiYzRXT3NRckNRQkJFc2QzSy1oQmRqV0pwdU1ydUVBdXhzTFplTDZzNWlJbnNiUWotdlNDY0tFYXM1ODJiZ1QzTWppVXBob2lFQmRkS0ZkNkV2QWJQZUtXYUxpek9abWJhX2FQZ0FQT2swcEp4bmE5c2p0SldqS0YtbGtKVXVUdTdNRm4zd1dFZkIxdVlKTjFHZkJrNERjZm1yQjBKTzR0bV9MclZpOEFPbHUtZlRod1ZmZFcweGJkc1pNenZlRGg0QUEiLCJpZCI6ImZjX2s0YkFhdlQwTjdDdndia1BzdHpTNkFNXzMifQ==",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyBBcmNoaWUgZGVudGFsIHNvZnR3YXJlPyIsImxrIjoiR2g1M2FHRjBJR2x6SUdGeVkyaHBaU0JrWlc1MFlXd2djMjltZEhkaGNtVSIsImJzIjoiYzRXT3NRckNRQkJFc2QzSy1oQmRqV0pwdU1ydUVBdXhzTFplTDZzNWlJbnNiUWotdlNDY0tFYXM1ODJiZ1QzTWppVXBob2lFQmRkS0ZkNkV2QWJQZUtXYUxpek9abWJhX2FQZ0FQT2swcEp4bmE5c2p0SldqS0YtbGtKVXVUdTdNRm4zd1dFZkIxdVlKTjFHZkJrNERjZm1yQjBKTzR0bV9MclZpOEFPbHUtZlRod1ZmZFcweGJkc1pNenZlRGg0QUEiLCJpZCI6ImZjX2s0YkFhdlQwTjdDdndia1BzdHpTNkFNXzMifQ%3D%3D"
+    },
+    {
+      "question": "What is the best cloud dental software?",
+      "type": "ai_overview",
+      "page_token": "7sQm5nicHdDbToMwAADQ-DM-jkvdzJYsRhQYjXRSaEf7YkrLbrQUN3bjzX_xq_wajV9wkvP1rXdt83N33vZ9d5w5zuVyGW2s3eh6JK1xxPHWSkcKrSshm9nkceI9reU8PCXBy2cSZKTr6Ct28zYEBYFrEkogSxznHjwprd8VSPxV3PSpe7WoQSg105x4mtU6GWoz7XPTf-KYx4U7PpLXCFZRMuQRWmTedscaOCjaCUXUw5LC46pAIG2f3YrCRR1yRhs6IKIw3QcuLTsmyJaVLp0Uiw7UBvIq9goRdUS6-pZRe6tKrVNjPeEpzPxovKRs4CU9FaVKSeOFyL-exB7bZUzbcKsOKIYBKzlJwweQAQ6Y6TMJ8IQMPCiw3WUED3KvDQE4kj5KuM_A22qK2Co6i2bsIoPEn5_UBYb8cr-W5zm4__-cf6xNP-sOdvML9feCkA",
+      "serpapi_ai_overview_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=7sQm5nicHdDbToMwAADQ-DM-jkvdzJYsRhQYjXRSaEf7YkrLbrQUN3bjzX_xq_wajV9wkvP1rXdt83N33vZ9d5w5zuVyGW2s3eh6JK1xxPHWSkcKrSshm9nkceI9reU8PCXBy2cSZKTr6Ct28zYEBYFrEkogSxznHjwprd8VSPxV3PSpe7WoQSg105x4mtU6GWoz7XPTf-KYx4U7PpLXCFZRMuQRWmTedscaOCjaCUXUw5LC46pAIG2f3YrCRR1yRhs6IKIw3QcuLTsmyJaVLp0Uiw7UBvIq9goRdUS6-pZRe6tKrVNjPeEpzPxovKRs4CU9FaVKSeOFyL-exB7bZUzbcKsOKIYBKzlJwweQAQ6Y6TMJ8IQMPCiw3WUED3KvDQE4kj5KuM_A22qK2Co6i2bsIoPEn5_UBYb8cr-W5zm4__-cf6xNP-sOdvML9feCkA",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyB0aGUgYmVzdCBjbG91ZCBkZW50YWwgc29mdHdhcmU/IiwibGsiOiJHaHBpWlhOMElHTnNiM1ZrSUdSbGJuUmhiQ0J6YjJaMGQyRnlaUSIsImJzIjoiYzRXT3NRckNRQkJFc2QzSy1oQmRqV0pwdU1ydUVBdXhzTFplTDZzNWlJbnNiUWotdlNDY0tFYXM1ODJiZ1QzTWppVXBob2lFQmRkS0ZkNkV2QWJQZUtXYUxpek9abWJhX2FQZ0FQT2swcEp4bmE5c2p0SldqS0YtbGtKVXVUdTdNRm4zd1dFZkIxdVlKTjFHZkJrNERjZm1yQjBKTzR0bV9MclZpOEFPbHUtZlRod1ZmZFcweGJkc1pNenZlRGg0QUEiLCJpZCI6ImZjX2s0YkFhdlQwTjdDdndia1BzdHpTNkFNXzMifQ==",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFFQkNtSkJTbWxVTkhSTFZVOUtkVFZ0V1ZOUU0wZFpOR2xsYTNWeVFWcERYM0pFVlVGRmFuQlllWFJPUjBac1pXNDNSVmxvZEZOeGRWZEJVbXBpTUV4TlIycEVUWGc1U25WZlJYTnFUbGt4T0ZOalMxVkNWelJQUjBSRWFUSXhRa2hSV0RaM2R4SVhhelJpUVdGMlZEQk9OME4yZDJKclVITjBlbE0yUVUwYUlrRkVjM0k1WmxGNlpXZElla2cxU1daSmMzSmtRVjloU0RkQ1JUUmlka3gwTTBFIiwiZmN2IjoiMyIsImVpIjoiazRiQWF2VDBON0N2d2JrUHN0elM2QU0iLCJxYyI6IkNpaGlaWE4wSUdSbGJuUmhiQ0J3Y21GamRHbGpaU0J0WVc1aFoyVnRaVzUwSUhOdlpuUjNZWEpsRUFCOTYxVVdQdyIsInF1ZXN0aW9uIjoiV2hhdCBpcyB0aGUgYmVzdCBjbG91ZCBkZW50YWwgc29mdHdhcmU%2FIiwibGsiOiJHaHBpWlhOMElHTnNiM1ZrSUdSbGJuUmhiQ0J6YjJaMGQyRnlaUSIsImJzIjoiYzRXT3NRckNRQkJFc2QzSy1oQmRqV0pwdU1ydUVBdXhzTFplTDZzNWlJbnNiUWotdlNDY0tFYXM1ODJiZ1QzTWppVXBob2lFQmRkS0ZkNkV2QWJQZUtXYUxpek9abWJhX2FQZ0FQT2swcEp4bmE5c2p0SldqS0YtbGtKVXVUdTdNRm4zd1dFZkIxdVlKTjFHZkJrNERjZm1yQjBKTzR0bV9MclZpOEFPbHUtZlRod1ZmZFcweGJkc1pNenZlRGg0QUEiLCJpZCI6ImZjX2s0YkFhdlQwTjdDdndia1BzdHpTNkFNXzMifQ%3D%3D"
+    }
+  ],
+  "ai_overview": {
+    "text_blocks": [
+      {
+        "type": "paragraph",
+        "snippet": "The best dental practice management software (PMS) depends on your office setup, but leading options include Open Dental for overall value, Dentrix for traditional server reliability, and Curve Dental for cloud flexibility.",
+        "snippet_links": [
+          {
+            "text": "Dentrix",
+            "link": "https://www.dentrix.com/"
+          }
+        ],
+        "snippet_highlighted_words": [
+          "Open Dental for overall value, Dentrix for traditional server reliability, and Curve Dental for cloud flexibility"
+        ],
+        "reference_indexes": [0, 1, 2]
+      },
+      {
+        "type": "heading",
+        "snippet": "Top Dental Practice Management Systems"
+      },
+      {
+        "type": "list",
+        "list": [
+          {
+            "snippet": "Open Dental: Best for cost and customization. It runs on a local server (with cloud options), features transparent monthly pricing, and is highly recommended by clinicians on community forums like Reddit and DentalTown.",
+            "reference_indexes": [1, 3]
+          },
+          {
+            "snippet": "Dentrix: Best industry standard for established practices. Developed by Henry Schein, it offers a massive library of over 400 third-party integrations. However, it is server-based with higher upfront hardware costs. Its cloud version is Dentrix Ascend.",
+            "reference_indexes": [0, 1, 4, 5]
+          },
+          {
+            "snippet": "Curve Dental: Best cloud-native platform for small-to-midsize practices. It is favored for its modern user interface, intuitive charting, and accessibility without local server maintenance.",
+            "reference_indexes": [0, 2]
+          },
+          {
+            "snippet": "CareStack: Best all-in-one replacement tool. It consolidates clinical, billing, and patient engagement functions into a single cloud platform suitable for single offices or growing groups.",
+            "reference_indexes": [0, 6]
+          },
+          {
+            "snippet": "Denticon: Best built specifically for multi-location practices and DSOs (Dental Support Organizations) from day one."
+          }
+        ],
+        "reference_indexes": [0]
+      },
+      {
+        "type": "paragraph",
+        "snippet": "If you'd like to narrow down the best fit, let me know:"
+      },
+      {
+        "type": "list",
+        "list": [
+          {
+            "snippet": "Is your practice single-location or multi-location/DSO?"
+          },
+          {
+            "snippet": "Do you prefer a cloud-based system or an on-premise server setup?"
+          },
+          {
+            "snippet": "What is your team size and core priority (e.g., lower cost, advanced imaging integration, or ease of use)?"
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "index": 0,
+        "title": "7 Best Dental Practice Management Software (PMS) in 2026",
+        "link": "https://medixdental.com/best-dental-pms/",
+        "snippet": "The Best Dental PMS Software in 2026 * Open Dental: Own Your Data and Your Architecture. * Curve Dental: Cloud Built for Small and Mid-Size Groups. * Oryx Dental: ...",
+        "source": "Medix Dental IT",
+        "source_icon": "https://encrypted-tbn3.gstatic.com/faviconV2?url=https://medixdental.com&client=AIM&size=128&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+        "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcQcj4k2aOrWszjmqc_ivA6Xt1brVHQIkFpiFR6zwS3k9YkoAQDPNURFybFytQOZ7dUZALXpjSquowQth5Zya-EbDBk6-33rR8OMk1Y_"
+      },
+      {
+        "index": 1,
+        "title": "Dentist",
+        "link": "https://revupdental.com/best-dental-practice-management-systems/",
+        "snippet": "Best Dental Practice Management Software According to Dentists * Decide These Things First Before You Look at Any Software. * Dentrix. * Eaglesoft. * Open Dental. ...",
+        "source": "RevUp Dental",
+        "source_icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://revupdental.com&client=AIM&size=128&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+        "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcTJoV2fYcOrpKeJa2goUsDeqjg3F_t3ODmeNKaBlPts-7ebw4BDJnlZwvqGKv8B37nCZ35ma3yPAsyx00NW7OojV0Ta_tT6W9VhGKcd"
+      },
+      {
+        "index": 2,
+        "title": "What practice management software would you recommend? : r/Dentistry",
+        "link": "https://www.reddit.com/r/Dentistry/comments/14fjp5q/what_practice_management_software_would_you/",
+        "snippet": "Cloud-Based PMS Options: Cloud-based software like Oryx and Curve Dental are highly favored for their modern user interfaces, remote management capabilities, and i...",
+        "source": "Reddit",
+        "source_icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=AIM&size=128&type=FAVICON&fallback_opts=TYPE,SIZE,URL"
+      },
+      {
+        "index": 3,
+        "title": "The Top Dental Practice Management Software? - Dental Office Must Know",
+        "link": "https://www.youtube.com/watch?v=xcFC-YZTqNA&t=67",
+        "snippet": "The Top Dental Practice Management Software? - Dental Office Must Know experience price and whether the program is cloud-based or server-based. we will also list c",
+        "source": "YouTube",
+        "source_icon": "https://serpapi.com/images/i/UklGRpwAAABXRUJQVlA4IJAAAAAwBACdASoQABAAAsBMJbACdGsAYQB-gGWAbwASnnx4vADfdr4sQbHuTIgA_vQMxuNgMMWMsmouF7hbZvT51iCqgStGXinCzpYfdY0TLuw8u1p8i-R75HEyG3C9BMJ_SyeGe2BtG_fAxY-0nDUOWQ1YBl__mcybueh2sm_8KPzrhGf-yuX3HjbKaeK8Q3AcwAA.webp",
+        "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSO_FSh-OAwuB8iRXQlxZo5ftHWaw2PMttYRh6lm9tbA9MrB4MgRivhh6PFxetrRkiH1MtcF21lOPifV8cb-H2Su0frYFtfdJyav0qBcw"
+      },
+      {
+        "index": 4,
+        "title": "Top 10 Best Dental Clinic Management Systems in 2026",
+        "link": "https://www.youtube.com/watch?v=KPLykxUunjw",
+        "snippet": "today we're diving into something that I know a lot of dentists struggle with choosing the right practice management system the patient management system that you",
+        "source": "YouTube",
+        "source_icon": "https://serpapi.com/images/i/UklGRpwAAABXRUJQVlA4IJAAAAAwBACdASoQABAAAsBMJbACdGsAYQB-gGWAbwASnnx4vADfdr4sQbHuTIgA_vQMxuNgMMWMsmouF7hbZvT51iCqgStGXinCzpYfdY0TLuw8u1p8i-R75HEyG3C9BMJ_SyeGe2BtG_fAxY-0nDUOWQ1YBl__mcybueh2sm_8KPzrhGf-yuX3HjbKaeK8Q3AcwAA.webp",
+        "thumbnail": "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQw7PsrqzimTNmKmGJjEcBWGtCzI_6dJMMV9X5GExLfZ1IcRVOub7HSxinQK0d-IZw1WHe0Ve3jeVkI4JYNiqRd79leq1fK2tAHJv8Qmg"
+      },
+      {
+        "index": 5,
+        "title": "Practice Management Software | Henry Schein Dental",
+        "link": "https://www.henryschein.com/us-en/dental/practice-management-software/about-practice-management-software.aspx",
+        "snippet": "Practice Management Software: Dentrix (market leader, smart image), Dentrix Ascend (cloud-based), Dentrix Enterprise (multisite/DSO/public health), axiUm (dental s...",
+        "source": "Henry Schein",
+        "source_icon": "https://encrypted-tbn1.gstatic.com/faviconV2?url=https://www.henryschein.com&client=AIM&size=128&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+        "thumbnail": "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQmiAe5S9e_y5phq34d3G7zIFsPGsYa5wusC9v7DFXGa0VdHML6mzJZIIqsRt6UVnyJlmMDCdn6v0bc4N1S8QcC-sL--e63FQnVfwyx"
+      },
+      {
+        "index": 6,
+        "title": "How to Choose Dental Practice Management Software | CO",
+        "link": "https://www.uschamber.com/co/run/technology/dental-practice-management-software-guide",
+        "snippet": "4. Consider ease of use and scalability 5. Build an initial list of dental practice software solutions Start with a broad list of options. Your professional networ...",
+        "source": "US Chamber",
+        "source_icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.uschamber.com&client=AIM&size=128&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+        "thumbnail": "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQ3G21-Ag0vYmsFEWokJuZWtIIT548XkB4oe0hwITqhv5PQJrQvJH2wPHy4_rObWfzAq0ykL-qWYY0P4OG6JPaBXJ0"
+      }
+    ]
+  },
+  "organic_results": [
+    {
+      "position": 1,
+      "title": "Dental Practice Management Software: What Matters in 2026",
+      "link": "https://www.thedentalapp.com/stories/dental-practice-management-software",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=CAESgwEB6zswFYqzM47CvdmBMSIbap3D6W41SJT8ouRfj--vK583WYckxGP_fQK5kIYQZ268S7zlUVQL_onUZ7iG5o26ie5SgdQQFqpAQ_oyMrmRI4bB255t91f6CG5F-lLMz-wuyqcHW-7AisbhbJuBeBjmnLwDSey8daeQi08mfD_4yeZAJg&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0QFnoECC8QAQ&uoh=1",
+      "displayed_link": "https://www.thedentalapp.com › stories › dental-practic...",
+      "favicon": "https://serpapi.com/images/i/UklGRioBAABXRUJQVlA4IB4BAADwBQCdASocABwAPtE-tFooIigoFAEAGglsAJ0y25YAOUsP6blhl5tiI0PmXSHMZjk_NyWuMlAsAAD-9R5AqLYuJfQ-RfYoMj6-gtTGjVixVIJ62ml20fZ__j9UUocEzE-nuiDwK0d67HanSOjtr3VKJIeQfUFGbVOFR_B4EcTlAG3yPMo2xjLdK1nqEwMSc1A6C3_zEAPefwkFHckQFKbZdted-3yPhN89G7XZrkagUh0zsmUL8DdMFPfF63PNiW8_LdePKjH_TFV28a1OUs3HZAWhfDQz7Dv9s1xzH0EeHDgK9tW0-l8MKtg8XBD3Om1fuB25vOBN8QGvq38C8aC6Y3m1Z9QmZbq-JYtCrv0BfmSIwyVko3vDfoWD5YAA.webp",
+      "date": "May 13, 2026",
+      "snippet": "The Dental App unites practice management, patient relationship management, and real-time analytics in a single cloud-native platform built by a ...",
+      "snippet_highlighted_words": ["The Dental App"],
+      "about_this_result": {
+        "source": {
+          "description": "The Dental App unites practice management, patient relationship management, and real-time analytics in a single cloud-native platform built by a ...",
+          "source_info_link": "https://www.thedentalapp.com/stories/dental-practice-management-software",
+          "icon": "https://serpapi.com/images/i/UklGRioBAABXRUJQVlA4IB4BAADwBQCdASocABwAPtE-tFooIigoFAEAGglsAJ0y25YAOUsP6blhl5tiI0PmXSHMZjk_NyWuMlAsAAD-9R5AqLYuJfQ-RfYoMj6-gtTGjVixVIJ62ml20fZ__j9UUocEzE-nuiDwK0d67HanSOjtr3VKJIeQfUFGbVOFR_B4EcTlAG3yPMo2xjLdK1nqEwMSc1A6C3_zEAPefwkFHckQFKbZdted-3yPhN89G7XZrkagUh0zsmUL8DdMFPfF63PNiW8_LdePKjH_TFV28a1OUs3HZAWhfDQz7Dv9s1xzH0EeHDgK9tW0-l8MKtg8XBD3Om1fuB25vOBN8QGvq38C8aC6Y3m1Z9QmZbq-JYtCrv0BfmSIwyVko3vDfoWD5YAA.webp"
+        },
+        "languages": ["en"],
+        "regions": ["US"]
+      },
+      "about_page_link": "https://www.google.com/search/about-this-result?origin=www.google.com&req=CsABL2dvdG8_dXJsPUNBRVNnd0VCNnpzd0ZZcXpNNDdDdmRtQk1TSWJhcDNENlc0MVNKVDhvdVJmai0tdks1ODNXWWNreEdQX2ZRSzVrSVlRWjI2OFM3emxVVlFMX29uVVo3aUc1bzI2aWU1U2dkUVFGcXBBUV9veU1ybVJJNGJCMjU1dDkxZjZDRzVGLWxMTXotd3V5cWNIVy03QWlzYmhiSnVCZUJqbW5Md0RTZXk4ZGFlUWkwOG1mRF80eWVaQUpnEgQaAggAGpcHEgIIABoAIgAqADIGCAESAnVzOgBCBAgBEABKAFoAcgB6AIJA8QYIABAAGAAgACoiCgRiZXN0FcBPlj8aBGdvb2QaA3RvcBoKYmVzdGRlbnRhbCpDCgZkZW50YWwVmrm8QBoKYmVzdGRlbnRhbBoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudCp6CghwcmFjdGljZRWpt69AGgZjbGluaWMaB2NsaW5pY3MaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUqiAEKCm1hbmFnZW1lbnQV88SkQBoOYWRtaW5pc3RyYXRpb24aB21hbmFnZXIaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlKkoKCHNvZnR3YXJlFRFTnEAaCXNvZnR3YXJlcxoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZTLAAS9nb3RvP3VybD1DQUVTZ3dFQjZ6c3dGWXF6TTQ3Q3ZkbUJNU0liYXAzRDZXNDFTSlQ4b3VSZmotLXZLNTgzV1lja3hHUF9mUUs1a0lZUVoyNjhTN3psVVZRTF9vblVaN2lHNW8yNmllNVNnZFFRRnFwQVFfb3lNcm1SSTRiQjI1NXQ5MWY2Q0c1Ri1sTE16LXd1eXFjSFctN0Fpc2JoYkp1QmVCam1uTHdEU2V5OGRhZVFpMDhtZkRfNHllWkFKZzpAPGI-RGVudGFsIFByYWN0aWNlIE1hbmFnZW1lbnQgU29mdHdhcmU8L2I-OiBXaGF0IE1hdHRlcnMgaW4gMjAyNkKgATxiPlRoZSBEZW50YWwgQXBwPC9iPiB1bml0ZXMgcHJhY3RpY2UgbWFuYWdlbWVudCwgcGF0aWVudCByZWxhdGlvbnNoaXAgbWFuYWdlbWVudCwgYW5kIHJlYWwtdGltZSBhbmFseXRpY3MgaW4gYSBzaW5nbGUgY2xvdWQtbmF0aXZlIHBsYXRmb3JtIGJ1aWx0IGJ5IGEmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&req_token=CsABL2dvdG8_dXJsPUNBRVNnd0VCNnpzd0ZZcXpNNDdDdmRtQk1TSWJhcDNENlc0MVNKVDhvdVJmai0tdks1ODNXWWNreEdQX2ZRSzVrSVlRWjI2OFM3emxVVlFMX29uVVo3aUc1bzI2aWU1U2dkUVFGcXBBUV9veU1ybVJJNGJCMjU1dDkxZjZDRzVGLWxMTXotd3V5cWNIVy03QWlzYmhiSnVCZUJqbW5Md0RTZXk4ZGFlUWkwOG1mRF80eWVaQUpnEgQaAggAGpcHEgIIABoAIgAqADIGCAESAnVzOgBCBAgBEABKAFoAcgB6AIJA8QYIABAAGAAgACoiCgRiZXN0FcBPlj8aBGdvb2QaA3RvcBoKYmVzdGRlbnRhbCpDCgZkZW50YWwVmrm8QBoKYmVzdGRlbnRhbBoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudCp6CghwcmFjdGljZRWpt69AGgZjbGluaWMaB2NsaW5pY3MaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUqiAEKCm1hbmFnZW1lbnQV88SkQBoOYWRtaW5pc3RyYXRpb24aB21hbmFnZXIaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlKkoKCHNvZnR3YXJlFRFTnEAaCXNvZnR3YXJlcxoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZTLAAS9nb3RvP3VybD1DQUVTZ3dFQjZ6c3dGWXF6TTQ3Q3ZkbUJNU0liYXAzRDZXNDFTSlQ4b3VSZmotLXZLNTgzV1lja3hHUF9mUUs1a0lZUVoyNjhTN3psVVZRTF9vblVaN2lHNW8yNmllNVNnZFFRRnFwQVFfb3lNcm1SSTRiQjI1NXQ5MWY2Q0c1Ri1sTE16LXd1eXFjSFctN0Fpc2JoYkp1QmVCam1uTHdEU2V5OGRhZVFpMDhtZkRfNHllWkFKZzpAPGI-RGVudGFsIFByYWN0aWNlIE1hbmFnZW1lbnQgU29mdHdhcmU8L2I-OiBXaGF0IE1hdHRlcnMgaW4gMjAyNkKgATxiPlRoZSBEZW50YWwgQXBwPC9iPiB1bml0ZXMgcHJhY3RpY2UgbWFuYWdlbWVudCwgcGF0aWVudCByZWxhdGlvbnNoaXAgbWFuYWdlbWVudCwgYW5kIHJlYWwtdGltZSBhbmFseXRpY3MgaW4gYSBzaW5nbGUgY2xvdWQtbmF0aXZlIHBsYXRmb3JtIGJ1aWx0IGJ5IGEmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "source": "The Dental App",
+      "read_more_link": "https://www.thedentalapp.com/stories/dental-practice-management-software#:~:text=The%20Dental%20App%20unites%20practice,built%20by%20a%20practicing%20dentist."
+    },
+    {
+      "position": 2,
+      "title": "How to Choose the Best Dental Practice Software",
+      "link": "https://dentimax.com/how-to-choose-the-best-dental-practice-software/",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=CAESgAEB6zswFYMfGUNFtZZYtUS5MAvDsjcleuKipVkXIPVZXUD01JcyhhuwPlfhH_xofZfIt-iRO6xE05l_2mtfZpa5qYtBFGZBOPRFdvh6zFBkG09J4QA1XJ8-JDfizSDOsorS0Ck8e5pJMO8kg9XCj7jAQRRFiWPRkrLKXVCnkRu5VA&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0QFnoECC4QAQ&uoh=1",
+      "displayed_link": "https://dentimax.com › Dental Practices",
+      "favicon": "https://serpapi.com/images/i/UklGRhYBAABXRUJQVlA4IAoBAACwBQCdASocABwAPrkurlcnIacnG_DgFwliAAgQLpQlNrfKob8SQe68qogtPhUbhulPq1e_XQAA_v7CPntLd3GvV8sHywA1dxxAkFKcLq2vfxkVoG32CsKfvog9k0CHb-GmMKGehScHkP5VoIR-1NZL_-lYYD5FcsrqgAvae1wkmZmQ7y1BVrM_Sk_FGZORmfnHNHl798R94aMMXDz0YuUEO37fu8PcvEHZEEA9ze-p-ifwy9UCBWZOlhCILTk7m6M0_TKZZBJQFe6-Popva-fwONTsNPEglmrHH9to60vdMB5yBoJD2V3O4p6ZLD1aUYYWMmI1_-a_rxKXHm9PeYsXGA11uhycEgAAAA.webp",
+      "date": "Aug 10, 2014",
+      "snippet": "Because the software eases the handling of administrative tasks such as inventory control, patient recordkeeping, appointment scheduling, ...",
+      "snippet_highlighted_words": ["software"],
+      "about_this_result": {
+        "source": {
+          "description": "Because the software eases the handling of administrative tasks such as inventory control, patient recordkeeping, appointment scheduling, ...",
+          "source_info_link": "https://dentimax.com/how-to-choose-the-best-dental-practice-software/",
+          "icon": "https://serpapi.com/images/i/UklGRhYBAABXRUJQVlA4IAoBAACwBQCdASocABwAPrkurlcnIacnG_DgFwliAAgQLpQlNrfKob8SQe68qogtPhUbhulPq1e_XQAA_v7CPntLd3GvV8sHywA1dxxAkFKcLq2vfxkVoG32CsKfvog9k0CHb-GmMKGehScHkP5VoIR-1NZL_-lYYD5FcsrqgAvae1wkmZmQ7y1BVrM_Sk_FGZORmfnHNHl798R94aMMXDz0YuUEO37fu8PcvEHZEEA9ze-p-ifwy9UCBWZOlhCILTk7m6M0_TKZZBJQFe6-Popva-fwONTsNPEglmrHH9to60vdMB5yBoJD2V3O4p6ZLD1aUYYWMmI1_-a_rxKXHm9PeYsXGA11uhycEgAAAA.webp"
+        },
+        "languages": ["en"],
+        "regions": ["US"]
+      },
+      "about_page_link": "https://www.google.com/search/about-this-result?origin=www.google.com&req=CrwBL2dvdG8_dXJsPUNBRVNnQUVCNnpzd0ZZTWZHVU5GdFpaWXRVUzVNQXZEc2pjbGV1S2lwVmtYSVBWWlhVRDAxSmN5aGh1d1BsZmhIX3hvZlpmSXQtaVJPNnhFMDVsXzJtdGZacGE1cVl0QkZHWkJPUFJGZHZoNnpGQmtHMDlKNFFBMVhKOC1KRGZpelNET3NvclMwQ2s4ZTVwSk1POGtnOVhDajdqQVFSUkZpV1BSa3JMS1hWQ25rUnU1VkESBBoCCAAaiwcSABoAIgAqADIGCAMSAnVzOgBCBAgBEABKAFoAcgB6AIJA5wYIABAAGAAgACoiCgRiZXN0FRYRzUAaBGdvb2QaA3RvcBoKYmVzdGRlbnRhbCpDCgZkZW50YWwVUs37QBoKYmVzdGRlbnRhbBoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudCp6CghwcmFjdGljZRWuYexAGgZjbGluaWMaB2NsaW5pY3MaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUqiAEKCm1hbmFnZW1lbnQVT5dCQBoOYWRtaW5pc3RyYXRpb24aB21hbmFnZXIaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlKkoKCHNvZnR3YXJlFYIo90AaCXNvZnR3YXJlcxoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZTK8AS9nb3RvP3VybD1DQUVTZ0FFQjZ6c3dGWU1mR1VORnRaWll0VVM1TUF2RHNqY2xldUtpcFZrWElQVlpYVUQwMUpjeWhodXdQbGZoSF94b2ZaZkl0LWlSTzZ4RTA1bF8ybXRmWnBhNXFZdEJGR1pCT1BSRmR2aDZ6RkJrRzA5SjRRQTFYSjgtSkRmaXpTRE9zb3JTMENrOGU1cEpNTzhrZzlYQ2o3akFRUlJGaVdQUmtyTEtYVkNua1J1NVZBOkFIb3cgdG8gQ2hvb3NlIHRoZSA8Yj5CZXN0IERlbnRhbCBQcmFjdGljZSBTb2Z0d2FyZTwvYj4gLSBEZW50aU1heEKZAUJlY2F1c2UgdGhlIDxiPnNvZnR3YXJlPC9iPiBlYXNlcyB0aGUgaGFuZGxpbmcgb2YgYWRtaW5pc3RyYXRpdmUgdGFza3Mgc3VjaCBhcyBpbnZlbnRvcnkgY29udHJvbCwgcGF0aWVudCByZWNvcmRrZWVwaW5nLCBhcHBvaW50bWVudCBzY2hlZHVsaW5nLCZuYnNwOy4uLlIDdG9wIgIQAUgAWABoAA",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&req_token=CrwBL2dvdG8_dXJsPUNBRVNnQUVCNnpzd0ZZTWZHVU5GdFpaWXRVUzVNQXZEc2pjbGV1S2lwVmtYSVBWWlhVRDAxSmN5aGh1d1BsZmhIX3hvZlpmSXQtaVJPNnhFMDVsXzJtdGZacGE1cVl0QkZHWkJPUFJGZHZoNnpGQmtHMDlKNFFBMVhKOC1KRGZpelNET3NvclMwQ2s4ZTVwSk1POGtnOVhDajdqQVFSUkZpV1BSa3JMS1hWQ25rUnU1VkESBBoCCAAaiwcSABoAIgAqADIGCAMSAnVzOgBCBAgBEABKAFoAcgB6AIJA5wYIABAAGAAgACoiCgRiZXN0FRYRzUAaBGdvb2QaA3RvcBoKYmVzdGRlbnRhbCpDCgZkZW50YWwVUs37QBoKYmVzdGRlbnRhbBoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudCp6CghwcmFjdGljZRWuYexAGgZjbGluaWMaB2NsaW5pY3MaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUqiAEKCm1hbmFnZW1lbnQVT5dCQBoOYWRtaW5pc3RyYXRpb24aB21hbmFnZXIaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlKkoKCHNvZnR3YXJlFYIo90AaCXNvZnR3YXJlcxoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZTK8AS9nb3RvP3VybD1DQUVTZ0FFQjZ6c3dGWU1mR1VORnRaWll0VVM1TUF2RHNqY2xldUtpcFZrWElQVlpYVUQwMUpjeWhodXdQbGZoSF94b2ZaZkl0LWlSTzZ4RTA1bF8ybXRmWnBhNXFZdEJGR1pCT1BSRmR2aDZ6RkJrRzA5SjRRQTFYSjgtSkRmaXpTRE9zb3JTMENrOGU1cEpNTzhrZzlYQ2o3akFRUlJGaVdQUmtyTEtYVkNua1J1NVZBOkFIb3cgdG8gQ2hvb3NlIHRoZSA8Yj5CZXN0IERlbnRhbCBQcmFjdGljZSBTb2Z0d2FyZTwvYj4gLSBEZW50aU1heEKZAUJlY2F1c2UgdGhlIDxiPnNvZnR3YXJlPC9iPiBlYXNlcyB0aGUgaGFuZGxpbmcgb2YgYWRtaW5pc3RyYXRpdmUgdGFza3Mgc3VjaCBhcyBpbnZlbnRvcnkgY29udHJvbCwgcGF0aWVudCByZWNvcmRrZWVwaW5nLCBhcHBvaW50bWVudCBzY2hlZHVsaW5nLCZuYnNwOy4uLlIDdG9wIgIQAUgAWABoAA",
+      "source": "DentiMax",
+      "read_more_link": "https://dentimax.com/how-to-choose-the-best-dental-practice-software/#:~:text=Because%20the%20software%20eases%20the,take%20place%2C%20and%20insurance%20processing."
+    },
+    {
+      "position": 3,
+      "title": "Best Dental Practice Management Software: A Buyer ...",
+      "link": "https://maxillosoft.com/best-dental-practice-management-software/",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=CAESfAHrOzAV8vuin_m2mcnDZV-1cFd0UIbBqKsONraHMQlEyxbbqp7w8F1xwHZ-9yzDQKmhnnjLb905lhb7OWD0ndn7zIRGfgg8d_EBrq1yKzwz33wvJyBkaILoD94WNNedGOTn6c4hCuqIlbgVgc9DTio1XlqShAqHzUQlAc4&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0QFnoECCsQAQ&uoh=1",
+      "displayed_link": "https://maxillosoft.com › Category: News",
+      "favicon": "https://serpapi.com/images/i/UklGRqwBAABXRUJQVlA4IKABAADwBgCdASogACAAPtE-tFooIigoFAEAGglAGR0gBM9Ev2x5qwD3JfTgRt1tvi0rIJp9TxM0KCi_OAo2ezXQC1diAP72E86zwonv5gqovF96IwK_LKiYkPjiIrbgt8yp2XiP71KvP2osDoZWvwMo3VGI3DsoZ5c-YLmaOl-wJzfvGJvjN6pcvwoMwtpzLnVS-azy_R-nGld63t5LFsVuXEI6T2066bbl3ifFrq-EL3b5jD1anJO_aFAO7ddReErwtfNZpvg0nU6jc9Y9zn64at3Mp1dWJKAHvka1G5eDRs9tWT0yr6JfOlIf6PBMvlUVkvOpHLqRQ-KOdnoni5n75WZYGH-y9X1wQy7Rx7Qx-tWt3BdhnmTR-8lHj77qwmvwU_Pk8C2AFU1oNxI4aSP16te06Maf16xwEW4UYmI9aERrdhlPgLsmExg6fhZ_x5-5sSQP_lNK_tLXS6nlnQBkhaB5lOGitgt0SY_Iblxx7YC-65JIcYZfH48E502Fm7Ox8lOX_YbzWHxxHNHHOZKVqG-YAB9JCYYwko8ALJLwBgAAAA.webp",
+      "snippet": "Get a practical scorecard for the best dental practice management software, with demo questions, workflow fit, security, implementation, and total-cost ...",
+      "snippet_highlighted_words": ["best dental practice management software"],
+      "about_this_result": {
+        "source": {
+          "description": "Get a practical scorecard for the best dental practice management software, with demo questions, workflow fit, security, implementation, and total-cost ...",
+          "source_info_link": "https://maxillosoft.com/best-dental-practice-management-software/",
+          "icon": "https://serpapi.com/images/i/UklGRqwBAABXRUJQVlA4IKABAADwBgCdASogACAAPtE-tFooIigoFAEAGglAGR0gBM9Ev2x5qwD3JfTgRt1tvi0rIJp9TxM0KCi_OAo2ezXQC1diAP72E86zwonv5gqovF96IwK_LKiYkPjiIrbgt8yp2XiP71KvP2osDoZWvwMo3VGI3DsoZ5c-YLmaOl-wJzfvGJvjN6pcvwoMwtpzLnVS-azy_R-nGld63t5LFsVuXEI6T2066bbl3ifFrq-EL3b5jD1anJO_aFAO7ddReErwtfNZpvg0nU6jc9Y9zn64at3Mp1dWJKAHvka1G5eDRs9tWT0yr6JfOlIf6PBMvlUVkvOpHLqRQ-KOdnoni5n75WZYGH-y9X1wQy7Rx7Qx-tWt3BdhnmTR-8lHj77qwmvwU_Pk8C2AFU1oNxI4aSP16te06Maf16xwEW4UYmI9aERrdhlPgLsmExg6fhZ_x5-5sSQP_lNK_tLXS6nlnQBkhaB5lOGitgt0SY_Iblxx7YC-65JIcYZfH48E502Fm7Ox8lOX_YbzWHxxHNHHOZKVqG-YAB9JCYYwko8ALJLwBgAAAA.webp"
+        },
+        "languages": ["en"],
+        "regions": ["US"]
+      },
+      "about_page_link": "https://www.google.com/search/about-this-result?origin=www.google.com&req=CrUBL2dvdG8_dXJsPUNBRVNmQUhyT3pBVjh2dWluX20ybWNuRFpWLTFjRmQwVUliQnFLc09OcmFITVFsRXl4YmJxcDd3OEYxeHdIWi05eXpEUUttaG5uakxiOTA1bGhiN09XRDBuZG43eklSR2ZnZzhkX0VCcnExeUt6d3ozM3d2SnlCa2FJTG9EOTRXTk5lZEdPVG42YzRoQ3VxSWxiZ1ZnYzlEVGlvMVhscVNoQXFIelVRbEFjNBIEGgIIABqTBxIAGgAiACoAMgYIARICdXM6AEIECAEQAEoAWgByAHoAgkDvBggAEAAYACAAKiIKBGJlc3QV7frjQBoEZ29vZBoDdG9wGgpiZXN0ZGVudGFsKkMKBmRlbnRhbBW7kORAGgpiZXN0ZGVudGFsGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50KnoKCHByYWN0aWNlFX6bA0EaBmNsaW5pYxoHY2xpbmljcxoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZSqIAQoKbWFuYWdlbWVudBX1IeFAGg5hZG1pbmlzdHJhdGlvbhoHbWFuYWdlchoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUqSgoIc29mdHdhcmUVQBLuQBoJc29mdHdhcmVzGhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlMrUBL2dvdG8_dXJsPUNBRVNmQUhyT3pBVjh2dWluX20ybWNuRFpWLTFjRmQwVUliQnFLc09OcmFITVFsRXl4YmJxcDd3OEYxeHdIWi05eXpEUUttaG5uakxiOTA1bGhiN09XRDBuZG43eklSR2ZnZzhkX0VCcnExeUt6d3ozM3d2SnlCa2FJTG9EOTRXTk5lZEdPVG42YzRoQ3VxSWxiZ1ZnYzlEVGlvMVhscVNoQXFIelVRbEFjNDpCPGI-QmVzdCBEZW50YWwgUHJhY3RpY2UgTWFuYWdlbWVudCBTb2Z0d2FyZTwvYj46IEEgQnV5ZXIgU2NvcmVjYXJkQqcBR2V0IGEgcHJhY3RpY2FsIHNjb3JlY2FyZCBmb3IgdGhlIDxiPmJlc3QgZGVudGFsIHByYWN0aWNlIG1hbmFnZW1lbnQgc29mdHdhcmU8L2I-LCB3aXRoIGRlbW8gcXVlc3Rpb25zLCB3b3JrZmxvdyBmaXQsIHNlY3VyaXR5LCBpbXBsZW1lbnRhdGlvbiwgYW5kIHRvdGFsLWNvc3QmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&req_token=CrUBL2dvdG8_dXJsPUNBRVNmQUhyT3pBVjh2dWluX20ybWNuRFpWLTFjRmQwVUliQnFLc09OcmFITVFsRXl4YmJxcDd3OEYxeHdIWi05eXpEUUttaG5uakxiOTA1bGhiN09XRDBuZG43eklSR2ZnZzhkX0VCcnExeUt6d3ozM3d2SnlCa2FJTG9EOTRXTk5lZEdPVG42YzRoQ3VxSWxiZ1ZnYzlEVGlvMVhscVNoQXFIelVRbEFjNBIEGgIIABqTBxIAGgAiACoAMgYIARICdXM6AEIECAEQAEoAWgByAHoAgkDvBggAEAAYACAAKiIKBGJlc3QV7frjQBoEZ29vZBoDdG9wGgpiZXN0ZGVudGFsKkMKBmRlbnRhbBW7kORAGgpiZXN0ZGVudGFsGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50KnoKCHByYWN0aWNlFX6bA0EaBmNsaW5pYxoHY2xpbmljcxoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZSqIAQoKbWFuYWdlbWVudBX1IeFAGg5hZG1pbmlzdHJhdGlvbhoHbWFuYWdlchoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUqSgoIc29mdHdhcmUVQBLuQBoJc29mdHdhcmVzGhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlMrUBL2dvdG8_dXJsPUNBRVNmQUhyT3pBVjh2dWluX20ybWNuRFpWLTFjRmQwVUliQnFLc09OcmFITVFsRXl4YmJxcDd3OEYxeHdIWi05eXpEUUttaG5uakxiOTA1bGhiN09XRDBuZG43eklSR2ZnZzhkX0VCcnExeUt6d3ozM3d2SnlCa2FJTG9EOTRXTk5lZEdPVG42YzRoQ3VxSWxiZ1ZnYzlEVGlvMVhscVNoQXFIelVRbEFjNDpCPGI-QmVzdCBEZW50YWwgUHJhY3RpY2UgTWFuYWdlbWVudCBTb2Z0d2FyZTwvYj46IEEgQnV5ZXIgU2NvcmVjYXJkQqcBR2V0IGEgcHJhY3RpY2FsIHNjb3JlY2FyZCBmb3IgdGhlIDxiPmJlc3QgZGVudGFsIHByYWN0aWNlIG1hbmFnZW1lbnQgc29mdHdhcmU8L2I-LCB3aXRoIGRlbW8gcXVlc3Rpb25zLCB3b3JrZmxvdyBmaXQsIHNlY3VyaXR5LCBpbXBsZW1lbnRhdGlvbiwgYW5kIHRvdGFsLWNvc3QmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "source": "MaxilloSoft"
+    },
+    {
+      "position": 4,
+      "title": "Top Dental Practice Management Software Reviews 2023",
+      "link": "https://adit.com/top-dental-practice-management-software-of-2023-reviews-pricing-and-features",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=CAESmAEB6zswFblm7gc1-HPK6JMR2nQOSnhQaShrC6ikS_SIfpfXSqjnlLnv-rinZhQtt2JDS1Ym_K5slWV9Ur_54Gps1Y9JTIPcqRWdiQB8kR1XDu5wtx5Tk7U3TGJjohjwYfkB9XGpxatbovW8MnoVnpwDJVLY4-Psq44El8y3QyGk0NOPat1CbPPXBS3Y1EKk0qTbgjIQTRcuUQ&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0QFnoECDoQAQ&uoh=1",
+      "displayed_link": "https://adit.com › top-dental-practice-management-softw...",
+      "favicon": "https://serpapi.com/images/i/UklGRs4AAABXRUJQVlA4IMIAAACQBQCdASoQABEAPtEutFooIagoGAEAGglsAJ0ygxgsgG4AvSIiKhlzVVH0nclTFQemt_48YAD-68H8rd0NjrZbsOpyq2n7oWuI1r1rABKDu_nz_HsaK2k99yIh1OJM-11hVhGcNk88cD_WQn8wGXU9R98Tn37KStWsxJGts0-9sppGng7Ds56CVMTJFU-41Bx5utWsisH0M_l_LrqIZLVrjeTnlrTaaZB1z7L4Evf3afbpzkb6SwvowAh_cwkzSxAAAA.webp",
+      "date": "Jan 2, 2023",
+      "snippet": "The Best Dental Practice Management Software in 2023 · 1. Adit · 2. Curve Dental · 3. Dentrix · 4. Eaglesoft · 5. DentiMax · 6. Dental ...",
+      "snippet_highlighted_words": ["1. Adit"],
+      "about_this_result": {
+        "source": {
+          "description": "The Best Dental Practice Management Software in 2023 · 1. Adit · 2. Curve Dental · 3. Dentrix · 4. Eaglesoft · 5. DentiMax · 6. Dental ...",
+          "source_info_link": "https://adit.com/top-dental-practice-management-software-of-2023-reviews-pricing-and-features",
+          "icon": "https://serpapi.com/images/i/UklGRs4AAABXRUJQVlA4IMIAAACQBQCdASoQABEAPtEutFooIagoGAEAGglsAJ0ygxgsgG4AvSIiKhlzVVH0nclTFQemt_48YAD-68H8rd0NjrZbsOpyq2n7oWuI1r1rABKDu_nz_HsaK2k99yIh1OJM-11hVhGcNk88cD_WQn8wGXU9R98Tn37KStWsxJGts0-9sppGng7Ds56CVMTJFU-41Bx5utWsisH0M_l_LrqIZLVrjeTnlrTaaZB1z7L4Evf3afbpzkb6SwvowAh_cwkzSxAAAA.webp"
+        },
+        "languages": ["en"],
+        "regions": ["US"]
+      },
+      "about_page_link": "https://www.google.com/search/about-this-result?origin=www.google.com&req=CtwBL2dvdG8_dXJsPUNBRVNtQUVCNnpzd0ZibG03Z2MxLUhQSzZKTVIyblFPU25oUWFTaHJDNmlrU19TSWZwZlhTcWpubExudi1yaW5aaFF0dDJKRFMxWW1fSzVzbFdWOVVyXzU0R3BzMVk5SlRJUGNxUldkaVFCOGtSMVhEdTV3dHg1VGs3VTNUR0pqb2hqd1lma0I5WEdweGF0Ym92VzhNbm9WbnB3REpWTFk0LVBzcTQ0RWw4eTNReUdrME5PUGF0MUNiUFBYQlMzWTFFS2swcVRiZ2pJUVRSY3VVURIEGgIIABrVBxICCAAaACIAKgAyBggDEgJ1czoAQgQIARAASgBaAHIAegCCQK8HCAAQABgAIAAqIgoEYmVzdBULeO8_GgRnb29kGgN0b3AaCmJlc3RkZW50YWwqQwoGZGVudGFsFdCY8EAaCmJlc3RkZW50YWwaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQqegoIcHJhY3RpY2UVTtnlQBoGY2xpbmljGgdjbGluaWNzGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlKogBCgptYW5hZ2VtZW50FeYU6kAaDmFkbWluaXN0cmF0aW9uGgdtYW5hZ2VyGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZSpKCghzb2Z0d2FyZRUDKepAGglzb2Z0d2FyZXMaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUy3AEvZ290bz91cmw9Q0FFU21BRUI2enN3RmJsbTdnYzEtSFBLNkpNUjJuUU9TbmhRYVNockM2aWtTX1NJZnBmWFNxam5sTG52LXJpblpoUXR0MkpEUzFZbV9LNXNsV1Y5VXJfNTRHcHMxWTlKVElQY3FSV2RpUUI4a1IxWER1NXd0eDVUazdVM1RHSmpvaGp3WWZrQjlYR3B4YXRib3ZXOE1ub1ZucHdESlZMWTQtUHNxNDRFbDh5M1F5R2swTk9QYXQxQ2JQUFhCUzNZMUVLazBxVGJnaklRVFJjdVVROkI8Yj5Ub3AgRGVudGFsIFByYWN0aWNlIE1hbmFnZW1lbnQgU29mdHdhcmU8L2I-IFJldmlld3MgMjAyMyAtIEFkaXRCwAFUaGUgQmVzdCBEZW50YWwgUHJhY3RpY2UgTWFuYWdlbWVudCBTb2Z0d2FyZSBpbiAyMDIzICZtaWRkb3Q7IDxiPjEuIEFkaXQ8L2I-ICZtaWRkb3Q7IDIuIEN1cnZlIERlbnRhbCAmbWlkZG90OyAzLiBEZW50cml4ICZtaWRkb3Q7IDQuIEVhZ2xlc29mdCAmbWlkZG90OyA1LiBEZW50aU1heCAmbWlkZG90OyA2LiBEZW50YWwmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&req_token=CtwBL2dvdG8_dXJsPUNBRVNtQUVCNnpzd0ZibG03Z2MxLUhQSzZKTVIyblFPU25oUWFTaHJDNmlrU19TSWZwZlhTcWpubExudi1yaW5aaFF0dDJKRFMxWW1fSzVzbFdWOVVyXzU0R3BzMVk5SlRJUGNxUldkaVFCOGtSMVhEdTV3dHg1VGs3VTNUR0pqb2hqd1lma0I5WEdweGF0Ym92VzhNbm9WbnB3REpWTFk0LVBzcTQ0RWw4eTNReUdrME5PUGF0MUNiUFBYQlMzWTFFS2swcVRiZ2pJUVRSY3VVURIEGgIIABrVBxICCAAaACIAKgAyBggDEgJ1czoAQgQIARAASgBaAHIAegCCQK8HCAAQABgAIAAqIgoEYmVzdBULeO8_GgRnb29kGgN0b3AaCmJlc3RkZW50YWwqQwoGZGVudGFsFdCY8EAaCmJlc3RkZW50YWwaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQqegoIcHJhY3RpY2UVTtnlQBoGY2xpbmljGgdjbGluaWNzGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlKogBCgptYW5hZ2VtZW50FeYU6kAaDmFkbWluaXN0cmF0aW9uGgdtYW5hZ2VyGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZSpKCghzb2Z0d2FyZRUDKepAGglzb2Z0d2FyZXMaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUy3AEvZ290bz91cmw9Q0FFU21BRUI2enN3RmJsbTdnYzEtSFBLNkpNUjJuUU9TbmhRYVNockM2aWtTX1NJZnBmWFNxam5sTG52LXJpblpoUXR0MkpEUzFZbV9LNXNsV1Y5VXJfNTRHcHMxWTlKVElQY3FSV2RpUUI4a1IxWER1NXd0eDVUazdVM1RHSmpvaGp3WWZrQjlYR3B4YXRib3ZXOE1ub1ZucHdESlZMWTQtUHNxNDRFbDh5M1F5R2swTk9QYXQxQ2JQUFhCUzNZMUVLazBxVGJnaklRVFJjdVVROkI8Yj5Ub3AgRGVudGFsIFByYWN0aWNlIE1hbmFnZW1lbnQgU29mdHdhcmU8L2I-IFJldmlld3MgMjAyMyAtIEFkaXRCwAFUaGUgQmVzdCBEZW50YWwgUHJhY3RpY2UgTWFuYWdlbWVudCBTb2Z0d2FyZSBpbiAyMDIzICZtaWRkb3Q7IDxiPjEuIEFkaXQ8L2I-ICZtaWRkb3Q7IDIuIEN1cnZlIERlbnRhbCAmbWlkZG90OyAzLiBEZW50cml4ICZtaWRkb3Q7IDQuIEVhZ2xlc29mdCAmbWlkZG90OyA1LiBEZW50aU1heCAmbWlkZG90OyA2LiBEZW50YWwmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "source": "Adit",
+      "read_more_link": "https://adit.com/top-dental-practice-management-software-of-2023-reviews-pricing-and-features#:~:text=The%20Best%20Dental%20Practice%20Management,Software%20in%202023&text=1.%20Adit&text=2.%20Curve%20Dental&text=3.%20Dentrix&text=4.%20Eaglesoft&text=5.%20DentiMax&text=6.%20Dental%20Intelligence"
+    },
+    {
+      "position": 5,
+      "title": "TIPS FOR CHOOSING A DENTAL PRACTICE ...",
+      "link": "https://blog.ddslab.com/dental-practice-management-software",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=CAESdgHrOzAVvPxL4yz9JKhg5zGDMidvjtYwKvmIkDaHKoI0QacVpv0XvIxreAI_qn09MoKqZStkB2_8ZBmZ179ETr0ufuh01co6aZvklcIeJMqiSBy2oHBOjWOzZcPjhTgszw3NlULBEzDnrosm3QuPGI7-N2gTWSg&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0QFnoECDsQAQ&uoh=1",
+      "displayed_link": "https://blog.ddslab.com › dental-practice-management-so...",
+      "favicon": "https://serpapi.com/images/i/UklGRrYAAABXRUJQVlA4IKoAAACQBQCdASogACAAPtEutFooIagoGAEAGglsALElQVSrv_BdWwQrcLWmLIo2ygMmtVvDfNLwAAD-_sLL8rK7Z4f6xLlw7rgrV_uLlDrf7J_Slto6Ep7hZeSfc6p0UQoxRsBJ3vCkvQflwv3WlyZsepkujNWJHFsg57ndgk6Wp2hFyAE0Sutkws1fYBt-kiDeE9dprGkThest4HQTlX4O2kspoPYPwxnJvMAAAA.webp",
+      "date": "Nov 24, 2017",
+      "snippet": "Cloud-based software can be particularly effective for multi-location practices, allowing a patient's information and digital images. There are ...",
+      "snippet_highlighted_words": ["Cloud-based software"],
+      "about_this_result": {
+        "source": {
+          "description": "Cloud-based software can be particularly effective for multi-location practices, allowing a patient's information and digital images. There are ...",
+          "source_info_link": "https://blog.ddslab.com/dental-practice-management-software",
+          "icon": "https://serpapi.com/images/i/UklGRrYAAABXRUJQVlA4IKoAAACQBQCdASogACAAPtEutFooIagoGAEAGglsALElQVSrv_BdWwQrcLWmLIo2ygMmtVvDfNLwAAD-_sLL8rK7Z4f6xLlw7rgrV_uLlDrf7J_Slto6Ep7hZeSfc6p0UQoxRsBJ3vCkvQflwv3WlyZsepkujNWJHFsg57ndgk6Wp2hFyAE0Sutkws1fYBt-kiDeE9dprGkThest4HQTlX4O2kspoPYPwxnJvMAAAA.webp"
+        },
+        "languages": ["en"],
+        "regions": ["US"]
+      },
+      "about_page_link": "https://www.google.com/search/about-this-result?origin=www.google.com&req=Cq0BL2dvdG8_dXJsPUNBRVNkZ0hyT3pBVnZQeEw0eXo5SktoZzV6R0RNaWR2anRZd0t2bUlrRGFIS29JMFFhY1ZwdjBYdkl4cmVBSV9xbjA5TW9LcVpTdGtCMl84WkJtWjE3OUVUcjB1ZnVoMDFjbzZhWnZrbGNJZUpNcWlTQnkyb0hCT2pXT3paY1BqaFRnc3p3M05sVUxCRXpEbnJvc20zUXVQR0k3LU4yZ1RXU2cSBBoCCAAagAcSAggAGgAiACoAMgYIAxICdXM6AEIECAEQAEoAWgByAHoAgkDaBggAEAAYACAAKiIKBGJlc3QVBlP-PxoEZ29vZBoDdG9wGgpiZXN0ZGVudGFsKkMKBmRlbnRhbBVGBdFAGgpiZXN0ZGVudGFsGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50KnoKCHByYWN0aWNlFbrd7EAaBmNsaW5pYxoHY2xpbmljcxoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZSqIAQoKbWFuYWdlbWVudBViZdxAGg5hZG1pbmlzdHJhdGlvbhoHbWFuYWdlchoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUqSgoIc29mdHdhcmUVuG_qQBoJc29mdHdhcmVzGhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlMq0BL2dvdG8_dXJsPUNBRVNkZ0hyT3pBVnZQeEw0eXo5SktoZzV6R0RNaWR2anRZd0t2bUlrRGFIS29JMFFhY1ZwdjBYdkl4cmVBSV9xbjA5TW9LcVpTdGtCMl84WkJtWjE3OUVUcjB1ZnVoMDFjbzZhWnZrbGNJZUpNcWlTQnkyb0hCT2pXT3paY1BqaFRnc3p3M05sVUxCRXpEbnJvc20zUXVQR0k3LU4yZ1RXU2c6OVRJUFMgRk9SIENIT09TSU5HIEEgPGI-REVOVEFMIFBSQUNUSUNFIE1BTkFHRU1FTlQ8L2I-IC4uLkKjATxiPkNsb3VkLWJhc2VkIHNvZnR3YXJlPC9iPiBjYW4gYmUgcGFydGljdWxhcmx5IGVmZmVjdGl2ZSBmb3IgbXVsdGktbG9jYXRpb24gcHJhY3RpY2VzLCBhbGxvd2luZyBhIHBhdGllbnQmIzM5O3MgaW5mb3JtYXRpb24gYW5kIGRpZ2l0YWwgaW1hZ2VzLiBUaGVyZSBhcmUmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&req_token=Cq0BL2dvdG8_dXJsPUNBRVNkZ0hyT3pBVnZQeEw0eXo5SktoZzV6R0RNaWR2anRZd0t2bUlrRGFIS29JMFFhY1ZwdjBYdkl4cmVBSV9xbjA5TW9LcVpTdGtCMl84WkJtWjE3OUVUcjB1ZnVoMDFjbzZhWnZrbGNJZUpNcWlTQnkyb0hCT2pXT3paY1BqaFRnc3p3M05sVUxCRXpEbnJvc20zUXVQR0k3LU4yZ1RXU2cSBBoCCAAagAcSAggAGgAiACoAMgYIAxICdXM6AEIECAEQAEoAWgByAHoAgkDaBggAEAAYACAAKiIKBGJlc3QVBlP-PxoEZ29vZBoDdG9wGgpiZXN0ZGVudGFsKkMKBmRlbnRhbBVGBdFAGgpiZXN0ZGVudGFsGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50KnoKCHByYWN0aWNlFbrd7EAaBmNsaW5pYxoHY2xpbmljcxoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZSqIAQoKbWFuYWdlbWVudBViZdxAGg5hZG1pbmlzdHJhdGlvbhoHbWFuYWdlchoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUqSgoIc29mdHdhcmUVuG_qQBoJc29mdHdhcmVzGhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlMq0BL2dvdG8_dXJsPUNBRVNkZ0hyT3pBVnZQeEw0eXo5SktoZzV6R0RNaWR2anRZd0t2bUlrRGFIS29JMFFhY1ZwdjBYdkl4cmVBSV9xbjA5TW9LcVpTdGtCMl84WkJtWjE3OUVUcjB1ZnVoMDFjbzZhWnZrbGNJZUpNcWlTQnkyb0hCT2pXT3paY1BqaFRnc3p3M05sVUxCRXpEbnJvc20zUXVQR0k3LU4yZ1RXU2c6OVRJUFMgRk9SIENIT09TSU5HIEEgPGI-REVOVEFMIFBSQUNUSUNFIE1BTkFHRU1FTlQ8L2I-IC4uLkKjATxiPkNsb3VkLWJhc2VkIHNvZnR3YXJlPC9iPiBjYW4gYmUgcGFydGljdWxhcmx5IGVmZmVjdGl2ZSBmb3IgbXVsdGktbG9jYXRpb24gcHJhY3RpY2VzLCBhbGxvd2luZyBhIHBhdGllbnQmIzM5O3MgaW5mb3JtYXRpb24gYW5kIGRpZ2l0YWwgaW1hZ2VzLiBUaGVyZSBhcmUmbmJzcDsuLi5SA3RvcCICEAFIAFgAaAA",
+      "source": "DDS Lab"
+    },
+    {
+      "position": 6,
+      "title": "Dental Management Tools for the 21st Century",
+      "link": "https://dentimax.com/essential-dental-management-tools/",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=CAEScgHrOzAVzUqG0YQafUfuE-DGzB5LnMZAZAsWGqA7fOqnD2XafU5XL5eTHUPfAChbgsxCdiDeUaXzXH-AsGgFd8k-IqLpmKjtmsu7_vy4u7qfIKONfAfFNzPdCP_nX4rCgzfqTLDdu8gGZLZwhLUQNb4Iag&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0QFnoECD0QAQ&uoh=1",
+      "displayed_link": "https://dentimax.com › Dental Practices",
+      "favicon": "https://serpapi.com/images/i/UklGRhYBAABXRUJQVlA4IAoBAACwBQCdASocABwAPrkurlcnIacnG_DgFwliAAgQLpQlNrfKob8SQe68qogtPhUbhulPq1e_XQAA_v7CPntLd3GvV8sHywA1dxxAkFKcLq2vfxkVoG32CsKfvog9k0CHb-GmMKGehScHkP5VoIR-1NZL_-lYYD5FcsrqgAvae1wkmZmQ7y1BVrM_Sk_FGZORmfnHNHl798R94aMMXDz0YuUEO37fu8PcvEHZEEA9ze-p-ifwy9UCBWZOlhCILTk7m6M0_TKZZBJQFe6-Popva-fwONTsNPEglmrHH9to60vdMB5yBoJD2V3O4p6ZLD1aUYYWMmI1_-a_rxKXHm9PeYsXGA11uhycEgAAAA.webp",
+      "date": "Apr 15, 2015",
+      "snippet": "Software is one of the most essential dental management tools for offices in the 21st Century. Learn more about what your practice needs.",
+      "snippet_highlighted_words": [
+        "Software is one of the most essential dental management tools"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "Software is one of the most essential dental management tools for offices in the 21st Century. Learn more about what your practice needs.",
+          "source_info_link": "https://dentimax.com/essential-dental-management-tools/",
+          "icon": "https://serpapi.com/images/i/UklGRhYBAABXRUJQVlA4IAoBAACwBQCdASocABwAPrkurlcnIacnG_DgFwliAAgQLpQlNrfKob8SQe68qogtPhUbhulPq1e_XQAA_v7CPntLd3GvV8sHywA1dxxAkFKcLq2vfxkVoG32CsKfvog9k0CHb-GmMKGehScHkP5VoIR-1NZL_-lYYD5FcsrqgAvae1wkmZmQ7y1BVrM_Sk_FGZORmfnHNHl798R94aMMXDz0YuUEO37fu8PcvEHZEEA9ze-p-ifwy9UCBWZOlhCILTk7m6M0_TKZZBJQFe6-Popva-fwONTsNPEglmrHH9to60vdMB5yBoJD2V3O4p6ZLD1aUYYWMmI1_-a_rxKXHm9PeYsXGA11uhycEgAAAA.webp"
+        },
+        "languages": ["en"],
+        "regions": ["US"]
+      },
+      "about_page_link": "https://www.google.com/search/about-this-result?origin=www.google.com&req=CqgBL2dvdG8_dXJsPUNBRVNjZ0hyT3pBVnpVcUcwWVFhZlVmdUUtREd6QjVMbk1aQVpBc1dHcUE3Zk9xbkQyWGFmVTVYTDVlVEhVUGZBQ2hiZ3N4Q2RpRGVVYVh6WEgtQXNHZ0ZkOGstSXFMcG1LanRtc3U3X3Z5NHU3cWZJS09OZkFmRk56UGRDUF9uWDRyQ2d6ZnFUTERkdThnR1pMWndoTFVRTmI0SWFnEgQaAggAGusGEgAaACIAKgAyBggDEgJ1czoAQgQIARAASgBaAHIAegCCQMcGCAAQABgAIAAqIgoEYmVzdBWh5hw_GgRnb29kGgN0b3AaCmJlc3RkZW50YWwqQwoGZGVudGFsFXWY8kAaCmJlc3RkZW50YWwaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQqegoIcHJhY3RpY2UVVDtzQBoGY2xpbmljGgdjbGluaWNzGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlKogBCgptYW5hZ2VtZW50Fe1p5EAaDmFkbWluaXN0cmF0aW9uGgdtYW5hZ2VyGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZSpKCghzb2Z0d2FyZRXIQpNAGglzb2Z0d2FyZXMaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUyqAEvZ290bz91cmw9Q0FFU2NnSHJPekFWelVxRzBZUWFmVWZ1RS1ER3pCNUxuTVpBWkFzV0dxQTdmT3FuRDJYYWZVNVhMNWVUSFVQZkFDaGJnc3hDZGlEZVVhWHpYSC1Bc0dnRmQ4ay1JcUxwbUtqdG1zdTdfdnk0dTdxZklLT05mQWZGTnpQZENQX25YNHJDZ3pmcVRMRGR1OGdHWkxad2hMVVFOYjRJYWc6PjxiPkRlbnRhbCBNYW5hZ2VtZW50PC9iPiBUb29scyBmb3IgdGhlIDIxc3QgQ2VudHVyeSAtIERlbnRpTWF4QpABPGI-U29mdHdhcmUgaXMgb25lIG9mIHRoZSBtb3N0IGVzc2VudGlhbCBkZW50YWwgbWFuYWdlbWVudCB0b29sczwvYj4gZm9yIG9mZmljZXMgaW4gdGhlIDIxc3QgQ2VudHVyeS4gTGVhcm4gbW9yZSBhYm91dCB3aGF0IHlvdXIgcHJhY3RpY2UgbmVlZHMuUgN0b3AiAhABSABYAGgA",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&req_token=CqgBL2dvdG8_dXJsPUNBRVNjZ0hyT3pBVnpVcUcwWVFhZlVmdUUtREd6QjVMbk1aQVpBc1dHcUE3Zk9xbkQyWGFmVTVYTDVlVEhVUGZBQ2hiZ3N4Q2RpRGVVYVh6WEgtQXNHZ0ZkOGstSXFMcG1LanRtc3U3X3Z5NHU3cWZJS09OZkFmRk56UGRDUF9uWDRyQ2d6ZnFUTERkdThnR1pMWndoTFVRTmI0SWFnEgQaAggAGusGEgAaACIAKgAyBggDEgJ1czoAQgQIARAASgBaAHIAegCCQMcGCAAQABgAIAAqIgoEYmVzdBWh5hw_GgRnb29kGgN0b3AaCmJlc3RkZW50YWwqQwoGZGVudGFsFXWY8kAaCmJlc3RkZW50YWwaDmRlbnRhbHByYWN0aWNlGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQqegoIcHJhY3RpY2UVVDtzQBoGY2xpbmljGgdjbGluaWNzGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlKogBCgptYW5hZ2VtZW50Fe1p5EAaDmFkbWluaXN0cmF0aW9uGgdtYW5hZ2VyGhhkZW50YWxwcmFjdGljZW1hbmFnZW1lbnQaEnByYWN0aWNlbWFuYWdlbWVudBoacHJhY3RpY2VtYW5hZ2VtZW50c29mdHdhcmUaEm1hbmFnZW1lbnRzb2Z0d2FyZSpKCghzb2Z0d2FyZRXIQpNAGglzb2Z0d2FyZXMaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUyqAEvZ290bz91cmw9Q0FFU2NnSHJPekFWelVxRzBZUWFmVWZ1RS1ER3pCNUxuTVpBWkFzV0dxQTdmT3FuRDJYYWZVNVhMNWVUSFVQZkFDaGJnc3hDZGlEZVVhWHpYSC1Bc0dnRmQ4ay1JcUxwbUtqdG1zdTdfdnk0dTdxZklLT05mQWZGTnpQZENQX25YNHJDZ3pmcVRMRGR1OGdHWkxad2hMVVFOYjRJYWc6PjxiPkRlbnRhbCBNYW5hZ2VtZW50PC9iPiBUb29scyBmb3IgdGhlIDIxc3QgQ2VudHVyeSAtIERlbnRpTWF4QpABPGI-U29mdHdhcmUgaXMgb25lIG9mIHRoZSBtb3N0IGVzc2VudGlhbCBkZW50YWwgbWFuYWdlbWVudCB0b29sczwvYj4gZm9yIG9mZmljZXMgaW4gdGhlIDIxc3QgQ2VudHVyeS4gTGVhcm4gbW9yZSBhYm91dCB3aGF0IHlvdXIgcHJhY3RpY2UgbmVlZHMuUgN0b3AiAhABSABYAGgA",
+      "source": "DentiMax"
+    },
+    {
+      "position": 7,
+      "title": "Dental Practice Management Software",
+      "link": "https://www.dentalcompare.com/1175-HorizontalMatrix/Compare/?compare=3046510,34977,35302,41956,34328",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=CAESnwEB6zswFaQGEwEOx541wLQB_-hf9MBN7VTGdfAuEt-jRJSiz9-ggMszkych96YBhl_CZ4dweYaqeYqaZV9mS0-tX8rGJn_dH6yUQaepJMRNUP11hOS-vhZ_EaEik3QAYa4STDeyv3r7100yiUVN2R-VEYouOtljvidmteHvry-8RAZl0M4bZ-QY1byk7RD0jQM3-H4s9ISPbxs46wRyzDU&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0QFnoECDwQAQ&uoh=1",
+      "displayed_link": "https://www.dentalcompare.com › Compare",
+      "favicon": "https://serpapi.com/images/i/UklGRqQAAABXRUJQVlA4IJgAAADwAgCdASoQABAAAsBMJbACdFkAWAAOTlBwJWdsBrVOgAD-9mxP7D2xRymVUUuw_nKd1GqHNyLRgWOf_dGAWqDNuyDx3ti3lFYNfy38OXwOu0eYb5BXxrW5Lf04x2sGfmCOQJv8w9QeXteP6vILcPiV2kHJ61wqs-DF2Q1Aj97M2RjwoQ-fFzZ4O1-3PgsF0o7Yo_daPfgAAA.webp",
+      "snippet": "Compare Dental Practice Management Software features side-by-side. Find in-depth product information and request a quote today.",
+      "snippet_highlighted_words": [
+        "Compare Dental Practice Management Software features side-by-side"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "Compare Dental Practice Management Software features side-by-side. Find in-depth product information and request a quote today.",
+          "source_info_link": "https://www.dentalcompare.com/1175-HorizontalMatrix/Compare/?compare=3046510,34977,35302,41956,34328",
+          "icon": "https://serpapi.com/images/i/UklGRqQAAABXRUJQVlA4IJgAAADwAgCdASoQABAAAsBMJbACdFkAWAAOTlBwJWdsBrVOgAD-9mxP7D2xRymVUUuw_nKd1GqHNyLRgWOf_dGAWqDNuyDx3ti3lFYNfy38OXwOu0eYb5BXxrW5Lf04x2sGfmCOQJv8w9QeXteP6vILcPiV2kHJ61wqs-DF2Q1Aj97M2RjwoQ-fFzZ4O1-3PgsF0o7Yo_daPfgAAA.webp"
+        },
+        "languages": ["en"],
+        "regions": ["US"]
+      },
+      "about_page_link": "https://www.google.com/search/about-this-result?origin=www.google.com&req=CuUBL2dvdG8_dXJsPUNBRVNud0VCNnpzd0ZhUUdFd0VPeDU0MXdMUUJfLWhmOU1CTjdWVEdkZkF1RXQtalJKU2l6OS1nZ01zemt5Y2g5NllCaGxfQ1o0ZHdlWWFxZVlxYVpWOW1TMC10WDhyR0puX2RINnlVUWFlcEpNUk5VUDExaE9TLXZoWl9FYUVpazNRQVlhNFNURGV5djNyNzEwMHlpVVZOMlItVkVZb3VPdGxqdmlkbXRlSHZyeS04UkFabDBNNGJaLVFZMWJ5azdSRDBqUU0zLUg0czlJU1BieHM0NndSeXpEVRIEGgIIABqeBxIAGgAiACoAMgYIAxICdXM6AEIECAEQAEoAWgByAHoAgkD6BggAEAAYACAAKiIKBGJlc3QVAAAAABoEZ29vZBoDdG9wGgpiZXN0ZGVudGFsKkMKBmRlbnRhbBVbsvZAGgpiZXN0ZGVudGFsGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50KnoKCHByYWN0aWNlFcdb4kAaBmNsaW5pYxoHY2xpbmljcxoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZSqIAQoKbWFuYWdlbWVudBUahNlAGg5hZG1pbmlzdHJhdGlvbhoHbWFuYWdlchoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUqSgoIc29mdHdhcmUV88TqQBoJc29mdHdhcmVzGhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlMuUBL2dvdG8_dXJsPUNBRVNud0VCNnpzd0ZhUUdFd0VPeDU0MXdMUUJfLWhmOU1CTjdWVEdkZkF1RXQtalJKU2l6OS1nZ01zemt5Y2g5NllCaGxfQ1o0ZHdlWWFxZVlxYVpWOW1TMC10WDhyR0puX2RINnlVUWFlcEpNUk5VUDExaE9TLXZoWl9FYUVpazNRQVlhNFNURGV5djNyNzEwMHlpVVZOMlItVkVZb3VPdGxqdmlkbXRlSHZyeS04UkFabDBNNGJaLVFZMWJ5azdSRDBqUU0zLUg0czlJU1BieHM0NndSeXpEVTo-PGI-RGVudGFsIFByYWN0aWNlIE1hbmFnZW1lbnQgU29mdHdhcmU8L2I-IC0gRGVudGFsY29tcGFyZS5jb21ChgE8Yj5Db21wYXJlIERlbnRhbCBQcmFjdGljZSBNYW5hZ2VtZW50IFNvZnR3YXJlIGZlYXR1cmVzIHNpZGUtYnktc2lkZTwvYj4uIEZpbmQgaW4tZGVwdGggcHJvZHVjdCBpbmZvcm1hdGlvbiBhbmQgcmVxdWVzdCBhIHF1b3RlIHRvZGF5LlIDdG9wIgIQAUgAWABoAA",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&req_token=CuUBL2dvdG8_dXJsPUNBRVNud0VCNnpzd0ZhUUdFd0VPeDU0MXdMUUJfLWhmOU1CTjdWVEdkZkF1RXQtalJKU2l6OS1nZ01zemt5Y2g5NllCaGxfQ1o0ZHdlWWFxZVlxYVpWOW1TMC10WDhyR0puX2RINnlVUWFlcEpNUk5VUDExaE9TLXZoWl9FYUVpazNRQVlhNFNURGV5djNyNzEwMHlpVVZOMlItVkVZb3VPdGxqdmlkbXRlSHZyeS04UkFabDBNNGJaLVFZMWJ5azdSRDBqUU0zLUg0czlJU1BieHM0NndSeXpEVRIEGgIIABqeBxIAGgAiACoAMgYIAxICdXM6AEIECAEQAEoAWgByAHoAgkD6BggAEAAYACAAKiIKBGJlc3QVAAAAABoEZ29vZBoDdG9wGgpiZXN0ZGVudGFsKkMKBmRlbnRhbBVbsvZAGgpiZXN0ZGVudGFsGg5kZW50YWxwcmFjdGljZRoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50KnoKCHByYWN0aWNlFcdb4kAaBmNsaW5pYxoHY2xpbmljcxoOZGVudGFscHJhY3RpY2UaGGRlbnRhbHByYWN0aWNlbWFuYWdlbWVudBoScHJhY3RpY2VtYW5hZ2VtZW50GhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZSqIAQoKbWFuYWdlbWVudBUahNlAGg5hZG1pbmlzdHJhdGlvbhoHbWFuYWdlchoYZGVudGFscHJhY3RpY2VtYW5hZ2VtZW50GhJwcmFjdGljZW1hbmFnZW1lbnQaGnByYWN0aWNlbWFuYWdlbWVudHNvZnR3YXJlGhJtYW5hZ2VtZW50c29mdHdhcmUqSgoIc29mdHdhcmUV88TqQBoJc29mdHdhcmVzGhpwcmFjdGljZW1hbmFnZW1lbnRzb2Z0d2FyZRoSbWFuYWdlbWVudHNvZnR3YXJlMuUBL2dvdG8_dXJsPUNBRVNud0VCNnpzd0ZhUUdFd0VPeDU0MXdMUUJfLWhmOU1CTjdWVEdkZkF1RXQtalJKU2l6OS1nZ01zemt5Y2g5NllCaGxfQ1o0ZHdlWWFxZVlxYVpWOW1TMC10WDhyR0puX2RINnlVUWFlcEpNUk5VUDExaE9TLXZoWl9FYUVpazNRQVlhNFNURGV5djNyNzEwMHlpVVZOMlItVkVZb3VPdGxqdmlkbXRlSHZyeS04UkFabDBNNGJaLVFZMWJ5azdSRDBqUU0zLUg0czlJU1BieHM0NndSeXpEVTo-PGI-RGVudGFsIFByYWN0aWNlIE1hbmFnZW1lbnQgU29mdHdhcmU8L2I-IC0gRGVudGFsY29tcGFyZS5jb21ChgE8Yj5Db21wYXJlIERlbnRhbCBQcmFjdGljZSBNYW5hZ2VtZW50IFNvZnR3YXJlIGZlYXR1cmVzIHNpZGUtYnktc2lkZTwvYj4uIEZpbmQgaW4tZGVwdGggcHJvZHVjdCBpbmZvcm1hdGlvbiBhbmQgcmVxdWVzdCBhIHF1b3RlIHRvZGF5LlIDdG9wIgIQAUgAWABoAA",
+      "source": "Dentalcompare.com"
+    }
+  ],
+  "discussions_and_forums": [
+    {
+      "title": "What practice management software would you recommend?",
+      "link": "https://www.reddit.com/r/Dentistry/comments/14fjp5q/what_practice_management_software_would_you/",
+      "date": "3 years ago",
+      "extensions": ["r/Dentistry", "20+ comments"],
+      "source": "Reddit",
+      "answers": [
+        {
+          "link": "https://www.reddit.com/r/Dentistry/comments/14fjp5q/what_practice_management_software_would_you/"
+        }
+      ]
+    },
+    {
+      "title": "Looking for dental practice management software recommendations",
+      "link": "https://www.reddit.com/r/Dentistry/comments/1qkr8wo/looking_for_dental_practice_management_software/",
+      "date": "8 months ago",
+      "extensions": ["r/Dentistry", "40+ comments"],
+      "source": "Reddit",
+      "answers": [
+        {
+          "link": "https://www.reddit.com/r/Dentistry/comments/1qkr8wo/looking_for_dental_practice_management_software/"
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "current": 1,
+    "next": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=10&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8NMDegQINBAW",
+    "other_pages": {
+      "2": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=10&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAE",
+      "3": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=20&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAG",
+      "4": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=30&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAI",
+      "5": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=40&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAK",
+      "6": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=50&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAM",
+      "7": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=60&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAO",
+      "8": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=70&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAQ",
+      "9": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=80&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAS",
+      "10": "https://www.google.com/search?q=best+dental+practice+management+software&sca_esv=b91f89c816ae58cc&hl=en&gl=us&sxsrf=APpeQnt_wbFNOfod8SgxrMZk1rE1rzGrxA:1791002259923&ei=k4bAavT0N7CvwbkPstzS6AM&start=90&sa=N&sstk=AS6-VmI_rXv8SI-dYcSDh8M0o7ZwCBCG1wFfdgUDVVd5bsT9pAOyjyp8xBv3SidwuFR-J6oTd2qzXv0l_3qsZkr-8XBLDXxw86ck5g&ved=2ahUKEwi0ivqrg52XAxWwVzABHTKuFD0Q8tMDegQINBAU"
+    }
+  },
+  "serpapi_pagination": {
+    "current": 1,
+    "next_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=10",
+    "next": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=10",
+    "other_pages": {
+      "2": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=10",
+      "3": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=20",
+      "4": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=30",
+      "5": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=40",
+      "6": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=50",
+      "7": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=60",
+      "8": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=70",
+      "9": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=80",
+      "10": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=best+dental+practice+management+software&start=90"
+    }
+  }
+}

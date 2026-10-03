@@ -10,16 +10,18 @@ Responses from the answer-engine providers, replayed by the adapter contract tes
 
 ## Where they came from
 
-**As of 2026-10-03 every file here is built by hand from the provider's documented response shape** (the docs pages are linked at the top of each adapter in `src/engines/`), because no provider account existed yet. The field names and nesting follow the documentation; the answers themselves are invented.
+Files named `*-recorded-<date>.json` are **real responses** from a live call (credentials removed; for SerpApi only the search response is kept). **Every other file is built by hand from the provider's documented response shape** (the docs pages are linked at the top of each adapter in `src/engines/`): the field names and nesting follow the documentation, the answers are invented. Hand-built files stay for cases a live call can't produce on demand: errors, queued tasks, page tokens, no overview.
 
-Replace each with a real recording once the accounts exist:
+Record a new real response with:
 
 ```bash
 npm run engines:try -- --engine chatgpt --mode live --record "What is the best dental practice management software for a small clinic?"
 ```
 
-`--record` writes the provider's raw response to `recorded/<provider>-<engine>-<date>.json` in this folder, with credentials removed. Copy what it shows over the hand-built file it replaces, keep the test names, and note the date in the table below. If a real response differs in shape from the documented one, the adapter is wrong: fix it and keep the recording as the fixture that proves it.
+`--record` writes the provider's raw response to `recorded/<provider>-<engine>-<mode>-<date>.json` in this folder, with credentials removed. Move it into the provider's folder as `*-recorded-<date>.json`, add a test that replays it, and note it in the table below. If a real response differs in shape from the documented one, the adapter is wrong: fix it and keep the recording as the fixture that proves it.
 
 | File | Source | Date |
 |---|---|---|
-| everything | documented shape, hand-built | 2026-10-03 |
+| `perplexity/agent-recorded-2026-10-03.json` | live call, `perplexity/sonar` | 2026-10-03 |
+| `serpapi/google-aio-recorded-2026-10-03.json` | live call, Google US, English | 2026-10-03 |
+| everything else | documented shape, hand-built | 2026-10-03 |

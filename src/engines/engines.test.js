@@ -188,6 +188,41 @@ describe('normalize(): one shape whoever provided the answer', () => {
   });
 });
 
+describe('real recorded answers (live calls on 2026-10-03, ADR-0006)', () => {
+  test('Perplexity: the real Agent API response reads as the documented one did', () => {
+    const raw = fixture('perplexity/agent-recorded-2026-10-03.json');
+    const a = perplexity.normalize(raw, task);
+    assert.equal(a.status, 'ok');
+    assert.equal(a.modelVersion, 'perplexity/sonar');
+    assert.match(a.text, /Open Dental/);
+    assert.equal(a.sources.length, 15, 'every search result, none repeated');
+    assert.ok(a.sources.every((s) => s.domain && s.url.startsWith('https://')));
+    assert.match(a.providerRef, /^resp_/);
+  });
+
+  test('Perplexity: the real charge is within the documented ±50% of the estimate', () => {
+    const raw = fixture('perplexity/agent-recorded-2026-10-03.json');
+    const reported = reportedMicros(raw.usage.cost.total_cost);
+    assert.equal(reported, 4_410);
+    const estimate = perplexity.estimateCostMicros(task);
+    assert.ok(Math.abs(estimate - reported) / reported <= 0.5, `${estimate} vs ${reported}`);
+  });
+
+  test('AI Overviews: the real SerpApi response, whose list items carry their title inside the text', () => {
+    const a = serpapi.normalize(
+      { search: fixture('serpapi/google-aio-recorded-2026-10-03.json') },
+      task,
+    );
+    assert.equal(a.status, 'ok');
+    assert.match(a.text, /^The best dental practice management software/);
+    assert.match(a.text, /- Open Dental: Best for cost and customization/);
+    assert.match(a.text, /### Top Dental Practice Management Systems/);
+    assert.equal(a.sources.length, 7);
+    assert.equal(a.sources[0].domain, 'medixdental.com');
+    assert.equal(a.answeredAt !== null, true);
+  });
+});
+
 describe('estimateCostUsd(): the published prices (checked 2026-10-03)', () => {
   test('DataForSEO LLM Scraper: $0.0012 standard, $0.0024 priority, $0.004 live, for ChatGPT and Gemini alike', () => {
     for (const adapter of [chatgpt, gemini]) {

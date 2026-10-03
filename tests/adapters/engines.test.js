@@ -351,6 +351,30 @@ describe('SerpApi (Google AI Overviews)', () => {
   });
 });
 
+describe('real recorded responses (live calls on 2026-10-03), replayed over HTTP', () => {
+  test('Perplexity: the reported cost and the answer come through the whole adapter', async () => {
+    const perplexity = adapters().get('perplexity_api', 'perplexity');
+    routes['POST /v1/agent'] = { body: fixture('perplexity/agent-recorded-2026-10-03.json') };
+    const handle = await perplexity.submit(task({ engine: 'perplexity' }));
+    assert.equal(handle.costMicros, 4_410);
+    assert.deepEqual([handle.tokensIn, handle.tokensOut], [4269, 337]);
+    const answer = perplexity.normalize(await perplexity.poll(handle), task());
+    normalizedAnswerSchema.parse(answer);
+    assert.equal(answer.sources.length, 15);
+  });
+
+  test('SerpApi: an overview on the results page itself takes one search', async () => {
+    const aio = adapters().get('serpapi', 'google_aio');
+    routes['GET /search.json'] = { body: fixture('serpapi/google-aio-recorded-2026-10-03.json') };
+    const handle = await aio.submit(task({ engine: 'google_aio' }));
+    assert.deepEqual([requests.length, handle.quantity, handle.costMicros], [1, 1, 10_000]);
+    const answer = aio.normalize(handle.raw, task());
+    normalizedAnswerSchema.parse(answer);
+    assert.equal(answer.status, 'ok');
+    assert.equal(answer.sources.length, 7);
+  });
+});
+
 test('a provider that never answers is cut off by the time limit and reported as a timeout', async () => {
   const { createPerplexityAdapter } = await import('../../src/engines/perplexity.js');
   const slow = createPerplexityAdapter({ apiKey: 'pplx-secret', baseUrl: origin, timeoutMs: 300 });
