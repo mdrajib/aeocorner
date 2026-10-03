@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Execution order for the rest of the MVP: Phases 7–15 of [BUILD_PLAN.md](BUILD_PLAN.md), reorganized into 11 sequential milestones of single-action tasks |
 | **Date** | 2026-10-03 |
-| **Status** | Proposed. Nothing in Milestones 1–10 has started except `src/db/repos/scan-results.js` (task 1.02, uncommitted) |
+| **Status** | In progress. Milestone 1 (audit engine) is built. Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
 | **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) (phase detail and required tests) · [MVP.md](MVP.md) §13 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §7 · [UI_DESIGN.md](UI_DESIGN.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. How to read this plan
@@ -165,14 +165,14 @@ flowchart LR
 
 | # | Task | Needs |
 |---|---|---|
-| 2.01 | Build the URL form → email step, with consent box and legal links | — |
-| 2.02 | Build the 6-digit code screen | — |
-| 2.03 | Build the live progress page over server-sent events (CSP-safe) | — |
-| 2.04 | Build the report page with the honesty note, methodology link and "track weekly" button | — |
-| 2.05 | Build the report email from the email base | — |
-| 2.06 | Publish the `/bot` page | — |
-| 2.07 | Fire the PostHog audit funnel events (anonymous only) | 2.01–2.04 |
-| 2.08 | 🔒 Write the provisioning runbook: Droplet, PM2, Nginx, Chromium, Spaces prefix and lifecycle rule | — |
+| 2.01 | Build the URL form → email step, with consent box and legal links ✅ 2026-10-03 | — |
+| 2.02 | Build the 6-digit code screen ✅ 2026-10-03 | — |
+| 2.03 | Build the live progress page over server-sent events (CSP-safe) ✅ 2026-10-03 | — |
+| 2.04 | Build the report page with the honesty note, methodology link and "track weekly" button ✅ 2026-10-03 | — |
+| 2.05 | Build the report email from the email base ✅ 2026-10-03 (built in Milestone 1: `audit-report` template, `sendReportReady`) | — |
+| 2.06 | Publish the `/bot` page ✅ 2026-10-03 | — |
+| 2.07 | Fire the PostHog audit funnel events (anonymous only) ✅ 2026-10-03 (server-side, `src/lib/funnel.js`) | 2.01–2.04 |
+| 2.08 | 🔒 Write the provisioning runbook: Droplet, PM2, Nginx, Chromium, Spaces prefix and lifecycle rule ✅ 2026-10-03 ([RUNBOOK_PROVISIONING.md](RUNBOOK_PROVISIONING.md); not yet run on a real Droplet) | — |
 | 2.09 | 🔒 Provision and deploy staging | 2.08 |
 | 2.10 | Provision production on `aeocorner.com` | 2.08 |
 | 2.11 | Run the Playwright audit E2E against staging (desktop and 375 px) | 2.01–2.05, 2.09 |
@@ -183,7 +183,7 @@ flowchart LR
 
 **Definition of Done:**
 - [ ] E2E on staging: domain in → report out, desktop and 375 px, fixture providers.
-- [ ] Axe sweep passes on every audit screen.
+- [x] Axe sweep passes on every audit screen (locally, 2026-10-03: email, code, progress, report, partial and failed report, plus the email and code error states).
 - [ ] Burst load stays inside per-provider and global rate limits.
 - [ ] One real audit on production finishes in < 10 minutes.
 - [ ] Terms and Privacy live without the draft banner; `/bot` live.

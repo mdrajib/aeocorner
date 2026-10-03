@@ -89,6 +89,11 @@
     @apply border-ink-300 text-ink-900 placeholder:text-ink-500 block min-h-11 w-full rounded-lg border bg-white px-3.5 py-2 text-base shadow-sm;
   }
 
+  /* The six-digit code of the free audit: one field (so autofill and paste work), spaced out like boxes. */
+  .code-field .input {
+    @apply text-center text-2xl tracking-[0.4em] tabular-nums;
+  }
+
   .input:disabled,
   .select:disabled,
   .textarea:disabled {

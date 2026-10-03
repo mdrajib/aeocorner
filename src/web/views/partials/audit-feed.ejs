@@ -1,0 +1,19 @@
+<%# The part of the progress page that changes: the steps, then the newest real answers. Rendered on the server for the
+    first load and again for every server-sent update. Props: progress, cards. %>
+<ul class="flex flex-col gap-3" aria-label="What we are doing">
+  <% for (const step of progress.steps) { %>
+  <li class="flex items-start gap-3" data-step="<%= step.id %>" data-state="<%= step.state %>">
+    <% if (step.state === 'done') { %><span class="text-success-700 mt-0.5"><%- ui.icon({ name: 'check', size: 20 }) %><span class="sr-only">Done:</span></span>
+    <% } else if (step.state === 'unknown') { %><span class="text-ink-600 mt-0.5"><%- ui.icon({ name: 'help', size: 20 }) %><span class="sr-only">Couldn’t check:</span></span>
+    <% } else if (step.state === 'active') { %><span class="text-brand-700 mt-0.5"><%- ui.icon({ name: 'clock', size: 20 }) %><span class="sr-only">In progress:</span></span>
+    <% } else { %><span class="text-ink-400 mt-0.5"><%- ui.icon({ name: 'minus', size: 20 }) %><span class="sr-only">Waiting:</span></span><% } %>
+    <span class="<%= step.state === 'waiting' ? 'text-ink-600' : 'text-ink-900' %>"><%= step.label %></span>
+  </li>
+  <% } %>
+</ul>
+<% if (cards.length) { %>
+<div class="mt-8 flex flex-col gap-4">
+  <h2 class="text-base tracking-normal">Answers so far</h2>
+  <% for (const card of cards) { %><%- ui.excerpt({ engine: card.engineLabel, question: card.question, text: card.text, highlights: card.highlights }) %><% } %>
+</div>
+<% } %>

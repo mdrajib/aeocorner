@@ -1,8 +1,15 @@
 import { createDb } from '../db/index.js';
+import { createAuditLimiter } from '../lib/audit-limits.js';
+import { createAuditMail } from '../lib/audit-mail.js';
 import { loadConfig } from '../lib/config.js';
+import { createFunnel } from '../lib/funnel.js';
+import { createJobClient } from '../lib/jobs.js';
 import { createLogger } from '../lib/logger.js';
+import { createMailer } from '../lib/mailer.js';
+import { createOtpStore } from '../lib/otp.js';
 import { closeQueues, createQueues } from '../lib/queues.js';
 import { closeRedis, createRedis } from '../lib/redis.js';
+import { createTurnstile } from '../lib/turnstile.js';
 import { createApp } from './app.js';
 
 const config = loadConfig();
@@ -46,7 +53,37 @@ if (config.isProduction) {
   }
 }
 
-const app = createApp({ config, logger, db, queues });
+// The free audit is live when everything it needs is here: the database, Redis (codes, limits, the job queue) and a
+// Turnstile secret. Without them the audit form says the audit isn't open yet (src/web/routes/audit.js), which is
+// also how production stays closed until the founder's keys are in place (docs/MILESTONES.md 2.13).
+function buildAudit() {
+  if (!db || !redis || !queues || !config.turnstileSecretKey) return null;
+  if (!config.turnstileSiteKey) {
+    logger.warn(
+      'TURNSTILE_SITE_KEY is not set: the audit form has no bot check, so every audit will be refused.',
+    );
+  }
+  const prefix = config.redis.prefix;
+  return {
+    otp: createOtpStore(redis, { prefix, secret: config.appSecret }),
+    limiter: createAuditLimiter({ redis, prefix, db }),
+    turnstile: createTurnstile({
+      secretKey: config.turnstileSecretKey,
+      // Cloudflare's published test keys answer with a made-up hostname, so only a real deployment checks it.
+      expectedHostname: config.isProduction ? new URL(config.baseUrl).hostname : null,
+    }),
+    mail: createAuditMail({ mailer: createMailer({ config, logger }), baseUrl: config.baseUrl }),
+    jobs: createJobClient(queues),
+    funnel: createFunnel({ posthog: config.posthog, logger }),
+  };
+}
+const audit = buildAudit();
+if (!audit)
+  logger.warn(
+    'The free audit is closed: it needs DATABASE_URL, REDIS_URL and TURNSTILE_SECRET_KEY.',
+  );
+
+const app = createApp({ config, logger, db, queues, audit });
 
 const server = app.listen(config.port, () => {
   logger.info(

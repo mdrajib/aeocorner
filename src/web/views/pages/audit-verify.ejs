@@ -1,0 +1,24 @@
+<%# A7: the six-digit code. `maskedEmail` is the address with most of it hidden, so a shared screen doesn't give it away. %>
+<section class="py-12 sm:py-16">
+  <div class="container-narrow">
+    <div class="mx-auto max-w-xl">
+      <%- ui.stepper({ label: 'Free audit steps', steps: ['Your site', 'Confirm email', 'Checking AI', 'Report'], current: 1 }) %>
+      <div class="card mt-8">
+        <div class="card-body">
+          <h1 class="text-3xl">Enter your 6-digit code</h1>
+          <p class="text-ink-700 mt-3 break-words">We emailed a code to <strong><%= maskedEmail %></strong> to start the audit of <strong><%= domain %></strong>. It works for 10 minutes.</p>
+          <form method="post" action="/audit/<%= publicId %>/verify" class="mt-6 flex flex-col gap-4" id="audit-code-form">
+            <% if (banner) { %><%- ui.banner({ tone: banner.tone, text: banner.text }) %><% } %>
+            <div class="code-field"><%- ui.field({ id: 'audit-code', name: 'code', label: 'Code', type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', placeholder: '123456', required: true, error: errors.code, attrs: { maxlength: 12, pattern: '[0-9 ]*' } }) %></div>
+            <div><%- ui.button({ label: 'Start my audit', type: 'submit', size: 'lg', iconRight: 'arrow-right' }) %></div>
+          </form>
+          <form method="post" action="/audit/<%= publicId %>/resend" class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <span class="text-ink-700">Didn’t get it? Check your spam folder, or</span>
+            <%- ui.button({ label: 'Send a new code', type: 'submit', variant: 'ghost', size: 'sm' }) %>
+            <a href="/#audit">Wrong email?</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

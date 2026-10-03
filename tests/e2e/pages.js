@@ -28,6 +28,34 @@ export const appPages = [
   { name: 'invite-unknown', as: null, status: 404, path: (f) => `/invite/${f.unknownToken}` },
 ];
 
+// The free audit's own screens. The email step only exists as the answer to the form, so each entry says how to get to
+// its page: `open(page, fixtures)`. The audits are the ones tests/e2e/server.js seeded (queued, running, finished,
+// partial, failed), so no engine or worker is involved.
+/** @type {{ name: string, open: (page: import('@playwright/test').Page, f: any) => Promise<unknown> }[]} */
+export const auditPages = [
+  {
+    name: 'audit-email',
+    open: async (page) => {
+      await page.goto('/');
+      await page.locator('#hero-url').fill('example.com');
+      await page.getByRole('button', { name: 'Run my free audit' }).first().click();
+      await page
+        .getByRole('heading', { level: 1, name: 'Where should we send your report?' })
+        .waitFor();
+    },
+  },
+  { name: 'audit-verify', open: (page, f) => page.goto(`/audit/${f.audits.awaiting}/verify`) },
+  { name: 'audit-progress', open: (page, f) => page.goto(`/audit/${f.audits.running}/progress`) },
+  { name: 'audit-report', open: (page, f) => page.goto(`/r/${f.audits.complete}`) },
+  { name: 'audit-report-partial', open: (page, f) => page.goto(`/r/${f.audits.partial}`) },
+  { name: 'audit-report-failed', open: (page, f) => page.goto(`/r/${f.audits.failed}`) },
+];
+
+export async function openAuditPage(page, request, entry) {
+  const fixtures = await (await request.get('/__e2e/fixtures')).json();
+  return entry.open(page, fixtures);
+}
+
 /** Open a signed-in page: sign in as the right person, then land on the page. Returns the final response. */
 export async function openAppPage(page, request, entry) {
   const fixtures = await (await request.get('/__e2e/fixtures')).json();

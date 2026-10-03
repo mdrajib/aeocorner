@@ -1,0 +1,25 @@
+<%# A6: the work email step of the free audit. The website address travels in hidden fields (it is checked again on submit). %>
+<section class="py-12 sm:py-16">
+  <div class="container-narrow">
+    <div class="mx-auto max-w-xl">
+      <%- ui.stepper({ label: 'Free audit steps', steps: ['Your site', 'Confirm email', 'Checking AI', 'Report'], current: 1 }) %>
+      <div class="card mt-8">
+        <div class="card-body">
+          <h1 class="text-3xl">Where should we send your report?</h1>
+          <p class="text-ink-700 mt-3 break-words">Checking <strong><%= domain %></strong>. We email you a 6-digit code to confirm the address, then the report when it is ready.</p>
+          <form method="post" action="/audit/email" class="mt-6 flex flex-col gap-4" id="audit-email-form">
+            <% if (banner) { %><%- ui.banner({ tone: banner.tone, text: banner.text }) %><% } %>
+            <input type="hidden" name="url" value="<%= values.url %>">
+            <input type="hidden" name="competitor_url" value="<%= values.competitor_url %>">
+            <%- ui.field({ id: 'audit-email', name: 'email', label: 'Work email', type: 'email', autocomplete: 'email', inputmode: 'email', placeholder: 'you@yourcompany.com', required: true, value: email, error: errors.email }) %>
+            <%- ui.checkbox({ id: 'audit-consent', name: 'consent', label: 'Send me tips on AI visibility', hint: 'Optional, and separate from receiving your report. You can unsubscribe at any time.' }) %>
+            <% if (site.turnstileSiteKey) { %><div class="cf-turnstile" data-sitekey="<%= site.turnstileSiteKey %>" data-theme="light"></div><% } %>
+            <div><%- ui.button({ label: 'Send my code', type: 'submit', size: 'lg', iconRight: 'arrow-right' }) %></div>
+          </form>
+          <p class="text-ink-600 mt-4 text-sm">We use your email only to send your report and, if you ticked the box, tips. <a href="/privacy">Privacy policy</a>. By continuing you accept the <a href="/terms">Terms</a>.</p>
+          <p class="mt-2 text-sm"><a href="/#audit">Use a different website</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

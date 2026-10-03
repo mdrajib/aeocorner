@@ -113,6 +113,16 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - **A repeat audit of the same domain within 24 hours is served from the earlier `complete` one** (`audits.findReusable`, `completeFromCache`): no cost of its own, and `answers()` and `scans.forAudit()` read through `cached_from_audit_id`. A lead must exist before the audit row (`ck_audits_owner`), so the form step captures the lead first.
 - **`audits.finish`, `fail` and `completeFromCache` only write while the audit is queued or running:** a finished audit is final. A new `db.audits`, `db.abuse` or `db.leads` function needs a line in the pinned key lists in `tests/tenancy/repositories.test.js` and its own test.
 
+## Free audit pages (Milestone 2; routes in `src/web/routes/audit.js`, deployment in `docs/RUNBOOK_PROVISIONING.md`)
+
+- **The audit is live only when `createApp` gets `audit` services** (`{ otp, limiter, turnstile, mail, jobs, funnel }`, built in `src/web/server.js` when there is a database, Redis and `TURNSTILE_SECRET_KEY`). Without them `auditStubRoutes()` answers "The free audit opens soon" and stores nothing: that is how production stays closed until task 2.13. The public-page tests run in that stub mode.
+- **The flow:** `POST /audit` (address OK → the email step) → `POST /audit/email` (Turnstile, limits, lead, audit row, code emailed) → `/audit/:id/verify` → `/audit/:id/progress` (+ `/events`, server-sent) → `/r/:id`. The Turnstile widget is on the email step only (a token is single-use), and only that page loads Cloudflare's script (`turnstile: true` in the page's locals).
+- **The address is the secret.** `/r/:id` and everything under `/audit/:id/` use the audit's `public_id`; an unknown, malformed or unverified id is the same plain 404. These pages send `Cache-Control: no-store`, `Referrer-Policy: no-referrer` and noindex, and they never load PostHog (`QUIET` in the route file).
+- **The funnel is counted on the server** (`src/lib/funnel.js`, five events), with a random id per event and an allow-list of properties: no email, domain or audit id can be sent. Add an event or a property there, never inline.
+- **What a visitor sees is decided in `src/core/audit-progress.js`** (pure, tested): step states, answer cards, engine cards, the headline. An engine with no readable answer is "Couldn't check", never "Not mentioned"; a missing score is a `ui.stat` in the unknown state, never 0.
+- **The live page is complete in the HTML**; `components.js` swaps in the server's newer rendering (`partials/audit-feed.ejs`) and goes to the report on `done`. Nginx must not buffer `/audit/:id/events` (the config in `deploy/` has its own block for it).
+- **Browser tests:** `tests/e2e/server.js` mounts the real audit routes with a Redis prefix of its own, a Turnstile that passes and a job queue that only remembers; `/__e2e/audit/live` and `/finish` stand in for the worker. `tests/helpers/audit-fixtures.js` makes audits in any state for route and browser tests.
+
 ## Schema rules
 
 - **Tenancy:**

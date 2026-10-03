@@ -1,0 +1,112 @@
+<%# A9: the audit report, in the persuasion order of CUSTOMER_JOURNEY Stage 3. A score that could not be worked out is
+    "Couldn’t check", never 0 (ui.stat state "unknown"); an engine that failed is "Couldn’t check", never "Not mentioned". %>
+<% if (failed) { %>
+<section class="py-16">
+  <div class="container-narrow">
+    <%- ui.state({ kind: 'error', title: 'We couldn’t finish the audit of ' + domain, text: 'We tried to read the site and ask the AI engines, but the audit didn’t complete. Check that the website opens without a login and try again in a few minutes.', action: { label: 'Try another audit', href: '/#audit' } }) %>
+  </div>
+</section>
+<% } else { %>
+<%
+const known = (value) => Number.isInteger(value);
+const aeo = row.aeo_score;
+const date = row.finished_at ? new Date(row.finished_at).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
+const ago = hoursAgo === null ? '' : hoursAgo < 1 ? 'less than an hour' : hoursAgo + (hoursAgo === 1 ? ' hour' : ' hours');
+-%>
+<div class="bg-ink-50 border-ink-200 border-b py-10 sm:py-14">
+  <div class="container-page">
+    <p class="eyebrow">Free AEO audit</p>
+    <h1 class="mt-2 text-3xl break-words sm:text-4xl">AEO report for <%= domain %></h1>
+    <p class="text-ink-600 mt-2 text-sm"><%= date %> · <a href="/methodology#audit-score">How is this calculated?</a></p>
+    <p class="text-ink-900 mt-6 max-w-3xl text-xl leading-snug font-semibold" id="headline"><%= headline %></p>
+  </div>
+</div>
+
+<div class="container-page flex flex-col gap-12 py-10">
+  <% if (hoursAgo !== null) { %>
+  <%- ui.banner({ tone: 'info', text: 'We ran this audit ' + ago + ' ago, so here it is. Run a new one tomorrow to see changes.' }) %>
+  <% } %>
+  <% if (row.status === 'partial') { %>
+  <%- ui.banner({ tone: 'incomplete', title: 'Some of this audit is incomplete', text: couldntCheck.length ? 'We couldn’t check ' + couldntCheck.join(' or ') + ' this time. Those cells say so; they are not counted as “not mentioned”.' : 'Some answers couldn’t be read or the site couldn’t be fully scanned. Anything we couldn’t check is marked, and is not counted against you.' }) %>
+  <% } %>
+
+  <section aria-labelledby="scores-heading">
+    <h2 class="sr-only" id="scores-heading">Your scores</h2>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="card card-body"><%- known(aeo) ? ui.stat({ label: 'AEO Score', value: aeo + '/100', note: 'Readiness and visibility together' }) : ui.stat({ label: 'AEO Score', state: 'unknown', note: 'needs a readable site and enough readable AI answers' }) %></div>
+      <div class="card card-body"><%- known(row.readiness_score) ? ui.stat({ label: 'Readiness', value: String(row.readiness_score), note: 'How easy your site is for AI to read and quote' }) : ui.stat({ label: 'Readiness', state: 'unknown', note: 'we couldn’t read enough of your site' }) %></div>
+      <div class="card card-body"><%- known(row.visibility_score) ? ui.stat({ label: 'Visibility', value: String(row.visibility_score), note: 'How often AI names you in buyer questions' }) : ui.stat({ label: 'Visibility', state: 'unknown', note: 'too few AI answers could be read' }) %></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="engines-heading">
+    <h2 class="text-2xl" id="engines-heading">What each AI engine said</h2>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <% for (const card of cards) { %>
+      <div class="card card-body flex flex-col gap-3" data-engine="<%= card.code %>">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-base font-semibold tracking-normal"><%= card.label %></h3>
+          <%- ui.resultCell({ status: card.status, mentioned: card.mentioned }) %>
+        </div>
+        <% if (card.status === 'ok') { %>
+        <p class="text-ink-700 text-sm">Named you in <%= card.mentionedIn %> of <%= card.readable %> questions we could read.</p>
+        <% } else if (card.status === 'no_overview') { %>
+        <p class="text-ink-700 text-sm">Google showed no AI Overview for these questions, so there was nothing to read. That is not a miss.</p>
+        <% } else { %>
+        <p class="text-ink-700 text-sm">We couldn’t check <%= card.label %> this time. That is not counted against you.</p>
+        <% } %>
+        <% if (card.named.length) { %><p class="text-ink-700 text-sm"><span class="font-semibold">Also named:</span> <%= card.named.join(', ') %></p><% } %>
+      </div>
+      <% } %>
+    </div>
+  </section>
+
+  <section aria-labelledby="answers-heading">
+    <h2 class="text-2xl" id="answers-heading">The real answers</h2>
+    <p class="text-ink-700 mt-2 max-w-2xl">Excerpts of what each engine answered, with your name and the businesses it named highlighted.</p>
+    <% if (answers.length === 0) { %>
+    <div class="mt-4"><%- ui.state({ title: 'No answers we could read', text: 'None of the engines gave an answer we could read this time, so there is nothing to show here.' }) %></div>
+    <% } else { %>
+    <div class="mt-4 flex flex-col gap-4">
+      <% for (const a of answers) { %><div id="answer-<%= a.promptIdx %>-<%= a.engine %>"><%- ui.excerpt({ engine: a.engineLabel, question: a.question, text: a.text, highlights: a.highlights }) %></div><% } %>
+    </div>
+    <% } %>
+  </section>
+
+  <section aria-labelledby="fixes-heading">
+    <h2 class="text-2xl" id="fixes-heading">Your top fixes</h2>
+    <% if (fixes.length === 0) { %>
+    <div class="mt-4"><%- ui.state({ title: 'No fixes to list', text: row.status === 'complete' ? 'We didn’t find a check your site failed or an answer that needs a fix.' : 'We couldn’t check enough to rank fixes this time.' }) %></div>
+    <% } else { %>
+    <ol class="mt-4 flex flex-col gap-4">
+      <% fixes.forEach((fix, i) => { %>
+      <li class="card card-body" id="fix-<%= i + 1 %>">
+        <h3 class="text-lg tracking-normal"><span class="text-ink-500"><%= i + 1 %>.</span> <%= fix.title %></h3>
+        <p class="text-ink-700 mt-2"><%= fix.how %></p>
+        <% if (fix.evidence && fix.evidence.type === 'check') { %>
+        <p class="text-ink-600 mt-3 text-sm"><span class="font-semibold">Evidence:</span> <%= fix.evidence.summary || 'A check on your site' %> (<%= fix.evidence.points %> of <%= fix.evidence.possible %> points).</p>
+        <% } else if (fix.evidenceLinks && fix.evidenceLinks.length) { %>
+        <p class="text-ink-600 mt-3 text-sm"><span class="font-semibold">Evidence:</span>
+          <% fix.evidenceLinks.forEach((link, j) => { %><a href="<%= link.href %>"><%= link.label %></a><%= j < fix.evidenceLinks.length - 1 ? ' · ' : '' %><% }) %>
+        </p>
+        <% } %>
+      </li>
+      <% }) %>
+    </ol>
+    <% } %>
+  </section>
+
+  <section class="card card-body flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="next-heading">
+    <div>
+      <h2 class="text-xl" id="next-heading">Track this every week and fix it</h2>
+      <p class="text-ink-700 mt-1 max-w-xl">Start a 14-day trial: we ask each question several times a week, show whether AI answers really changed, and help you ship the fixes.</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <%- ui.button({ label: 'Start my 14-day trial', href: '/r/' + publicId + '/track', size: 'lg', iconRight: 'arrow-right' }) %>
+      <%- ui.button({ label: 'Email to a colleague', variant: 'secondary', size: 'lg', href: 'mailto:?subject=' + encodeURIComponent('AEO report for ' + domain) + '&body=' + encodeURIComponent(shareUrl) }) %>
+    </div>
+  </section>
+
+  <p class="text-ink-600 max-w-3xl text-sm" id="honesty-note"><span class="font-semibold">Honesty note:</span> this is a one-sample snapshot. AI answers vary from one ask to the next, so one answer is a hint, not a verdict. Tracking asks each question several times and shows a range. <a href="/methodology">Read the full methodology</a>.</p>
+</div>
+<% } %>

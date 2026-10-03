@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { appPages, openAppPage, pages } from '../pages.js';
+import { appPages, auditPages, openAppPage, openAuditPage, pages } from '../pages.js';
 
 // WCAG 2.1 AA (MVP §10). The gate is zero serious or critical violations on every registered page.
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
@@ -37,6 +37,35 @@ for (const entry of appPages) {
     await expectNoSeriousViolations(page);
   });
 }
+
+for (const entry of auditPages) {
+  test(`a11y: ${entry.name} (free audit)`, async ({ page, request }) => {
+    await openAuditPage(page, request, entry);
+    await expectNoSeriousViolations(page);
+  });
+}
+
+test('a11y: the audit email step in its error state', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#hero-url').fill('example.com');
+  await page.getByRole('button', { name: 'Run my free audit' }).first().click();
+  await page.getByLabel('Work email').fill('visitor@localhost');
+  await page.getByRole('button', { name: 'Send my code' }).click();
+  await expect(page.locator('#audit-email-error')).toBeVisible();
+  await expectNoSeriousViolations(page);
+});
+
+test('a11y: the audit code step in its error state', async ({ page, request }) => {
+  await openAuditPage(
+    page,
+    request,
+    auditPages.find((p) => p.name === 'audit-verify'),
+  );
+  await page.getByLabel('Code').fill('000000');
+  await page.getByRole('button', { name: 'Start my audit' }).click();
+  await expect(page.locator('#audit-code-error')).toBeVisible();
+  await expectNoSeriousViolations(page);
+});
 
 test('a11y: team page with the invite form in its error state', async ({ page, request }) => {
   await openAppPage(

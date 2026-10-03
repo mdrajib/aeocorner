@@ -13,7 +13,7 @@ import { pageRenderer } from './middleware/render.js';
 import { sameOriginOnly } from './middleware/same-origin.js';
 import { securityHeaders } from './middleware/security.js';
 import { appRoutes } from './routes/app.js';
-import { auditRoutes } from './routes/audit.js';
+import { auditRoutes, auditStubRoutes } from './routes/audit.js';
 import { authRoutes } from './routes/auth.js';
 import { inviteRoutes } from './routes/invite.js';
 import { healthRoutes, publicRoutes } from './routes/public.js';
@@ -36,6 +36,8 @@ const PUBLIC_DIR = join(WEB_DIR, 'public');
  *   provider       customer sign-in (Clerk). Defaults to Clerk if configured, else "sign-in unavailable".
  *   staffProvider  the same for the separate staff Clerk app.
  *   mailer         sends transactional email.
+ *   audit          { otp, limiter, turnstile, mail, jobs, funnel }: what the free audit needs (src/web/routes/audit.js).
+ *                  Without it (or without a database) the audit form says the audit isn't open yet.
  *   queues         the BullMQ queues (src/lib/queues.js). When given, the staff console shows them at /queues.
  *   extraRoutes(app) lets a test mount a route (e.g. one that throws) ahead of the 404 and error handlers.
  */
@@ -47,6 +49,7 @@ export function createApp({
   staffProvider = config.staff ? createStaffProvider(config) : null,
   mailer = createMailer({ config, logger }),
   queues = null,
+  audit = null,
   cloudflareKeys,
   extraRoutes,
 } = {}) {
@@ -98,7 +101,7 @@ export function createApp({
 
   app.use(seoRoutes(config));
   app.use(publicRoutes(config));
-  app.use(auditRoutes());
+  app.use(db && audit ? auditRoutes({ config, db, audit, logger }) : auditStubRoutes());
   if (db) {
     const auth = createAuthMiddleware({ config, provider, db });
     app.use(authRoutes({ config, provider, auth }));

@@ -148,6 +148,20 @@ export function fixtures(db) {
       return audit;
     },
 
+    /** An audit the web form made (and its lead), to be removed with the fixtures. Returns the audit row. */
+    async adoptAudit(publicId) {
+      const audit = await prisma.audits.findUnique({ where: { public_id: publicId } });
+      if (!audit) throw new Error(`No audit ${publicId}`);
+      auditIds.push(audit.id);
+      if (audit.lead_id) leadIds.push(audit.lead_id);
+      return audit;
+    },
+
+    /** Make a verified audit look older, to test what happens to one that waited too long. */
+    backdateVerification(auditId, verifiedAt) {
+      return prisma.audits.update({ where: { id: auditId }, data: { verified_at: verifiedAt } });
+    },
+
     /** The audit-log rows a staff member's actions wrote, oldest first. */
     staffAuditRows(staffId) {
       return prisma.admin_audit_log.findMany({

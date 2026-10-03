@@ -7,6 +7,7 @@ import { publicPages } from '../pages.js';
 const DISALLOWED = [
   '/_styleguide',
   '/audit',
+  '/r/',
   '/app',
   '/invite',
   '/sign-in',

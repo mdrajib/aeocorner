@@ -1,6 +1,7 @@
 <%
-// Props: idPrefix (unique on the page), variant (hero|compact), values ({ url, competitor_url }), errors ({ url, competitor_url }),
-//        turnstileSiteKey. Posts to /audit (a stub until Phase 7 — see BUILD_PLAN).
+// Props: idPrefix (unique on the page), variant (hero|compact), values ({ url, competitor_url }), errors ({ url, competitor_url }).
+// Posts to /audit, which asks for the email next. The bot check (Turnstile) is on that step, not here: a token is good
+// for one use, and nobody should solve a challenge before we know the address is worth auditing.
 const p = locals.idPrefix ?? 'audit';
 const values = locals.values ?? {};
 const errors = locals.errors ?? {};
@@ -16,7 +17,6 @@ const hasErrors = Object.keys(errors).length > 0;
       <%- ui.field({ id: p + '-competitor', name: 'competitor_url', label: 'Competitor website', type: 'text', inputmode: 'url', placeholder: 'rival.com', value: values.competitor_url, error: errors.competitor_url }) %>
     </div>
   </details>
-  <% if (locals.turnstileSiteKey) { %><div class="cf-turnstile" data-sitekey="<%= locals.turnstileSiteKey %>" data-theme="light"></div><% } %>
   <div>
     <%- ui.button({ label: 'Run my free audit', type: 'submit', size: 'lg', iconRight: 'arrow-right' }) %>
   </div>

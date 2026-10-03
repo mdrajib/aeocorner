@@ -1,0 +1,39 @@
+<div class="bg-ink-50 border-ink-200 border-b py-12 sm:py-16">
+  <div class="container-narrow">
+    <p class="eyebrow">Our crawler</p>
+    <h1 class="mt-2 text-4xl sm:text-5xl">AEOCornerBot</h1>
+    <p class="text-ink-700 mt-3 text-lg">AEOCornerBot is the crawler AEO Corner uses to read a website when someone runs a free audit or scans their own site. This page explains what it does and how to stop it.</p>
+  </div>
+</div>
+
+<div class="container-narrow py-12">
+  <article class="prose-aeo">
+    <h2>How to recognise it</h2>
+    <p>Every request names itself with this user agent:</p>
+    <pre><code>AEOCornerBot/1.0 (+https://aeocorner.com/bot)</code></pre>
+
+    <h2>What it does</h2>
+    <ul>
+      <li>It reads <strong>public</strong> pages only: your home page and a handful of key pages, plus <code>robots.txt</code> and your sitemap. It never signs in, fills in forms or guesses addresses.</li>
+      <li>It checks whether AI search crawlers (such as GPTBot, ClaudeBot and PerplexityBot) are allowed to read your site, and whether your pages are easy for AI to read and quote. The result goes to the person who asked for the audit.</li>
+      <li>It does not copy your site for resale and does not train AI models.</li>
+    </ul>
+
+    <h2>How politely it behaves</h2>
+    <ul>
+      <li>At most 2 requests at a time to your site, at least half a second apart.</li>
+      <li>A free audit reads at most a few dozen pages and runs once per website per day at most.</li>
+      <li>It follows <code>robots.txt</code>. If <code>robots.txt</code> can’t be fetched because your server is failing, it stays away rather than guess.</li>
+    </ul>
+    <p>The one exception is a signed-in customer scanning <strong>their own</strong> website: that scan can read pages <code>robots.txt</code> would otherwise hide from our bot, and the report says so. The free audit never does this.</p>
+
+    <h2>How to stop it</h2>
+    <p>Add this to your <code>robots.txt</code>:</p>
+    <pre><code>User-agent: AEOCornerBot
+Disallow: /</code></pre>
+    <p>Our audit will then say it was asked not to read your site, rather than scoring pages it didn’t see. To block only part of your site, list those paths under <code>Disallow</code> instead.</p>
+
+    <h2>Questions or a problem</h2>
+    <p>If AEOCornerBot is doing something you don’t expect, write to <a href="mailto:hello@aeocorner.com">hello@aeocorner.com</a> with your website address and the time you saw it. We’ll look at it and reply.</p>
+  </article>
+</div>

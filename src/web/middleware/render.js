@@ -56,7 +56,8 @@ export function pageRenderer({ config, viewsDir, publicDir }) {
         // Opt-in, per page. Analytics is for the public marketing pages only: the signed-in area, invitation
         // links and the staff console have private data or secrets in their URLs, which must never reach PostHog.
         analytics: Boolean(config.posthog) && locals.analytics === true,
-        hasAuditForm: layout === 'public' && (view === 'home' || showAuditBand),
+        // The page shows the Turnstile widget (the audit's email step), so it loads Cloudflare's script.
+        hasAuditForm: layout === 'public' && locals.turnstile === true,
         meta: buildMeta({ config, path: req.path, meta: locals.meta }),
       };
 

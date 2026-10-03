@@ -24,7 +24,7 @@ const principles = [
       <h1 class="mt-3 text-4xl sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]" id="audit-heading">Is AI sending your customers to your competitors?</h1>
       <p class="text-ink-200 mt-5 max-w-xl text-lg">See what ChatGPT, Perplexity, Gemini and Google AI Overviews actually say when someone asks about your market. Real answers, a score out of 100, and your top five fixes — in about five minutes.</p>
       <div class="card text-ink-900 mt-8 max-w-xl">
-        <div class="card-body"><%- ui.auditForm({ idPrefix: 'hero', variant: 'hero', values: audit && audit.values, errors: audit && audit.errors, turnstileSiteKey: site.turnstileSiteKey }) %></div>
+        <div class="card-body"><%- ui.auditForm({ idPrefix: 'hero', variant: 'hero', values: audit && audit.values, errors: audit && audit.errors }) %></div>
       </div>
     </div>
 

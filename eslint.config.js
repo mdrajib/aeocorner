@@ -49,6 +49,14 @@ export default [
     },
   },
   {
+    // The PM2 process file is CommonJS: PM2 loads it with require().
+    files: ['deploy/**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { require: 'readonly', module: 'writable', __dirname: 'readonly' },
+    },
+  },
+  {
     // Browser-side code: our own scripts, and the callbacks Playwright runs inside the page.
     files: ['src/web/public/js/**/*.js', 'tests/e2e/**/*.js'],
     languageOptions: { globals: browserGlobals },

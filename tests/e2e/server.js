@@ -4,11 +4,17 @@
 // seeded person. Nothing in this file ships: it lives under tests/ and nothing in src/ imports it.
 import { randomBytes } from 'node:crypto';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
+import { createAuditLimiter } from '../../src/lib/audit-limits.js';
+import { createAuditMail } from '../../src/lib/audit-mail.js';
 import { loadConfig } from '../../src/lib/config.js';
+import { createFunnel } from '../../src/lib/funnel.js';
 import { createLogger } from '../../src/lib/logger.js';
 import { memoryMailer } from '../../src/lib/mailer.js';
+import { createOtpStore } from '../../src/lib/otp.js';
 import { hashToken, newToken } from '../../src/lib/tokens.js';
 import { createApp } from '../../src/web/app.js';
+import { auditFixtures } from '../helpers/audit-fixtures.js';
+import { connectTestRedis } from '../helpers/redis.js';
 
 const config = loadConfig(process.env);
 const logger = createLogger(config);
@@ -99,10 +105,43 @@ const tokens = {
 };
 
 const fixtureInfo = {
+  get audits() {
+    return auditSeeds;
+  },
   orgId: org.public_id,
   tokens,
   unknownToken: 'x'.repeat(43),
   roles: Object.keys(people),
+};
+
+// --- the free audit -----------------------------------------------------------------------------------
+// The real form, code store and limits (Redis, under a private key prefix) with a Turnstile that always passes and a
+// job queue that only remembers: no worker runs here, so audits in these tests are moved along by /__e2e/audit/*.
+const testRedis = connectTestRedis({ role: 'producer' });
+const auditFx = auditFixtures({ db, fx });
+const auditSeeds = {
+  awaiting: (await auditFx.seedAudit('awaiting_verification')).public_id,
+  queued: (await auditFx.seedAudit('queued')).public_id,
+  running: (await auditFx.liveAudit()).public_id,
+  complete: (await auditFx.finishedAudit()).public_id,
+  partial: (await auditFx.finishedAudit({ status: 'partial', failEngine: 'gemini' })).public_id,
+  failed: await (async () => {
+    const audit = await auditFx.seedAudit('running');
+    await db.audits.fail(audit.id, 'site_unreadable');
+    return audit.public_id;
+  })(),
+};
+const queuedJobs = [];
+const audit = {
+  otp: createOtpStore(testRedis.redis, {
+    prefix: testRedis.prefix,
+    secret: 'e2e-otp-secret-e2e-otp-secret',
+  }),
+  limiter: createAuditLimiter({ redis: testRedis.redis, prefix: testRedis.prefix, db }),
+  turnstile: { verify: async () => ({ ok: true }) },
+  mail: createAuditMail({ mailer, baseUrl: config.baseUrl }),
+  jobs: { add: async (name, data) => void queuedJobs.push({ name, data }) },
+  funnel: createFunnel({ posthog: null }),
 };
 
 // --- the app ----------------------------------------------------------------------------------------
@@ -112,6 +151,7 @@ const app = createApp({
   db,
   provider,
   mailer,
+  audit,
   extraRoutes(application) {
     application.get('/__e2e/fixtures', (req, res) => res.json(fixtureInfo));
 
@@ -133,6 +173,26 @@ const app = createApp({
       }
     });
 
+    // An audit that is running, and a way to finish it: the page's live update needs something to wait for.
+    application.get('/__e2e/audit/live', async (req, res, next) => {
+      try {
+        res.json({ publicId: (await auditFx.liveAudit()).public_id });
+      } catch (err) {
+        next(err);
+      }
+    });
+    application.get('/__e2e/audit/finish', async (req, res, next) => {
+      try {
+        const found = await db.audits.getByPublicId(String(req.query.id));
+        if (!found) return res.status(404).send('no such audit');
+        await auditFx.completeLive(found);
+        res.json({ ok: true });
+      } catch (err) {
+        next(err);
+      }
+    });
+    application.get('/__e2e/audit/jobs', (req, res) => res.json(queuedJobs));
+
     // The emails the app "sent", newest last, so a test can click the link inside.
     application.get('/__e2e/mail', (req, res) =>
       res.json(
@@ -149,6 +209,7 @@ const server = app.listen(config.port, '127.0.0.1', () => {
 async function shutdown() {
   server.close();
   await fx.cleanup().catch(() => {});
+  await testRedis.close().catch(() => {});
   await db.close().catch(() => {});
   process.exit(0);
 }

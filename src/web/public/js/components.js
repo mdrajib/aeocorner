@@ -86,3 +86,29 @@ function showToast({ message, tone = 'info' }) {
 }
 
 window.addEventListener('toast', (event) => showToast(event.detail ?? {}));
+
+// The free audit's live page (UI_DESIGN A8). The server renders the whole feed, so the page is complete without
+// this script; with it, the feed is swapped for the server's newer rendering as steps finish (server-sent events,
+// /audit/:id/events) and the visitor is sent to the report when it is ready. The HTML is our own server's output,
+// built from escaped templates; the destination comes from the page, never from the stream.
+(function () {
+  const root = document.querySelector('[data-audit-progress]');
+  if (!root || typeof window.EventSource === 'undefined') return;
+  const source = new window.EventSource(root.dataset.events);
+  source.addEventListener('progress', (event) => {
+    try {
+      root.innerHTML = JSON.parse(event.data).html;
+    } catch {
+      // A garbled update is skipped: the next one replaces it.
+    }
+  });
+  source.addEventListener('done', () => {
+    source.close();
+    window.location.assign(root.dataset.report);
+  });
+  source.addEventListener('error', () => {
+    // The browser retries by itself; if it gave up (the connection was refused, say), reload to try again.
+    if (source.readyState === window.EventSource.CLOSED)
+      setTimeout(() => window.location.reload(), 8000);
+  });
+})();

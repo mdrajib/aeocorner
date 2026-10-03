@@ -31,6 +31,15 @@ export const publicPages = [
     priority: 0.3,
   },
   {
+    path: '/bot',
+    view: 'bot',
+    title: 'AEOCornerBot: our crawler | AEO Corner',
+    description:
+      'What AEOCornerBot is, how to recognise it, how politely it crawls, and how to block it with robots.txt.',
+    lastmod: '2026-10-03',
+    priority: 0.3,
+  },
+  {
     path: '/privacy',
     view: 'privacy',
     title: 'Privacy Policy | AEO Corner',

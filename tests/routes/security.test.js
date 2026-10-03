@@ -67,15 +67,11 @@ describe('optional integrations are wired into the page only when configured', (
     assert.match(text, /<script src="\/js\/analytics\.js\?v=[^"]+" defer>/);
   });
 
-  test('Turnstile: the widget renders in the audit form and the script loads from Cloudflare', async () => {
+  test('Turnstile: the home page loads nothing from Cloudflare (the check is on the email step)', async () => {
     const { text } = await appFor(envs.production, {
       env: { TURNSTILE_SITE_KEY: '0x4AAAAAAA' },
     }).get('/');
-    assert.match(text, /<div class="cf-turnstile" data-sitekey="0x4AAAAAAA"/);
-    assert.match(
-      text,
-      /<script src="https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js" async defer>/,
-    );
+    assert.doesNotMatch(text, /cf-turnstile|challenges\.cloudflare\.com/);
   });
 });
 

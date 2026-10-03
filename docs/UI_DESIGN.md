@@ -110,12 +110,12 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | A3 | Terms of Service | all | `/terms` | public | Phase 1 ✅ (draft text) | A |
 | A4 | Privacy Policy and subprocessors | all | `/privacy` | public | Phase 1 ✅ (draft text) | A |
 | A5 | 404, error and maintenance pages | all | n/a | public | **Phase 1 ✅** | A |
-| A6 | Audit step 2: work email + marketing-consent checkbox | 2 Free audit | `/audit/email` | public | Phase 7 | A |
-| A7 | Audit step 3: 6-digit code | 2 | `/audit/verify` | public | Phase 7 | A |
-| A8 | Audit progress (live) | 2 | `/audit/:id/progress` | public | Phase 7 | A |
-| A9 | **Audit report** (read-only, unguessable link) | 3 Report | `/r/:token` | public | Phase 7 | A |
-| A10 | Audit edge-case messages: cached report, limit reached, site blocks our crawler, site unreachable, non-English | 2 | in A6 / A8 / A9 | public | Phase 7 | A |
-| A11 | Crawler identity page (the URL in our bot's user agent) | n/a | `/bot` | public | Phase 4 | A |
+| A6 | Audit step 2: work email + marketing-consent checkbox | 2 Free audit | `/audit/email` (the answer to the form) | public | Phase 7 ✅ | A |
+| A7 | Audit step 3: 6-digit code | 2 | `/audit/:id/verify` | public | Phase 7 ✅ | A |
+| A8 | Audit progress (live) | 2 | `/audit/:id/progress` | public | Phase 7 ✅ | A |
+| A9 | **Audit report** (read-only, unguessable link) | 3 Report | `/r/:id` | public | Phase 7 ✅ | A |
+| A10 | Audit edge-case messages: cached report, limit reached, site blocks our crawler, site unreachable, non-English | 2 | in A6 / A8 / A9 | public | Phase 7 ✅ except non-English (no message yet) | A |
+| A11 | Crawler identity page (the URL in our bot's user agent) | n/a | `/bot` | public | Phase 7 ✅ | A |
 | A12 | Emails: verification code ✅, "Your AEO report is ready", nurture (3) | 2, 3 | n/a | email | Phase 1 / 7 | A |
 | B1 | Sign up and sign in | 4 Trial | `/sign-in`, `/sign-up` → Clerk's hosted pages ([ADR-0004](adr/0004-clerk-hosted-sign-in.md)) | Clerk | **Phase 2 ✅** | B |
 | B1a | Sign-in unavailable (a server with no Clerk keys) | 4 | `/sign-in`, `/app` | public | **Phase 2 ✅** | B |

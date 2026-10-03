@@ -1,0 +1,25 @@
+<%# A8: the live page. The feed is complete in the HTML, so the page works with scripts off (reload to see more);
+    with scripts on, /audit/:id/events (server-sent events) swaps it in as steps finish and sends the visitor to the report. %>
+<section class="py-12 sm:py-16">
+  <div class="container-narrow">
+    <div class="mx-auto max-w-2xl">
+      <%- ui.stepper({ label: 'Free audit steps', steps: ['Your site', 'Confirm email', 'Checking AI', 'Report'], current: 2 }) %>
+      <div class="card mt-8">
+        <div class="card-body">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h1 class="text-3xl [overflow-wrap:anywhere]">Checking <%= domain %></h1>
+            <p class="text-ink-700 text-sm">Usually 4 to 8 minutes</p>
+          </div>
+          <% if (delayedHours) { %>
+          <div class="mt-4"><%- ui.banner({ tone: 'info', title: 'We’re at today’s limit for free audits', text: 'Your audit may start after midnight UTC, in about ' + delayedHours + (delayedHours === 1 ? ' hour' : ' hours') + '. You don’t need to wait here: we’ll email your report when it is ready.' }) %></div>
+          <% } %>
+          <div class="mt-6" id="audit-feed" data-audit-progress data-events="/audit/<%= publicId %>/events" data-report="/r/<%= publicId %>" aria-live="polite">
+            <%- include('../partials/audit-feed', { progress, cards, ui }) %>
+          </div>
+          <p class="text-ink-700 mt-8 text-sm">You can close this tab. We’ll email you the link to your report when it is ready.</p>
+          <noscript><p class="text-ink-700 mt-2 text-sm">Scripts are off, so this page won’t update by itself. Reload it to see more, or wait for the email.</p></noscript>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
