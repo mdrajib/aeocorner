@@ -794,6 +794,57 @@ describe('system lookups (the reviewed cross-organization set)', () => {
   });
 });
 
+describe('free-audit lookups (global by design: an audit belongs to a lead, not an organization)', () => {
+  test('an audit’s scan is invisible to every organization, and an organization’s scan to the audit door', async () => {
+    const audit = await fx.audit();
+    const auditScan = await db.audits.scans.start({ auditId: audit.id, rubricVersion: 'r-test' });
+    const project = await fx.project(A.org.id, 'Audit-door project');
+    const orgScan = await db.forOrg(A.org.id).scans.create({
+      projectId: project.id,
+      rubricVersion: 'r-test',
+    });
+
+    assert.equal(await db.forOrg(A.org.id).scans.get(auditScan.id), null);
+    assert.equal(await db.forOrg(B.org.id).scans.get(auditScan.id), null);
+    assert.equal(
+      await db
+        .forOrg(A.org.id)
+        .scans.get(orgScan.id)
+        .then((s) => s?.id),
+      orgScan.id,
+    );
+    assert.equal(
+      await db.audits.scans.forAudit(audit.id).then((s) => s.id),
+      auditScan.id,
+      'the audit sees only its own scan',
+    );
+    assert.equal(await db.audits.scans.checks(orgScan.id).then((c) => c.length), 0);
+  });
+
+  test('the audit repositories are a reviewed list; add a function, add its test, list it', () => {
+    assert.deepEqual(Object.keys(db.audits).sort(), [
+      'answers',
+      'create',
+      'fail',
+      'finish',
+      'get',
+      'getByPublicId',
+      'saveAnswer',
+      'saveSetup',
+      'scans',
+      'start',
+      'verify',
+    ]);
+    assert.deepEqual(Object.keys(db.audits.scans).sort(), [
+      'checks',
+      'finish',
+      'forAudit',
+      'start',
+    ]);
+    assert.deepEqual(Object.keys(db.leads).sort(), ['capture', 'markVerified']);
+  });
+});
+
 describe('coverage: no repository function without a leak test', () => {
   // Update this list in the same commit that adds a function to org-scoped.js or org-usage.js.
   const COVERED = {

@@ -1,4 +1,6 @@
 import { createPrisma } from './client.js';
+import { auditsRepo } from './repos/audits.js';
+import { leadsRepo } from './repos/leads.js';
 import { invitationLinksRepo } from './repos/invitation-links.js';
 import { orgScopedRepos } from './repos/org-scoped.js';
 import { organizationsRepo } from './repos/organizations.js';
@@ -14,7 +16,7 @@ export { DomainError } from './errors.js';
  * The data layer's public face. The rest of the app never sees Prisma: it gets these repositories.
  * `prisma.*` and raw SQL are allowed only inside src/db (an ESLint rule enforces it).
  *
- * Global repositories (users, organizations, webhookEvents, invitationLinks, staff) cover data that
+ * Global repositories (users, organizations, webhookEvents, invitationLinks, staff, audits) cover data that
  * isn't owned by one organization or that is looked up before the organization is known. `system` holds the
  * few cross-organization lookups the background worker makes (due projects, spend by organization, provider
  * health); see repos/system.js. `reference` is shared reference data (the engines and their provider routing).
@@ -28,6 +30,8 @@ export function createDb(options) {
     invitationLinks: invitationLinksRepo(prisma),
     webhookEvents: webhookEventsRepo(prisma),
     staff: staffRepo(prisma),
+    audits: auditsRepo(prisma),
+    leads: leadsRepo(prisma),
     system: systemRepos(prisma),
     reference: referenceRepos(prisma),
     forOrg: (orgId) => orgScopedRepos(prisma, orgId),

@@ -124,22 +124,22 @@ flowchart LR
 
 | # | Task | Needs |
 |---|---|---|
-| 1.01 | 🔒 Write the `audits` repository (`src/db/repos/audits.js`) | — |
-| 1.02 | 🔒 Finish `scan-results.js` and move `org-scans` onto it | — |
-| 1.03 | Persist audit-owned scans (`site_scans.audit_id`, no organization) | 1.01, 1.02 |
-| 1.04 | List the audit lookups in the tenancy coverage test as reviewed cross-org access | 1.01 |
+| 1.01 | 🔒 Write the `audits` repository (`src/db/repos/audits.js`) ✅ 2026-10-03 | — |
+| 1.02 | 🔒 Finish `scan-results.js` and move `org-scans` onto it ✅ 2026-10-03 | — |
+| 1.03 | Persist audit-owned scans (`site_scans.audit_id`, no organization) ✅ 2026-10-03 | 1.01, 1.02 |
+| 1.04 | List the audit lookups in the tenancy coverage test as reviewed cross-org access ✅ 2026-10-03 | 1.01 |
 | 1.05 | 🔒 Build the shared Brand Kit extractor, lite mode (`src/llm/brand-kit.js`) | — |
 | 1.06 | 🔒 Build the shared question generator, 5-question audit mode | — |
 | 1.07 | 🔒 Build the visibility scorer in `src/core` (pure) | — |
 | 1.08 | Build the fix-list generator from readiness checks and answer gaps | 1.07 |
-| 1.09 | Store `audit_answers` per engine and question | 1.01 |
+| 1.09 | Store `audit_answers` per engine and question ✅ 2026-10-03 | 1.01 |
 | 1.10 | Build the `audit.run` job: scan → brand kit → questions → collect ×4 → sync extract → score → fixes | 1.03, 1.05, 1.06, 1.08, 1.09 |
 | 1.11 | Add a daily global audit budget to the spend guard | — |
 | 1.12 | Reuse a recent audit of the same domain instead of re-running | 1.10 |
 | 1.13 | Build OTP codes: issue, store hashed, expire, limit attempts | 1.01 |
 | 1.14 | Verify Cloudflare Turnstile tokens server-side | — |
 | 1.15 | Rate-limit audits by IP, email and domain; write `abuse_blocks` | 1.01 |
-| 1.16 | Capture leads into `leads` with the consent flag as ticked | 1.01 |
+| 1.16 | Capture leads into `leads` with the consent flag as ticked ✅ 2026-10-03 | 1.01 |
 | 1.17 | Send the verification-code and report-ready emails through Resend | 1.13 |
 
 **Parallel:** two lanes from the start. **Lane A** (data): 1.01, 1.02 → 1.03, 1.04, 1.09, 1.13, 1.15, 1.16. **Lane B** (logic): 1.05, 1.06, 1.07, 1.11, 1.14 → 1.08. Both join at 1.10.

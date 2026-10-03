@@ -35,6 +35,8 @@ export function fixtures(db) {
   const userIds = [];
   const orgIds = [];
   const staffIds = [];
+  const auditIds = [];
+  const leadIds = [];
   const webhookIds = [];
   // Webhook deliveries this file makes through the route carry this prefix, so its cleanup removes its own rows and
   // never another file's mid-test (a shared prefix let one file delete a delivery another was still processing).
@@ -123,6 +125,27 @@ export function fixtures(db) {
       });
       staffIds.push(staff.id);
       return staff;
+    },
+
+    /** A lead (an address that asked for an audit), removed with the fixtures. */
+    async lead({ email = `lead-${unique()}@example.test`, ...rest } = {}) {
+      const lead = await db.leads.capture({ email, ...rest });
+      leadIds.push(lead.id);
+      return lead;
+    },
+
+    /** A free audit awaiting verification, on a domain no other test uses. */
+    async audit(overrides = {}) {
+      const domain = overrides.domain ?? `audit-${unique()}.example.test`;
+      const lead = overrides.leadId === undefined ? await this.lead() : { id: overrides.leadId };
+      const audit = await db.audits.create({
+        inputUrl: `https://${domain}/`,
+        domain,
+        leadId: lead.id,
+        ...overrides,
+      });
+      auditIds.push(audit.id);
+      return audit;
     },
 
     /** The audit-log rows a staff member's actions wrote, oldest first. */
@@ -398,6 +421,12 @@ export function fixtures(db) {
         });
         await prisma.organizations.deleteMany({ where: { id: { in: orgs } } });
       }
+      if (auditIds.length) {
+        // An audit's scans are not deleted with it (the foreign key is NO ACTION); its answers are.
+        await prisma.site_scans.deleteMany({ where: { audit_id: { in: auditIds } } });
+        await prisma.audits.deleteMany({ where: { id: { in: auditIds } } });
+      }
+      if (leadIds.length) await prisma.leads.deleteMany({ where: { id: { in: leadIds } } });
       if (userIds.length) await prisma.users.deleteMany({ where: { id: { in: userIds } } });
       // Deliveries this file sent through the route carry its own prefix; the others are tracked by id.
       await prisma.webhook_events.deleteMany({
