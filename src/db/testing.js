@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { ulid } from '../lib/ulid.js';
 import { createDb } from './index.js';
 import { transaction } from './transaction.js';
@@ -174,6 +174,45 @@ export function fixtures(db) {
       });
     },
 
+    /**
+     * A tracked prompt in a project (the Prompt Manager arrives in Phase 8). `searchQuery` is the keyword form
+     * AI Overviews use.
+     */
+    async prompt(project, { text, searchQuery = null, country = 'US', language = 'en' } = {}) {
+      const wording = text ?? `What is the best dental software? ${unique()}`;
+      return prisma.prompts.create({
+        data: {
+          org_id: project.org_id,
+          project_id: project.id,
+          text: wording,
+          text_hash: createHash('sha256').update(wording).digest(),
+          search_query: searchQuery,
+          intent: 'discovery',
+          country,
+          language,
+          source: 'manual',
+        },
+      });
+    },
+
+    /** A tracking run of a project (the orchestrator arrives in Phase 9). */
+    async run(project, { runDate = new Date() } = {}) {
+      return prisma.runs.create({
+        data: {
+          org_id: project.org_id,
+          project_id: project.id,
+          slot_key: `m-${ulid()}`,
+          trigger_type: 'manual',
+          run_date: new Date(runDate.toISOString().slice(0, 10)),
+          status: 'collecting',
+        },
+      });
+    },
+
+    /** Read a ledger row by its key, whoever's it is: to check what a job wrote. */
+    ledgerRow: (idempotencyKey) =>
+      prisma.usage_ledger.findUnique({ where: { idempotency_key: idempotencyKey } }),
+
     suspendStaff(staffId) {
       return prisma.staff_users.update({ where: { id: staffId }, data: { status: 'suspended' } });
     },
@@ -231,6 +270,9 @@ export function fixtures(db) {
         // Scans reference projects, and take their pages and check results with them.
         await prisma.site_scans.deleteMany({ where });
         await prisma.site_pages.deleteMany({ where });
+        await prisma.answer_snapshots.deleteMany({ where });
+        await prisma.runs.deleteMany({ where });
+        await prisma.prompts.deleteMany({ where });
         await prisma.projects.deleteMany({ where });
         await prisma.users.updateMany({
           where: { last_org_id: { in: orgs } },

@@ -16,7 +16,8 @@ import { Deferral } from './deferral.js';
  *
  * Waiting (1-4) throws a `Deferral`, which the worker turns into a delayed job that does not use up an attempt.
  * The caller's function must return `{ value, usage }` where `usage` describes what the call cost; a call that
- * returns no usage is a bug (every external call is written to the ledger), so it throws.
+ * returns no usage is a bug (every paid call is written to the ledger), so it throws. A call the provider does not
+ * charge for says `usage: { free: true }` and skips steps 6 and 7 (polling a queued DataForSEO task).
  */
 export function createProviderCaller({
   db,
@@ -83,9 +84,12 @@ export function createProviderCaller({
       await health.record(provider, engine, {
         outcome: 'success',
         ms,
-        costMicros: toMicros(usage.costUsd),
+        costMicros: usage.free ? 0 : toMicros(usage.costUsd),
         probe: verdict === 'probe',
       });
+      // A call the provider does not charge for (asking whether a queued task is ready) still counts against its
+      // rate limit and its health, but it is not a cost, so it writes no ledger row. It has to say so explicitly.
+      if (usage.free === true) return { value: outcome.value, ledger: null };
 
       const ledger = await db.forOrg(orgId).usage.record({
         projectId,

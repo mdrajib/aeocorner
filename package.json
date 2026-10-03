@@ -30,6 +30,7 @@
     "vendor": "node scripts/vendor.js",
     "staff:invite": "node scripts/staff-invite.js",
     "scan": "node scripts/scan-site.js",
+    "engines:try": "node scripts/engine-try.js",
     "start": "node src/web/server.js"
   },
   "dependencies": {

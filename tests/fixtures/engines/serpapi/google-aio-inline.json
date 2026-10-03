@@ -1,0 +1,102 @@
+{
+  "search_metadata": {
+    "id": "66fe1a2b3c4d5e6f7a8b9c0d",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/0a1b2c3d4e5f6a7b/66fe1a2b3c4d5e6f7a8b9c0d.json",
+    "created_at": "2026-10-03 09:30:11 UTC",
+    "processed_at": "2026-10-03 09:30:11 UTC",
+    "google_url": "https://www.google.com/search?q=best+dental+practice+management+software&oq=best+dental+practice+management+software&hl=en&gl=us&sourceid=chrome&ie=UTF-8",
+    "total_time_taken": 2.41
+  },
+  "search_parameters": {
+    "engine": "google",
+    "q": "best dental practice management software",
+    "google_domain": "google.com",
+    "hl": "en",
+    "gl": "us",
+    "device": "desktop"
+  },
+  "search_information": {
+    "query_displayed": "best dental practice management software",
+    "total_results": 41200000
+  },
+  "ai_overview": {
+    "text_blocks": [
+      {
+        "type": "paragraph",
+        "snippet": "The best dental practice management software depends on practice size and budget. Commonly recommended options include:",
+        "reference_indexes": [0]
+      },
+      {
+        "type": "list",
+        "list": [
+          {
+            "title": "Dentrix Ascend:",
+            "snippet": "Cloud-based, with strong insurance and scheduling tools.",
+            "reference_indexes": [0, 1]
+          },
+          {
+            "title": "Open Dental:",
+            "snippet": "Affordable and highly customizable.",
+            "reference_indexes": [2]
+          },
+          {
+            "title": "Curve Dental:",
+            "snippet": "All-in-one cloud software for small practices.",
+            "reference_indexes": [0],
+            "list": [
+              {
+                "title": "Best for:",
+                "snippet": "practices without in-house IT.",
+                "reference_indexes": [0]
+              }
+            ]
+          }
+        ]
+      },
+      { "type": "heading", "snippet": "What to look for" },
+      {
+        "type": "expandable",
+        "title": "Key features",
+        "text_blocks": [
+          {
+            "type": "paragraph",
+            "snippet": "Scheduling, charting, billing and patient communication.",
+            "reference_indexes": [1]
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "title": "Best Dental Practice Management Software 2026",
+        "link": "https://www.capterra.com/dental-software/",
+        "snippet": "Compare the top-rated dental software...",
+        "source": "Capterra",
+        "index": 0
+      },
+      {
+        "title": "Open Dental Software",
+        "link": "https://www.opendental.com/",
+        "snippet": "Open Dental is a full-featured practice management system.",
+        "source": "Open Dental",
+        "index": 2
+      },
+      {
+        "title": "Dentrix Ascend",
+        "link": "https://www.dentrixascend.com/",
+        "snippet": "Cloud-based dental practice management.",
+        "source": "Dentrix",
+        "index": 1
+      }
+    ]
+  },
+  "organic_results": [
+    {
+      "position": 1,
+      "title": "Best Dental Practice Management Software 2026",
+      "link": "https://www.capterra.com/dental-software/",
+      "source": "Capterra"
+    }
+  ]
+}

@@ -31,20 +31,25 @@ const EXTENSIONS = {
   robots: 'robots.txt',
   sitemap: 'sitemap.xml',
   llms: 'llms.txt',
+  // An AI engine's answer: the provider's raw response and our normalized reading of it, as one JSON document.
+  answer: 'json',
 };
+
+// Answers live apart from crawled pages, so each can have its own lifecycle rule.
+const AREAS = { answer: 'answers' };
 
 export const sha256Hex = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 /**
- * `crawl/2026/10/<sha256>.html`. The year and month make it possible to apply Spaces' lifecycle rule
- * ("delete raw payloads after 13 months", MVP §8.3) by prefix.
+ * `crawl/2026/10/<sha256>.html` or `answers/2026/10/<sha256>.json`. The year and month make it possible to apply
+ * Spaces' lifecycle rule ("delete raw payloads after 13 months", MVP §8.3) by prefix.
  */
 export function rawKey({ kind, body, at = new Date() }) {
   const extension = EXTENSIONS[kind];
   if (!extension) throw new TypeError(`Unknown raw payload kind: ${kind}`);
   const y = at.getUTCFullYear();
   const m = String(at.getUTCMonth() + 1).padStart(2, '0');
-  return `crawl/${y}/${m}/${sha256Hex(body)}.${extension}`;
+  return `${AREAS[kind] ?? 'crawl'}/${y}/${m}/${sha256Hex(body)}.${extension}`;
 }
 
 /** S3 metadata travels as HTTP headers: plain ASCII, short. The page URL is percent-encoded and clipped. */

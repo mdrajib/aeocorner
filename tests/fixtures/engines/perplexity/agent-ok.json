@@ -1,0 +1,84 @@
+{
+  "id": "resp_6a1f0c2e9b7d4e18a3c5",
+  "object": "response",
+  "status": "completed",
+  "model": "perplexity/sonar",
+  "created_at": 1791019200,
+  "completed_at": 1791019204,
+  "error": null,
+  "output": [
+    {
+      "type": "search_results",
+      "queries": ["best dental practice management software small clinic"],
+      "results": [
+        {
+          "id": 1,
+          "title": "Best Dental Practice Management Software 2026",
+          "url": "https://www.capterra.com/dental-software/",
+          "snippet": "Compare the top-rated dental software for small practices.",
+          "date": "2026-07-02",
+          "last_updated": "2026-09-20",
+          "source": "web"
+        },
+        {
+          "id": 2,
+          "title": "Open Dental Software",
+          "url": "https://www.opendental.com/",
+          "snippet": "Open Dental is a full-featured practice management system.",
+          "date": null,
+          "last_updated": "2026-08-14",
+          "source": "web"
+        },
+        {
+          "id": 3,
+          "title": "r/Dentistry: what PMS do you use?",
+          "url": "https://www.reddit.com/r/Dentistry/comments/1abcde/what_pms_do_you_use/",
+          "snippet": "We switched to Curve last year and haven't looked back.",
+          "date": "2026-05-11",
+          "last_updated": "2026-05-12",
+          "source": "web"
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "For a small clinic, **Curve Dental** and **Open Dental** come up most often[1][3]. Open Dental is the cheapest and most flexible[2], while Curve is fully cloud-based and needs little IT support[3]. **Dentrix Ascend** is a solid choice if you already use Henry Schein products[1].",
+          "annotations": [
+            {
+              "type": "url_citation",
+              "url": "https://www.capterra.com/dental-software/",
+              "title": "Best Dental Practice Management Software 2026",
+              "start_index": 77,
+              "end_index": 80
+            },
+            {
+              "type": "url_citation",
+              "url": "https://www.curvedental.com/why-curve",
+              "title": "Why Curve Dental",
+              "start_index": 200,
+              "end_index": 203
+            }
+          ],
+          "logprobs": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 1180,
+    "output_tokens": 96,
+    "total_tokens": 1276,
+    "cost": {
+      "currency": "USD",
+      "input_cost": 0.00118,
+      "output_cost": 0.000096,
+      "tool_calls_cost": 0.0025,
+      "total_cost": 0.003776
+    }
+  }
+}

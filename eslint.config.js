@@ -40,6 +40,8 @@ export default [
         clearInterval: 'readonly',
         setImmediate: 'readonly',
         TextDecoder: 'readonly',
+        URLSearchParams: 'readonly',
+        structuredClone: 'readonly',
       },
     },
     rules: {

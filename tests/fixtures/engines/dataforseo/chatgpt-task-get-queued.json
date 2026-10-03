@@ -1,0 +1,39 @@
+{
+  "version": "0.1.20260930",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.0412 sec.",
+  "cost": 0,
+  "tasks_count": 1,
+  "tasks_error": 1,
+  "tasks": [
+    {
+      "id": "10031512-1535-0636-0000-7f0c2a4e1b11",
+      "status_code": 40602,
+      "status_message": "Task In Queue.",
+      "time": "0.0021 sec.",
+      "cost": 0,
+      "result_count": 0,
+      "path": [
+        "v3",
+        "ai_optimization",
+        "chat_gpt",
+        "llm_scraper",
+        "task_get",
+        "advanced",
+        "10031512-1535-0636-0000-7f0c2a4e1b11"
+      ],
+      "data": {
+        "api": "ai_optimization",
+        "function": "llm_scraper",
+        "se": "chat_gpt",
+        "keyword": "What is the best dental practice management software for a small clinic?",
+        "location_code": 2840,
+        "language_code": "en",
+        "device": "desktop",
+        "os": "windows"
+      },
+      "result": null
+    }
+  ]
+}

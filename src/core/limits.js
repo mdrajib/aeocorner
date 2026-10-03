@@ -1,10 +1,17 @@
 /**
  * How hard the worker may push, in one place.
  *
- * PROVIDER_LIMITS are token buckets: `capacity` is the burst, `refillPerSec` the sustained rate. Phase 5 replaces
- * `default` with measured values for each provider once the adapters have been run against the real services;
- * until then every provider gets the conservative default, which is slow but can't get an account throttled.
- * (`noop` is the stand-in provider used by the test job.)
+ * PROVIDER_LIMITS are token buckets: `capacity` is the burst, `refillPerSec` the sustained rate. A provider not
+ * listed gets the conservative default. (`noop` is the stand-in provider used by the test job.)
+ *
+ * The provider values (2026-10-03) come from the providers' documentation, set well under the stated ceiling,
+ * because our own polling shares the budget and a throttled account stops every customer at once:
+ *   dataforseo      2,000 requests a minute per account (about 33 a second); we use 20 a second, burst 40
+ *   perplexity_api  limits depend on the account's usage tier and are not published for the Agent API; 2 a
+ *                   second, burst 5, until the account's tier is known
+ *   serpapi         each plan has an hourly throughput cap as well as its monthly searches; 2 a second, burst 5,
+ *                   until the plan is chosen
+ * Re-measure each once the account exists (BUILD_PLAN Phase 5 spike) and record it in ADR-0006.
  *
  * ORG_CONCURRENCY is the most jobs of one kind that a single organization may have running at once across all
  * workers, so one large agency can't take every slot (MVP §7.8). `ttlMs` is how long a slot stays reserved if its
@@ -13,6 +20,9 @@
 export const PROVIDER_LIMITS = Object.freeze({
   default: { capacity: 10, refillPerSec: 5 },
   noop: { capacity: 50, refillPerSec: 50 },
+  dataforseo: { capacity: 40, refillPerSec: 20 },
+  perplexity_api: { capacity: 5, refillPerSec: 2 },
+  serpapi: { capacity: 5, refillPerSec: 2 },
 });
 
 export const ORG_CONCURRENCY = Object.freeze({

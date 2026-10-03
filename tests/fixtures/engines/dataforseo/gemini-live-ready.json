@@ -1,0 +1,76 @@
+{
+  "version": "0.1.20260930",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "38.4410 sec.",
+  "cost": 0.004,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "10031520-1535-0637-0000-1b2c3d4e5f60",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "38.4102 sec.",
+      "cost": 0.004,
+      "result_count": 1,
+      "path": ["v3", "ai_optimization", "gemini", "llm_scraper", "live", "advanced"],
+      "data": {
+        "api": "ai_optimization",
+        "function": "llm_scraper",
+        "se": "gemini",
+        "keyword": "What is the best dental practice management software for a small clinic?",
+        "location_code": 2840,
+        "language_code": "en",
+        "device": "desktop",
+        "os": "windows"
+      },
+      "result": [
+        {
+          "keyword": "What is the best dental practice management software for a small clinic?",
+          "location_code": 2840,
+          "language_code": "en",
+          "model": "gemini-3.5-flash",
+          "datetime": "2026-10-03 09:20:01 +00:00",
+          "markdown": "Popular choices for small dental clinics include **Open Dental**, **Curve Dental** and **Denticon**. Open Dental is the most affordable; Curve and Denticon are fully cloud-based.",
+          "se_results_count": 2,
+          "item_types": ["gemini_text"],
+          "items_count": 1,
+          "sources": [
+            {
+              "type": "gemini_source",
+              "title": "Denticon Cloud Dental Software",
+              "snippet": "Cloud practice management for dental groups and solo practices.",
+              "domain": "www.planetdds.com",
+              "url": "https://www.planetdds.com/denticon/",
+              "thumbnail": null,
+              "source_name": "Planet DDS",
+              "publication_date": null,
+              "markdown": null
+            },
+            {
+              "type": "gemini_source",
+              "title": "Open Dental Software",
+              "snippet": "Open Dental is a full-featured practice management system.",
+              "domain": "www.opendental.com",
+              "url": "https://www.opendental.com/",
+              "thumbnail": null,
+              "source_name": "Open Dental",
+              "publication_date": null,
+              "markdown": null
+            }
+          ],
+          "items": [
+            {
+              "type": "gemini_text",
+              "rank_group": 1,
+              "rank_absolute": 1,
+              "markdown": "Popular choices for small dental clinics include ...",
+              "sources": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

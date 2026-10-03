@@ -8,6 +8,7 @@ import { createHealthTracker } from '../lib/provider-health.js';
 import { closeQueues, createQueues, QUEUES } from '../lib/queues.js';
 import { createRateLimiter } from '../lib/rate-limit.js';
 import { Deferral, deferJob } from './deferral.js';
+import { collectHandlers } from './handlers/collect.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { systemHandlers } from './handlers/system.js';
 import { createProviderCaller } from './provider-call.js';
@@ -32,6 +33,8 @@ export const SCHEDULES = Object.freeze([
  * @param {object} [deps.retry]      { baseMs, capMs } for backoff; tests use tiny values
  * @param {object} [deps.crawler]    { fetcher, renderer, store, targetFor } for crawl.readiness; without it that job fails
  *                                   at once instead of retrying
+ * @param {object} [deps.collection] { adapters, store } for collect.answer: the engine adapters (src/engines) and the
+ *                                   bucket raw answers go to; without it that job fails at once
  */
 export function createWorkerRuntime({
   redis,
@@ -42,13 +45,14 @@ export function createWorkerRuntime({
   handlers: extraHandlers = {},
   retry = {},
   crawler = null,
+  collection = null,
   now = () => new Date(),
   queueNames = Object.keys(QUEUES),
   concurrencyOverride = {},
 }) {
   const queues = createQueues({ connection: redis, prefix });
   const jobs = createJobClient(queues);
-  const handlers = { ...systemHandlers, ...crawlHandlers, ...extraHandlers };
+  const handlers = { ...systemHandlers, ...crawlHandlers, ...collectHandlers, ...extraHandlers };
 
   const limiter = createRateLimiter(redis, { prefix });
   const concurrency = createConcurrencyLimiter(redis, { prefix });
@@ -77,6 +81,7 @@ export function createWorkerRuntime({
     spendGuard,
     callProvider,
     crawler,
+    collection,
     now,
     isHandled: (name) => typeof handlers[name] === 'function',
   };

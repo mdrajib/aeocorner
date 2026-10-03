@@ -28,3 +28,6 @@ export const scanJobId = (scanId) => jobId('scan', scanId);
 
 /** The one job that keeps a recurring task alive (a BullMQ job scheduler's own ID). */
 export const schedulerId = (name) => jobId('schedule', name.replaceAll('.', '_'));
+
+/** The collection of one answer: one snapshot row, one job, however often it is asked for. */
+export const answerJobId = (snapshotId) => jobId('answer', snapshotId);

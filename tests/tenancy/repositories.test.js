@@ -486,6 +486,117 @@ describe('site scans', () => {
   });
 });
 
+describe('answer snapshots', () => {
+  // answer_snapshots has no foreign keys (a fact table), so the repository is the ONLY thing between one
+  // organization and another's runs and prompts.
+  let aProject;
+  let aRun;
+  let aPrompt;
+  let bRun;
+  let bPrompt;
+  let bSnap;
+  const plan = (runId, promptId, sampleIdx = 0) => ({
+    runId,
+    promptId,
+    engineCode: 'perplexity',
+    sampleIdx,
+    providerCode: 'perplexity_api',
+    method: 'api_grounded',
+  });
+  const answer = {
+    status: 'ok',
+    providerCode: 'perplexity_api',
+    method: 'api_grounded',
+    isFallback: false,
+    providerTaskId: 'resp_1',
+    modelVersion: 'perplexity/sonar',
+    collectedAt: new Date(),
+    rawUri: 'test/answers/x.json',
+    rawSha256: 'a'.repeat(64),
+    answerChars: 10,
+    textExcerpt: 'Twin answer',
+    costUsd: '0.004',
+  };
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Snapshots A');
+    aRun = await fx.run(aProject);
+    aPrompt = await fx.prompt(aProject, { text: 'Same question' });
+    bRun = await fx.run(bProject);
+    bPrompt = await fx.prompt(bProject, { text: 'Same question' });
+    bSnap = (await B.scoped.snapshots.create(plan(bRun.id, bPrompt.id))).snapshot;
+  });
+
+  test('create(): A cannot plan an answer on B’s run, with B’s prompt, or with a prompt from another project', async () => {
+    await refuses(A.scoped.snapshots.create(plan(bRun.id, aPrompt.id)), 'RUN_NOT_IN_ORG');
+    await refuses(A.scoped.snapshots.create(plan(aRun.id, bPrompt.id)), 'PROMPT_NOT_IN_RUN');
+    const elsewhere = await fx.prompt(await fx.project(A.org.id, 'Other A project'));
+    await refuses(A.scoped.snapshots.create(plan(aRun.id, elsewhere.id)), 'PROMPT_NOT_IN_RUN');
+    assert.equal((await B.scoped.snapshots.forRun(bRun.id)).length, 1);
+
+    const own = await A.scoped.snapshots.create(plan(aRun.id, aPrompt.id));
+    assert.equal(own.created, true);
+    assert.equal(own.snapshot.org_id, A.org.id);
+    assert.equal(
+      own.snapshot.project_id,
+      aProject.id,
+      'the project comes from the run, not the caller',
+    );
+    const again = await A.scoped.snapshots.create(plan(aRun.id, aPrompt.id));
+    assert.deepEqual([again.created, again.snapshot.id], [false, own.snapshot.id]);
+  });
+
+  test('get() and forRun(): B’s snapshots and B’s question are invisible from A', async () => {
+    assert.equal(await A.scoped.snapshots.get(bSnap.id), null);
+    assert.deepEqual(await A.scoped.snapshots.forRun(bRun.id), []);
+    const mine = await B.scoped.snapshots.get(bSnap.id);
+    assert.equal(mine.prompt.text, 'Same question');
+  });
+
+  test('submitted(), complete() and fail(): A cannot move B’s snapshot', async () => {
+    assert.equal(
+      await A.scoped.snapshots.submitted(bSnap.id, {
+        providerCode: 'dataforseo',
+        method: 'ui_capture',
+        isFallback: true,
+        providerTaskId: 'stolen',
+        costUsd: '9',
+      }),
+      false,
+    );
+    assert.equal(await A.scoped.snapshots.complete(bSnap.id, answer), false);
+    assert.equal(await A.scoped.snapshots.fail(bSnap.id, 'from A'), false);
+    const untouched = await B.scoped.snapshots.get(bSnap.id);
+    assert.deepEqual(
+      [
+        untouched.status,
+        untouched.provider_task_id,
+        untouched.attempts,
+        String(untouched.cost_usd),
+      ],
+      ['pending', null, 0, '0'],
+    );
+
+    // B itself can, once: a finished snapshot never moves again.
+    assert.equal(await B.scoped.snapshots.complete(bSnap.id, answer), true);
+    assert.equal(await B.scoped.snapshots.fail(bSnap.id, 'late'), false);
+    assert.equal(await B.scoped.snapshots.complete(bSnap.id, answer), false);
+    assert.equal((await B.scoped.snapshots.get(bSnap.id)).status, 'ok');
+  });
+
+  test('complete() refuses an answer whose raw payload was not stored first, or a failure in disguise', async () => {
+    const { snapshot } = await A.scoped.snapshots.create(plan(aRun.id, aPrompt.id, 1));
+    await refuses(
+      A.scoped.snapshots.complete(snapshot.id, { ...answer, rawSha256: null }),
+      'INVALID',
+    );
+    await refuses(
+      A.scoped.snapshots.complete(snapshot.id, { ...answer, status: 'failed' }),
+      'INVALID',
+    );
+  });
+});
+
 describe('system lookups (the reviewed cross-organization set)', () => {
   test('dueProjects(): IDs only, active projects only, none of their content', async () => {
     const slotHour = 150;
@@ -524,6 +635,7 @@ describe('coverage: no repository function without a leak test', () => {
     spend: ['pause', 'resume', 'state'],
     notifications: ['createOnce', 'forUser'],
     scans: ['checks', 'create', 'fail', 'finish', 'get', 'knownPages', 'pages', 'recent', 'start'],
+    snapshots: ['complete', 'create', 'fail', 'forRun', 'get', 'submitted'],
   };
 
   // The cross-organization lookups the worker makes (src/db/repos/system.js). Adding one is a reviewed decision:
@@ -561,6 +673,7 @@ describe('coverage: no repository function without a leak test', () => {
       'notifications',
       'orgId',
       'scans',
+      'snapshots',
       'spend',
       'usage',
     ]);

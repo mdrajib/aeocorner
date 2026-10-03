@@ -19,6 +19,7 @@ export async function startRuntime({
   now,
   concurrencyOverride,
   crawler,
+  collection,
 } = {}) {
   const connection = connectTestRedis();
   const alerts = memoryAlerter();
@@ -34,6 +35,7 @@ export async function startRuntime({
     now,
     concurrencyOverride,
     crawler,
+    collection,
   });
   await runtime.start({ schedule });
   return {

@@ -130,6 +130,8 @@ describe('raw keys', () => {
   test('are named by date and by a hash of the bytes', () => {
     const body = Buffer.from('hello');
     assert.equal(rawKey({ kind: 'html', body, at }), `crawl/2026/10/${sha256Hex(body)}.html`);
+    // AI answers have their own area, so their lifecycle rule can differ from crawled pages'.
+    assert.equal(rawKey({ kind: 'answer', body, at }), `answers/2026/10/${sha256Hex(body)}.json`);
     assert.equal(
       sha256Hex(body),
       '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',

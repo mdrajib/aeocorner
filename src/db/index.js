@@ -2,6 +2,7 @@ import { createPrisma } from './client.js';
 import { invitationLinksRepo } from './repos/invitation-links.js';
 import { orgScopedRepos } from './repos/org-scoped.js';
 import { organizationsRepo } from './repos/organizations.js';
+import { referenceRepos } from './repos/reference.js';
 import { staffRepo } from './repos/staff.js';
 import { systemRepos } from './repos/system.js';
 import { usersRepo } from './repos/users.js';
@@ -16,7 +17,7 @@ export { DomainError } from './errors.js';
  * Global repositories (users, organizations, webhookEvents, invitationLinks, staff) cover data that
  * isn't owned by one organization or that is looked up before the organization is known. `system` holds the
  * few cross-organization lookups the background worker makes (due projects, spend by organization, provider
- * health); see repos/system.js.
+ * health); see repos/system.js. `reference` is shared reference data (the engines and their provider routing).
  * Everything tenant-owned goes through `forOrg(orgId)`.
  */
 export function createDb(options) {
@@ -28,6 +29,7 @@ export function createDb(options) {
     webhookEvents: webhookEventsRepo(prisma),
     staff: staffRepo(prisma),
     system: systemRepos(prisma),
+    reference: referenceRepos(prisma),
     forOrg: (orgId) => orgScopedRepos(prisma, orgId),
     /** True if the database answers. Used by the health check. */
     async ping() {

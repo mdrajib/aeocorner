@@ -32,9 +32,9 @@
   9. A weekly digest and Stripe billing.
 - **What the MVP leaves out on purpose:** backlink buying, Reddit/Quora "seeding", PR wire distribution, parasite SEO, and bulk auto-publishing. These are either human *services* rather than software, or they breach search/platform policies (see [§11.4](#114-what-we-deliberately-will-not-build)).
 - **Architecture:** A Node.js modular monolith (Express + EJS + Tailwind, with htmx/Alpine.js for interactivity) on DigitalOcean. It runs a web process plus a BullMQ worker process, with MySQL 8, Redis, and DigitalOcean Spaces for raw AI answers.
-  - We *buy* the answer data from licensed providers (DataForSEO, Perplexity Sonar API, SerpApi), behind a swappable **engine-adapter** interface.
+  - We *buy* the answer data from licensed providers (DataForSEO, Perplexity's API, SerpApi), behind a swappable **engine-adapter** interface.
   - We *build* the intelligence (extraction, metrics, recommendations, closed-loop proof) on the Claude API.
-- **Unit economics:** Each tracked prompt-run (4 engines, 10 sampled answers) costs about **$0.055–$0.115**. At $79 / $249 / $599 tiers, tracking and content cost 19–47% of revenue depending on the extraction model. The extraction-model choice is the **#1 margin lever** and is decided by an eval in week 3 ([§12](#12-unit-economics--pricing-hypothesis)).
+- **Unit economics:** Each tracked prompt-run (4 engines, 10 sampled answers) costs about **$0.05–$0.11**. At $79 / $249 / $599 tiers, tracking and content cost 19–47% of revenue depending on the extraction model. The extraction-model choice is the **#1 margin lever** and is decided by an eval in week 3 ([§12](#12-unit-economics--pricing-hypothesis)).
 
 ---
 
@@ -453,7 +453,7 @@ Published pricing below comes from third-party round-ups dated 2026. Verify befo
 |---|---|---|---|---|
 | ChatGPT | **DataForSEO LLM Scraper**: real ChatGPT UI results with sources. $0.0012/result (standard queue, ≤ 45 min) / $0.004 (live, ≤ 90 s) | OpenAI Responses API + `web_search` tool (~$10/1K calls + tokens), labeled `api_grounded` | 3 | Logged-out, non-personalized answers. Buying licensed data avoids running our own scraping against OpenAI's terms |
 | Gemini | **DataForSEO LLM Scraper** (Gemini UI) | Gemini API + Google Search grounding (Gemini 3: 5K free prompts/mo, then ~$14/1K) | 3 | |
-| Perplexity | **Perplexity Sonar API** (returns citations). ~$5–12/1K requests + $1/M tokens | DataForSEO LLM Responses | 3 | API ≈ product; labeled `api_grounded` |
+| Perplexity | **Perplexity Agent API**, model `perplexity/sonar` with web search (returns citations). ~$0.004 per answer: $1/M tokens + $0.0025 per search. *Sonar Chat Completions, the API first planned, ended on 2026-09-27; see [ADR-0006](adr/0006-engine-adapters.md)* | DataForSEO LLM Responses | 3 | API ≈ product; labeled `api_grounded` |
 | Google AI Overviews | **SERP API**: SerpApi AI Overview API (~$0.01–0.025/search depending on plan) or the DataForSEO SERP AI Overview element | The other of the two | 1 | Uses `search_query`. Also tracks the *AIO trigger rate*, because not every query shows an overview |
 | *v1.1:* Claude, Copilot, Google AI Mode, Grok, Meta AI | Provider/API per engine | — | 3 | Same adapter interface |
 
@@ -618,7 +618,7 @@ flowchart LR
 
   subgraph External["External providers"]
     DFS["DataForSEO: ChatGPT + Gemini UI results, SERP"]
-    PPX["Perplexity Sonar API"]
+    PPX["Perplexity Agent API (sonar)"]
     SRP["SerpApi: AI Overviews"]
     CLA["Claude API: extraction, content, web search"]
     GGL["Google APIs: GA4, Search Console"]
@@ -710,6 +710,8 @@ interface EngineAdapter {
 }
 // CollectTask = { runId, promptId, engine, sampleIdx, text | searchQuery, locale, mode: 'standard'|'priority'|'live' }
 ```
+
+**As built (Phase 5, 2026-10-03):** [`src/engines/contract.js`](../src/engines/contract.js), with three refinements recorded in [ADR-0006](adr/0006-engine-adapters.md): `submit` returns the answer itself when the provider answers at once, plus what that answer was charged; `normalize` also takes the task (for the locale) and treats a response it can't read as an error, never as "no answer"; and `estimateCostMicros` gives the estimate in whole micro-dollars for code that adds money up. The answer is polled by the job deferring itself, not by a postback.
 
 ### 7.6 Key flows
 
@@ -1007,8 +1009,8 @@ These choices are about policy safety and long-term customer trust, and they are
 | Input | Price used |
 |---|---|
 | ChatGPT / Gemini UI answer (DataForSEO LLM Scraper) | $0.0012 per result (standard queue) · $0.004 (live) |
-| Perplexity answer (Sonar API) | ≈ $0.006 per answer ($5–12 per 1K requests + ~$1/M tokens) |
-| Google AI Overview (SERP API) | ≈ $0.01 per search (SerpApi Production tier; DataForSEO likely cheaper) |
+| Perplexity answer (Agent API, `perplexity/sonar`) | ≈ $0.004 per answer ($1/M tokens in and out + $0.0025 per web search; checked 2026-10-03, [ADR-0006](adr/0006-engine-adapters.md)). Was ≈ $0.006 on Sonar Chat Completions, which ended 2026-09-27 |
+| Google AI Overview (SERP API) | ≈ $0.01 per search (SerpApi Production tier, $150 for 15,000; checked 2026-10-03). An overview Google builds separately takes a second request, counted as a second search until an invoice shows otherwise |
 | Claude Opus 5 | $5 / $25 per M input/output tokens; Batch −50%; cache reads at a fraction of input price |
 | Claude Haiku 4.5 | $1 / $5 per M input/output tokens |
 | Claude web search tool | $10 per 1K searches + tokens |
@@ -1024,10 +1026,11 @@ One prompt-run = 10 answers: ChatGPT ×3, Gemini ×3, Perplexity ×3, AI Overvie
 
 | Item | With Opus 5 extraction | With Haiku 4.5 extraction |
 |---|---|---|
-| Collection (3×$0.0012 + 3×$0.0012 + 3×$0.006 + 1×$0.01) | $0.035 | $0.035 |
+| Collection (3×$0.0012 + 3×$0.0012 + 3×$0.004 + 1×$0.01) | $0.029 | $0.029 |
 | Extraction (10 answers) | $0.080 | $0.020 |
-| **Total per prompt-run** | **≈ $0.115** | **≈ $0.055** |
+| **Total per prompt-run** | **≈ $0.109** | **≈ $0.049** |
 
+- *2026-10-03:* the Perplexity price fell from ≈ $0.006 to ≈ $0.004 with the move to the Agent API, so collection is $0.029, not $0.035. The §12.3 margin table still uses the older, higher figure on purpose: the difference is about $0.006 per prompt-run (≈ $1.30 a month on Starter), it keeps the margins conservative, and the live provider check ([ADR-0006](adr/0006-engine-adapters.md)) may move it again.
 - Other costs: one content draft (research + brief + draft + QC on Opus 5) is **≈ $0.65–0.80**; one free audit (live-mode collection, synchronous extraction) is **≈ $0.60**.
 
 ### 12.3 Plan hypothesis & margin check (weekly tracking = 4.33 runs/month)

@@ -1,0 +1,36 @@
+{
+  "search_metadata": {
+    "id": "66fe1b0100000000000000bb",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/2c3d4e5f6a7b8c9d/66fe1b0100000000000000bb.json",
+    "created_at": "2026-10-03 09:31:03 UTC",
+    "processed_at": "2026-10-03 09:31:03 UTC",
+    "total_time_taken": 1.11
+  },
+  "search_parameters": { "engine": "google_ai_overview" },
+  "ai_overview": {
+    "text_blocks": [
+      {
+        "type": "paragraph",
+        "snippet": "Small clinics often choose Curve Dental or Open Dental.",
+        "reference_indexes": [0, 1]
+      }
+    ],
+    "references": [
+      {
+        "title": "Curve Dental",
+        "link": "https://www.curvedental.com/",
+        "snippet": "Cloud dental software.",
+        "source": "Curve Dental",
+        "index": 0
+      },
+      {
+        "title": "Open Dental Software",
+        "link": "https://www.opendental.com/",
+        "snippet": "Open Dental is a full-featured practice management system.",
+        "source": "Open Dental",
+        "index": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "resp_77c1d0e2f3a4b5c6d7e8",
+  "object": "response",
+  "status": "incomplete",
+  "model": "perplexity/sonar",
+  "created_at": 1791019300,
+  "completed_at": 1791019390,
+  "error": null,
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "status": "incomplete",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "For a small clinic, the most",
+          "annotations": [],
+          "logprobs": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 1150,
+    "output_tokens": 8,
+    "total_tokens": 1158,
+    "cost": {
+      "currency": "USD",
+      "input_cost": 0.00115,
+      "output_cost": 0.000008,
+      "tool_calls_cost": 0,
+      "total_cost": 0.001158
+    }
+  }
+}

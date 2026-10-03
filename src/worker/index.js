@@ -2,6 +2,7 @@ import { createHostPacer, RENDER_PACING } from '../crawler/pacer.js';
 import { createRenderer } from '../crawler/render.js';
 import { createSafeFetcher } from '../crawler/safe-fetch.js';
 import { createDb } from '../db/index.js';
+import { createAdapters } from '../engines/index.js';
 import { createObjectStore } from '../integrations/spaces.js';
 import { createAlerter } from '../lib/alerts.js';
 import { loadConfig } from '../lib/config.js';
@@ -47,6 +48,13 @@ const renderer = createRenderer({
   fetcher: createSafeFetcher({ pacer: createHostPacer(RENDER_PACING) }),
 });
 
+// Asking AI engines: one adapter per provider and engine whose credentials are set (src/engines). Raw answers go to
+// the same bucket as raw pages, under answers/.
+const adapters = createAdapters(config.providers);
+if (adapters.list().length === 0) {
+  logger.warn('No answer-engine provider credentials are set: collect.answer jobs will fail.');
+}
+
 const runtime = createWorkerRuntime({
   redis,
   prefix: config.redis.prefix,
@@ -54,6 +62,7 @@ const runtime = createWorkerRuntime({
   logger,
   alerts: createAlerter({ logger, webhookUrl: config.alertWebhookUrl }),
   crawler: { fetcher, renderer, store },
+  collection: { adapters, store },
 });
 await runtime.start();
 logger.info(

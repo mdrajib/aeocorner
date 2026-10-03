@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
+import { toMicros } from '../core/spend.js';
 
 // Empty strings in .env mean "not set" — treat them as undefined so optional keys stay optional.
 const optional = (schema) => z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
@@ -63,6 +64,19 @@ const envSchema = z.object({
   CLOUDFLARE_ACCESS_TEAM_DOMAIN: optional(z.string().min(1)),
   CLOUDFLARE_ACCESS_AUD: optional(z.string().min(1)),
   STAFF_HOST: optional(z.string().min(1)),
+
+  // Answer-engine data providers (MVP §6.2, src/engines). A provider without credentials is simply unavailable:
+  // its engines fall back or say "couldn't check". DataForSEO needs both login and password, or neither.
+  DATAFORSEO_LOGIN: optional(z.string().min(1)),
+  DATAFORSEO_PASSWORD: optional(z.string().min(1)),
+  PERPLEXITY_API_KEY: optional(z.string().min(1)),
+  // The Agent API model asked for Perplexity answers. perplexity/sonar is the old Sonar answer (ADR-0006).
+  PERPLEXITY_MODEL: optional(z.string().regex(/^[a-z0-9-]+\/[a-z0-9.-]+$/, 'provider/model')),
+  SERPAPI_API_KEY: optional(z.string().min(1)),
+  // What one SerpApi search costs on the plan we pay for (the plan's price / its searches). Default: Production.
+  SERPAPI_COST_PER_SEARCH_USD: optional(
+    z.string().regex(/^0\.\d{1,6}$/, 'a dollar amount under $1, such as 0.010'),
+  ),
 
   RESEND_API_KEY: optional(z.string().min(1)),
   EMAIL_FROM_ADDRESS: optional(z.string().min(3)),
@@ -155,6 +169,27 @@ function clerkApp({ publishableKey, secretKey, label }) {
   const frontendApi = frontendApiOf(publishableKey);
   if (!frontendApi) throw new Error(`${label}: the publishable key is not a valid Clerk key.`);
   return { publishableKey, secretKey, frontendApi, isLive: publishableKey.startsWith('pk_live_') };
+}
+
+/** Credentials for the answer-engine providers; each is null when it is not set. */
+function providersConfig(e) {
+  if (Boolean(e.DATAFORSEO_LOGIN) !== Boolean(e.DATAFORSEO_PASSWORD)) {
+    throw new Error('Set both DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD, or neither.');
+  }
+  return {
+    dataforseo: e.DATAFORSEO_LOGIN
+      ? { login: e.DATAFORSEO_LOGIN, password: e.DATAFORSEO_PASSWORD }
+      : null,
+    perplexity: e.PERPLEXITY_API_KEY
+      ? { apiKey: e.PERPLEXITY_API_KEY, model: e.PERPLEXITY_MODEL ?? 'perplexity/sonar' }
+      : null,
+    serpapi: e.SERPAPI_API_KEY
+      ? {
+          apiKey: e.SERPAPI_API_KEY,
+          costPerSearchMicros: toMicros(e.SERPAPI_COST_PER_SEARCH_USD ?? '0.010'),
+        }
+      : null,
+  };
 }
 
 /**
@@ -251,6 +286,7 @@ export function loadConfig(env = process.env) {
     redis: e.REDIS_URL ? { url: e.REDIS_URL, prefix: e.QUEUE_PREFIX } : null,
     alertWebhookUrl: e.ALERT_WEBHOOK_URL ?? null,
     spaces: spacesConfig(e, appEnv),
+    providers: providersConfig(e),
     auth: customer
       ? {
           ...customer,

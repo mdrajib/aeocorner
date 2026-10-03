@@ -1,0 +1,120 @@
+{
+  "version": "0.1.20260930",
+  "status_code": 20000,
+  "status_message": "Ok.",
+  "time": "0.1180 sec.",
+  "cost": 0,
+  "tasks_count": 1,
+  "tasks_error": 0,
+  "tasks": [
+    {
+      "id": "10031512-1535-0636-0000-7f0c2a4e1b11",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "time": "0.0533 sec.",
+      "cost": 0,
+      "result_count": 1,
+      "path": [
+        "v3",
+        "ai_optimization",
+        "chat_gpt",
+        "llm_scraper",
+        "task_get",
+        "advanced",
+        "10031512-1535-0636-0000-7f0c2a4e1b11"
+      ],
+      "data": {
+        "api": "ai_optimization",
+        "function": "llm_scraper",
+        "se": "chat_gpt",
+        "keyword": "What is the best dental practice management software for a small clinic?",
+        "location_code": 2840,
+        "language_code": "en",
+        "device": "desktop",
+        "os": "windows"
+      },
+      "result": [
+        {
+          "keyword": "What is the best dental practice management software for a small clinic?",
+          "location_code": 2840,
+          "language_code": "en",
+          "model": "gpt-5-3",
+          "check_url": "https://chatgpt.com/",
+          "datetime": "2026-10-03 09:12:44 +00:00",
+          "markdown": "For a small dental clinic, these are the options most often recommended:\n\n1. **Dentrix Ascend**: cloud-based, strong scheduling and insurance tools.\n2. **Curve Dental**: simple, all-in-one cloud system popular with small practices.\n3. **Open Dental**: low-cost and very flexible, but needs more setup.\n\nIf you want the least IT work, Curve Dental or Dentrix Ascend are the safest picks.",
+          "se_results_count": 3,
+          "item_types": ["chat_gpt_text"],
+          "items_count": 1,
+          "search_results": [],
+          "fan_out_queries": ["best dental practice management software small clinic 2026"],
+          "sources": [
+            {
+              "type": "chat_gpt_source",
+              "title": "Best Dental Practice Management Software 2026",
+              "snippet": "Compare the top-rated dental software for small practices.",
+              "domain": "www.capterra.com",
+              "url": "https://www.capterra.com/dental-software/",
+              "thumbnail": null,
+              "source_name": "Capterra",
+              "publication_date": null,
+              "markdown": null
+            },
+            {
+              "type": "chat_gpt_source",
+              "title": "Curve Dental | Cloud Dental Software",
+              "snippet": null,
+              "domain": "www.curvedental.com",
+              "url": "https://www.curvedental.com/",
+              "thumbnail": null,
+              "source_name": "Curve Dental",
+              "publication_date": null,
+              "markdown": null
+            }
+          ],
+          "brand_entities": [
+            {
+              "type": "chat_gpt_brand_entity",
+              "title": "Dentrix Ascend",
+              "category": "software",
+              "markdown": "**Dentrix Ascend**",
+              "urls": null
+            }
+          ],
+          "items": [
+            {
+              "type": "chat_gpt_text",
+              "rank_group": 1,
+              "rank_absolute": 1,
+              "markdown": "For a small dental clinic, these are the options most often recommended: ...",
+              "sources": [
+                {
+                  "type": "chat_gpt_source",
+                  "title": "Curve Dental | Cloud Dental Software",
+                  "snippet": null,
+                  "domain": "www.curvedental.com",
+                  "url": "https://www.curvedental.com/",
+                  "thumbnail": null,
+                  "source_name": "Curve Dental",
+                  "publication_date": null,
+                  "markdown": null
+                },
+                {
+                  "type": "chat_gpt_source",
+                  "title": "Open Dental Software",
+                  "snippet": "Open Dental is a full-featured practice management system.",
+                  "domain": "www.opendental.com",
+                  "url": "https://www.opendental.com/",
+                  "thumbnail": null,
+                  "source_name": "Open Dental",
+                  "publication_date": "2026-08-14",
+                  "markdown": null
+                }
+              ],
+              "brand_entities": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

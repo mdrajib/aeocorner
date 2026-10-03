@@ -34,6 +34,14 @@ export const JOBS = Object.freeze({
     schema: z.object({ orgId: id, projectId: id, scanId: id }),
   },
 
+  // Collect one AI answer (Phase 5, MVP F4): one prompt, one engine, one sample. The snapshot row is created first
+  // ("pending"); the question, the engine and the locale come from it and its prompt, never from the payload.
+  // `submittedAt` is set by the job itself when a provider queued the question, so polling knows when to give up.
+  'collect.answer': {
+    queue: 'collect',
+    schema: z.object({ orgId: id, snapshotId: id, submittedAt: z.iso.datetime().optional() }),
+  },
+
   // A job that goes through the whole path (queue, retries, rate limit, spend cap, ledger) and does nothing
   // else. It is the Phase 3 exit test, and the way to prove the plumbing on a new machine.
   'system.noop': {

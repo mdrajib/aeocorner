@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Document** | Phase-by-phase execution checklist for building the app |
-| **Date** | 2026-10-02 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered; Phase 1 engineering finished 2026-10-02; Phase 2 engineering finished 2026-10-02) |
-| **Status** | In progress — Phases 0, 1 and 2: engineering is done and tested locally; open items are founder/infra work (accounts, brand and wireframe sign-off, legal text, Clerk and Cloudflare setup), the first run against real Clerk, and the first GitHub CI run with the Phase 2 changes. Phase 3 is next, when the founder asks for it |
+| **Date** | 2026-10-03 (first written 2026-09-28; 2026-10-02 added the design-system and public-site phases and renumbered; Phase 1 engineering finished 2026-10-02; Phase 2 engineering finished 2026-10-02; Phase 5 engineering finished 2026-10-03) |
+| **Status** | In progress — Phases 0, 1 and 2: engineering is done and tested locally; open items are founder/infra work (accounts, brand and wireframe sign-off, legal text, Clerk and Cloudflare setup), the first run against real Clerk, and the first GitHub CI run with the Phase 2 changes. Phase 3: code and tests done, the Bull Board page and docs pass still open. Phase 4: engineering done, not yet run in CI. Phase 5: engineering done; the one live call per provider waits for the provider accounts. Phase 6 is next, when the founder asks for it |
 | **Companion docs** | [MVP.md](MVP.md) §13 (narrative timeline, team, Definition of Done) · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md) · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. Purpose and how to use this plan
@@ -238,21 +238,28 @@
 
 ## Phase 5 — Engine adapters (spikes)
 
+**Status (2026-10-03):** 🟡 **Engineering complete and tested locally; the live provider check is not done**, because no provider account exists yet (`DATAFORSEO_*`, `PERPLEXITY_API_KEY` and `SERPAPI_API_KEY` are empty). The test fixtures are therefore built by hand from each provider's documented response shape, not recorded from real calls. Not pushed, so CI has not run it. **Found while checking the providers: Perplexity ended Sonar Chat Completions on 2026-09-27**, the API the spec was written against; the adapter uses its successor, the Agent API, with the `perplexity/sonar` model ([ADR-0006](adr/0006-engine-adapters.md)). Left to do: open the three provider accounts, run one live call per adapter with `npm run engines:try`, replace the hand-built fixtures with the recordings, and fill in ADR-0006's results table.
+
 **Goal:** prove the `EngineAdapter` contract ([MVP §7.5](MVP.md#75-engine-adapter-contract-design-sketch)) against all four real providers before building the orchestrator around them.
 
 **Work:**
-- [ ] `src/engines/` adapter per engine/provider pair: DataForSEO (ChatGPT + Gemini UI), Perplexity Sonar API, SerpApi (AI Overviews).
-- [ ] Each adapter implements `submit`/`poll`/`normalize`/`estimateCostUsd`.
-- [ ] Raw payload storage to Spaces + `answer_snapshots` insert + `usage_ledger` insert per answer.
-- [ ] Record real provider responses as fixtures for the contract-test suite (§2).
+- [x] `src/engines/` adapter per engine/provider pair: DataForSEO (ChatGPT + Gemini UI), Perplexity (Agent API, `perplexity/sonar`; Sonar Chat Completions ended 2026-09-27), SerpApi (AI Overviews). `createAdapters(config.providers)` builds one per provider whose credentials are set; a provider without credentials is unavailable.
+- [x] Each adapter implements `submit`/`poll`/`normalize`/`estimateCostUsd` (`src/engines/contract.js`; plus `estimateCostMicros`). Every error is a `ProviderError` that says whether retrying helps and whether it is the provider's fault (so our bad credentials can't trip its breaker). A response we can't read is an error, never "no answer"; Google showing no AI Overview is `no_answer`, a real result.
+- [x] Raw payload storage to Spaces + `answer_snapshots` insert + `usage_ledger` insert per answer: the `collect.answer` job (`src/worker/handlers/collect.js`) and `forOrg(orgId).snapshots`. The raw response and our reading of it are stored first as one JSON document (`answers/2026/10/<sha256>.json`), even when unreadable; one ledger row per charge, at the provider's own reported cost where it gives one; DataForSEO's queue is polled by the job deferring itself (no attempt used), and polling is free so it writes no ledger row (`callProvider` now accepts `usage: { free: true }`); the fallback provider is used when the primary's breaker is open, if it has an adapter. Provider rate limits in `src/core/limits.js`.
+- [ ] Record real provider responses as fixtures for the contract-test suite (§2). *Fixtures exist (`tests/fixtures/engines/`, 15 files) but are hand-built from the documentation; `npm run engines:try -- … --record` records real ones once the accounts exist.*
+- [x] *Added in this phase:* `npm run engines:try -- --engine <engine> "<question>"`, a paid live call from the command line (no database), for the spike check and for recording fixtures; provider credentials and `PERPLEXITY_MODEL` / `SERPAPI_COST_PER_SEARCH_USD` in the config.
+- [ ] *Carried forward:* adapters for the fallbacks in the `engines` table (OpenAI and Gemini APIs; DataForSEO for Perplexity and AI Overviews). Until then a tripped primary means "couldn't check" for that engine.
 
 **Tests required before moving on:**
-- [ ] Contract tests per adapter, replayed from recorded fixtures (no live calls in CI).
-- [ ] Unit: `normalize()` produces the same shape regardless of provider (text, sources[], model_version, locale).
-- [ ] Unit: `estimateCostUsd()` matches the provider's published pricing within a documented tolerance.
-- [ ] Manual/spike check (not CI): one real, live call per provider succeeds and a human confirms the raw payload looks right — record the result in an ADR.
+- [x] Contract tests per adapter, replayed from recorded fixtures (no live calls in CI): `tests/adapters/engines.test.js`, 17 tests over real HTTP to a server on this machine, checking what we send (endpoint, credentials, fields, locale) as well as what we read, and how every failure is classified (credentials, no credit, rate limit, server error, timeout, an answer cut short, an overview Google can't build right now, a page-token follow-up). *Replayed from the hand-built fixtures until real recordings replace them.*
+- [x] Unit: `normalize()` produces the same shape regardless of provider (text, sources[], model_version, locale): `src/engines/engines.test.js`, one zod schema for all four, plus "a changed shape is an error, never `no_answer`".
+- [x] Unit: `estimateCostUsd()` matches the provider's published pricing within a documented tolerance: DataForSEO exact, SerpApi exact for the configured plan, Perplexity within ±50% of its reported cost (ADR-0006 Decision 8).
+- [ ] Manual/spike check (not CI): one real, live call per provider succeeds and a human confirms the raw payload looks right — record the result in an ADR. *Not run: no accounts. ADR-0006 has the table to fill in.*
+- [x] Also: `collect.answer` as a queued job against real Redis and MySQL (`tests/integration/collect-job.test.js`, 12 tests): raw stored and hash-checked, snapshot completed, ledger rows equal provider charges (including a job that fails after paying), free polls, no-answer, non-retryable and retryable failures, an unreadable answer kept in storage, a queued task given up on after its deadline, the fallback route, and a forged payload naming another organization refused; the snapshot repository in the cross-tenant suite (`answer_snapshots` has no foreign keys, so the repository is the only guard), five mutations of its tenant filters all caught.
 
-**Exit criteria:** all four adapters pass their contract tests and have at least one verified live call; provider pricing is recorded in the usage ledger correctly.
+**Local results (2026-10-03):** lint and Prettier clean; `npm test` 586 passing; `npm run test:routes` 156 (one failure in one full run, in the Clerk webhook retry test, not reproduced in three reruns or alone; that code is untouched by this phase); `npm run test:integration` 167; `npm run test:tenancy` 54; `npm run test:adapters` 55. `test:e2e` not run: no change under `src/web/` or `tailwind/`.
+
+**Exit criteria:** all four adapters pass their contract tests and have at least one verified live call; provider pricing is recorded in the usage ledger correctly — **contract tests and ledger pricing met; the live calls are not.**
 
 ## Phase 6 — Extraction pipeline & golden-set eval
 

@@ -1,5 +1,6 @@
 import { DomainError, isForeignKeyViolation, isUniqueViolation } from '../errors.js';
 import { scanRepos } from './org-scans.js';
+import { snapshotRepos } from './org-snapshots.js';
 import { usageRepos } from './org-usage.js';
 import { transaction } from '../transaction.js';
 
@@ -329,5 +330,6 @@ export function orgScopedRepos(prisma, orgId) {
     activity,
     ...usageRepos(prisma, orgId, { appendActivity }),
     ...scanRepos(prisma, orgId),
+    ...snapshotRepos(prisma, orgId),
   };
 }
