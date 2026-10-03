@@ -37,6 +37,7 @@ export function styleguideRoutes(config) {
 
   router.get('/', (req, res) => {
     res.page('styleguide', {
+      charts: true,
       showAuditBand: false,
       meta: { ...meta('Styleguide'), path: '/_styleguide' },
     });

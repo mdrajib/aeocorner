@@ -1129,6 +1129,76 @@ describe('tracking runs, rollups, changes and quota', () => {
   });
 });
 
+describe('dashboard reads and customer feedback', () => {
+  // The fact tables under these reads have no foreign keys, so the functions are the only boundary.
+  let bBrand;
+  let bPrompt;
+  let bSnapshot;
+  let aProject;
+  let bDash;
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Dashboard A');
+    bDash = await fx.project(B.org.id, 'Dashboard B');
+    bBrand = await fx.entity(bDash, { kind: 'brand', name: 'Dashboard B Brand' });
+    bPrompt = await fx.prompt(bDash, { text: 'Dashboard question of B?' });
+    const run = await fx.run(bDash, { status: 'rolling_up', trigger: 'schedule' });
+    bSnapshot = await fx.readAnswer(run, bPrompt, {
+      excerpt: 'B’s answer text',
+      mentions: [{ entity: bBrand, listRank: 1 }],
+      citations: [{ url: 'https://dash-leak.example.test/page' }],
+    });
+    await B.scoped.runs.settle(run.id);
+  });
+
+  after(async () => {
+    await fx.forgetDomains(['dash-leak.example.test']);
+  });
+
+  const range = { from: '2020-01-01', to: '2099-12-31' };
+
+  test('matrix(), question(), answers(), competitorCells() and citations(): B’s project is not found from A', async () => {
+    await refuses(A.scoped.dashboard.matrix(bDash.id, range), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.dashboard.question(bDash.id, bPrompt.id, range), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.dashboard.answers(bDash.id, bPrompt.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.dashboard.competitorCells(bDash.id, range), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.dashboard.citations(bDash.id, range), 'PROJECT_NOT_IN_ORG');
+    // …and B's own view of the same data is intact.
+    assert.equal((await B.scoped.dashboard.matrix(bDash.id, range)).cells.length, 1);
+    assert.equal((await B.scoped.dashboard.citations(bDash.id, range)).total, 1);
+  });
+
+  test('question() and answers(): B’s question asked through A’s own project finds nothing', async () => {
+    assert.equal(await A.scoped.dashboard.question(aProject.id, bPrompt.id, range), null);
+    assert.equal(await A.scoped.dashboard.answers(aProject.id, bPrompt.id), null);
+    assert.deepEqual((await A.scoped.dashboard.matrix(aProject.id, range)).cells, []);
+    assert.equal((await A.scoped.dashboard.citations(aProject.id, range)).total, 0);
+  });
+
+  test('reportAnswer() and reportsFor(): A cannot report B’s answers, or through B’s project', async () => {
+    const before = (await B.scoped.dashboard.reportsFor(bDash.id, [bSnapshot.id])).length;
+    await refuses(
+      A.scoped.dashboard.reportAnswer(bDash.id, {
+        snapshotId: bSnapshot.id,
+        kind: 'misread',
+        userId: A.owner.id,
+      }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(
+      A.scoped.dashboard.reportAnswer(aProject.id, {
+        snapshotId: bSnapshot.id,
+        kind: 'misread',
+        userId: A.owner.id,
+      }),
+      'SNAPSHOT_NOT_IN_PROJECT',
+    );
+    await refuses(A.scoped.dashboard.reportsFor(bDash.id, [bSnapshot.id]), 'PROJECT_NOT_IN_ORG');
+    assert.deepEqual(await A.scoped.dashboard.reportsFor(aProject.id, [bSnapshot.id]), []);
+    assert.equal((await B.scoped.dashboard.reportsFor(bDash.id, [bSnapshot.id])).length, before);
+  });
+});
+
 describe('coverage: no repository function without a leak test', () => {
   // Update this list in the same commit that adds a function to org-scoped.js or org-usage.js.
   const COVERED = {
@@ -1166,6 +1236,15 @@ describe('coverage: no repository function without a leak test', () => {
     ],
     metrics: ['range', 'rollupDay'],
     changes: ['detect', 'forProject'],
+    dashboard: [
+      'answers',
+      'citations',
+      'competitorCells',
+      'matrix',
+      'question',
+      'reportAnswer',
+      'reportsFor',
+    ],
     quota: ['returnRunNow', 'runNowUsage', 'takeRunNow'],
     brandKits: ['current', 'get', 'history', 'save'],
     projectEngines: ['list', 'setEnabled'],
@@ -1220,6 +1299,7 @@ describe('coverage: no repository function without a leak test', () => {
       'activity',
       'brandKits',
       'changes',
+      'dashboard',
       'entities',
       'extractions',
       'invitations',

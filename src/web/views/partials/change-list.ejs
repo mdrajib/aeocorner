@@ -1,0 +1,10 @@
+<%# The changes that passed the significance test. Props: changes ([{ tone, title, text, date }]). Anything inside normal variation is not listed. %>
+<% if (!changes.length) { %>
+<p class="text-ink-700 text-sm">Nothing has changed beyond normal variation. We compare the last four weeks with the four before, and only report moves that are unlikely to be chance.</p>
+<% } else { %>
+<ul class="flex flex-col gap-3">
+  <% for (const c of changes) { %>
+  <li><%- ui.banner({ tone: c.tone, title: c.title, text: c.text + ' (' + c.date + ')' }) %></li>
+  <% } %>
+</ul>
+<% } %>

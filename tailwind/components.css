@@ -128,7 +128,7 @@
 
   /* ---------- Cards, tables ---------- */
   .card {
-    @apply border-ink-200 shadow-card rounded-xl border bg-white;
+    @apply border-ink-200 shadow-card min-w-0 rounded-xl border bg-white;
   }
 
   .card-body {
@@ -564,5 +564,30 @@
 
   .prose-aeo .table-wrap {
     @apply my-6;
+  }
+
+  /* ---------- Chart: Chart.js on a canvas, with its values as a table (the table is the no-JavaScript view) ---------- */
+  .chart {
+    @apply flex min-w-0 flex-col gap-3;
+  }
+
+  .chart-title {
+    @apply text-ink-900 text-base font-semibold;
+  }
+
+  .chart-plot {
+    @apply relative h-64 w-full min-w-0 overflow-hidden;
+  }
+
+  .chart-plot[hidden] {
+    display: none;
+  }
+
+  .chart-data-toggle {
+    @apply text-brand-700 cursor-pointer text-sm font-semibold;
+  }
+
+  .chart-data[open] .chart-data-toggle {
+    @apply mb-3;
   }
 }

@@ -1,0 +1,23 @@
+<%# The top of every dashboard screen: where you are, the period, when the numbers are from, and what is wrong with them.
+    Props: orgBase, projectBase, projectName, domain, current, ranges ([{ label, href, current }] or none), updatedLabel,
+    stale ({ title, text } or null), lastRun (describeRun, or null). %>
+<nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <span><%= projectName %></span></nav>
+<h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= projectName %></h1>
+<% if (domain) { %><p class="text-ink-700 mt-1"><%= domain %></p><% } %>
+<%- ui.fragment('partials/project-nav', { projectBase, current }) %>
+<% if (ranges && ranges.length) { %>
+<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+  <nav aria-label="Period" class="flex flex-wrap gap-2">
+    <% for (const r of ranges) { %>
+    <a href="<%= r.href %>" class="<%= r.current ? 'bg-brand-600 border-brand-600 text-white' : 'border-ink-300 text-ink-800 hover:bg-ink-50 bg-white' %> rounded-full border px-3 py-1 text-sm font-medium"<% if (r.current) { %> aria-current="true"<% } %>><%= r.label %></a>
+    <% } %>
+  </nav>
+  <p class="text-ink-700 text-sm"><%= updatedLabel ? 'Updated ' + updatedLabel : 'No check has finished yet' %></p>
+</div>
+<% } %>
+<% if (lastRun && ['running', 'stalled', 'failed'].includes(lastRun.state)) { %>
+<div class="mt-4"><%- ui.banner({ tone: lastRun.tone === 'neutral' ? 'info' : lastRun.tone, title: lastRun.title, text: lastRun.text }) %></div>
+<% } %>
+<% if (stale) { %>
+<div class="mt-4"><%- ui.banner({ tone: 'warning', title: stale.title, text: stale.text }) %></div>
+<% } %>

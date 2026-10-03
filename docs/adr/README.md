@@ -12,5 +12,6 @@ One-way-door technical decisions made while building AEO Corner, and the reasoni
 | [0006](0006-engine-adapters.md) | Engine adapters: one contract, the raw answer first, and Perplexity through its Agent API | Accepted | 2026-10-03 |
 | [0007](0007-answer-extraction.md) | Answer extraction: a free pre-pass, Claude through the Batch API, and a golden set that decides the model (D4) | Accepted (D4 provisional: keep Opus 5.5) | 2026-10-03 |
 | [0008](0008-queues-and-the-worker.md) | Queues and the worker: waiting is not failing, every paid call has one door, and every staff change is audited first | Accepted | 2026-10-03 |
+| [0009](0009-charts.md) | Charts: Chart.js, self-hosted, with the data table as the chart | Accepted | 2026-10-03 |
 
 **Format:** Status, Context, Decision, Consequences. Numbered sequentially, never renumbered or deleted — a reversed decision gets a new ADR marking the old one `Superseded by ADR-000N`, per [CLAUDE.md](../../CLAUDE.md)'s consistency rule.

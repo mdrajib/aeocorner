@@ -1,4 +1,6 @@
 <%# Order matters: components.js registers Alpine components on `alpine:init`, so it must run before Alpine starts (all three are deferred and execute in document order). %>
+<%# A page with a chart (ui.chart) sets `charts: true`; Chart.js must run before components.js, which draws the charts. %>
+<% if (typeof charts !== 'undefined' && charts === true) { %><script src="<%= asset('/vendor/chart.umd.min.js') %>" defer></script><% } %>
 <script src="<%= asset('/js/components.js') %>" defer></script>
 <script src="<%= asset('/vendor/htmx.min.js') %>" defer></script>
 <script src="<%= asset('/vendor/alpine-csp.min.js') %>" defer></script>

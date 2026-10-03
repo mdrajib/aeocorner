@@ -165,3 +165,132 @@ document.addEventListener('htmx:responseError', (event) => {
       if (text) text.textContent = 'Updating is stopped. Reload the page to see the latest.';
     });
 })();
+
+// Charts (ui.chart). Each <figure data-chart> carries its numbers as JSON and the same numbers as a table, so the page
+// is complete without this script. With Chart.js loaded (the page sets `charts: true`) the picture is drawn on the
+// canvas, shown, and the table folds away behind its summary. A null value is a gap in the line: never a drop to zero.
+(function () {
+  const Chart = window.Chart;
+  if (!Chart) return;
+  const css = window.getComputedStyle(document.documentElement);
+  const colour = (name, fallback) => css.getPropertyValue(`--color-${name}`).trim() || fallback;
+  // Colour is never the only cue: each series also gets its own dash and point shape.
+  const LOOKS = [
+    { colour: colour('brand-600', '#4f46e5'), dash: [], point: 'circle' },
+    { colour: colour('ink-600', '#475569'), dash: [6, 4], point: 'rect' },
+    { colour: colour('success-700', '#15803d'), dash: [2, 3], point: 'triangle' },
+    { colour: colour('warning-700', '#b45309'), dash: [10, 3, 2, 3], point: 'rectRot' },
+    { colour: colour('danger-700', '#b91c1c'), dash: [3, 3], point: 'crossRot' },
+  ];
+  const TONES = { brand: 0, ink: 1, success: 2, warning: 3, danger: 4 };
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  Chart.defaults.font.family = css.getPropertyValue('--font-sans').trim() || 'sans-serif';
+  Chart.defaults.color = colour('ink-700', '#334155');
+  Chart.defaults.animation = still ? false : { duration: 250 };
+
+  const translucent = (hex) => {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return hex;
+    const n = parseInt(m[1], 16);
+    return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, 0.16)`;
+  };
+
+  function datasets(config) {
+    const out = [];
+    config.series.forEach((s, i) => {
+      const look = LOOKS[s.tone in TONES ? TONES[s.tone] : i % LOOKS.length];
+      if (config.kind === 'bar') {
+        out.push({ label: s.label, data: s.values, backgroundColor: look.colour, borderRadius: 4 });
+        return;
+      }
+      out.push({
+        label: s.label,
+        data: s.values,
+        borderColor: look.colour,
+        backgroundColor: look.colour,
+        borderDash: look.dash,
+        pointStyle: look.point,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        tension: 0,
+        spanGaps: false,
+      });
+      // The 95% band: two invisible lines with the space between them shaded, hidden from the legend.
+      if (s.low && s.high) {
+        const base = {
+          band: true,
+          borderWidth: 0,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          spanGaps: false,
+          tension: 0,
+        };
+        out.push({ ...base, label: `${s.label} (low)`, data: s.low, borderColor: 'transparent' });
+        out.push({
+          ...base,
+          label: `${s.label} (high)`,
+          data: s.high,
+          borderColor: 'transparent',
+          backgroundColor: translucent(look.colour),
+          fill: out.length - 1,
+        });
+      }
+    });
+    return out;
+  }
+
+  document.querySelectorAll('figure[data-chart]').forEach((figure) => {
+    const plot = figure.querySelector('.chart-plot');
+    const canvas = plot && plot.querySelector('canvas');
+    if (!canvas) return;
+    let config;
+    try {
+      config = JSON.parse(figure.dataset.chart);
+    } catch {
+      return; // the table stays open
+    }
+    const unit = config.unit || '';
+    try {
+      plot.hidden = false; // Chart.js measures the canvas, so it must be visible first
+      new Chart(canvas, {
+        type: config.kind,
+        data: { labels: config.labels, datasets: datasets(config) },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'nearest', intersect: false },
+          scales: {
+            y: {
+              min: 0,
+              max: config.max,
+              ticks: { callback: (v) => `${v}${unit}` },
+              grid: { color: colour('ink-200', '#e2e8f0') },
+            },
+            x: { grid: { display: false } },
+          },
+          plugins: {
+            legend: {
+              display: config.series.length > 1,
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                filter: (item, data) => !data.datasets[item.datasetIndex].band,
+              },
+            },
+            tooltip: {
+              filter: (item) => !item.dataset.band,
+              callbacks: {
+                label: (item) => `${item.dataset.label}: ${item.formattedValue}${unit}`,
+              },
+            },
+          },
+        },
+      });
+      const details = figure.querySelector('details.chart-data');
+      if (details) details.open = false;
+    } catch {
+      plot.hidden = true; // drawing failed: the table is still there
+    }
+  });
+})();

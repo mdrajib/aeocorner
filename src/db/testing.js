@@ -406,6 +406,85 @@ export function fixtures(db) {
       return prisma.answer_snapshots.findFirst({ where: { id: snapshot.id } });
     },
 
+    /**
+     * An answer collected AND read, as the extractor leaves it: an `ok` snapshot marked read, with its mentions and
+     * citations. `mentions` are `{ entity (a tracked_entities row), listRank, stance, sentiment, excerpt }`;
+     * `citations` are `{ url, isOwn, owner (an entity row or null) }`. Cited domains go into the global dictionary, so
+     * a test that cites its own hosts removes them with `forgetDomains`. Returns the snapshot.
+     */
+    async readAnswer(
+      run,
+      prompt,
+      {
+        engine = 'perplexity',
+        sampleIdx = 0,
+        excerpt = 'An answer',
+        mentions = [],
+        citations = [],
+      } = {},
+    ) {
+      const snapshot = await this.collectedAnswer(run, prompt, { engine, sampleIdx });
+      await prisma.answer_snapshots.updateMany({
+        where: { id: snapshot.id, run_date: snapshot.run_date },
+        data: {
+          extraction_status: 'done',
+          extraction_version: 'test',
+          extracted_at: new Date(),
+          text_excerpt: excerpt,
+          answer_type: 'list',
+        },
+      });
+      const fact = {
+        run_date: snapshot.run_date,
+        org_id: run.org_id,
+        project_id: run.project_id,
+        run_id: run.id,
+        snapshot_id: snapshot.id,
+        prompt_id: prompt.id,
+        engine_code: engine,
+        extraction_version: 'test',
+      };
+      if (mentions.length) {
+        await prisma.mentions.createMany({
+          data: mentions.map((m, i) => ({
+            ...fact,
+            entity_id: m.entity.id,
+            name_as_written: m.entity.name,
+            list_rank: m.listRank ?? null,
+            mention_order: i + 1,
+            prominence: 'primary',
+            stance: m.stance ?? 'neutral',
+            sentiment: m.sentiment ?? 0,
+            excerpt: m.excerpt ?? null,
+            detected_by: 'both',
+          })),
+        });
+      }
+      for (const [i, c] of citations.entries()) {
+        const domain = new URL(c.url).hostname.replace(/^www\./, '');
+        const domainRow =
+          (await prisma.web_domains.findUnique({ where: { domain } })) ??
+          (await prisma.web_domains.create({ data: { domain } }));
+        const hash = createHash('sha256').update(c.url).digest();
+        const urlRow =
+          (await prisma.web_urls.findUnique({ where: { url_hash: hash } })) ??
+          (await prisma.web_urls.create({
+            data: { url_hash: hash, url: c.url, domain_id: domainRow.id },
+          }));
+        await prisma.citations.create({
+          data: {
+            ...fact,
+            position: i + 1,
+            url_id: urlRow.id,
+            domain_id: domainRow.id,
+            owner_entity_id: c.owner?.id ?? null,
+            is_own: c.isOwn ?? false,
+          },
+        });
+      }
+      return snapshot;
+    },
+
     /** Delete one tracked entity (and its aliases), as a later Brand Kit edit would. */
     removeEntity: (entityId) => prisma.tracked_entities.delete({ where: { id: entityId } }),
 

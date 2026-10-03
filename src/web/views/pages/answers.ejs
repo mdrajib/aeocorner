@@ -1,0 +1,25 @@
+<%# C2: the question matrix. Props: engines ([{ code, name }]), rows ([{ id, text, href, cells: [{ code, state, status, mentioned, detail }] }]), ranges, updatedLabel,
+    stale, lastRun; locals: orgBase, projectBase, projectName, domain. A cell that could not be read says "Couldn’t check": never "Not mentioned". %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'answers', ranges, updatedLabel, stale, lastRun }) %>
+
+<% if (!rows.length) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'No active questions', text: 'Add buyer questions and we will ask the AI engines each one every week.', action: { label: 'Open the questions', href: projectBase + '/questions' } }) %></div>
+<% } else { %>
+<p class="text-ink-700 mt-4 max-w-3xl text-sm">Each cell is the latest check of one question on one engine. Open a question to read the answers behind it. “Couldn’t check” means the answer could not be collected or read: it is left out of your numbers, never counted as “not mentioned”.</p>
+<div class="mt-4">
+  <%- ui.table({
+    caption: 'Latest result for each question and engine',
+    stack: true,
+    columns: [{ key: 'q', label: 'Question' }, ...engines.map((e) => ({ key: e.code, label: e.name }))],
+    rows: rows.map((r) => {
+      const row = { q: { html: '<a href="' + ui.esc(r.href) + '">' + ui.esc(r.text) + '</a>' } };
+      for (const c of r.cells) {
+        row[c.code] = c.state === 'none'
+          ? { html: '<span class="text-ink-600 text-sm">Not checked yet</span>' }
+          : { html: '<a href="' + ui.esc(r.href) + '#engine-' + ui.esc(c.code) + '" class="no-underline">' + ui.resultCell({ status: c.status, mentioned: c.mentioned, detail: c.detail }) + '</a>' };
+      }
+      return row;
+    }),
+  }) %>
+</div>
+<% } %>

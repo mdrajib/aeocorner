@@ -1,0 +1,51 @@
+<%# C3: one question — how often each engine named the brand, who else was named, and the answers themselves. Props: question, history, readable, named,
+    chart, answers ({ dateLabel, groups: [{ code, name, samples }] } or null), canReport, ranges, updatedLabel, stale, lastRun;
+    locals: orgBase, projectBase, projectName, domain, csrfToken. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'answers', ranges, updatedLabel, stale, lastRun }) %>
+
+<p class="mt-4 text-sm"><a href="<%= projectBase %>/answers">All questions</a></p>
+<h2 class="mt-1 text-2xl [overflow-wrap:anywhere]"><%= question.text %></h2>
+<p class="text-ink-700 mt-1 text-sm"><%- ui.badge({ text: question.intent.replace('_', ' '), tone: 'neutral' }) %></p>
+
+<% if (!history.length && !answers) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'This question has not been checked yet', text: 'It is asked in the next weekly check, or you can start a check from the overview page.', action: { label: 'Open the overview', href: projectBase } }) %></div>
+<% } else { %>
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Over time', headingLevel: 3, html:
+    ui.chart({ title: 'How often each engine named you, by check date', xLabel: 'Check date', unit: '%', labels: chart.labels, series: chart.series, summary: chart.summary, emptyText: 'No finished check in this period.' })
+    + '<p class="text-ink-700 mt-3 text-sm">A break in a line is a check that could not be fully read. It is not a drop to zero.</p>' }) %>
+  <%- ui.card({ title: 'Who the AI named', headingLevel: 3, html: ui.fragment('partials/named-list', { named, readable }) }) %>
+</div>
+
+<div class="mt-6">
+  <%- ui.table({
+    caption: 'Every check of this question in the period',
+    columns: [{ key: 'date', label: 'Check date' }, { key: 'engine', label: 'Engine' }, { key: 'result', label: 'Result' }, { key: 'read', label: 'Answers read', numeric: true }],
+    rows: history.map((h) => ({
+      date: h.runDate,
+      engine: h.engineName,
+      result: { html: ui.resultCell({ status: h.result.status === 'none' ? 'failed' : h.result.status, mentioned: h.result.mentioned, detail: h.result.detail }) },
+      read: h.nOk + ' of ' + h.nPlanned,
+    })),
+    emptyText: 'No finished check in this period.',
+  }) %>
+</div>
+
+<h3 class="mt-10 text-xl">The latest answers</h3>
+<% if (!answers) { %>
+<p class="text-ink-700 mt-2 text-sm">No answers have been collected for this question yet.</p>
+<% } else { %>
+<p class="text-ink-700 mt-1 text-sm">From the check on <%= answers.dateLabel %>. We ask each engine more than once, because one answer is not enough to go on.</p>
+<% for (const g of answers.groups) { %>
+<section id="engine-<%= g.code %>" class="mt-6" aria-labelledby="engine-<%= g.code %>-h">
+  <h4 id="engine-<%= g.code %>-h" class="text-lg font-semibold"><%= g.name %></h4>
+  <div class="mt-3 grid gap-4 lg:grid-cols-2">
+    <% for (const s of g.samples) { %>
+    <%- ui.fragment('partials/answer-sample', { s, total: g.samples.length, canReport, reportAction: projectBase + '/answers/' + question.id + '/report', csrfToken }) %>
+    <% } %>
+  </div>
+</section>
+<% } %>
+<% if (canReport) { %><p class="text-ink-700 mt-6 max-w-3xl text-sm">If we named the wrong company, or got an answer wrong, tell us with the buttons under it. A person checks every report. Your numbers do not change until they have.</p><% } %>
+<% } %>
+<% } %>

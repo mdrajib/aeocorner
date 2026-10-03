@@ -1,0 +1,13 @@
+<%# Who was named for one question. Props: named ([{ name, kind, k }]), readable (the answers that could be read: the denominator). %>
+<% if (!readable) { %>
+<p class="text-ink-700 text-sm">No answer for this question could be read in this period, so there is nobody to list. That is not the same as nobody being named.</p>
+<% } else if (!named.length) { %>
+<p class="text-ink-700 text-sm">None of the brands we track was named in the <%= readable %> answers we could read.</p>
+<% } else { %>
+<%- ui.table({ caption: 'Brands named for this question', captionHidden: true, flush: true,
+  columns: [{ key: 'name', label: 'Brand' }, { key: 'k', label: 'Answers naming it', numeric: true }],
+  rows: named.map((n) => ({
+    name: { html: ui.esc(n.name) + (n.kind === 'brand' ? ' ' + ui.badge({ text: 'You', tone: 'brand' }) : '') },
+    k: n.k + ' of ' + readable,
+  })) }) %>
+<% } %>

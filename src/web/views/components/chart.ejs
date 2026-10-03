@@ -1,0 +1,49 @@
+<%
+// A line or bar chart with its data table. Props:
+//   title (required), labels ([x label per point]), series ([{ label, values: [number|null], low?: [], high?: [], tone? }]),
+//   kind ('line' | 'bar', default line), unit (appended to values, e.g. '%'), max (top of the axis, default 100),
+//   xLabel (header of the first table column), summary (the sentence a screen reader gets for the picture),
+//   emptyText (shown when there are no points).
+//
+// The data table is the chart's content and is always in the HTML: without JavaScript it is all there is, with it the
+// picture is drawn from the same numbers and the table folds away behind "Show the values" (src/web/public/js/components.js).
+// A null value is a gap in the line and says "Couldn’t check" in the table: never 0 (UI_DESIGN §7).
+// Charts are Chart.js drawing on a canvas, vendored as /vendor/chart.umd.min.js; a page with a chart sets `charts: true`.
+const kind = locals.kind === 'bar' ? 'bar' : 'line';
+const unit = locals.unit ?? '';
+const labels = locals.labels ?? [];
+const series = locals.series ?? [];
+const fmt = (v) => (v == null ? 'Couldn’t check' : v + unit);
+const withBand = series.length === 1 && Array.isArray(series[0].low) && Array.isArray(series[0].high);
+const columns = [{ key: 'x', label: locals.xLabel ?? 'Date' }, ...series.map((s, i) => ({ key: 's' + i, label: s.label, numeric: true }))];
+if (withBand) columns.push({ key: 'band', label: '95% range', numeric: true });
+const rows = labels.map((label, i) => {
+  const row = { x: label };
+  series.forEach((s, j) => { row['s' + j] = fmt(s.values[i]); });
+  if (withBand) {
+    const low = series[0].low[i];
+    const high = series[0].high[i];
+    row.band = low == null || high == null ? '—' : low + unit + ' to ' + high + unit;
+  }
+  return row;
+});
+const config = {
+  kind,
+  unit,
+  max: locals.max ?? 100,
+  labels,
+  series: series.map((s) => ({ label: s.label, values: s.values, low: s.low ?? null, high: s.high ?? null, tone: s.tone ?? null })),
+};
+-%>
+<figure class="chart" data-chart="<%= JSON.stringify(config) %>">
+  <figcaption class="chart-title"><%= locals.title %></figcaption>
+  <% if (!labels.length) { -%>
+  <p class="text-ink-600 py-6 text-center text-sm"><%= locals.emptyText ?? 'Nothing to chart yet.' %></p>
+  <% } else { -%>
+  <div class="chart-plot" hidden><canvas role="img" aria-label="<%= locals.summary ?? (locals.title + '. ' + labels.length + (labels.length === 1 ? ' point.' : ' points.')) %>"></canvas></div>
+  <details class="chart-data" open>
+    <summary class="chart-data-toggle">Values as a table</summary>
+    <%- ui.table({ caption: locals.title, captionHidden: true, columns, rows }) %>
+  </details>
+  <% } -%>
+</figure>

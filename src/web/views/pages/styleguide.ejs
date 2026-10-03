@@ -5,7 +5,7 @@
 const toc = [
   ['brand', 'Brand and colour'], ['type', 'Typography'], ['buttons', 'Buttons'], ['forms', 'Form fields'],
   ['cards', 'Cards'], ['tables', 'Tables'], ['tabs', 'Tabs'], ['badges', 'Badges'], ['modals', 'Modals'],
-  ['stats', 'Stat tiles'], ['results', 'Result cells and answers'], ['banners', 'Banners'], ['states', 'Empty, loading and error states'],
+  ['stats', 'Stat tiles'], ['charts', 'Charts'], ['results', 'Result cells and answers'], ['banners', 'Banners'], ['states', 'Empty, loading and error states'],
   ['stepper', 'Progress stepper'], ['meter', 'Meters'], ['toasts', 'Toasts'], ['shells', 'Shells and emails'],
 ];
 const swatches = {
@@ -170,6 +170,42 @@ const modalFooter = ui.button({ label: 'Cancel', variant: 'secondary', attrs: { 
       <%- ui.stat({ label: 'Share of voice', value: '14%', delta: { direction: 'flat', text: 'No change' } }) %>
       <%- ui.stat({ label: 'Gemini mention rate', state: 'unknown', note: 'will retry tonight' }) %>
       <%- ui.stat({ label: 'Citation share', state: 'loading' }) %>
+    </div>
+  </section>
+
+  <section id="charts" class="<%= sectionClass %>" aria-labelledby="charts-h">
+    <h2 id="charts-h" class="text-2xl">Charts</h2>
+    <p class="text-ink-700 mt-2 max-w-2xl text-sm"><code>ui.chart()</code> draws with Chart.js (self-hosted, no inline script) and always carries its numbers as a table: that table is the whole chart when JavaScript is off, and folds away behind “Values as a table” when it is on. A <code>null</code> value is a gap in the line and “Couldn’t check” in the table, never a drop to zero. The shaded band is the 95% range.</p>
+    <div class="mt-5 grid gap-5 lg:grid-cols-2">
+      <%- ui.card({ title: 'Line with a 95% range and a gap', html: ui.chart({
+        title: 'Mention rate by check date',
+        xLabel: 'Check date',
+        unit: '%',
+        labels: ['Sep 6', 'Sep 13', 'Sep 20', 'Sep 27'],
+        summary: 'Line chart of the mention rate over four checks: 22%, no reading, 31%, 36%.',
+        series: [{ label: 'Mention rate', values: [22, null, 31, 36], low: [14, null, 22, 27], high: [32, null, 42, 46] }],
+      }) }) %>
+      <%- ui.card({ title: 'Several lines', html: ui.chart({
+        title: 'Mention rate by engine',
+        xLabel: 'Check date',
+        unit: '%',
+        labels: ['Sep 6', 'Sep 13', 'Sep 20', 'Sep 27'],
+        summary: 'Line chart of the mention rate for ChatGPT and Gemini over four checks.',
+        series: [
+          { label: 'ChatGPT', values: [22, 25, 31, 36] },
+          { label: 'Gemini', values: [8, null, 12, 15] },
+        ],
+      }) }) %>
+      <%- ui.card({ title: 'Bars', html: ui.chart({
+        title: 'Share of voice',
+        kind: 'bar',
+        xLabel: 'Brand',
+        unit: '%',
+        labels: ['Rival Smiles', 'Sample Dental', 'BrightSmile'],
+        summary: 'Bar chart of share of voice: Rival Smiles 48%, Sample Dental 36%, BrightSmile 16%.',
+        series: [{ label: 'Share of voice', values: [48, 36, 16] }],
+      }) }) %>
+      <%- ui.card({ title: 'No points yet', html: ui.chart({ title: 'Mention rate by check date', labels: [], series: [], emptyText: 'The chart appears after your first check.' }) }) %>
     </div>
   </section>
 

@@ -1,0 +1,18 @@
+<%# Sites AI cites for the project's questions, in answers that did not name the brand. Props: gaps ([{ domain, classLabel, timesCited, answersCiting, answersWithoutBrand }]). %>
+<% if (!gaps.length) { %>
+<p class="text-ink-700 text-sm">No gap stands out. Every site cited in at least two answers also appears in answers that name you, or is your own.</p>
+<% } else { %>
+<p class="text-ink-700 mb-3 text-sm">AI cites these sites for your questions, and in some of those answers you were not named. Getting listed or mentioned on them is where to start.</p>
+<%- ui.table({
+  caption: 'Sites cited where you were not named',
+  captionHidden: true,
+  flush: true,
+  columns: [{ key: 'site', label: 'Site' }, { key: 'type', label: 'Type' }, { key: 'without', label: 'Answers without you', numeric: true }, { key: 'times', label: 'Times cited', numeric: true }],
+  rows: gaps.map((g) => ({
+    site: g.domain,
+    type: g.classLabel,
+    without: g.answersWithoutBrand + ' of ' + g.answersCiting,
+    times: String(g.timesCited),
+  })),
+}) %>
+<% } %>

@@ -111,6 +111,12 @@ const NOTICES = {
     'This month’s extra checks are used up. The weekly check still runs by itself.',
   ],
   'run-now-inactive': ['warning', 'Switch tracking on first, then you can check on demand.'],
+  'report-sent': [
+    'success',
+    'Thanks. A person will check that answer. Your numbers do not change until they have.',
+  ],
+  'report-repeat': ['info', 'You have already reported that answer. We have it.'],
+  'report-invalid': ['danger', 'That report could not be sent. Reload the page and try again.'],
   'too-many-invites': ['danger', 'There are already 50 invitations waiting. Cancel some first.'],
 };
 

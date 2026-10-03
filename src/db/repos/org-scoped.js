@@ -1,4 +1,5 @@
 import { DomainError, isForeignKeyViolation, isUniqueViolation } from '../errors.js';
+import { dashboardRepos } from './org-dashboard.js';
 import { extractionRepos } from './org-extractions.js';
 import { projectRepos } from './org-projects.js';
 import { promptRepos } from './org-prompts.js';
@@ -339,5 +340,6 @@ export function orgScopedRepos(prisma, orgId) {
     ...snapshotRepos(prisma, orgId),
     ...extractionRepos(prisma, orgId),
     ...trackingRepos(prisma, orgId),
+    ...dashboardRepos(prisma, orgId),
   };
 }

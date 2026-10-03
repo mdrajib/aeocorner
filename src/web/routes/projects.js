@@ -17,6 +17,7 @@ import { normalizeWebsite } from '../../lib/url.js';
 import { clearAuditClaim, readAuditClaim } from '../auth/audit-claim.js';
 import { notFound } from '../middleware/errors.js';
 import { brandRoutes } from './project-brand.js';
+import { dashboardRoutes } from './project-dashboard.js';
 import { dateLabel, idFrom, returnPath, withNotice } from './project-helpers.js';
 import { questionRoutes } from './project-questions.js';
 import { setupRoutes } from './project-setup.js';
@@ -460,6 +461,7 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   questionRoutes(router, { jobs, logger, appPage, edit });
   setupRoutes(router, { jobs, logger, appPage, edit });
   trackingRoutes(router, { jobs, logger, edit });
+  dashboardRoutes(router, { appPage, edit, logger });
 
   return { router, visibleIds };
 }

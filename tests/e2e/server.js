@@ -189,6 +189,104 @@ const runningProject = await trackedProject('Running Dental', {
   counts: { tasks_planned: 8 },
 });
 
+// A project with several weeks of results and one finished check, for the dashboard screens: some answers named the
+// brand, some a rival, one question could not be fully read, and one engine failed. The earlier weeks are rollup rows
+// written directly, so the trend has points to draw.
+const dashProject = await scoped.projects.create({
+  name: 'Data Dental',
+  domain: `data-dental-${unique()}.example.test`,
+  country: 'US',
+  language: 'en',
+  createdByUserId: people.owner.id,
+});
+const dashQ1 = (
+  await scoped.prompts.add(dashProject.id, {
+    text: 'Who is the best family dentist in Austin?',
+    intent: 'discovery',
+  })
+).prompt;
+const dashQ2 = (
+  await scoped.prompts.add(dashProject.id, {
+    text: 'Which dentist is the cheapest in Austin?',
+    intent: 'discovery',
+  })
+).prompt;
+await scoped.projects.startTracking(dashProject.id, { actorUserId: people.owner.id });
+const dashBrand = (await scoped.entities.list(dashProject.id, { kind: 'brand' }))[0];
+const dashRival = await fx.entity(dashProject, {
+  kind: 'competitor',
+  name: 'Rival Smiles',
+  domains: ['rival.example.test'],
+});
+{
+  const hostId = unique();
+  const dashRun = await fx.run(dashProject, { status: 'rolling_up', trigger: 'schedule' });
+  await fx.readAnswer(dashRun, dashQ1, {
+    excerpt: 'For a family dentist in Austin, Data Dental is a top pick, followed by Rival Smiles.',
+    mentions: [
+      {
+        entity: dashBrand,
+        listRank: 1,
+        stance: 'recommended',
+        sentiment: 2,
+        excerpt: 'Data Dental is a top pick.',
+      },
+      { entity: dashRival, listRank: 2, stance: 'neutral', sentiment: 0 },
+    ],
+    citations: [
+      { url: `https://reviews-${hostId}.example.test/austin-dentists` },
+      { url: `https://data-dental-${hostId}.example.test/`, isOwn: true, owner: dashBrand },
+    ],
+  });
+  await fx.readAnswer(dashRun, dashQ1, {
+    sampleIdx: 1,
+    excerpt: 'Rival Smiles is often recommended for families.',
+    mentions: [{ entity: dashRival, listRank: 1, stance: 'recommended', sentiment: 1 }],
+    citations: [{ url: `https://reviews-${hostId}.example.test/austin-dentists` }],
+  });
+  await fx.readAnswer(dashRun, dashQ2, {
+    excerpt: 'Prices vary a lot between practices in Austin.',
+    citations: [{ url: `https://forum-${hostId}.example.test/cheap-dentist` }],
+  });
+  const failed = await scoped.snapshots.create({
+    runId: dashRun.id,
+    promptId: dashQ2.id,
+    engineCode: 'gemini',
+    sampleIdx: 0,
+    providerCode: 'dataforseo',
+    method: 'ui_capture',
+  });
+  await scoped.snapshots.fail(failed.snapshot.id, 'provider down');
+  await fx.collectedAnswer(dashRun, dashQ2, { engine: 'perplexity', sampleIdx: 1 });
+  const outcome = await scoped.runs.settle(dashRun.id);
+  await scoped.metrics.rollupDay(dashProject.id, dashRun.run_date);
+  await scoped.runs.finish(dashRun.id, outcome.status);
+  const weeksAgo = (n) => new Date(Date.now() - n * 7 * DAY).toISOString().slice(0, 10);
+  await fx.seedMetrics(
+    dashProject,
+    [3, 2, 1].flatMap((n, i) =>
+      ['perplexity', 'gemini'].flatMap((engine) => [
+        {
+          date: weeksAgo(n),
+          engine,
+          entityKind: 'brand',
+          nAnswers: 12,
+          kMentioned: 2 + i * 2 + (engine === 'gemini' ? 0 : 1),
+          citationsTotal: 10,
+          citationsEntity: 1 + i,
+        },
+        {
+          date: weeksAgo(n),
+          engine,
+          entityKind: String(dashRival.id),
+          nAnswers: 12,
+          kMentioned: 5,
+        },
+      ]),
+    ),
+  );
+}
+
 const tokens = {
   signedOut: await invite(`new.hire.${unique()}@example.test`, 'editor'),
   accept: await invite(people.invitee.email, 'viewer'),
@@ -203,6 +301,8 @@ const fixtureInfo = {
   projectId: project.public_id,
   incompleteProjectId: incompleteProject.public_id,
   runningProjectId: runningProject.public_id,
+  dashboardProjectId: dashProject.public_id,
+  dashboardPromptId: String(dashQ1.id),
   promptId: String(firstPrompt.id),
   membershipId: String(editorSeat.id),
   tokens,

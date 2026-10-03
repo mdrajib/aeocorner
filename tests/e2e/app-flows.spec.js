@@ -174,3 +174,75 @@ test('a page waiting for a check updates by itself, and the visitor can stop tha
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Stop updating' })).toBeHidden();
 });
+
+test('a signed-in user opens the dashboard, sees the chart, and drills into one question', async ({
+  page,
+  request,
+}) => {
+  const problems = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') problems.push(message.text());
+  });
+  page.on('pageerror', (error) => problems.push(error.message));
+
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'owner',
+    next: `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/dashboard`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Data Dental' })).toBeVisible();
+
+  // The figures, and the banner for the answers that could not be read.
+  await expect(page.getByText('Mention rate', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Some checks are incomplete.')).toBeVisible();
+  await expect(page.getByText('not counted as “not mentioned”')).toBeVisible();
+
+  // The chart is drawn from the same numbers as its table: the canvas shows, and the values are one click away.
+  await expect(page.locator('figure.chart canvas').first()).toBeVisible();
+  await page.getByText('Values as a table').first().click();
+  await expect(
+    page.getByRole('table', { name: 'Mention rate by check date, all engines' }),
+  ).toBeVisible();
+
+  // Down to the answers: the matrix, then one question.
+  await page.getByRole('link', { name: 'Answers', exact: true }).first().click();
+  await expect(
+    page.getByRole('table', { name: 'Latest result for each question and engine' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Who is the best family dentist in Austin?' }).click();
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Who is the best family dentist in Austin?' }),
+  ).toBeVisible();
+  await expect(page.getByText('Named in this answer').first()).toBeVisible();
+  await expect(page.locator('mark.mark-brand').first()).toHaveText('Data Dental');
+  await expect(page.getByText('Sources cited').first()).toBeVisible();
+
+  expect(problems, 'no console errors, including CSP violations').toEqual([]);
+});
+
+test('an editor tells us an answer named the wrong company', async ({ page, request }) => {
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'editor',
+    next: `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/answers/${f.dashboardPromptId}`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+  await page.getByRole('button', { name: 'That’s not us' }).first().click();
+  await expect(page.getByText(/A person will check that answer|already reported/)).toBeVisible();
+  await expect(page.getByText('You reported: that’s not us').first()).toBeVisible();
+});
+
+test('a viewer reads the dashboard but is not offered the feedback buttons', async ({
+  page,
+  request,
+}) => {
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'viewer',
+    next: `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/answers/${f.dashboardPromptId}`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+  await expect(page.getByText('Named in this answer').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'That’s not us' })).toHaveCount(0);
+});

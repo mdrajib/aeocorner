@@ -1,0 +1,78 @@
+<%# One collected answer. Props: s (the sample: id, sampleIdx, read, status, methodLabel, textExcerpt, highlights, mentions, citations, brandNamed,
+    reportedNotUs, reportedMisread), total (samples of this engine), canReport, reportAction, csrfToken. An answer that could not be read says so and
+    shows no excerpt, no brand list and no verdict: it says nothing about the brand. %>
+<article class="border-ink-200 rounded-lg border bg-white p-4" aria-label="Sample <%= s.sampleIdx + 1 %> of <%= total %>">
+  <header class="flex flex-wrap items-center justify-between gap-2">
+    <h4 class="text-sm font-semibold">Sample <%= s.sampleIdx + 1 %> of <%= total %></h4>
+    <% if (s.read) { %>
+    <%- ui.resultCell({ status: 'ok', mentioned: s.brandNamed }) %>
+    <% } else if (s.status === 'no_answer') { %>
+    <%- ui.resultCell({ status: 'no_overview' }) %>
+    <% } else { %>
+    <%- ui.resultCell({ status: 'failed' }) %>
+    <% } %>
+  </header>
+  <% if (s.methodLabel) { %><p class="text-ink-600 mt-1 text-xs">Asked <%= s.methodLabel %>.</p><% } %>
+
+  <% if (!s.read && s.status !== 'no_answer') { %>
+  <p class="text-ink-700 mt-3 text-sm">We could not read this answer, so it is left out of your numbers. It is not counted as “not mentioned”.</p>
+  <% } else if (s.status === 'no_answer') { %>
+  <p class="text-ink-700 mt-3 text-sm">The engine showed no answer for this question. That is not a miss.</p>
+  <% } else { %>
+  <% if (s.textExcerpt) { %>
+  <blockquote class="text-ink-800 mt-3 text-[0.95rem] leading-7"><%- ui.highlight(s.textExcerpt, s.highlights) %><% if (s.textExcerpt.length >= 500) { %>…<% } %></blockquote>
+  <% } %>
+
+  <% if (s.mentions.length) { %>
+  <h5 class="mt-4 text-sm font-semibold">Named in this answer</h5>
+  <ul class="mt-1 flex flex-col gap-1 text-sm">
+    <% for (const m of s.mentions) { %>
+    <li>
+      <span class="font-medium"><%= m.name %></span><% if (m.isBrand) { %> <%- ui.badge({ text: 'You', tone: 'brand' }) %><% } %>
+      <span class="text-ink-700">· <%= m.stanceLabel %><% if (m.listRank) { %> · number <%= m.listRank %> in a list<% } %><% if (m.sentimentLabel) { %> · tone <%= m.sentimentLabel %><% } %></span>
+    </li>
+    <% } %>
+  </ul>
+  <% } else { %>
+  <p class="text-ink-700 mt-3 text-sm">None of the brands we track was named in this answer.</p>
+  <% } %>
+
+  <% if (s.citations.length) { %>
+  <h5 class="mt-4 text-sm font-semibold">Sources cited</h5>
+  <ul class="mt-1 flex flex-col gap-1 text-sm">
+    <% for (const c of s.citations) { %>
+    <li class="[overflow-wrap:anywhere]">
+      <% if (c.safeUrl) { %><a href="<%= c.safeUrl %>" rel="noopener noreferrer nofollow" target="_blank"><%= c.title || c.domain || c.safeUrl %></a><% } else { %><%= c.title || c.domain || 'A source' %><% } %>
+      <span class="text-ink-600">· <%= c.domain %></span>
+      <% if (c.isOwn) { %><%- ui.badge({ text: 'Your site', tone: 'success' }) %><% } %>
+    </li>
+    <% } %>
+  </ul>
+  <% } %>
+
+  <% if (canReport) { %>
+  <div class="border-ink-200 mt-4 flex flex-wrap gap-2 border-t pt-3">
+    <% if (s.brandNamed) { %>
+    <% if (s.reportedNotUs) { %><%- ui.badge({ text: 'You reported: that’s not us', tone: 'info', icon: 'check' }) %>
+    <% } else { %>
+    <form method="post" action="<%= reportAction %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="snapshot" value="<%= s.id %>">
+      <input type="hidden" name="kind" value="not_us">
+      <%- ui.button({ label: 'That’s not us', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+    </form>
+    <% } %>
+    <% } %>
+    <% if (s.reportedMisread) { %><%- ui.badge({ text: 'You reported: misread', tone: 'info', icon: 'check' }) %>
+    <% } else { %>
+    <form method="post" action="<%= reportAction %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="snapshot" value="<%= s.id %>">
+      <input type="hidden" name="kind" value="misread">
+      <%- ui.button({ label: 'This answer was misread', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+    </form>
+    <% } %>
+  </div>
+  <% } %>
+  <% } %>
+</article>

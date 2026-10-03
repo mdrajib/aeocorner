@@ -1,0 +1,13 @@
+<%# The top of the competitor table. Props: competitors ([{ name, isBrand, state, mentionRate, shareOfVoice }]), projectBase. %>
+<% if (competitors.length <= 1) { %>
+<p class="text-ink-700 text-sm">No competitors are tracked yet. <a href="<%= projectBase %>/brand?tab=competitors">Add some</a> to see who the AI names instead of you.</p>
+<% } else { %>
+<%- ui.table({ caption: 'Share of voice and mention rate', captionHidden: true, flush: true,
+  columns: [{ key: 'name', label: 'Brand' }, { key: 'sov', label: 'Share of voice', numeric: true }, { key: 'rate', label: 'Mention rate', numeric: true }],
+  rows: competitors.map((c) => ({
+    name: { html: ui.esc(c.name) + (c.isBrand ? ' ' + ui.badge({ text: 'You', tone: 'brand' }) : '') },
+    sov: c.shareOfVoice == null ? 'Couldn’t check' : c.shareOfVoice + '%',
+    rate: c.mentionRate == null ? 'Couldn’t check' : c.mentionRate + '%',
+  })) }) %>
+<p class="mt-3 text-sm"><a href="<%= projectBase %>/compare">Compare in detail</a></p>
+<% } %>

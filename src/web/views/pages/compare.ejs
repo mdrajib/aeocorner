@@ -1,0 +1,52 @@
+<%# The brand against its competitors. Props: rows ([{ name, isBrand, state, n, k, mentionRate, interval, shareOfVoice, position, sentiment, change, wins }]),
+    hasData, incomplete, competitorCount, ranges, updatedLabel, stale, lastRun; locals: orgBase, projectBase, projectName, domain.
+    A brand we could not check shows "Couldn’t check", never 0%. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'compare', ranges, updatedLabel, stale, lastRun }) %>
+
+<% if (incomplete) { %>
+<div class="mt-4"><%- ui.banner({ tone: 'incomplete', title: incomplete.title, text: incomplete.text }) %></div>
+<% } %>
+
+<% if (!hasData) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'No results in this period yet', text: 'The comparison appears after a check has finished.', action: { label: 'Open the overview', href: projectBase } }) %></div>
+<% } else if (competitorCount < 1) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'No competitors are tracked yet', text: 'Add the companies your customers compare you with, and we show how often the AI names each of them.', action: { label: 'Add competitors', href: projectBase + '/brand?tab=competitors' } }) %></div>
+<% } else { %>
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Share of voice', headingLevel: 2, html:
+    ui.chart({ title: 'Share of voice by brand', kind: 'bar', xLabel: 'Brand', unit: '%', labels: rows.map((r) => r.name),
+      series: [{ label: 'Share of voice', values: rows.map((r) => r.shareOfVoice) }],
+      summary: 'Bar chart of share of voice: ' + rows.map((r) => r.name + ' ' + (r.shareOfVoice == null ? 'could not be checked' : r.shareOfVoice + '%')).join(', ') + '.' })
+    + '<p class="text-ink-700 mt-3 text-sm">Share of voice is a brand’s mentions out of the mentions of every brand we track.</p>' }) %>
+  <%- ui.card({ title: 'How to read this', headingLevel: 2, html:
+    '<ul class="text-ink-700 flex list-disc flex-col gap-2 pl-5 text-sm">'
+    + '<li><strong>Mention rate</strong> is the share of answers that name the brand. The range is where the true rate very likely lies.</li>'
+    + '<li><strong>Average position</strong> is the average place in lists, when named in one. 1 is best.</li>'
+    + '<li><strong>You win</strong> is the share of questions, among those where either of you was named, where you come out ahead: ranked higher, or named when they were not.</li>'
+    + '<li>A change is shown in colour only when it passed the significance test.</li></ul>' }) %>
+</div>
+
+<div class="mt-6">
+  <%- ui.table({
+    caption: 'Brands compared',
+    columns: [
+      { key: 'name', label: 'Brand' }, { key: 'sov', label: 'Share of voice', numeric: true }, { key: 'rate', label: 'Mention rate', numeric: true },
+      { key: 'change', label: 'Change', numeric: true }, { key: 'position', label: 'Average position', numeric: true },
+      { key: 'sentiment', label: 'Sentiment', numeric: true }, { key: 'wins', label: 'You win', numeric: true },
+    ],
+    rows: rows.map((r) => {
+      const couldnt = 'Couldn’t check';
+      const changeClass = r.change && r.change.significant ? (r.change.direction === 'up' ? 'delta-up' : 'delta-down') : 'delta-flat';
+      return {
+        name: { html: ui.esc(r.name) + (r.isBrand ? ' ' + ui.badge({ text: 'You', tone: 'brand' }) : '') },
+        sov: r.state === 'ok' ? (r.shareOfVoice == null ? '—' : r.shareOfVoice + '%') : couldnt,
+        rate: r.state === 'ok' ? r.mentionRate + '%' + (r.interval ? ' (' + r.interval.low + '–' + r.interval.high + '%)' : '') : couldnt,
+        change: r.change ? { html: '<span class="' + changeClass + '">' + ui.esc(r.change.text) + '</span>' } : '—',
+        position: r.position == null ? '—' : String(r.position),
+        sentiment: r.sentiment == null ? '—' : (r.sentiment > 0 ? '+' : '') + r.sentiment,
+        wins: r.isBrand ? '—' : (r.wins.rate == null ? 'Not named in the same questions' : r.wins.rate + '% (' + r.wins.wins + ' of ' + r.wins.decided + ')'),
+      };
+    }),
+  }) %>
+</div>
+<% } %>

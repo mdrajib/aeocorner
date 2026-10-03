@@ -129,10 +129,10 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | B7 | Onboarding 5: start tracking, then "baseline in progress" | 5, 6 | `…/start` | app | **Milestone 4 ✅ 2026-10-03** (the last step offers "Start tracking"; the project page has an "AI checks" card with the latest check, "Run a check now" and the month's allowance) | B |
 | B8 | Brand Kit editor with version history | 5, 7 | `/app/p/:id/brand` | app | Phase 8 | B |
 | B9 | Prompt Manager (list, filters, CSV import, duplicates) | 5, 7 | `/app/p/:id/questions` | app | Phase 8 | B |
-| C1 | **Dashboard** (score, engines, competitors, trend, top actions) | 6 Baseline | `/app/p/:id` | app | Phase 10 | C |
-| C2 | Question matrix (questions × engines) | 6 | `…/matrix` | app | Phase 10 | C |
-| C3 | Answer detail with evidence, method label and "That's not us" | 6, 7 | drawer | app | Phase 10 | C |
-| C4 | Citation and source intelligence | 6 | `…/citations` | app | Phase 10 | C |
+| C1 | **Dashboard** (score, engines, competitors, trend, top actions) | 6 Baseline | `…/dashboard` | app | **Milestone 5 ✅ 2026-10-03** (figures with their ranges and changes, the trend with its 95% band, the engines, competitors, what changed; "top actions" waits for the Action Center in Milestone 6) | C |
+| C2 | Question matrix (questions × engines) | 6 | `…/answers` | app | **Milestone 5 ✅ 2026-10-03** | C |
+| C3 | Answer detail with evidence, method label and "That's not us" | 6, 7 | `…/answers/:qid` | app | **Milestone 5 ✅ 2026-10-03** (a page, not a drawer: it works without JavaScript and has an address that can be shared inside the team) | C |
+| C4 | Citation and source intelligence | 6 | `…/citations` | app | **Milestone 5 ✅ 2026-10-03** (cited sites and pages, and the sites cited where the brand was not named; the competitors view is `…/compare`) | C |
 | C5 | First-visit guided tour (3 steps) | 6 | overlay | app | Phase 10 | C |
 | D1 | **Action Center** (ranked recommendations) | 7 Loop | `…/actions` | app | Phase 11 | D |
 | D2 | Recommendation detail: evidence, fix path, status timeline | 7 | `…/actions/:id` | app | Phase 11 | D |

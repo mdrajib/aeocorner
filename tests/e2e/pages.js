@@ -76,6 +76,41 @@ export const appPages = [
     as: 'owner',
     path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/setup/${step}`,
   })),
+  // The dashboard screens (Milestone 5): with a finished check that was partly unreadable, with none, and before tracking.
+  ...['dashboard', 'answers', 'compare', 'citations'].flatMap((screen) => [
+    {
+      name: `project-${screen}`,
+      as: 'owner',
+      path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/${screen}`,
+    },
+    {
+      name: `project-${screen}-viewer`,
+      as: 'viewer',
+      path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/${screen}`,
+    },
+    {
+      name: `project-${screen}-no-results`,
+      as: 'owner',
+      path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}/${screen}`,
+    },
+    {
+      name: `project-${screen}-tracking-off`,
+      as: 'owner',
+      path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/${screen}`,
+    },
+  ]),
+  {
+    name: 'project-answer-detail',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/answers/${f.dashboardPromptId}`,
+  },
+  {
+    name: 'project-answer-detail-viewer',
+    as: 'viewer',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/answers/${f.dashboardPromptId}`,
+  },
   {
     name: 'member-access',
     as: 'owner',

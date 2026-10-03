@@ -39,6 +39,7 @@ export function createUi({ viewsDir, cache }) {
     'banner',
     'button',
     'card',
+    'chart',
     'checkbox',
     'excerpt',
     'field',

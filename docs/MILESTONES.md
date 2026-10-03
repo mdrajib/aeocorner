@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Execution order for the rest of the MVP: Phases 7–15 of [BUILD_PLAN.md](BUILD_PLAN.md), reorganized into 11 sequential milestones of single-action tasks |
 | **Date** | 2026-10-03 |
-| **Status** | In progress. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
+| **Status** | In progress. Milestone 5 (dashboard): the screens and their tests are built (5.01–5.10); open are deploying to production (5.11) and onboarding the design partners (5.12), which need the production server (Milestone 2) and the founder. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
 | **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) (phase detail and required tests) · [MVP.md](MVP.md) §13 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §7 · [UI_DESIGN.md](UI_DESIGN.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. How to read this plan
@@ -269,28 +269,28 @@ flowchart LR
 
 | # | Task | Needs |
 |---|---|---|
-| 5.01 | 🔒 Build score, mention rate, share of voice, position and sentiment in `src/core` | — |
-| 5.02 | 🔒 Build the dashboard read queries in `forOrg()` | — |
-| 5.03 | Choose and vendor a CSP-safe chart library (Chart.js or ECharts) | — |
-| 5.04 | Add a chart component with a data-table alternative to the kit and styleguide | 5.03 |
-| 5.05 | Build the dashboard overview | 5.01, 5.02, 5.04 |
-| 5.06 | Build the per-question drilldown with answer excerpts | 5.02 |
-| 5.07 | Build the competitor comparison view | 5.01, 5.02, 5.04 |
-| 5.08 | Build citation intelligence: cited domains and URLs, gaps vs. competitors | 5.02 |
-| 5.09 | Show the incomplete-data banner and "couldn't check" cells for partial runs | 5.05 |
-| 5.10 | Add "That's not us" / "misread" feedback that writes `review_items` | 5.06 |
+| 5.01 | ✅ 2026-10-03 🔒 Build score, mention rate, share of voice, position and sentiment in `src/core` (`src/core/dashboard.js`, pure: the score, mention rate, share of voice, citation share, position, sentiment and recommendation rate with Wilson ranges, the trend lines, win rate and the question-matrix cell. A figure with nothing readable behind it is "couldn’t check", never 0; a change is coloured only when it passed the significance test) | — |
+| 5.02 | ✅ 2026-10-03 🔒 Build the dashboard read queries in `forOrg()` (`forOrg().dashboard`: `matrix`, `question`, `answers`, `competitorCells`, `citations`, `reportAnswer`, `reportsFor`, each with a leak test; the daily figures come from `metrics.range`) | — |
+| 5.03 | ✅ 2026-10-03 Choose and vendor a CSP-safe chart library (Chart.js or ECharts) (Chart.js 4.5.1, self-hosted and loaded only on pages with a chart: [ADR-0009](adr/0009-charts.md)) | — |
+| 5.04 | ✅ 2026-10-03 Add a chart component with a data-table alternative to the kit and styleguide (`ui.chart`: a line or bar chart with a 95% band and gaps, always with its values as a table; in the styleguide) | 5.03 |
+| 5.05 | ✅ 2026-10-03 Build the dashboard overview (`/projects/:pid/dashboard`: four headline figures, three more, the trend, the engines, the competitors, and what changed, for the last 4, 8 or 12 weeks) | 5.01, 5.02, 5.04 |
+| 5.06 | ✅ 2026-10-03 Build the per-question drilldown with answer excerpts (`/projects/:pid/answers` is the question matrix and `/answers/:qid` the drilldown: history, who was named, and the latest answers with their excerpts, who they named and what they cited) | 5.02 |
+| 5.07 | ✅ 2026-10-03 Build the competitor comparison view (`/projects/:pid/compare`: share of voice as bars, and a table of mention rate, change, position, sentiment and win rate) | 5.01, 5.02, 5.04 |
+| 5.08 | ✅ 2026-10-03 Build citation intelligence: cited domains and URLs, gaps vs. competitors (`/projects/:pid/citations`: cited sites and pages, their share, and the sites cited in answers that did not name the brand) | 5.02 |
+| 5.09 | ✅ 2026-10-03 Show the incomplete-data banner and "couldn't check" cells for partial runs (an "incomplete" banner naming the engines, "Couldn’t check" for an engine or cell that could not be read, a stale-data banner after 14 days, and a running-check banner) | 5.05 |
+| 5.10 | ✅ 2026-10-03 Add "That's not us" / "misread" feedback that writes `review_items` (the buttons under each answer, for editors and above; they write `review_items` as `customer_report`, once per person and reason) | 5.06 |
 | 5.11 | Deploy to production | 5.05–5.10 |
 | 5.12 | 👤 Onboard 10–15 design partners | 5.11 |
 
 **Parallel:** 5.01, 5.02 and 5.03 at once. Screens 5.05–5.08 in parallel once their inputs exist.
 
 **Definition of Done:**
-- [ ] Route tests: every dashboard endpoint requires sign-in and is organization-scoped.
-- [ ] Unit: score and share of voice match hand-computed fixtures.
-- [ ] Render test: a partial run shows the banner and "couldn't check", never zeros.
-- [ ] E2E: a signed-in user opens the dashboard and drills into one question.
-- [ ] Axe sweep passes on dashboard, drilldown, competitor and citation screens.
-- [ ] Leak tests for every new read query.
+- [x] Route tests: every dashboard endpoint requires sign-in and is organization-scoped. (`tests/routes/project-dashboard.test.js`)
+- [x] Unit: score and share of voice match hand-computed fixtures. (`src/core/dashboard.test.js`)
+- [x] Render test: a partial run shows the banner and "couldn't check", never zeros. (`tests/routes/project-dashboard.test.js`)
+- [x] E2E: a signed-in user opens the dashboard and drills into one question. (`tests/e2e/app-flows.spec.js`)
+- [x] Axe sweep passes on dashboard, drilldown, competitor and citation screens. (registered in `tests/e2e/pages.js`)
+- [x] Leak tests for every new read query. (`tests/tenancy/repositories.test.js`)
 - [ ] 10–15 partners onboarded and active.
 
 ---

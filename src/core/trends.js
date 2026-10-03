@@ -37,7 +37,7 @@ const within = (date, [start, end]) => {
 };
 
 /** Rows of one window that count: they finished cleanly, optionally for one engine. */
-function usable(rows, window, engineCode) {
+export function usable(rows, window, engineCode) {
   return rows.filter(
     (r) =>
       within(r.metricDate, window) &&
@@ -49,7 +49,7 @@ function usable(rows, window, engineCode) {
 const sum = (rows, pick) => rows.reduce((n, r) => n + Number(pick(r)), 0);
 
 /** Counts `{ n, k }` of one metric for one window. */
-const MEASURES = {
+export const MEASURES = {
   mention_rate_change: ({ rows, entityId }) => {
     const mine = rows.filter((r) => String(r.entityId) === String(entityId));
     return { n: sum(mine, (r) => r.nAnswers), k: sum(mine, (r) => r.kMentioned) };

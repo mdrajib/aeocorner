@@ -1,0 +1,50 @@
+<%# C1: the figures, the trend, the engines, the competitors and what changed. Props: tiles, more (ui.stat props), chart,
+    engines, competitors, changes, hasData, incomplete, baseline, ranges, rangeLabel, updatedLabel, lastRun, stale;
+    locals: orgBase, projectBase, projectName, domain. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'dashboard', ranges, updatedLabel, stale, lastRun }) %>
+
+<% if (incomplete) { %>
+<div class="mt-4"><%- ui.banner({ tone: 'incomplete', title: incomplete.title, text: incomplete.text }) %></div>
+<% } %>
+
+<% if (!hasData) { %>
+<div class="mt-6">
+  <%- ui.state({
+    kind: lastRun.running ? 'loading' : 'empty',
+    title: lastRun.running ? 'Your first check is running' : 'No results in this period yet',
+    text: lastRun.running
+      ? 'We are asking the AI engines your questions. The figures appear here when it finishes, and this page refreshes by itself.'
+      : 'Nothing was checked in ' + rangeLabel.toLowerCase() + '. The weekly check runs by itself, and you can start one from the overview page.',
+    action: lastRun.running ? undefined : { label: 'Open the overview', href: projectBase },
+  }) %>
+</div>
+<% } else { %>
+<% if (baseline) { %>
+<div class="mt-4"><%- ui.banner({ tone: 'info', title: 'This is your baseline.', text: 'It is one check so far. We check every week, so trends and changes appear after a few weeks, and only when they are real.' }) %></div>
+<% } %>
+
+<h2 class="sr-only">Your figures, <%= rangeLabel.toLowerCase() %></h2>
+<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <% for (const tile of tiles) { %><%- ui.stat(tile) %><% } %>
+</div>
+<div class="mt-4 grid gap-4 sm:grid-cols-3">
+  <% for (const tile of more) { %><%- ui.stat(tile) %><% } %>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-3">
+  <div class="min-w-0 lg:col-span-2">
+    <%- ui.card({ title: 'Mention rate over time', headingLevel: 2, html:
+      ui.chart({ title: 'Mention rate by check date, all engines', xLabel: 'Check date', unit: '%', labels: chart.labels, summary: chart.summary,
+        series: [{ label: 'Mention rate', values: chart.values, low: chart.low, high: chart.high }],
+        emptyText: 'The chart appears after your first check.' })
+      + '<p class="text-ink-700 mt-3 text-sm">The shaded band is the 95% range: the true rate is very likely inside it.'
+      + (chart.gaps ? ' A break in the line is a check that did not finish. It is not a drop to zero.' : '') + '</p>' }) %>
+  </div>
+  <%- ui.card({ title: 'By engine', headingLevel: 2, html: ui.fragment('partials/engine-rates', { engines }) }) %>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Competitors', headingLevel: 2, html: ui.fragment('partials/competitor-brief', { competitors, projectBase }) }) %>
+  <%- ui.card({ title: 'What changed', headingLevel: 2, html: ui.fragment('partials/change-list', { changes }) }) %>
+</div>
+<% } %>

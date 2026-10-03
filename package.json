@@ -70,6 +70,7 @@
     "@playwright/test": "^1.63.0",
     "@tailwindcss/cli": "^4.3.3",
     "alpinejs": "^3.17.4",
+    "chart.js": "^4.5.1",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "htmx.org": "^2.0.11",

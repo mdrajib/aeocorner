@@ -1,0 +1,23 @@
+<%# The brand's mention rate on each engine. Props: engines ([{ name, state: ok|unknown|none, display, n, k, interval, incomplete }]). A failed engine says "Couldn’t check": never 0%. %>
+<% if (!engines.length) { %>
+<p class="text-ink-700 text-sm">No engine is switched on for this project.</p>
+<% } else { %>
+<ul class="divide-ink-200 divide-y">
+  <% for (const e of engines) { %>
+  <li class="flex flex-wrap items-center justify-between gap-2 py-3">
+    <span class="font-medium"><%= e.name %></span>
+    <% if (e.state === 'ok') { %>
+    <span class="text-right">
+      <span class="text-lg font-semibold tabular-nums"><%= e.display %></span>
+      <span class="text-ink-600 block text-xs"><%= e.k %> of <%= e.n %> answers<% if (e.interval) { %> · 95% range <%= e.interval.low %>–<%= e.interval.high %>%<% } %></span>
+      <% if (e.incomplete) { %><span class="mt-1 inline-block"><%- ui.badge({ text: 'Incomplete', tone: 'unknown', icon: 'help' }) %></span><% } %>
+    </span>
+    <% } else if (e.state === 'unknown') { %>
+    <%- ui.resultCell({ status: 'failed' }) %>
+    <% } else { %>
+    <span class="text-ink-600 text-sm">Not checked in this period</span>
+    <% } %>
+  </li>
+  <% } %>
+</ul>
+<% } %>

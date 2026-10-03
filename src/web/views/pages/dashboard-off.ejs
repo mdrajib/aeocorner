@@ -1,0 +1,10 @@
+<%# A dashboard screen of a project whose tracking is not on yet. Props: title, canEdit; locals: orgBase, projectBase, projectName, domain. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'dashboard', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
+<div class="mt-6">
+  <%- ui.state({
+    kind: 'empty',
+    title: title + ' appear once tracking is on',
+    text: 'Nothing has been checked yet. When you start tracking we ask the AI engines your questions, and the results show up here.',
+    action: canEdit ? { label: 'Finish setup and start tracking', href: projectBase + '/setup/start' } : undefined,
+  }) %>
+</div>
