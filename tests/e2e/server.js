@@ -356,6 +356,27 @@ const actionIds = {};
   );
   await fx.forceRecommendation(won.id, { status: 'proven_win' });
   actionIds.win = String(won.id);
+  // A written auto-fix that can be taken off the site again (its own recommendation, so the open preview page stays as it is).
+  const written = await fx.recommendation(
+    { id: dashProject.id, org_id: org.id },
+    {
+      rule_code: 'readiness.C1',
+      category: 'structured_data',
+      fix_path: 'auto_fix',
+      title: 'Add Organization schema (written)',
+      status: 'in_progress',
+    },
+  );
+  const begun = await scoped.autofix.approve(dashProject.id, written.id, {
+    userId: people.owner.id,
+    targetUrl: 'https://www.datadental.example.test/',
+    jsonld: { '@context': 'https://schema.org', '@graph': [] },
+    hash: 'e2e',
+    ruleCode: 'readiness.C1',
+  });
+  await fx.forceSiteChange(begun.siteChangeId, { status: 'applied', applied_at: new Date() });
+  await scoped.recommendations.markDone(dashProject.id, written.id, { userId: people.owner.id });
+  actionIds.undo = String(written.id);
   actionIds.shareAddress = (
     await scoped.proofShares.share(dashProject.id, won.id, shared.id, { userId: people.owner.id })
   ).publicId;
@@ -641,6 +662,7 @@ const fixtureInfo = {
   actionWinId: actionIds.win,
   proofShareId: actionIds.shareAddress,
   actionAutofixId: actionIds.autofix,
+  actionUndoId: actionIds.undo,
   contentReadyId: contentIds.ready,
   contentApprovedId: contentIds.approved,
   contentPublishedId: contentIds.published,

@@ -745,3 +745,114 @@ describe('sharing a proven win (D4)', () => {
     );
   });
 });
+
+describe('auto-fix: take it off the site (D3)', () => {
+  const secret = {
+    ciphertext: Buffer.alloc(40, 1),
+    wrappedDek: Buffer.alloc(60, 2),
+    keyVersion: 1,
+  };
+
+  /** A fix that was approved and written: the change is `applied` and the recommendation is done. */
+  async function withWrittenFix() {
+    const ctx = await withActions();
+    await ctx.scoped.integrations.saveWordpress(ctx.project.id, {
+      config: {
+        siteUrl: 'https://www.undo-site.example.test',
+        username: 'editor',
+        pluginConnected: true,
+      },
+      secret,
+      userId: ctx.owner.user.id,
+    });
+    const c1 = ctx.rec('readiness.C1');
+    const page = `${ctx.base}/actions/${c1.id}/autofix`;
+    const hash = (await ctx.owner.get(page)).text.match(/name="hash" value="([0-9a-f]{64})"/)[1];
+    await ctx.owner.post(`${page}/approve`, { hash }).expect(303);
+    const change = await ctx.scoped.autofix.current(ctx.project.id, c1.id);
+    await h.fx.forceSiteChange(change.id, { status: 'applied', applied_at: new Date() });
+    await ctx.scoped.recommendations.markDone(ctx.project.id, c1.id, { userId: ctx.owner.user.id });
+    return { ...ctx, c1, page, change };
+  }
+
+  test('a written fix offers to be removed, and says what will be put back', async () => {
+    const ctx = await withWrittenFix();
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /Take it off your site/);
+    assert.match(page.text, /no structured data of ours at all/);
+    assert.match(page.text, /Remove it from my site/);
+    assert.doesNotMatch(page.text, /Approve and apply/);
+    const viewer = await ctx.viewer.get(ctx.page).expect(200);
+    assert.doesNotMatch(viewer.text, /Remove it from my site/);
+  });
+
+  test('asking queues one removal, claims the fix, and the page says it is being removed', async () => {
+    const ctx = await withWrittenFix();
+    const before = added.length;
+    const res = await ctx.owner.post(`${ctx.page}/undo`).expect(303);
+    assert.match(res.headers.location, /autofix-undoing/);
+    const job = added.slice(before).find((j) => j.name === 'autofix.undo');
+    assert.ok(job);
+    assert.deepEqual(job.data, {
+      orgId: String(ctx.project.org_id),
+      projectId: String(ctx.project.id),
+      siteChangeId: String(ctx.change.id),
+    });
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /Removing it from your site now/);
+    assert.doesNotMatch(page.text, /Remove it from my site/);
+
+    const again = await ctx.owner.post(`${ctx.page}/undo`).expect(303);
+    assert.match(again.headers.location, /autofix-undo-already/);
+    assert.equal(added.slice(before).filter((j) => j.name === 'autofix.undo').length, 1);
+  });
+
+  test('a viewer cannot ask, another organization gets a 404, and a missing token is refused', async () => {
+    const ctx = await withWrittenFix();
+    const other = await withActions();
+    const before = added.length;
+    assert.notEqual((await ctx.viewer.post(`${ctx.page}/undo`)).status, 303);
+    await other.owner.post(`${ctx.page}/undo`).expect(404);
+    assert.notEqual((await ctx.owner.post(`${ctx.page}/undo`, {}, { csrf: null })).status, 303);
+    assert.equal(added.length, before);
+    assert.equal(
+      (await ctx.scoped.autofix.current(ctx.project.id, ctx.c1.id)).undoRequestedByUserId,
+      null,
+    );
+  });
+
+  test('a queue that is down releases the claim, so it can be asked for again', async () => {
+    const ctx = await withWrittenFix();
+    failQueue = true;
+    try {
+      const res = await ctx.owner.post(`${ctx.page}/undo`).expect(303);
+      assert.match(res.headers.location, /autofix-queue-failed/);
+    } finally {
+      failQueue = false;
+    }
+    const change = await ctx.scoped.autofix.current(ctx.project.id, ctx.c1.id);
+    assert.equal(change.status, 'applied');
+    assert.equal(change.undoRequestedByUserId, null);
+    assert.match((await ctx.owner.get(ctx.page)).text, /We could not remove it/);
+    await ctx.owner.post(`${ctx.page}/undo`).expect(303);
+  });
+
+  test('once removed, the page says so and the fix can be previewed and approved again', async () => {
+    const ctx = await withWrittenFix();
+    await ctx.owner.post(`${ctx.page}/undo`).expect(303);
+    await h.fx.forceSiteChange(ctx.change.id, {
+      status: 'rolled_back',
+      rolled_back_at: new Date(),
+    });
+    await ctx.scoped.recommendations.fixRemoved(ctx.project.id, ctx.c1.id);
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /Removed from your site/);
+    assert.match(page.text, /back to how it was/);
+    assert.match(page.text, /Approve and apply/);
+    assert.doesNotMatch(page.text, /Remove it from my site/);
+    assert.equal(
+      (await ctx.scoped.recommendations.get(ctx.project.id, ctx.c1.id)).recommendation.status,
+      'in_progress',
+    );
+  });
+});

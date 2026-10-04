@@ -1,6 +1,6 @@
 <%#
   D3: preview and approve an auto-fix. Props: rec ({ id, title, status }), fixLabel, pluginReady, connected, wordpressHref, canApprove, open,
-  inFlight (a write is under way: nothing more can be approved), change ({ tone, text, status, when } | null), built ({ targetUrl, hash, includes, notIncluded } | null), builtError, code (the exact JSON-LD),
+  inFlight (a write or a removal is under way: nothing more can be approved), restoreText, change ({ tone, text, status, when, canUndo } | null), built ({ targetUrl, hash, includes, notIncluded } | null), builtError, code (the exact JSON-LD),
   extrasErrors ({ logoUrl, sameAs }), logoUrl, sameAs, actionBase; locals: orgBase, projectBase, projectName, domain, csrfToken.
   What is shown is exactly what is sent: the approval form carries a fingerprint of this data, and a change underneath it
   (the Brand Kit, what is already on the page) is refused and shown again.
@@ -12,7 +12,20 @@
 <p class="text-ink-700 mt-2 max-w-3xl text-sm">Fixes: <%= rec.title %>. Read exactly what we would add, then approve it. Nothing changes on your site until you do.</p>
 
 <% if (change) { %>
-<div class="mt-6"><%- ui.banner({ tone: change.tone, title: change.text, text: change.status === 'applied' ? 'Written ' + change.when + '. We are now fetching your page the way an AI crawler does, and checking it is there. You will see the result on the recommendation.' : change.status === 'failed' ? 'Nothing on your site was left half-changed. You can try again below.' : 'This page updates by itself.' }) %></div>
+<div class="mt-6"><%- ui.banner({ tone: change.tone, title: change.text, text: change.status === 'rolled_back' ? 'Your home page is back to how it was before this fix, and the recommendation is back in progress. You can preview and approve the fix again below.' : (change.status === 'applied' && change.tone === 'danger') ? 'The fix is still on your site. You can try removing it again.' : change.status === 'applied' ? 'Written ' + change.when + '. We are now fetching your page the way an AI crawler does, and checking it is there. You will see the result on the recommendation.' : change.status === 'failed' ? 'Nothing on your site was left half-changed. You can try again below.' : 'This page updates by itself.' }) %></div>
+<% } %>
+
+<% if (change && change.canUndo && canApprove) { %>
+<section class="card mt-6" aria-labelledby="undo-h">
+  <div class="card-body flex flex-col gap-3">
+    <h3 id="undo-h" class="text-base font-semibold">Take it off your site</h3>
+    <p class="text-ink-700 text-sm">We put back exactly what your home page had before this fix: <%= restoreText %>. Nothing else on your site changes. The recommendation goes back to in progress, and the before and after measurement for this fix is cleared, because the fix is no longer there.</p>
+    <form method="post" action="<%= actionBase %>/autofix/undo" class="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- ui.button({ label: 'Remove it from my site', type: 'submit', variant: 'danger' }) %>
+    </form>
+  </div>
+</section>
 <% } %>
 
 <% if (!connected || !pluginReady) { %>
@@ -61,7 +74,7 @@
 <% } else { %>
 <p class="text-ink-700 mt-6 text-sm">You can read this fix, but approving changes to the live site is for owners, admins and editors.</p>
 <% } %>
-<% } else if (!inFlight) { %>
+<% } else if (!inFlight && !(change && change.status === 'applied')) { %>
 <p class="text-ink-700 mt-6 text-sm">This recommendation is no longer open, so there is nothing to approve.</p>
 <% } %>
 <% } %>

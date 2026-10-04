@@ -6,6 +6,7 @@
  *     │          │            └──→ unverified ─┬─→ measuring (the customer confirms it is done)
  *     │          │                             └─→ in_progress (fix it again)
  *     └──────────┴─→ dismissed
+ *   done, verified, unverified, measuring ─→ in_progress  (system only: the fix was removed from the site, see autofix undo)
  *
  * Who moves it:
  *   user    starts it, marks it done, dismisses it, confirms an unverified fix, or says "fix again"
@@ -41,11 +42,19 @@ export const ACTORS = Object.freeze(['user', 'staff', 'system']);
 const TRANSITIONS = Object.freeze({
   open: { in_progress: ['user'], done: ['user'], dismissed: ['user', 'staff'] },
   in_progress: { open: ['user'], done: ['user'], dismissed: ['user', 'staff'] },
-  done: { verified: ['system'], unverified: ['system'] },
-  verified: { measuring: ['system'] },
+  // `in_progress` by the system is the one way back from a fix that was removed from the site (an auto-fix undone): a
+  // person asks for the undo, the job removes the code, and only then does the recommendation step back. No person's
+  // own move can reset a fix that is being checked or measured.
+  done: { verified: ['system'], unverified: ['system'], in_progress: ['system'] },
+  verified: { measuring: ['system'], in_progress: ['system'] },
   // The system moves a fix we cannot check by machine straight on: marking it done was the customer's confirmation.
-  unverified: { in_progress: ['user'], measuring: ['user', 'system'] },
-  measuring: { proven_win: ['system'], no_change: ['system'], declined: ['system'] },
+  unverified: { in_progress: ['user', 'system'], measuring: ['user', 'system'] },
+  measuring: {
+    proven_win: ['system'],
+    no_change: ['system'],
+    declined: ['system'],
+    in_progress: ['system'],
+  },
   proven_win: {},
   no_change: {},
   declined: {},

@@ -19,7 +19,7 @@ import { canShare, NEVER_SHARED, SHARED_FIELDS } from '../../core/proof-share.js
 import { DISMISS_REASONS, timelineFor } from '../../core/recommendation-lifecycle.js';
 import { describeRun, isRunning } from '../../core/run-status.js';
 import { DomainError } from '../../db/index.js';
-import { autofixJobId, fixVerifyJobId } from '../../lib/job-ids.js';
+import { autofixJobId, autofixUndoJobId, fixVerifyJobId } from '../../lib/job-ids.js';
 import { notFound } from '../middleware/errors.js';
 import { dateLabel, idFrom, text, withNotice } from './project-helpers.js';
 
@@ -36,6 +36,7 @@ import { dateLabel, idFrom, text, withNotice } from './project-helpers.js';
  *   POST /projects/:pid/actions/:rid/redo        an unverified fix: "fix it again"
  *   POST /projects/:pid/actions/:rid/proof/:oid/share    D4  make a proven win's public link (`site.approve`)
  *   POST /projects/:pid/actions/:rid/proof/:oid/unshare  D4  stop sharing it: the link stops working
+ *   POST /projects/:pid/actions/:rid/autofix/undo     D3  take a written fix off the site again (`site.approve`): queues the removal
  *   GET  /projects/:pid/actions/:rid/autofix          D3  preview the exact structured data an auto-fix would put on the home page
  *   POST /projects/:pid/actions/:rid/autofix/approve  approve exactly what was previewed (`site.approve`): queues the write
  *
@@ -225,6 +226,19 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
   function autofixChange(change) {
     if (!change) return null;
     const when = change.appliedAt ?? change.approvedAt ?? change.createdAt;
+    if (
+      change.status === 'rolled_back' ||
+      (change.status === 'applied' && change.undoRequestedByUserId)
+    ) {
+      const done = change.status === 'rolled_back';
+      return {
+        tone: 'info',
+        text: done ? 'Removed from your site.' : 'Removing it from your site now.',
+        status: done ? 'rolled_back' : 'undoing',
+        when: dateLabel(change.rolledBackAt ?? when),
+        canUndo: false,
+      };
+    }
     const states = {
       approved: { tone: 'info', text: 'Approved. Writing it to your site now.' },
       applying: { tone: 'info', text: 'Writing it to your site now.' },
@@ -232,7 +246,16 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
       failed: { tone: 'danger', text: change.lastError ?? 'It could not be written to your site.' },
     };
     const s = states[change.status];
-    return s ? { ...s, status: change.status, when: dateLabel(when) } : null;
+    if (!s) return null;
+    // A failed removal leaves the fix on the site, and says why.
+    const undoError = change.status === 'applied' ? change.lastError : null;
+    return {
+      ...s,
+      ...(undoError ? { tone: 'danger', text: `We could not remove it: ${undoError}` } : {}),
+      status: change.status,
+      when: dateLabel(when),
+      canUndo: change.status === 'applied' && Boolean(change.latestForAddress),
+    };
   }
 
   /**
@@ -283,7 +306,8 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
       const base = res.locals.projectBase;
       const change = autofixChange(p.change);
       // The page looks again by itself while the write is under way.
-      if (change && ['approved', 'applying'].includes(change.status)) res.locals.refreshSeconds = 5;
+      if (change && ['approved', 'applying', 'undoing'].includes(change.status))
+        res.locals.refreshSeconds = 5;
       return appPage(res, 'action-autofix', {
         ...tabs(req, res),
         domain: p.brand?.primary_domain ?? req.project.domain ?? '',
@@ -295,8 +319,11 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
         wordpressHref: `${base}/integrations/wordpress`,
         canApprove: res.locals.can('site.approve'),
         open: ['open', 'in_progress'].includes(p.rec.status),
-        inFlight: Boolean(change && ['approved', 'applying'].includes(change.status)),
+        inFlight: Boolean(change && ['approved', 'applying', 'undoing'].includes(change.status)),
         change,
+        restoreText: p.change?.previousNodes?.length
+          ? `the ${p.change.previousNodes.map((n) => n['@type']).join(' and ')} structured data it already had`
+          : 'no structured data of ours at all',
         built: p.built?.ok ? p.built : null,
         builtError: p.built && !p.built.ok ? p.built.reason : null,
         code: p.built?.ok ? JSON.stringify(p.built.jsonld, null, 2) : '',
@@ -414,6 +441,61 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
       },
     );
   }
+
+  // --- D3 Auto-fix: take it back ------------------------------------------------------------------------
+  router.post('/projects/:pid/actions/:rid/autofix/undo', approve, async (req, res, next) => {
+    try {
+      const rid = idFrom(req.params.rid);
+      const detail = rid ? await req.orgDb.recommendations.get(req.project.id, rid) : null;
+      if (!detail || !isAutofixable(detail.recommendation.ruleCode)) return notFound(req, res);
+      const back = (notice) =>
+        res.redirect(
+          303,
+          withNotice(
+            `${res.locals.projectBase}/actions/${detail.recommendation.id}/autofix`,
+            notice,
+          ),
+        );
+      const change = await req.orgDb.autofix.current(req.project.id, rid);
+      if (!change) return notFound(req, res);
+      let begun;
+      try {
+        begun = await req.orgDb.autofix.requestUndo(req.project.id, change.id, {
+          userId: req.user.id,
+        });
+      } catch (err) {
+        if (err instanceof DomainError) {
+          if (['PLUGIN_NOT_CONNECTED', 'WORDPRESS_NOT_CONNECTED'].includes(err.code))
+            return back('autofix-no-plugin');
+          if (err.code === 'ALREADY_UNDOING') return back('autofix-undo-already');
+          if (['NOT_UNDOABLE', 'NOT_LATEST', 'CHANGE_NOT_FOUND'].includes(err.code))
+            return back('autofix-undo-stale');
+        }
+        throw err;
+      }
+      try {
+        await jobs.add(
+          'autofix.undo',
+          {
+            orgId: String(req.org.id),
+            projectId: String(req.project.id),
+            siteChangeId: String(begun.siteChangeId),
+          },
+          { jobId: autofixUndoJobId(begun.siteChangeId) },
+        );
+      } catch (err) {
+        logger.error({ err, recommendationId: String(rid) }, 'Could not queue the auto-fix undo');
+        await req.orgDb.autofix.finishUndo(req.project.id, begun.siteChangeId, {
+          ok: false,
+          error: 'We could not start that just now. Nothing was changed on your site.',
+        });
+        return back('autofix-queue-failed');
+      }
+      return back('autofix-undoing');
+    } catch (err) {
+      return next(err);
+    }
+  });
 
   // --- Moves ---------------------------------------------------------------------------------------------
   const MOVES = {

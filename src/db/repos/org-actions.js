@@ -598,6 +598,43 @@ export function actionRepos(prisma, orgId) {
       return rec ? { ...toRecommendation(rec), projectId: rec.project_id } : null;
     },
 
+    /**
+     * The fix this recommendation was about is no longer on the site (an auto-fix was taken back). If it was being
+     * checked or measured, it goes back to "in progress": the baseline, the re-checks and any measurement of the removed
+     * fix no longer describe the site. One that is not in that state (still open, or final) is left alone.
+     *
+     * @returns `{ changed }`
+     */
+    async fixRemoved(projectId, recId, { now = new Date() } = {}) {
+      await ownProject(projectId);
+      const rec = await findRow(prisma, projectId, recId);
+      if (!rec) throw new DomainError('RECOMMENDATION_NOT_FOUND');
+      if (!['done', 'verified', 'unverified', 'measuring'].includes(rec.status)) {
+        return { changed: false, status: rec.status };
+      }
+      await transaction(prisma, async (tx) => {
+        await tx.fix_verifications.deleteMany({
+          where: { recommendation_id: rec.id, org_id: orgId },
+        });
+        await tx.action_outcomes.deleteMany({
+          where: { recommendation_id: rec.id, org_id: orgId },
+        });
+        await transitionRow(tx, rec, 'in_progress', {
+          actor: 'system',
+          now,
+          note: 'The fix was removed from the site',
+          fields: {
+            done_at: null,
+            verified_at: null,
+            verification: Prisma.DbNull,
+            baseline: Prisma.DbNull,
+            measuring_started_at: null,
+          },
+        });
+      });
+      return { changed: true, status: 'in_progress' };
+    },
+
     /** The best things to do now (open or in progress, not already fixed on the site), for the dashboard. */
     async top(projectId, limit = 3) {
       await ownProject(projectId);

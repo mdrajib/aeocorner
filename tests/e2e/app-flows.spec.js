@@ -385,3 +385,19 @@ test('an editor shares a proven win, copies the link, and anyone can read the pa
 
   expect(problems, 'no console errors, including CSP violations').toEqual([]);
 });
+
+test('a written auto-fix offers to be taken off the site, and says what will be put back', async ({
+  page,
+  request,
+}) => {
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'owner',
+    next: `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionUndoId}/autofix`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+  await expect(page.getByRole('heading', { name: 'Take it off your site' })).toBeVisible();
+  await expect(page.getByText(/no structured data of ours at all/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove it from my site' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Approve and apply' })).toHaveCount(0);
+});

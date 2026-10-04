@@ -21,6 +21,7 @@ const logger = createLogger({ isTest: true, appEnv: 'test' });
 const box = createSecretBox({ current: { version: 1, key: randomBytes(32) } });
 const SECRET = 'b'.repeat(64);
 const apply = autofixHandlers['autofix.apply'];
+const undo = autofixHandlers['autofix.undo'];
 
 let stub;
 let fetcher;
@@ -279,5 +280,126 @@ describe('autofix.approve', () => {
         }),
       { code: 'APPROVAL_NEEDS_A_PERSON' },
     );
+  });
+});
+
+describe('autofix.undo', () => {
+  const ask = (w, change = w.change) =>
+    w.scoped.autofix.requestUndo(w.project.id, change.siteChangeId, { userId: w.o.owner.id });
+
+  test('puts the page back as it was, steps the recommendation back, and forgets its measurement', async () => {
+    const w = await world();
+    await apply(ctxFor(), w.data(), job());
+    assert.ok(stub.state.schemas.has(w.built.targetUrl));
+    assert.equal(
+      (await w.scoped.recommendations.get(w.project.id, w.rec.id)).recommendation.status,
+      'done',
+    );
+
+    await ask(w);
+    const pending = await w.scoped.autofix.current(w.project.id, w.rec.id);
+    assert.equal(pending.status, 'applied', 'still on the site until the job has run');
+    assert.ok(pending.undoRequestedByUserId);
+
+    const result = await undo(ctxFor(), w.data(), job());
+    assert.equal(result.undone, true);
+    assert.equal(result.changed, true);
+    assert.equal(
+      stub.state.schemas.has(w.built.targetUrl),
+      false,
+      'nothing of ours is left on the page',
+    );
+
+    const change = await w.scoped.autofix.current(w.project.id, w.rec.id);
+    assert.equal(change.status, 'rolled_back');
+    assert.ok(change.rolledBackAt);
+    const rec = (await w.scoped.recommendations.get(w.project.id, w.rec.id)).recommendation;
+    assert.equal(rec.status, 'in_progress');
+    assert.equal(rec.baseline, null);
+    assert.equal(rec.doneAt, null);
+    assert.deepEqual(await w.scoped.autofix.appliedNodes(w.project.id, w.built.targetUrl), []);
+
+    const again = await undo(ctxFor(), w.data(), job());
+    assert.equal(again.repeated, true);
+    assert.equal(again.changed, false);
+  });
+
+  test('only the latest fix for a page can be taken back; undoing it restores the one before', async () => {
+    const w = await world();
+    await apply(ctxFor(), w.data(), job());
+    const rec2 = await fx.recommendation(w.project, {
+      rule_code: 'readiness.C4',
+      category: 'structured_data',
+      fix_path: 'auto_fix',
+    });
+    const site = buildAutofix({
+      ruleCode: 'readiness.C4',
+      brand: { name: 'Data Dental' },
+      homeUrl: stub.siteUrl,
+      existingNodes: await w.scoped.autofix.appliedNodes(w.project.id, w.built.targetUrl),
+    });
+    const second = await w.scoped.autofix.approve(w.project.id, rec2.id, {
+      userId: w.o.owner.id,
+      targetUrl: site.targetUrl,
+      jsonld: site.jsonld,
+      hash: site.hash,
+      ruleCode: 'readiness.C4',
+    });
+    await apply(ctxFor(), w.data(second), job());
+
+    await assert.rejects(() => ask(w), { code: 'NOT_LATEST' });
+    await ask(w, second);
+    await undo(ctxFor(), w.data(second), job());
+    assert.deepEqual(
+      stub.state.schemas.get(site.targetUrl)['@graph'].map((n) => n['@type']),
+      ['Organization'],
+      'the first fix is still there',
+    );
+    // With the later one gone the first is the latest again.
+    await ask(w);
+  });
+
+  test('a site that is down is retried; the last attempt leaves the fix on the site, says why, and can be asked again', async () => {
+    const w = await world();
+    await apply(ctxFor(), w.data(), job());
+    await ask(w);
+    stub.failNext(503);
+    await assert.rejects(() => undo(ctxFor(), w.data(), job(0, 3)));
+    stub.failNext(503);
+    const last = await undo(ctxFor(), w.data(), job(2, 3));
+    assert.equal(last.failed, true);
+    const change = await w.scoped.autofix.current(w.project.id, w.rec.id);
+    assert.equal(change.status, 'applied');
+    assert.equal(change.undoRequestedByUserId, null);
+    assert.ok(change.lastError);
+    assert.equal(
+      (await w.scoped.recommendations.get(w.project.id, w.rec.id)).recommendation.status,
+      'done',
+      'nothing steps back until the code is really gone',
+    );
+    await ask(w);
+  });
+
+  test('refusals: asked twice, nothing to undo, no plugin, and no person', async () => {
+    const w = await world();
+    await assert.rejects(() => ask(w), { code: 'NOT_UNDOABLE' });
+    await apply(ctxFor(), w.data(), job());
+    await ask(w);
+    await assert.rejects(() => ask(w), { code: 'ALREADY_UNDOING' });
+    await assert.rejects(
+      () => w.scoped.autofix.requestUndo(w.project.id, w.change.siteChangeId, { userId: null }),
+      { code: 'APPROVAL_NEEDS_A_PERSON' },
+    );
+    const bare = await world();
+    await apply(ctxFor(), bare.data(), job());
+    await bare.scoped.integrations.saveWordpress(bare.project.id, {
+      config: { siteUrl: stub.siteUrl, username: stub.username, pluginConnected: false },
+      secret: box.encrypt(
+        { appPassword: stub.appPassword },
+        `wordpress:${bare.o.org.id}:${bare.project.id}`,
+      ),
+      userId: bare.o.owner.id,
+    });
+    await assert.rejects(() => ask(bare), { code: 'PLUGIN_NOT_CONNECTED' });
   });
 });

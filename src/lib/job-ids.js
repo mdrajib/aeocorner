@@ -97,6 +97,9 @@ export const publishJobId = (siteChangeId) => jobId('publish', siteChangeId);
 /** Writing one approved auto-fix to the customer's site: the change row is the identity. */
 export const autofixJobId = (siteChangeId) => jobId('autofix', siteChangeId);
 
+/** Taking one written auto-fix off the site: the change row is the identity (a change is undone at most once). */
+export const autofixUndoJobId = (siteChangeId) => jobId('autofix-undo', siteChangeId);
+
 /** Testing a project's WordPress connection, at most once per ten-minute slot. */
 export const wordpressTestJobId = (projectId, slot) => jobId('wptest', projectId, `s${slot}`);
 

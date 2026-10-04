@@ -147,6 +147,15 @@ const NOTICES = {
     'danger',
     'Check the logo and profile addresses: each must be a full https:// address. Nothing was sent.',
   ],
+  'autofix-undoing': [
+    'success',
+    'We are removing it from your site now. This page updates when it is gone, and the recommendation goes back to in progress.',
+  ],
+  'autofix-undo-already': ['info', 'This fix is already being removed.'],
+  'autofix-undo-stale': [
+    'warning',
+    'That fix cannot be removed from here any more (it was removed, or a later fix builds on it). Nothing was changed.',
+  ],
   'autofix-already': ['info', 'This fix was already approved and is being written to your site.'],
   'autofix-no-plugin': [
     'warning',

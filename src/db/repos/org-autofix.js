@@ -26,6 +26,11 @@ const toChange = (s) => ({
   lastError: s.last_error,
   attempts: s.attempts,
   createdAt: s.created_at,
+  /** The nodes the plugin held for this address before this change: what an undo puts back. */
+  previousNodes: Array.isArray(s.previous_value?.nodes) ? s.previous_value.nodes : [],
+  /** An undo was asked for (by whom); it is under way until `rolledBackAt` is set. */
+  undoRequestedByUserId: s.rolled_back_by_user_id,
+  rolledBackAt: s.rolled_back_at,
 });
 
 /** The fix is still in flight: approved and waiting, or being written. */
@@ -57,6 +62,23 @@ export function autofixRepos(prisma, orgId) {
     return Array.isArray(nodes) ? nodes : [];
   }
 
+  /** Is this the latest applied change for its address? Only that one can be taken back without dropping a later fix. */
+  async function isLatestApplied(db, projectId, row) {
+    if (row.status !== 'applied' || row.rolled_back_at) return false;
+    const latest = await db.site_changes.findFirst({
+      where: {
+        org_id: orgId,
+        project_id: projectId,
+        kind: 'jsonld',
+        target_url: row.target_url,
+        status: 'applied',
+      },
+      orderBy: { id: 'desc' },
+      select: { id: true },
+    });
+    return latest?.id === row.id;
+  }
+
   const autofix = {
     /** The latest change made for a recommendation, or null. */
     async current(projectId, recommendationId) {
@@ -70,7 +92,8 @@ export function autofixRepos(prisma, orgId) {
         },
         orderBy: { id: 'desc' },
       });
-      return row ? toChange(row) : null;
+      if (!row) return null;
+      return { ...toChange(row), latestForAddress: await isLatestApplied(prisma, projectId, row) };
     },
 
     /** What is on the home page now, as nodes: the base a new fix builds on. */
@@ -177,6 +200,71 @@ export function autofixRepos(prisma, orgId) {
       return r.count === 1;
     },
   };
+
+  Object.assign(autofix, {
+    /**
+     * A person asks to take a written fix off their site. Only the latest applied change for its address can be undone
+     * (an earlier one's code is part of the later graph), and only once. The claim is the `rolled_back_by_user_id`
+     * column, which is set before the job is queued; `rolled_back_at` is set when the code is really gone.
+     *
+     * @returns `{ siteChangeId }` to queue
+     */
+    async requestUndo(projectId, siteChangeId, { userId }) {
+      await ownProject(projectId);
+      if (!userId) throw new DomainError('APPROVAL_NEEDS_A_PERSON');
+      return transaction(prisma, async (tx) => {
+        const row = await tx.site_changes.findFirst({
+          where: { id: siteChangeId, org_id: orgId, project_id: projectId, kind: 'jsonld' },
+        });
+        if (!row) throw new DomainError('CHANGE_NOT_FOUND');
+        if (row.status !== 'applied' || row.rolled_back_at) throw new DomainError('NOT_UNDOABLE');
+        if (row.rolled_back_by_user_id) throw new DomainError('ALREADY_UNDOING');
+        if (!(await isLatestApplied(tx, projectId, row))) throw new DomainError('NOT_LATEST');
+        const integration = await tx.integrations.findFirst({
+          where: { org_id: orgId, project_id: projectId, type: 'wordpress', status: 'connected' },
+        });
+        if (!integration) throw new DomainError('WORDPRESS_NOT_CONNECTED');
+        if (!integration.config?.pluginConnected) throw new DomainError('PLUGIN_NOT_CONNECTED');
+        const claimed = await tx.site_changes.updateMany({
+          where: {
+            id: row.id,
+            org_id: orgId,
+            project_id: projectId,
+            status: 'applied',
+            rolled_back_by_user_id: null,
+          },
+          data: { rolled_back_by_user_id: userId, last_error: null },
+        });
+        if (claimed.count !== 1) throw new DomainError('ALREADY_UNDOING');
+        return { siteChangeId: row.id };
+      });
+    },
+
+    /**
+     * The undo finished. `ok`: the change becomes `rolled_back`. Not ok: the claim is released (so it can be asked for
+     * again) and the reason is kept for the screen. A finished undo is final.
+     */
+    async finishUndo(projectId, siteChangeId, { ok, error = null, now = new Date() }) {
+      await ownProject(projectId);
+      const r = await prisma.site_changes.updateMany({
+        where: {
+          id: siteChangeId,
+          org_id: orgId,
+          project_id: projectId,
+          status: 'applied',
+          rolled_back_at: null,
+          rolled_back_by_user_id: { not: null },
+        },
+        data: ok
+          ? { status: 'rolled_back', rolled_back_at: now, last_error: null }
+          : {
+              rolled_back_by_user_id: null,
+              last_error: String(error ?? 'It could not be removed').slice(0, 1000),
+            },
+      });
+      return r.count === 1;
+    },
+  });
 
   return { autofix };
 }

@@ -117,6 +117,82 @@ export async function autofixApply(ctx, data, job) {
   return { applied: true, ...(await afterApply(ctx, scoped, projectId, fresh)) };
 }
 
+/** The graph the plugin held before a change, in the shape the plugin stores: one block per address. */
+const graphOf = (nodes) => ({ '@context': 'https://schema.org', '@graph': nodes });
+
+/**
+ * Take a written fix off the site (the undo screen). The plugin keeps one block per address, so "undo" is: put back the nodes
+ * that were there before this change (`previous_value`), or remove the block if there were none. Safe to repeat. A failed
+ * removal releases the claim with a reason, and leaves the recommendation exactly as it was: nothing is stepped back
+ * until the code is really gone.
+ */
+export async function autofixUndo(ctx, data, job) {
+  const orgId = BigInt(data.orgId);
+  const projectId = BigInt(data.projectId);
+  const changeId = BigInt(data.siteChangeId);
+  const scoped = ctx.db.forOrg(orgId);
+
+  const change = await scoped.autofix.forApply(projectId, changeId);
+  if (!change) throw new UnrecoverableError(`Site change ${data.siteChangeId} was not found`);
+  const stepBack = async () =>
+    change.recommendationId
+      ? scoped.recommendations.fixRemoved(projectId, change.recommendationId, { now: ctx.now() })
+      : { changed: false };
+  if (change.status === 'rolled_back') return { repeated: true, ...(await stepBack()) };
+  if (change.status !== 'applied' || !change.undoRequestedByUserId) {
+    return { skipped: change.status, repeated: true };
+  }
+  const fail = async (message) => {
+    await scoped.autofix.finishUndo(projectId, changeId, {
+      ok: false,
+      error: message,
+      now: ctx.now(),
+    });
+    return { failed: true, reason: message };
+  };
+
+  const restore = change.previousNodes;
+  if (restore.length && !validateJsonLd(graphOf(restore)).ok) {
+    return fail(
+      'What was on your page before could not be put back safely, so nothing was changed. Remove it in the plugin’s settings instead.',
+    );
+  }
+  const stored = await scoped.integrations.wordpressSecret(projectId);
+  if (!stored || stored.status !== 'connected' || !stored.config?.pluginConnected) {
+    return fail(
+      'The AEO Corner plugin is not connected to your WordPress site, so nothing was changed. Connect it and try again.',
+    );
+  }
+
+  try {
+    const client = wordpressFor(ctx, orgId, projectId, stored);
+    if (restore.length)
+      await client.plugin.setSchema({ url: change.targetUrl, jsonld: graphOf(restore) });
+    else await client.plugin.removeSchema({ url: change.targetUrl });
+  } catch (err) {
+    if (!(err instanceof WordPressError)) throw err;
+    if (['auth_failed', 'forbidden'].includes(err.code)) {
+      await scoped.integrations.wordpressResult(projectId, {
+        ok: false,
+        error: err.message,
+        now: ctx.now(),
+      });
+    }
+    const last = job.attemptsMade + 1 >= (job.opts?.attempts ?? 1);
+    if (err.retryable && !last) throw err;
+    ctx.logger.warn(
+      { changeId: data.siteChangeId, code: err.code },
+      'Auto-fix could not be removed',
+    );
+    return fail(err.message);
+  }
+
+  await scoped.integrations.wordpressResult(projectId, { ok: true, now: ctx.now() });
+  await scoped.autofix.finishUndo(projectId, changeId, { ok: true, now: ctx.now() });
+  return { undone: true, ...(await stepBack()) };
+}
+
 export const autofixHandlers = {
   'autofix.apply': autofixApply,
+  'autofix.undo': autofixUndo,
 };

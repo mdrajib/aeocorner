@@ -121,6 +121,11 @@ export const JOBS = Object.freeze({
     queue: 'content',
     schema: z.object({ orgId: id, projectId: id, siteChangeId: id }),
   },
+  // Take a written auto-fix off the site again: put back what the plugin held before it, then step the fix back.
+  'autofix.undo': {
+    queue: 'content',
+    schema: z.object({ orgId: id, projectId: id, siteChangeId: id }),
+  },
   // Check a project's WordPress connection: does the site answer, is the login still good, is the plugin there.
   'wordpress.test': { queue: 'content', schema: z.object({ orgId: id, projectId: id }) },
 
