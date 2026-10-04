@@ -372,6 +372,140 @@ export function fixtures(db) {
     },
 
     /**
+     * A settled cell written directly, for tests that need exact counts without collecting answers: `nOk` readable
+     * answers of which `brandK` named the brand, and `rivals` (`[{ entity, k }]`) named others. `status` is the
+     * cell's (`complete` or `partial`).
+     */
+    async cell(
+      run,
+      prompt,
+      {
+        engine = 'perplexity',
+        status = 'complete',
+        nOk = 10,
+        brandK = 0,
+        brand,
+        rivals = [],
+        sentiment = 0,
+      } = {},
+    ) {
+      const base = {
+        run_date: run.run_date,
+        org_id: run.org_id,
+        project_id: run.project_id,
+        run_id: run.id,
+        prompt_id: prompt.id,
+        engine_code: engine,
+      };
+      await prisma.cell_results.create({
+        data: {
+          ...base,
+          status,
+          n_planned: nOk,
+          n_ok: nOk,
+          n_failed: 0,
+          extraction_version: 'test',
+        },
+      });
+      const entityRows = [
+        ...(brand && brandK > 0
+          ? [{ entity: brand, k: brandK, sentimentN: brandK, sentimentSum: brandK * sentiment }]
+          : []),
+        ...rivals.map((r) => ({ entity: r.entity, k: r.k, sentimentN: 0, sentimentSum: 0 })),
+      ].filter((r) => r.k > 0);
+      if (entityRows.length) {
+        await prisma.cell_entity_results.createMany({
+          data: entityRows.map((r) => ({
+            ...base,
+            entity_id: r.entity.id,
+            k_mentioned: r.k,
+            sentiment_sum: r.sentimentSum,
+            sentiment_n: r.sentimentN,
+          })),
+        });
+      }
+    },
+
+    /** A before/after outcome written directly, to show a screen a result without waiting two weeks. */
+    forceOutcome(
+      rec,
+      {
+        horizon = 'week_2',
+        verdict = 'proven_win',
+        nBefore = 120,
+        kBefore = 10,
+        nAfter = 118,
+        kAfter = 40,
+        promptsCount = 3,
+        p = '0.00001000',
+      } = {},
+    ) {
+      return prisma.action_outcomes.create({
+        data: {
+          org_id: rec.org_id,
+          project_id: rec.project_id,
+          recommendation_id: rec.id,
+          horizon,
+          prompts_count: promptsCount,
+          baseline_run_ids: [],
+          after_run_ids: [],
+          n_before: nBefore,
+          k_before: kBefore,
+          n_after: nAfter,
+          k_after: kAfter,
+          rate_before: nBefore ? (kBefore / nBefore).toFixed(4) : null,
+          rate_after: nAfter ? (kAfter / nAfter).toFixed(4) : null,
+          delta_pp:
+            verdict !== 'insufficient_data' && nBefore && nAfter
+              ? String(Math.round((kAfter / nAfter - kBefore / nBefore) * 10000) / 100)
+              : null,
+          p_value: verdict === 'insufficient_data' ? null : p,
+          verdict,
+        },
+      });
+    },
+
+    /** Set columns of a recommendation directly, to put it in a state a test needs (declined, long ago, ...). */
+    forceRecommendation(id, data) {
+      return prisma.recommendations.update({ where: { id }, data });
+    },
+
+    /**
+     * A finished website scan with the given check results (`[{ code, status, points, possible, summary }]`), as the
+     * crawler leaves one. Returns the scan row.
+     */
+    async scan(
+      project,
+      { status = 'complete', checks = [], finishedAt = new Date(), trigger = 'manual' } = {},
+    ) {
+      const scan = await prisma.site_scans.create({
+        data: {
+          org_id: project.org_id,
+          project_id: project.id,
+          trigger_type: trigger,
+          rubric_version: 'v0.1',
+          status,
+          started_at: finishedAt,
+          finished_at: finishedAt,
+        },
+      });
+      if (checks.length) {
+        await prisma.scan_checks.createMany({
+          data: checks.map((c) => ({
+            scan_id: scan.id,
+            org_id: project.org_id,
+            check_code: c.code,
+            status: c.status,
+            points_awarded: String(c.points ?? 0),
+            points_possible: String(c.possible),
+            evidence: { summary: c.summary ?? '', ...(c.evidence ?? {}) },
+          })),
+        });
+      }
+      return scan;
+    },
+
+    /**
      * A collected answer, as `collect.answer` leaves it: an `ok` snapshot whose raw document is at `rawUri`, waiting
      * to be read.
      */
@@ -568,6 +702,9 @@ export function fixtures(db) {
         // Scans reference projects, and take their pages and check results with them.
         // An audit handed to an organization is removed with its own fixtures, not with the organization.
         await prisma.audits.updateMany({ where, data: { org_id: null, project_id: null } });
+        await prisma.fix_verifications.deleteMany({ where });
+        await prisma.action_outcomes.deleteMany({ where });
+        await prisma.recommendations.deleteMany({ where });
         await prisma.site_scans.deleteMany({ where });
         await prisma.site_pages.deleteMany({ where });
         await prisma.cell_entity_results.deleteMany({ where });

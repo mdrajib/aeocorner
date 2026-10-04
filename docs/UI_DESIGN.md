@@ -134,8 +134,8 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | C3 | Answer detail with evidence, method label and "That's not us" | 6, 7 | `…/answers/:qid` | app | **Milestone 5 ✅ 2026-10-03** (a page, not a drawer: it works without JavaScript and has an address that can be shared inside the team) | C |
 | C4 | Citation and source intelligence | 6 | `…/citations` | app | **Milestone 5 ✅ 2026-10-03** (cited sites and pages, and the sites cited where the brand was not named; the competitors view is `…/compare`) | C |
 | C5 | First-visit guided tour (3 steps) | 6 | overlay | app | Phase 10 | C |
-| D1 | **Action Center** (ranked recommendations) | 7 Loop | `…/actions` | app | Phase 11 | D |
-| D2 | Recommendation detail: evidence, fix path, status timeline | 7 | `…/actions/:id` | app | Phase 11 | D |
+| D1 | **Action Center** (ranked recommendations) | 7 Loop | `…/actions` | app | **Milestone 6 ✅ 2026-10-04** (to do, checking and measuring, results, dismissed) | D |
+| D2 | Recommendation detail: evidence, fix path, status timeline | 7 | `…/actions/:id` | app | **Milestone 6 ✅ 2026-10-04** | D |
 | D3 | Auto-fix preview and approve | 7 | modal / page | app | Phase 11 | D |
 | D4 | **Proof card** (before/after) and share | 8 Proof | `…/proof/:id` | app | Phase 11 | D |
 | D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content` | app | Phase 12 | D |

@@ -12,6 +12,7 @@ import { createAuditBudget } from './audit-budget.js';
 import { Deferral, deferJob } from './deferral.js';
 import { auditHandlers } from './handlers/audit.js';
 import { collectHandlers } from './handlers/collect.js';
+import { actionHandlers } from './handlers/actions.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { extractHandlers } from './handlers/extract.js';
 import { setupHandlers } from './handlers/setup.js';
@@ -25,6 +26,8 @@ export const SCHEDULES = Object.freeze([
   { name: 'scheduler.tick', repeat: { pattern: '0 * * * *', tz: 'UTC' } },
   { name: 'guard.spend', repeat: { every: 15 * 60_000 } },
   { name: 'guard.provider_health', repeat: { every: 5 * 60_000 } },
+  // Before/after measurements that came due, and re-checks that never ran (Milestone 6).
+  { name: 'outcomes.sweep', repeat: { pattern: '30 4 * * *', tz: 'UTC' } },
 ]);
 
 /**
@@ -78,6 +81,7 @@ export function createWorkerRuntime({
     ...extractHandlers,
     ...setupHandlers,
     ...trackingHandlers,
+    ...actionHandlers,
     ...extraHandlers,
   };
 

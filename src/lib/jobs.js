@@ -79,6 +79,29 @@ export const JOBS = Object.freeze({
     }),
   },
 
+  // Bring a project's recommendations up to date from its latest scan and answers (Milestone 6, MVP F7). The rules
+  // engine reads everything from the database; `runId` only records which run it was triggered by.
+  'recommendations.refresh': {
+    queue: 'content',
+    schema: z.object({ orgId: id, projectId: id, runId: id.optional() }),
+  },
+  // Have the model rewrite one recommendation's words from its evidence. Whatever it returns is checked against the
+  // evidence, and thrown away if it claims more than the evidence does.
+  'recommendations.narrate': {
+    queue: 'content',
+    schema: z.object({ orgId: id, recommendationId: id }),
+  },
+  // The same-day re-check of a fix marked done: scan the site again and read the check the fix is about. Attempt 1 is
+  // at once, 2 after an hour, 3 after a day.
+  'fix.verify': {
+    queue: 'crawl',
+    schema: z.object({ orgId: id, recommendationId: id, attempt: z.number().int().min(1).max(3) }),
+  },
+  // Daily: queue the before/after measurement of every fix that is due, and re-queue re-checks that never ran.
+  'outcomes.sweep': { queue: 'system', schema: z.object({}) },
+  // One fix's +2 or +4 week before/after comparison.
+  'outcomes.measure': { queue: 'system', schema: z.object({ orgId: id, recommendationId: id }) },
+
   // Run one free audit from start to finish (Milestone 1, MVP F1): read the site, work out the brand, ask four engines
   // five questions, score and list the fixes. The domain, the visitor and everything else come from the audit row;
   // the payload is only its ID.

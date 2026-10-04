@@ -1199,6 +1199,151 @@ describe('dashboard reads and customer feedback', () => {
   });
 });
 
+describe('action center: recommendations, re-checks and outcomes', () => {
+  // A recommendation raised for B's project. Everything below calls the Action Center as A.
+  let aProject;
+  let bAction;
+  let bRec;
+  let bPrompt;
+
+  const item = (prompt) => ({
+    ruleCode: 'readiness.A1',
+    ruleVersion: 1,
+    subject: 'A1',
+    stableKey: 'readiness.A1:a1',
+    category: 'crawler_access',
+    fixPath: 'auto_fix',
+    effort: 1,
+    title: 'Let AI search crawlers read your site',
+    why: 'Because of the scan.',
+    steps: '1. Allow the crawlers.',
+    narrativeVersion: 't1',
+    evidence: { type: 'readiness', check: { code: 'A1', status: 'fail', points: 0, possible: 8 } },
+    affectedUrls: [],
+    impact: 100,
+    confidence: 0.7,
+    ice: 70,
+    promptIds: [String(prompt.id)],
+  });
+  const reconcile = (scoped, project, prompt) =>
+    scoped.recommendations.reconcile(project.id, {
+      items: [item(prompt)],
+      detectedKeys: ['readiness.A1:a1'],
+      evaluated: { readiness: true, visibility: false },
+      now: new Date(),
+    });
+  const window = { from: new Date('2020-01-01'), to: new Date('2099-12-31') };
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Actions A');
+    bAction = await fx.project(B.org.id, 'Actions B');
+    await fx.engines(bAction, ['perplexity']);
+    await fx.entity(bAction, { kind: 'brand', name: 'Actions B Brand' });
+    bPrompt = await fx.prompt(bAction, { text: 'Action question of B?' });
+    await fx.scan(bAction, { checks: [{ code: 'A1', status: 'fail', points: 0, possible: 8 }] });
+    await reconcile(B.scoped, bAction, bPrompt);
+    [bRec] = await B.scoped.recommendations.list(bAction.id, { view: 'todo' });
+  });
+
+  test('every project-level read and write: B’s project is not found from A', async () => {
+    const r = A.scoped.recommendations;
+    const asA = [
+      () => r.signals(bAction.id, window),
+      () => r.reconcile(bAction.id, { items: [item(bPrompt)], evaluated: {}, now: new Date() }),
+      () => r.list(bAction.id, { view: 'todo' }),
+      () => r.counts(bAction.id),
+      () => r.get(bAction.id, bRec.id),
+      () => r.top(bAction.id),
+      () => r.provenWins(bAction.id),
+      () => r.verificationsOf(bAction.id, bRec.id),
+      () =>
+        r.saveNarrative(bAction.id, bRec.id, { why: 'x'.repeat(50), steps: '1. y', version: 'n1' }),
+      () => r.transition(bAction.id, bRec.id, 'in_progress', { userId: A.owner.id }),
+      () => r.markDone(bAction.id, bRec.id, { userId: A.owner.id }),
+      () => r.attachScan(bAction.id, bRec.id, { attempt: 1, scanId: 1n }),
+      () => r.recordVerification(bAction.id, bRec.id, { attempt: 1, status: 'passed' }),
+      () => r.settleVerification(bAction.id, bRec.id, { verdict: 'verified', reason: 'passed' }),
+      () => A.scoped.outcomes.measure(bAction.id, bRec.id, {}),
+      () => A.scoped.outcomes.recent(bAction.id),
+    ];
+    for (const attempt of asA) await refuses(attempt(), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('B’s recommendation ID, asked for through A’s own project, finds nothing and changes nothing', async () => {
+    const r = A.scoped.recommendations;
+    assert.equal(await r.get(aProject.id, bRec.id), null);
+    assert.equal(await r.load(bRec.id), null);
+    assert.deepEqual(await r.verificationsOf(aProject.id, bRec.id), []);
+    assert.equal(
+      await r.saveNarrative(aProject.id, bRec.id, {
+        why: 'x'.repeat(50),
+        steps: '1. y',
+        version: 'n1',
+      }),
+      false,
+    );
+    assert.equal(await r.attachScan(aProject.id, bRec.id, { attempt: 1, scanId: 1n }), false);
+    assert.equal(
+      await r.recordVerification(aProject.id, bRec.id, { attempt: 1, status: 'passed' }),
+      false,
+    );
+    assert.deepEqual(
+      await r.settleVerification(aProject.id, bRec.id, { verdict: 'verified', reason: 'passed' }),
+      { changed: false, status: null },
+    );
+    assert.deepEqual(await A.scoped.outcomes.measure(aProject.id, bRec.id, {}), {
+      skipped: 'not_measuring',
+    });
+    await refuses(
+      r.transition(aProject.id, bRec.id, 'in_progress', { userId: A.owner.id }),
+      'RECOMMENDATION_NOT_FOUND',
+    );
+    await refuses(
+      r.markDone(aProject.id, bRec.id, { userId: A.owner.id }),
+      'RECOMMENDATION_NOT_FOUND',
+    );
+  });
+
+  test('the same issue raised in two organizations is two rows, each seen only by its own', async () => {
+    const aPrompt = await fx.prompt(aProject, { text: 'Action question of A?' });
+    const raised = await reconcile(A.scoped, aProject, aPrompt);
+    assert.equal(raised.created.length, 1);
+    const aList = await A.scoped.recommendations.list(aProject.id, { view: 'todo' });
+    assert.equal(aList.length, 1);
+    assert.notEqual(aList[0].id, bRec.id);
+    assert.equal((await B.scoped.recommendations.list(bAction.id, { view: 'todo' })).length, 1);
+    assert.deepEqual(await A.scoped.recommendations.counts(aProject.id), {
+      todo: 1,
+      progress: 0,
+      results: 0,
+      dismissed: 0,
+    });
+  });
+
+  test('B’s recommendation is exactly as it was', async () => {
+    const detail = await B.scoped.recommendations.get(bAction.id, bRec.id);
+    assert.equal(detail.recommendation.status, 'open');
+    assert.equal(detail.recommendation.whyMd, 'Because of the scan.');
+    assert.equal(detail.events.length, 1);
+    assert.deepEqual(detail.verifications, []);
+  });
+});
+
+describe('what the worker may look up across organizations about the Action Center', () => {
+  test('due(), overdue() and ruleStats() return IDs and counts, never tenant content', async () => {
+    for (const row of await db.system.outcomes.due({ now: new Date('2099-01-01') })) {
+      assert.deepEqual(Object.keys(row).sort(), ['orgId', 'projectId', 'recommendationId']);
+    }
+    for (const row of await db.system.verifications.overdue({ now: new Date('2099-01-01') })) {
+      assert.deepEqual(Object.keys(row).sort(), ['attempt', 'orgId', 'recommendationId']);
+    }
+    for (const [rule, counts] of Object.entries(await db.system.outcomes.ruleStats())) {
+      assert.match(rule, /^(readiness|visibility)\./);
+      assert.deepEqual(Object.keys(counts).sort(), ['decided', 'wins']);
+    }
+  });
+});
+
 describe('coverage: no repository function without a leak test', () => {
   // Update this list in the same commit that adds a function to org-scoped.js or org-usage.js.
   const COVERED = {
@@ -1246,6 +1391,24 @@ describe('coverage: no repository function without a leak test', () => {
       'reportsFor',
     ],
     quota: ['returnRunNow', 'runNowUsage', 'takeRunNow'],
+    recommendations: [
+      'attachScan',
+      'counts',
+      'get',
+      'list',
+      'load',
+      'markDone',
+      'provenWins',
+      'reconcile',
+      'recordVerification',
+      'saveNarrative',
+      'settleVerification',
+      'signals',
+      'top',
+      'transition',
+      'verificationsOf',
+    ],
+    outcomes: ['measure', 'recent'],
     brandKits: ['current', 'get', 'history', 'save'],
     projectEngines: ['list', 'setEnabled'],
     prompts: ['add', 'clusters', 'edit', 'importMany', 'list', 'setStatus'],
@@ -1273,6 +1436,8 @@ describe('coverage: no repository function without a leak test', () => {
     scheduling: ['dueProjects'],
     spendMonitor: ['pausedOrgIds', 'spentByOrgSince'],
     providerHealth: ['knownProviders', 'recent', 'upsertBucket'],
+    outcomes: ['due', 'ruleStats'],
+    verifications: ['overdue'],
   };
 
   test('every cross-organization system lookup is listed above', () => {
@@ -1307,10 +1472,12 @@ describe('coverage: no repository function without a leak test', () => {
       'metrics',
       'notifications',
       'orgId',
+      'outcomes',
       'projectEngines',
       'projects',
       'prompts',
       'quota',
+      'recommendations',
       'runs',
       'scans',
       'snapshots',

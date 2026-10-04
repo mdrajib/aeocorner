@@ -117,6 +117,24 @@ const NOTICES = {
   ],
   'report-repeat': ['info', 'You have already reported that answer. We have it.'],
   'report-invalid': ['danger', 'That report could not be sent. Reload the page and try again.'],
+  'action-started': ['success', 'Marked as in progress.'],
+  'action-stopped': ['info', 'Moved back to your to-do list.'],
+  'action-done-checking': [
+    'success',
+    'Marked as done. We are checking your site now: the first check runs straight away, then again after an hour and after a day.',
+  ],
+  'action-done-measuring': [
+    'success',
+    'Marked as done. We cannot check this kind of fix automatically, so we have started measuring: we compare your answers before and after.',
+  ],
+  'action-confirmed': ['success', 'Thanks. We have started measuring the effect.'],
+  'action-redo': ['info', 'Back in progress. Mark it done again when the change is live.'],
+  'action-dismissed': ['info', 'Dismissed. We will not suggest it again for a while.'],
+  'action-reason': ['danger', 'Choose why you are dismissing it.'],
+  'action-stale': [
+    'warning',
+    'That recommendation has changed since you opened the page, so nothing was done. It is shown as it is now.',
+  ],
   'too-many-invites': ['danger', 'There are already 50 invitations waiting. Cancel some first.'],
 };
 

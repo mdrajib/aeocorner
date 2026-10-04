@@ -34,6 +34,7 @@
     "golden:collect": "node scripts/golden-collect.js",
     "golden:review": "node scripts/golden-review.js",
     "eval:extraction": "node scripts/eval-extraction.js",
+    "eval:narrative": "node scripts/eval-narrative.js",
     "start": "node src/web/server.js"
   },
   "dependencies": {

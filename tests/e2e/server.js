@@ -15,6 +15,7 @@ import { createOtpStore } from '../../src/lib/otp.js';
 import { hashToken, newToken } from '../../src/lib/tokens.js';
 import { createApp } from '../../src/web/app.js';
 import { auditFixtures } from '../helpers/audit-fixtures.js';
+import { refreshProject } from '../../src/worker/handlers/actions.js';
 import { generatedSet } from '../helpers/question-sets.js';
 import { connectTestRedis } from '../helpers/redis.js';
 
@@ -287,6 +288,47 @@ const dashRival = await fx.entity(dashProject, {
   );
 }
 
+// The Action Center: a scan that found two things, raised as recommendations. One fix is marked done and has a result.
+const actionIds = {};
+{
+  const scoped = db.forOrg(org.id);
+  await fx.scan(dashProject, {
+    checks: [
+      {
+        code: 'A1',
+        status: 'fail',
+        points: 0,
+        possible: 8,
+        summary: 'robots.txt blocks OAI-SearchBot',
+      },
+      {
+        code: 'C1',
+        status: 'partial',
+        points: 3,
+        possible: 6,
+        summary: 'Organization schema has no logo',
+      },
+      { code: 'F3', status: 'partial', points: 1, possible: 3, summary: 'Two pages share a title' },
+    ],
+  });
+  await refreshProject({ db, scoped }, { projectId: dashProject.id, now: new Date() });
+  const recs = await scoped.recommendations.list(dashProject.id);
+  const byRule = (code) => recs.find((r) => r.ruleCode === code);
+  actionIds.open = String(byRule('readiness.A1').id);
+  const won = byRule('readiness.C1');
+  await scoped.recommendations.markDone(dashProject.id, won.id, { userId: people.owner.id });
+  await scoped.recommendations.settleVerification(dashProject.id, won.id, {
+    verdict: 'verified',
+    reason: 'passed',
+  });
+  await fx.forceOutcome(
+    { ...won, org_id: org.id, project_id: dashProject.id },
+    { verdict: 'proven_win' },
+  );
+  await fx.forceRecommendation(won.id, { status: 'proven_win' });
+  actionIds.win = String(won.id);
+}
+
 const tokens = {
   signedOut: await invite(`new.hire.${unique()}@example.test`, 'editor'),
   accept: await invite(people.invitee.email, 'viewer'),
@@ -303,6 +345,8 @@ const fixtureInfo = {
   runningProjectId: runningProject.public_id,
   dashboardProjectId: dashProject.public_id,
   dashboardPromptId: String(dashQ1.id),
+  actionOpenId: actionIds.open,
+  actionWinId: actionIds.win,
   promptId: String(firstPrompt.id),
   membershipId: String(editorSeat.id),
   tokens,

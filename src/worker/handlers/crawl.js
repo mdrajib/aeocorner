@@ -1,6 +1,7 @@
 import { UnrecoverableError } from 'bullmq';
 import { runSiteScan } from '../../crawler/scan.js';
 import { ledgerKey } from '../provider-call.js';
+import { queueRefresh } from '../refresh-queue.js';
 
 /**
  * Handlers for the `crawl` queue: reading a customer's website.
@@ -11,7 +12,11 @@ import { ledgerKey } from '../provider-call.js';
  * the scan writes one ledger row of its own: the number of requests it made, at no cost, so volume is on the record.
  */
 
-async function crawlScan(ctx, data, job) {
+/**
+ * Run one scan that already has its row. Exported because the same-day re-check of a fix (`fix.verify`) scans the site
+ * the same way, as its own scan row with the trigger "verification".
+ */
+export async function executeScan(ctx, data, job) {
   const crawler = ctx.crawler;
   if (!crawler?.fetcher || !crawler?.store) {
     throw new UnrecoverableError('The crawler is not configured on this worker');
@@ -61,6 +66,10 @@ async function crawlScan(ctx, data, job) {
       refId: scanId,
       idempotencyKey: ledgerKey('crawl', job),
     });
+    // What the scan found may open, change or clear recommendations.
+    if (result.status !== 'failed') {
+      await queueRefresh(ctx, { orgId, projectId, cause: `scan${data.scanId}` });
+    }
     return {
       scanId: data.scanId,
       status: result.status,
@@ -76,5 +85,5 @@ async function crawlScan(ctx, data, job) {
 }
 
 export const crawlHandlers = {
-  'crawl.readiness': crawlScan,
+  'crawl.readiness': executeScan,
 };

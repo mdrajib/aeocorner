@@ -1,0 +1,124 @@
+<%# D2/D4: one recommendation. Props: rec ({ id, title, status, badge, category, fixPath, fixPathLabel, fixPathNote, effort, looksFixed, followUp,
+    affectedUrls }), why (paragraphs), steps, evidence ([{ label, text, href }]), questions ([{ text, href }]), timeline, panel, proofs, history,
+    dismissReasons, canAct, actionBase, listHref; locals: orgBase, projectBase, projectName, domain, csrfToken. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'actions', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
+
+<p class="mt-4 text-sm"><a href="<%= listHref %>">All recommendations</a></p>
+<div class="mt-1 flex flex-wrap items-center gap-2">
+  <%- ui.badge({ text: rec.fixPathLabel, tone: 'brand' }) %>
+  <%- ui.badge({ text: rec.category, tone: 'neutral' }) %>
+  <%- ui.badge({ text: 'Effort: ' + rec.effort, tone: 'neutral' }) %>
+  <%- ui.badge({ text: rec.badge.text, tone: rec.badge.tone }) %>
+</div>
+<h2 class="mt-2 max-w-3xl text-2xl [overflow-wrap:anywhere]"><%= rec.title %></h2>
+
+<% if (rec.looksFixed) { %>
+<div class="mt-4"><%- ui.banner({ tone: 'info', title: 'This looks fixed on your site.', text: 'Our latest check no longer finds it. If you made this change, mark it done and we will measure the effect.' }) %></div>
+<% } %>
+<% if (rec.followUp) { %>
+<div class="mt-4"><%- ui.banner({ tone: 'warning', title: 'This is a follow-up.', text: 'An earlier fix for the same problem was followed by a drop in how often AI engines named you, and the problem is still there.' }) %></div>
+<% } %>
+
+<% if (timeline.length) { %>
+<div class="mt-6">
+  <%- ui.stepper({
+    label: 'Where this recommendation is',
+    steps: timeline.map((s) => ({ label: s.state === 'skipped' ? s.label + ' (skipped)' : s.label })),
+    current: timeline.findIndex((s) => s.state === 'current') >= 0 ? timeline.findIndex((s) => s.state === 'current') : timeline.length - 1,
+  }) %>
+</div>
+<% } %>
+
+<div class="mt-6"><%- ui.banner({ tone: panel.tone, title: panel.title, text: panel.text }) %></div>
+<% if (panel.attempts.length || panel.facts.length) { %>
+<dl class="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+  <% for (const a of panel.attempts) { %><div class="flex gap-2"><dt class="text-ink-700"><%= a.label %>:</dt><dd class="font-medium"><%= a.text %></dd></div><% } %>
+  <% for (const f of panel.facts) { %><div class="flex gap-2"><dt class="text-ink-700"><%= f.label %>:</dt><dd class="font-medium"><%= f.text %></dd></div><% } %>
+</dl>
+<% } %>
+
+<% if (proofs.length) { %>
+<h3 class="mt-8 text-xl">What happened</h3>
+<div class="mt-3 grid gap-4 lg:grid-cols-2">
+  <% for (const p of proofs) { %>
+  <section class="card" aria-label="Check at <%= p.horizon %>">
+    <div class="card-body flex flex-col gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h4 class="text-base font-semibold">Check at <%= p.horizon %></h4>
+        <%- ui.badge({ text: p.label, tone: p.tone }) %>
+      </div>
+      <p class="text-ink-900"><%= p.sentence %></p>
+      <dl class="text-sm">
+        <% for (const r of p.rows) { %><div class="flex flex-wrap gap-2"><dt class="text-ink-700"><%= r.label %>:</dt><dd class="font-medium"><%= r.text %></dd></div><% } %>
+      </dl>
+      <% if (p.sure) { %>
+      <details>
+        <summary class="cursor-pointer text-sm font-medium">How sure are we?</summary>
+        <p class="text-ink-700 mt-2 text-sm"><%= p.sure %></p>
+      </details>
+      <% } %>
+      <p class="text-ink-600 text-xs">Checked <%= p.computedOn %></p>
+    </div>
+  </section>
+  <% } %>
+</div>
+<% } %>
+
+<% if (canAct && ['open', 'in_progress', 'unverified'].includes(rec.status)) { %>
+<section class="card mt-8" aria-labelledby="do-h">
+  <div class="card-body flex flex-col gap-4">
+    <h3 id="do-h" class="text-base font-semibold">What would you like to do?</h3>
+    <div class="flex flex-wrap items-center gap-3">
+      <% if (rec.status === 'open') { %>
+      <form method="post" action="<%= actionBase %>/start"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Start', type: 'submit', variant: 'primary' }) %></form>
+      <% } %>
+      <% if (rec.status === 'open' || rec.status === 'in_progress') { %>
+      <form method="post" action="<%= actionBase %>/done"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Mark as done', type: 'submit', variant: rec.status === 'in_progress' ? 'primary' : 'secondary' }) %></form>
+      <% } %>
+      <% if (rec.status === 'in_progress') { %>
+      <form method="post" action="<%= actionBase %>/stop"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Move back to to do', type: 'submit', variant: 'ghost' }) %></form>
+      <% } %>
+      <% if (rec.status === 'unverified') { %>
+      <form method="post" action="<%= actionBase %>/confirm"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'The change is live: start measuring', type: 'submit', variant: 'primary' }) %></form>
+      <form method="post" action="<%= actionBase %>/redo"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Fix it again', type: 'submit', variant: 'secondary' }) %></form>
+      <% } %>
+    </div>
+    <% if (rec.status === 'open' || rec.status === 'in_progress') { %>
+    <details>
+      <summary class="cursor-pointer text-sm font-medium">Not for us? Dismiss it</summary>
+      <form method="post" action="<%= actionBase %>/dismiss" class="mt-3 flex max-w-md flex-col gap-3">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- ui.field({ id: 'dismiss-reason', name: 'reason', label: 'Why', type: 'select', required: true, options: [{ value: '', label: 'Choose a reason' }].concat(dismissReasons) }) %>
+        <%- ui.field({ id: 'dismiss-note', name: 'note', label: 'A note for your team', type: 'textarea', rows: 2 }) %>
+        <div><%- ui.button({ label: 'Dismiss', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
+      </form>
+    </details>
+    <% } %>
+  </div>
+</section>
+<% } else if (!canAct && ['open', 'in_progress', 'unverified'].includes(rec.status)) { %>
+<p class="text-ink-700 mt-6 text-sm">You can see this recommendation, but changing it is for owners, admins and editors.</p>
+<% } %>
+
+<div class="mt-8 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Why this matters', headingLevel: 3, html: why.map((p) => '<p class="text-ink-800 mt-2 first:mt-0">' + ui.esc(p) + '</p>').join('') }) %>
+  <%- ui.card({ title: 'The evidence', headingLevel: 3, html:
+    '<dl class="flex flex-col gap-2 text-sm">' + evidence.map((r) => '<div><dt class="text-ink-700">' + ui.esc(r.label) + '</dt><dd class="font-medium [overflow-wrap:anywhere]">' + (r.href ? '<a href="' + ui.esc(r.href) + '">' + ui.esc(r.text) + '</a>' : ui.esc(r.text)) + '</dd></div>').join('') + '</dl>'
+    + (rec.affectedUrls.length ? '<h4 class="mt-4 text-sm font-semibold">Pages the check named</h4><ul class="text-ink-700 mt-1 list-disc pl-5 text-sm">' + rec.affectedUrls.map((u) => '<li class="[overflow-wrap:anywhere]">' + ui.esc(u) + '</li>').join('') + '</ul>' : '') }) %>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'How to fix it', headingLevel: 3, html:
+    '<ol class="flex list-decimal flex-col gap-2 pl-5">' + steps.map((s) => '<li class="text-ink-800">' + ui.esc(s) + '</li>').join('') + '</ol>'
+    + (rec.fixPathNote ? '<p class="text-ink-700 mt-4 text-sm">' + ui.esc(rec.fixPathNote) + '</p>' : '') }) %>
+  <%- ui.card({ title: 'Questions this affects', headingLevel: 3, html: questions.length
+    ? '<ul class="flex flex-col gap-2 text-sm">' + questions.slice(0, 15).map((q) => '<li><a href="' + ui.esc(q.href) + '">' + ui.esc(q.text) + '</a></li>').join('') + '</ul>' + (questions.length > 15 ? '<p class="text-ink-700 mt-2 text-sm">and ' + (questions.length - 15) + ' more.</p>' : '')
+    : '<p class="text-ink-700 text-sm">All your questions: this affects how engines read your whole site.</p>' }) %>
+</div>
+
+<h3 class="mt-10 text-xl">History</h3>
+<ol class="mt-3 flex flex-col gap-2 text-sm">
+  <% for (const h of history) { %>
+  <li><span class="text-ink-700"><%= h.when %></span> · <span class="font-medium"><%= h.who %></span>: <%= h.what %><% if (h.note) { %> <span class="text-ink-700">(<%= h.note %>)</span><% } %></li>
+  <% } %>
+</ol>

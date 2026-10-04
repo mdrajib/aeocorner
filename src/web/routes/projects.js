@@ -16,6 +16,7 @@ import { isUlid } from '../../lib/ulid.js';
 import { normalizeWebsite } from '../../lib/url.js';
 import { clearAuditClaim, readAuditClaim } from '../auth/audit-claim.js';
 import { notFound } from '../middleware/errors.js';
+import { actionRoutes } from './project-actions.js';
 import { brandRoutes } from './project-brand.js';
 import { dashboardRoutes } from './project-dashboard.js';
 import { dateLabel, idFrom, returnPath, withNotice } from './project-helpers.js';
@@ -253,6 +254,8 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   });
 
   const edit = auth.requirePermission('strategy.edit');
+  // Marking a fix done, like writing content, is an editor's job (permissions.js).
+  const act = auth.requirePermission('content.create');
 
   async function renderProject(req, res, { verifyResult = null, status } = {}) {
     const [entities, engines, proof, kit, active, runs, usage] = await Promise.all([
@@ -462,6 +465,7 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   setupRoutes(router, { jobs, logger, appPage, edit });
   trackingRoutes(router, { jobs, logger, edit });
   dashboardRoutes(router, { appPage, edit, logger });
+  actionRoutes(router, { appPage, act, jobs, logger });
 
   return { router, visibleIds };
 }

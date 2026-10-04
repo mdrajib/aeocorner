@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Execution order for the rest of the MVP: Phases 7–15 of [BUILD_PLAN.md](BUILD_PLAN.md), reorganized into 11 sequential milestones of single-action tasks |
 | **Date** | 2026-10-03 |
-| **Status** | In progress. Milestone 5 (dashboard): the screens and their tests are built (5.01–5.10); open are deploying to production (5.11) and onboarding the design partners (5.12), which need the production server (Milestone 2) and the founder. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
+| **Status** | In progress. Milestone 6 (Action Center and proof): all tasks 6.01–6.10 are built and tested on fixtures; open on its Definition of Done is nothing but the live-model runs (the narrative and its eval, which cost money) and a first real before/after on a design partner. Milestone 5 (dashboard): the screens and their tests are built (5.01–5.10); open are deploying to production (5.11) and onboarding the design partners (5.12), which need the production server (Milestone 2) and the founder. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
 | **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) (phase detail and required tests) · [MVP.md](MVP.md) §13 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §7 · [UI_DESIGN.md](UI_DESIGN.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. How to read this plan
@@ -303,26 +303,26 @@ flowchart LR
 
 | # | Task | Needs |
 |---|---|---|
-| 6.01 | 🔒 Build the rules engine: checks, metrics, citations → recommendations keyed by `open_key` | — |
-| 6.02 | Build ICE scoring in `src/core` | — |
-| 6.03 | Build the evidence-only narrative generator | 6.01 |
-| 6.04 | Build an eval that flags any narrative fact missing from its evidence | 6.03 |
-| 6.05 | 🔒 Build the recommendation lifecycle (`done → verified/unverified → measuring → proven_win/no_change/declined`) | 6.01 |
-| 6.06 | Build the same-day "fix verified" re-check with the crawler (`fix_verifications`) | 6.05 |
-| 6.07 | Capture the baseline when a recommendation is marked done | 6.05 |
-| 6.08 | Build the +2 and +4 week `action_outcomes` job using the significance test | 6.07 |
-| 6.09 | Build the Action Center list and detail screens | 6.02, 6.05 |
-| 6.10 | Count "proven wins" per project | 6.08 |
+| 6.01 | ✅ 2026-10-04 🔒 Build the rules engine: checks, metrics, citations → recommendations keyed by `open_key` (`src/core/recommendations.js`: 21 readiness rules and three visibility rules, keyed `rule:subject`; a check that could not run is never an issue; [ADR-0010](adr/0010-recommendations-and-proof.md)) | — |
+| 6.02 | ✅ 2026-10-04 Build ICE scoring in `src/core` (`src/core/ice.js`: impact is the weighted share of the question × engine grid times severity; confidence is a prior recalibrated from outcomes; effort 1/3/5 as MVP F7) | — |
+| 6.03 | ✅ 2026-10-04 Build the evidence-only narrative generator (`src/core/narrative.js` builds the words from a closed set of facts; `src/llm/narrative.js` lets Claude rewrite them, and its reply is stored only if the evidence check passes) | 6.01 |
+| 6.04 | ✅ 2026-10-04 Build an eval that flags any narrative fact missing from its evidence (`npm run eval:narrative` and `src/core/narrative.eval.test.js`: 58 recommendations and 7 made-up narratives the check must catch; `--live` asks Claude. Not run live yet) | 6.03 |
+| 6.05 | ✅ 2026-10-04 🔒 Build the recommendation lifecycle (`done → verified/unverified → measuring → proven_win/no_change/declined`) (`src/core/recommendation-lifecycle.js` and `forOrg().recommendations`: only the system verifies or judges) | 6.01 |
+| 6.06 | ✅ 2026-10-04 Build the same-day "fix verified" re-check with the crawler (`fix_verifications`) (`fix.verify`: a fresh scan and the one check, at once, +1 h and +24 h; "couldn’t check" is its own reason) | 6.05 |
+| 6.07 | ✅ 2026-10-04 Capture the baseline when a recommendation is marked done (`markDone` saves the 28-day baseline for the targeted questions; later refreshes do not change it) | 6.05 |
+| 6.08 | ✅ 2026-10-04 Build the +2 and +4 week `action_outcomes` job using the significance test (`outcomes.sweep` daily and `outcomes.measure`: the product’s significance test over complete cells; +2 weeks closes only a win or a decline) | 6.07 |
+| 6.09 | ✅ 2026-10-04 Build the Action Center list and detail screens (`/projects/:pid/actions` and `/actions/:rid`, with the proof card, plus "Top actions" on the dashboard) | 6.02, 6.05 |
+| 6.10 | ✅ 2026-10-04 Count "proven wins" per project (`recommendations.provenWins`: shown on the Action Center and the dashboard) | 6.08 |
 
 **Parallel:** 6.01 and 6.02 at once. After 6.05: 6.06, 6.07 and 6.09 in parallel. 6.03 → 6.04 runs beside them.
 
 **Definition of Done:**
-- [ ] Unit: the same condition always gives the same recommendation key (no duplicates on re-run).
-- [ ] Unit: ICE scoring math.
-- [ ] Integration: "done" captures a baseline and compares at +2 and +4 weeks.
-- [ ] Integration: a fixed page is marked verified the same day; an unfixed one unverified.
-- [ ] Eval: no narrative states a fact absent from its evidence.
-- [ ] Axe sweep and leak tests pass for the new screens and queries.
+- [x] Unit: the same condition always gives the same recommendation key (no duplicates on re-run). (`src/core/recommendations.test.js`, and three simultaneous refreshes in `tests/integration/actions-repo.test.js`)
+- [x] Unit: ICE scoring math. (`src/core/ice.test.js`)
+- [x] Integration: "done" captures a baseline and compares at +2 and +4 weeks. (`tests/integration/actions-repo.test.js`)
+- [x] Integration: a fixed page is marked verified the same day; an unfixed one unverified. (`tests/integration/actions-jobs.test.js`)
+- [x] Eval: no narrative states a fact absent from its evidence. (`src/core/narrative.eval.test.js`; the live half is `npm run eval:narrative -- --live`)
+- [x] Axe sweep and leak tests pass for the new screens and queries. (`tests/e2e/pages.js`, `tests/tenancy/repositories.test.js`)
 
 ---
 

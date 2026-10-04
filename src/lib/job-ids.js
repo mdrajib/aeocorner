@@ -66,5 +66,23 @@ export const brandKitJobId = (projectId, baseVersion, slot) =>
 export const questionsJobId = (projectId, active, slot) =>
   jobId('questions', projectId, `n${active}`, `s${slot}`);
 
+/**
+ * Bringing a project's recommendations up to date after a run or a scan finished: one job per project per cause, so a
+ * run and a scan that finish together are two jobs, and the same run finishing twice is one.
+ */
+export const recsRefreshJobId = (projectId, cause) => jobId('recs', projectId, cause);
+
+/** Writing one recommendation's words with the model, for this evidence (the hash is of the stored evidence). */
+export const narrateJobId = (recommendationId, evidenceHash) =>
+  jobId('narrate', recommendationId, evidenceHash);
+
+/** One same-day re-check attempt of one fix. `sweep` is set by the safety net, which may ask again in a later hour. */
+export const fixVerifyJobId = (recommendationId, attempt, sweep = null) =>
+  jobId('fixverify', recommendationId, `a${attempt}`, ...(sweep == null ? [] : [`s${sweep}`]));
+
+/** The before/after measurement of one fix, at most once a day. */
+export const outcomeJobId = (recommendationId, dayText) =>
+  jobId('measure', recommendationId, dayText);
+
 /** The ten-minute slot a time falls in. */
 export const slotOf = (date) => Math.floor(date.getTime() / 600_000);

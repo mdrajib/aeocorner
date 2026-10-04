@@ -15,6 +15,7 @@ import {
 import { AUDIT_ENGINE_LABELS, AUDIT_ENGINE_ORDER } from '../../core/audit-progress.js';
 import { describeRun, isRunning } from '../../core/run-status.js';
 import { windowsAt } from '../../core/trends.js';
+import { listItem } from '../../core/action-center.js';
 import { DomainError } from '../../db/index.js';
 import { notFound } from '../middleware/errors.js';
 import { dateLabel, idFrom, text, withNotice } from './project-helpers.js';
@@ -163,7 +164,11 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
         from: f.windows.after[0],
         to: f.windows.after[1],
       });
-      const events = await req.orgDb.changes.forProject(req.project.id, { limit: 5 });
+      const [events, topRows, wins] = await Promise.all([
+        req.orgDb.changes.forProject(req.project.id, { limit: 5 }),
+        req.orgDb.recommendations.top(req.project.id, 3),
+        req.orgDb.recommendations.provenWins(req.project.id),
+      ]);
       const names = new Map(f.tracked.map((e) => [e.id, e.name]));
       const base = res.locals.projectBase;
       const t = figures.tiles;
@@ -228,6 +233,10 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
           days: f.days,
         }).map((e) => ({ ...e, name: AUDIT_ENGINE_LABELS[e.engineCode] ?? e.engineCode })),
         competitors: competitors.slice(0, 5),
+        topActions: topRows.map((r) =>
+          listItem({ ...r, questions: 0 }, { projectBase: base, brandName: f.brand?.name }),
+        ),
+        wins,
         changes: events.map((e) =>
           describeChange(e, {
             entityName: names.get(String(e.entity_id)),

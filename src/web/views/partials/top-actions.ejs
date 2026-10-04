@@ -1,0 +1,20 @@
+<%# The best three things to do, on the dashboard. Props: topActions (listItem rows), wins ({ recommendations, questions }), projectBase. %>
+<% if (!topActions.length) { %>
+<p class="text-ink-700 text-sm">Nothing to fix right now. When a scan or a check finds something worth doing, the best three appear here.</p>
+<% } else { %>
+<ol class="flex flex-col gap-3">
+  <% topActions.forEach((a, i) => { %>
+  <li class="flex items-start gap-3">
+    <span class="bg-brand-100 text-brand-700 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold" aria-hidden="true"><%= i + 1 %></span>
+    <div class="min-w-0">
+      <a href="<%= a.href %>" class="font-medium [overflow-wrap:anywhere]"><%= a.title %></a>
+      <p class="mt-1 flex flex-wrap items-center gap-2 text-sm"><%- ui.badge({ text: a.fixPath, tone: 'brand' }) %> <%- ui.badge({ text: 'Effort: ' + a.effort, tone: 'neutral' }) %></p>
+    </div>
+  </li>
+  <% }) %>
+</ol>
+<% } %>
+<p class="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+  <a href="<%= projectBase %>/actions">Open the Action Center</a>
+  <% if (wins.recommendations) { %><span>Proven wins: <strong><%= wins.recommendations %></strong></span><% } %>
+</p>

@@ -1,0 +1,64 @@
+<%# D1: the Action Center list. Props: view, viewTabs ([{ id, label, count, href, current }]), items (listItem rows), empty ({ title, text }),
+    wins ({ recommendations, questions }), lastRun, canAct; locals: orgBase, projectBase, projectName, domain, csrfToken. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'actions', ranges: [], updatedLabel: null, stale: null, lastRun }) %>
+
+<div class="mt-6 flex flex-wrap items-start justify-between gap-4">
+  <div class="max-w-2xl">
+    <h2 class="text-2xl">Action Center</h2>
+    <p class="text-ink-700 mt-1 text-sm">The fixes most likely to get AI engines naming you, best first. Each one comes with the evidence behind it. When you finish one, we check your site straight away, then measure whether it worked.</p>
+  </div>
+  <div class="w-full sm:w-64">
+    <%- ui.stat({
+      label: 'Proven wins',
+      value: String(wins.recommendations),
+      note: wins.recommendations
+        ? 'Fixes after which AI engines named you significantly more, on ' + wins.questions + (wins.questions === 1 ? ' question.' : ' questions.')
+        : 'A proven win is a fix after which the engines named you significantly more. None yet.',
+    }) %>
+  </div>
+</div>
+
+<nav aria-label="Recommendations" class="mt-6 flex flex-wrap gap-2">
+  <% for (const t of viewTabs) { %>
+  <a href="<%= t.href %>" class="<%= t.current ? 'bg-brand-600 border-brand-600 text-white' : 'border-ink-300 text-ink-800 hover:bg-ink-50 bg-white' %> rounded-full border px-3 py-1 text-sm font-medium"<% if (t.current) { %> aria-current="true"<% } %>><%= t.label %> <span class="<%= t.current ? 'text-white' : 'text-ink-600' %>">(<%= t.count %>)</span></a>
+  <% } %>
+</nav>
+
+<% if (items.length === 0) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: empty.title, text: empty.text }) %></div>
+<% } else { %>
+<ol class="mt-6 flex flex-col gap-4" aria-label="<%= viewTabs.find((t) => t.current).label %>">
+  <% items.forEach((item, i) => { %>
+  <li class="card">
+    <div class="card-body flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <% if (view === 'todo') { %><span class="text-ink-700 text-sm font-semibold">Priority <%= i + 1 %></span><% } %>
+        <%- ui.badge({ text: item.fixPath, tone: 'brand' }) %>
+        <%- ui.badge({ text: item.category, tone: 'neutral' }) %>
+        <%- ui.badge({ text: 'Effort: ' + item.effort, tone: 'neutral' }) %>
+        <% if (item.status !== 'open') { %><%- ui.badge({ text: item.badge.text, tone: item.badge.tone }) %><% } %>
+      </div>
+      <h3 class="text-lg [overflow-wrap:anywhere]"><a href="<%= item.href %>"><%= item.title %></a></h3>
+      <% if (item.result) { %>
+      <p class="text-ink-800 text-sm"><%= item.result %></p>
+      <% } else if (item.teaser) { %>
+      <p class="text-ink-700 text-sm"><%= item.teaser %></p>
+      <% } %>
+      <% if (item.looksFixed) { %>
+      <%- ui.banner({ tone: 'info', title: 'This looks fixed on your site.', text: 'Our latest check no longer finds it. Open it and mark it done, and we will measure the effect.' }) %>
+      <% } %>
+      <p class="text-ink-600 text-xs"><%= item.reach %> · <%= view === 'todo' ? 'Raised ' : 'Updated ' %><%= item.changedOn %></p>
+      <div class="flex flex-wrap items-center gap-3">
+        <% if (canAct && item.status === 'open') { %>
+        <form method="post" action="<%= item.href %>/start">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <%- ui.button({ label: 'Start', type: 'submit', variant: 'primary', size: 'sm' }) %>
+        </form>
+        <% } %>
+        <%- ui.button({ label: 'See the evidence and steps', href: item.href, variant: 'secondary', size: 'sm' }) %>
+      </div>
+    </div>
+  </li>
+  <% }) %>
+</ol>
+<% } %>

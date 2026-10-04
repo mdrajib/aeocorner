@@ -111,6 +111,37 @@ export const appPages = [
     path: (f) =>
       `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/answers/${f.dashboardPromptId}`,
   },
+  // The Action Center (Milestone 6): the list in each state, an open recommendation, and one with a proven result.
+  ...['todo', 'progress', 'results'].map((view) => ({
+    name: `project-actions-${view}`,
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions?view=${view}`,
+  })),
+  {
+    name: 'project-actions-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions`,
+  },
+  {
+    name: 'project-actions-empty',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}/actions`,
+  },
+  {
+    name: 'project-action-open',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionOpenId}`,
+  },
+  {
+    name: 'project-action-open-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionOpenId}`,
+  },
+  {
+    name: 'project-action-proven-win',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`,
+  },
   {
     name: 'member-access',
     as: 'owner',

@@ -246,3 +246,38 @@ test('a viewer reads the dashboard but is not offered the feedback buttons', asy
   await expect(page.getByText('Named in this answer').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'That’s not us' })).toHaveCount(0);
 });
+
+test('an editor opens the Action Center, reads a recommendation and starts it', async ({
+  page,
+  request,
+}) => {
+  const problems = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') problems.push(message.text());
+  });
+  page.on('pageerror', (error) => problems.push(error.message));
+
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'editor',
+    next: `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/dashboard`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+  await expect(page.getByRole('heading', { name: 'Top actions' })).toBeVisible();
+  await page.getByRole('link', { name: 'Actions', exact: true }).first().click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Action Center' })).toBeVisible();
+  await page.getByRole('link', { name: 'Let AI search crawlers read your site' }).click();
+  await expect(page.getByRole('heading', { name: 'Why this matters' })).toBeVisible();
+  await expect(page.getByText('robots.txt blocks OAI-SearchBot').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await expect(page.getByText('Marked as in progress.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark as done' })).toBeVisible();
+
+  // A finished fix shows what happened, in numbers.
+  await page.goto(`/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`);
+  await expect(page.getByText('from 10 of 120 to 40 of 118 answers')).toBeVisible();
+  await page.getByText('How sure are we?').click();
+  await expect(page.getByText(/statistical test/)).toBeVisible();
+
+  expect(problems, 'no console errors, including CSP violations').toEqual([]);
+});

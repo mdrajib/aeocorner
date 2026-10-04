@@ -578,7 +578,7 @@ describe('the hourly scheduler', () => {
 });
 
 describe('recurring jobs and shutdown', () => {
-  test('the hourly tick and both guards are registered, once, however many times the worker starts', async () => {
+  test('the hourly tick, both guards and the daily outcomes sweep are registered, once, however many times the worker starts', async () => {
     const h = await runtimeFor({ queueNames: [], schedule: true }); // no workers: nothing runs
     await h.runtime.start({ schedule: true });
     await h.runtime.start({ schedule: true });
@@ -587,6 +587,7 @@ describe('recurring jobs and shutdown', () => {
     assert.deepEqual(schedulers.map((s) => s.name).sort(), [
       'guard.provider_health',
       'guard.spend',
+      'outcomes.sweep',
       'scheduler.tick',
     ]);
     const tick = schedulers.find((s) => s.name === 'scheduler.tick');

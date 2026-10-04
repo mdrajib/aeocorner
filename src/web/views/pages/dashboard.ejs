@@ -1,5 +1,5 @@
 <%# C1: the figures, the trend, the engines, the competitors and what changed. Props: tiles, more (ui.stat props), chart,
-    engines, competitors, changes, hasData, incomplete, baseline, ranges, rangeLabel, updatedLabel, lastRun, stale;
+    engines, competitors, changes, topActions, wins, hasData, incomplete, baseline, ranges, rangeLabel, updatedLabel, lastRun, stale;
     locals: orgBase, projectBase, projectName, domain. %>
 <%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'dashboard', ranges, updatedLabel, stale, lastRun }) %>
 
@@ -48,3 +48,7 @@
   <%- ui.card({ title: 'What changed', headingLevel: 2, html: ui.fragment('partials/change-list', { changes }) }) %>
 </div>
 <% } %>
+
+<div class="mt-6">
+  <%- ui.card({ title: 'Top actions', headingLevel: 2, html: ui.fragment('partials/top-actions', { topActions, wins, projectBase }) }) %>
+</div>

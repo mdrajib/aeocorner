@@ -1,3 +1,4 @@
+import { nextDueHorizon } from '../../core/outcomes.js';
 import { toMicros } from '../../core/spend.js';
 import { isForeignKeyViolation } from '../errors.js';
 
@@ -96,5 +97,86 @@ export function systemRepos(prisma) {
       }),
   };
 
-  return { scheduling, spendMonitor, providerHealth };
+  const outcomes = {
+    /**
+     * Recommendations that are measuring and have a before/after check due: only IDs, so the worker can hand each to its
+     * organization's `forOrg().outcomes.measure`.
+     */
+    async due({ now = new Date(), limit = 500 } = {}) {
+      const rows = await prisma.recommendations.findMany({
+        where: {
+          status: 'measuring',
+          measuring_started_at: { not: null },
+          projects: { deleted_at: null, organizations: { deleted_at: null } },
+        },
+        select: {
+          id: true,
+          org_id: true,
+          project_id: true,
+          measuring_started_at: true,
+          action_outcomes: { select: { horizon: true } },
+        },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      return rows
+        .filter(
+          (r) =>
+            nextDueHorizon({
+              startedAt: r.measuring_started_at,
+              have: r.action_outcomes.map((o) => o.horizon),
+              now,
+            }) !== null,
+        )
+        .map((r) => ({ orgId: r.org_id, projectId: r.project_id, recommendationId: r.id }));
+    },
+
+    /**
+     * How each rule's fixes have turned out across every project: `{ [ruleCode]: { wins, decided } }`. Counts only, no
+     * tenant content; it is what recalibrates a rule's confidence (core/ice.js). A fix that ended for lack of data is
+     * not counted as "decided": it says nothing about whether the rule works.
+     */
+    async ruleStats() {
+      const rows = await prisma.$queryRaw`
+        SELECT r.rule_code AS rule_code,
+               SUM(CASE WHEN o.verdict = 'proven_win' THEN 1 ELSE 0 END) AS wins,
+               COUNT(*) AS decided
+        FROM action_outcomes o
+        JOIN recommendations r ON r.id = o.recommendation_id
+        JOIN (SELECT recommendation_id, MAX(id) AS last_id FROM action_outcomes GROUP BY recommendation_id) l
+          ON l.last_id = o.id
+        WHERE r.status IN ('proven_win', 'no_change', 'declined')
+          AND o.verdict IN ('proven_win', 'no_change', 'declined')
+        GROUP BY r.rule_code`;
+      return Object.fromEntries(
+        rows.map((r) => [r.rule_code, { wins: Number(r.wins), decided: Number(r.decided) }]),
+      );
+    },
+  };
+
+  const verifications = {
+    /**
+     * Re-check attempts that should have run by now and did not (their delayed job was lost, say): the safety net
+     * behind the job queue. Only attempts of fixes still waiting on the check.
+     */
+    async overdue({ now = new Date(), graceMs = 10 * 60_000, limit = 200 } = {}) {
+      const rows = await prisma.fix_verifications.findMany({
+        where: {
+          status: 'pending',
+          scheduled_for: { lt: new Date(now.getTime() - graceMs) },
+          recommendations: { status: 'done' },
+        },
+        select: { org_id: true, recommendation_id: true, attempt: true },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      return rows.map((r) => ({
+        orgId: r.org_id,
+        recommendationId: r.recommendation_id,
+        attempt: r.attempt,
+      }));
+    },
+  };
+
+  return { scheduling, spendMonitor, providerHealth, outcomes, verifications };
 }
