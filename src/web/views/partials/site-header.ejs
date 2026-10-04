@@ -1,15 +1,17 @@
 <%
 const links = [
-  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/product/measure', label: 'Product', match: '/product/' },
+  { href: '/agencies', label: 'Agencies' },
+  { href: '/pricing', label: 'Pricing' },
   { href: '/methodology', label: 'Methodology' },
-  { href: '/#faq', label: 'FAQ' },
 ];
+const here = (l) => (l.match ? currentPath.startsWith(l.match) : currentPath === l.href);
 -%>
 <header class="site-header">
   <div class="container-page flex h-16 items-center justify-between gap-4">
     <%- ui.logo({}) %>
     <nav aria-label="Main" class="hidden items-center gap-1 md:flex">
-      <% for (const l of links) { %><a class="nav-link" href="<%= l.href %>"<% if (currentPath === l.href) { %> aria-current="page"<% } %>><%= l.label %></a><% } %>
+      <% for (const l of links) { %><a class="nav-link" href="<%= l.href %>"<% if (here(l)) { %> aria-current="page"<% } %>><%= l.label %></a><% } %>
       <% if (site.authEnabled) { %><a class="nav-link" href="/sign-in">Sign in</a><% } %>
       <%- ui.button({ label: 'Free AEO audit', href: '/#audit', size: 'sm' }) %>
     </nav>

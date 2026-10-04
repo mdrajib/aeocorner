@@ -3,12 +3,16 @@ const toc = [
   ['principles', 'Principles'],
   ['engines', 'Engines and how we collect answers'],
   ['sampling', 'Sampling and statistics'],
+  ['sample-sizes', 'Sample sizes'],
   ['extraction', 'Reading the answers'],
   ['metrics', 'What we measure'],
   ['score', 'The AI Visibility Score'],
   ['readiness', 'The AEO Readiness checklist'],
   ['audit-score', 'The free audit’s AEO Score'],
+  ['proof', 'How we judge a fix'],
+  ['limits', 'Known limits'],
   ['never', 'What we will not do'],
+  ['references', 'References'],
   ['changes', 'Version history'],
 ];
 -%>
@@ -17,7 +21,7 @@ const toc = [
     <p class="eyebrow">Methodology</p>
     <h1 class="mt-2 text-4xl sm:text-5xl">How AEO Corner measures AI visibility</h1>
     <p class="text-ink-700 mt-4 text-lg">Black-box scores are hard to trust. This page explains exactly what we collect, how we read it, and how every number is calculated, so you can check our work.</p>
-    <p class="mt-4"><%- ui.badge({ text: 'Version 1 · 2 October 2026', tone: 'brand' }) %></p>
+    <p class="mt-4"><%- ui.badge({ text: 'Version 2 · 4 October 2026', tone: 'brand' }) %></p>
   </div>
 </div>
 
@@ -46,14 +50,14 @@ const toc = [
         <caption class="sr-only">Engines, collection method and samples per run</caption>
         <thead><tr><th scope="col">Engine</th><th scope="col">How the answer is collected</th><th scope="col" class="num">Samples per question</th></tr></thead>
         <tbody>
-          <tr><th scope="row" class="row-head">ChatGPT</th><td>Licensed capture of the ChatGPT interface, logged out and not personalised, including the sources it shows. Falls back to an official API with web search, labelled as such.</td><td class="num">3</td></tr>
-          <tr><th scope="row" class="row-head">Gemini</th><td>Licensed capture of the Gemini interface. Falls back to the official API with Google Search grounding, labelled as such.</td><td class="num">3</td></tr>
+          <tr><th scope="row" class="row-head">ChatGPT</th><td>Licensed capture of the ChatGPT interface, logged out and not personalised, including the sources it shows.</td><td class="num">3</td></tr>
+          <tr><th scope="row" class="row-head">Gemini</th><td>Licensed capture of the Gemini interface.</td><td class="num">3</td></tr>
           <tr><th scope="row" class="row-head">Perplexity</th><td>The official Perplexity API, which returns the sources it cites. Labelled “API-grounded”.</td><td class="num">3</td></tr>
           <tr><th scope="row" class="row-head">Google AI Overviews</th><td>A search-results data provider, using the keyword form of the question. Not every search shows an AI Overview, so we also track how often one appears.</td><td class="num">1</td></tr>
         </tbody>
       </table>
     </div>
-    <p id="engines-note">If a provider starts failing, we switch to a backup automatically and tell you which method produced each answer. The free audit asks each question once; ongoing tracking asks three times.</p>
+    <p id="engines-note">If a provider is down we wait and retry for several hours; if it is still down, those answers are shown as “Couldn’t check” and the week is marked incomplete, rather than guessed. We do not yet switch to a backup provider. The free audit asks each question once; ongoing tracking asks three times.</p>
 
     <h2 id="sampling">3. Sampling and statistics</h2>
     <ul>
@@ -63,7 +67,17 @@ const toc = [
       <li><strong>Why this matters.</strong> Single-sample tools swing wildly from week to week. Honest handling of that noise is the difference between a dashboard you can act on and one that makes you panic.</li>
     </ul>
 
-    <h2 id="extraction">4. Reading the answers</h2>
+    <h2 id="sample-sizes">4. Sample sizes</h2>
+    <p>How sure a rate is depends on how many answers stand behind it. These are the numbers we work with:</p>
+    <ul>
+      <li><strong>The free audit</strong> asks five questions on four engines, once each: at most 20 answers. That is enough to show you real answers and where to look, not to put a percentage on anything.</li>
+      <li><strong>Ongoing tracking</strong> asks every question three times on each engine (once for Google AI Overviews), every week. A project with 50 questions collects about 150 answers per engine per week.</li>
+      <li><strong>Why the range matters.</strong> If half of the answers name you, 20 answers put the true rate somewhere between roughly 30% and 70%. With 150 answers the range narrows to roughly 42% to 58%. We show the range, so a small sample looks as uncertain as it is.</li>
+      <li><strong>Minimum for a verdict.</strong> We call a change significant only when each of the two four-week windows holds at least 20 answers. With fewer, the dashboard says “not enough data”, never “no change”.</li>
+      <li><strong>Outages are not your decline.</strong> A day on which an engine did not finish cleanly is left out of that engine’s windows, so our outage is never reported as a drop in your visibility.</li>
+    </ul>
+
+    <h2 id="extraction">5. Reading the answers</h2>
     <ol>
       <li><strong>Matching.</strong> A deterministic first pass finds your brand, its aliases and your domain in the answer, and parses the sources the engine cited.</li>
       <li><strong>Understanding.</strong> A language model reads each answer into a structured record: the type of answer (list, single recommendation, comparison, explanation or refusal), every brand named, its position, how prominent it is, whether it is recommended or cautioned against, sentiment, and the claims made about it.</li>
@@ -71,7 +85,7 @@ const toc = [
       <li><strong>Versioning.</strong> Every derived number records which version of the reader produced it, so history can be re-read from the raw answers.</li>
     </ol>
 
-    <h2 id="metrics">5. What we measure</h2>
+    <h2 id="metrics">6. What we measure</h2>
     <div class="table-wrap">
       <table class="table">
         <caption class="sr-only">Metric definitions</caption>
@@ -89,7 +103,7 @@ const toc = [
       </table>
     </div>
 
-    <h2 id="score">6. The AI Visibility Score</h2>
+    <h2 id="score">7. The AI Visibility Score</h2>
     <p>The score is a weighted average, from 0 to 100, of how prominently you appear in each answer. For every question <em>p</em> and engine <em>e</em>, we average the presence value over the samples:</p>
     <div class="table-wrap">
       <table class="table">
@@ -107,7 +121,7 @@ const toc = [
     </div>
     <p>If the answer cautions against you or does not recommend you, the value is halved. The score is the average of these values, weighted by how important each question is (priority 1–3) and by engine weight (equal by default), multiplied by 100. Answers we couldn’t collect are left out of the average, not scored as zero.</p>
 
-    <h2 id="readiness">7. The AEO Readiness checklist</h2>
+    <h2 id="readiness">8. The AEO Readiness checklist</h2>
     <p>Readiness scores the signals on your own site that help AI find, read and trust you. These weights are our first version (v0): reasoned heuristics that have not yet been tested against outcomes. Once we have enough customer data we will calibrate them against real results and publish what changed.</p>
     <div class="table-wrap">
       <table class="table">
@@ -124,10 +138,28 @@ const toc = [
       </table>
     </div>
 
-    <h2 id="audit-score">8. The free audit’s AEO Score</h2>
+    <h2 id="audit-score">9. The free audit’s AEO Score</h2>
     <p>The free audit combines the two parts: <strong>AEO Score = 0.6 × Readiness + 0.4 × Visibility</strong>. The report always shows both parts separately. The audit’s visibility part is a one-answer-per-question snapshot, so it is directional. Ongoing tracking, with repeated sampling, is what you should use to measure change.</p>
 
-    <h2 id="never">9. What we will not do</h2>
+    <h2 id="proof">10. How we judge a fix</h2>
+    <p>A fix is checked twice, and the two checks answer different questions:</p>
+    <ul>
+      <li><strong>Is it live?</strong> For a change to your site, we look at the page again: straight away, after an hour and after a day. We check that the page exists, can be indexed, shows its headline and carries its structured data. If we cannot look, we say “couldn’t check”, never “still failing”.</li>
+      <li><strong>Did AI answers change?</strong> We compare the complete answers collected before the fix with those collected after it, at two and four weeks, using the same significance rule as the dashboard. The verdict is a gain, a decline, no change, or not enough data yet. A change inside normal variation is labelled that way.</li>
+      <li><strong>What a verdict is not.</strong> It shows that answers changed after the fix, not that the fix caused the change. Other things move at the same time: your competitors, the engines’ own models and what is published about you elsewhere. We show the numbers so you can judge for yourself.</li>
+    </ul>
+
+    <h2 id="limits">11. Known limits</h2>
+    <ul>
+      <li><strong>An answer is one person’s view on one day.</strong> Engines personalise by location, history and time. Ours are collected logged out and not personalised, so they will not match what every one of your customers sees.</li>
+      <li><strong>Collection methods differ.</strong> A captured chat answer and an API answer can differ, even for the same question. Every answer is labelled with how it was collected, and you should compare like with like.</li>
+      <li><strong>Reading answers is not perfect.</strong> Matching and the language model sometimes disagree, and either can be wrong. Disagreements go to a review queue and you can report an answer that was misread. We have not yet published accuracy figures for the reader; we will when our hand-checked test set is large enough to make them meaningful.</li>
+      <li><strong>The readiness weights are untested.</strong> They are our first version. They are reasoned, not yet checked against outcomes.</li>
+      <li><strong>Small sites get wide ranges.</strong> If few answers name any brand in your market, the rates move a lot and the range stays wide. We would rather show that than a confident number.</li>
+      <li><strong>We cannot promise results.</strong> AEO Corner measures what AI engines say. It cannot guarantee to change it.</li>
+    </ul>
+
+    <h2 id="never">12. What we will not do</h2>
     <p>These are limits we put on ourselves, because durable AEO should not put your brand at risk:</p>
     <ul>
       <li>Fake reviews, testimonials or invented statistics.</li>
@@ -137,8 +169,18 @@ const toc = [
       <li>Buying links or using other people’s sites to rank yours.</li>
     </ul>
 
-    <h2 id="changes">10. Version history</h2>
+    <h2 id="references">13. References</h2>
+    <p>The standards and methods this page relies on:</p>
     <ul>
+      <li><a href="https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval" rel="noopener">The Wilson score interval</a>, used for every range we show.</li>
+      <li><a href="https://en.wikipedia.org/wiki/Z-test" rel="noopener">The two-proportion z-test</a>, used to decide whether a change is significant.</li>
+      <li><a href="https://www.rfc-editor.org/rfc/rfc9309" rel="noopener">RFC 9309, the Robots Exclusion Protocol</a>, which governs how our crawler and AI crawlers read robots.txt.</li>
+      <li><a href="https://schema.org/docs/schemas.html" rel="noopener">schema.org</a>, the vocabulary for the structured data we check and generate.</li>
+    </ul>
+
+    <h2 id="changes">14. Version history</h2>
+    <ul>
+      <li><strong>Version 2 — 4 October 2026.</strong> Added sample sizes, how we judge a fix and our known limits. Corrected the engines section: there is no automatic backup provider yet; an engine that is down is shown as “Couldn’t check”.</li>
       <li><strong>Version 1 — 2 October 2026.</strong> First public version.</li>
     </ul>
     <p>When this method changes, we will add a dated note here saying what changed and why.</p>

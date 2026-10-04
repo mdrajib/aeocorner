@@ -1,0 +1,10 @@
+<%# The FAQ list. Uses the page's `faq` list ([{ q, a }]). Every answer is visible (no accordion to open) and is the paragraph
+    straight after its question heading, so a crawler, an AI engine and our own readiness checks (E1, E2) pair them. %>
+<div class="mt-8 flex flex-col gap-3">
+  <% for (const item of faq) { %>
+  <div class="card card-body">
+    <h3 class="text-base tracking-normal"><%= item.q %></h3>
+    <p class="text-ink-700 mt-2 text-sm leading-6"><%= item.a %></p>
+  </div>
+  <% } %>
+</div>

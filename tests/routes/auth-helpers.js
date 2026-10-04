@@ -73,6 +73,7 @@ export function authHarness({
   billing,
   google,
   domainVerifier,
+  funnel,
 } = {}) {
   const db = connectTestDb();
   const fx = fixtures(db);
@@ -98,6 +99,7 @@ export function authHarness({
     ...(billing ? { billing } : {}),
     ...(google ? { google } : {}),
     ...(domainVerifier ? { domainVerifier } : {}),
+    ...(funnel ? { funnel } : {}),
   });
   const agent = request(app);
 

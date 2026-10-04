@@ -1,0 +1,90 @@
+<%# Props: pricing (from src/core/pricing.js, or null when plans could not be read), pricingFaq. Every number comes from the `plans` table. %>
+<div class="bg-ink-50 border-ink-200 border-b py-12 sm:py-16">
+  <div class="container-page">
+    <p class="eyebrow">Pricing</p>
+    <h1 class="mt-2 text-4xl sm:text-5xl">Pricing for AI visibility tracking</h1>
+    <% if (pricing) { %>
+    <p class="text-ink-700 mt-4 max-w-2xl text-lg">Start with the free audit. When you want it tracked every week, choose a plan and try it free for <%= pricing.trialDays %> days. If it isn’t useful, ask for your first month back within <%= pricing.moneyBackDays %> days.</p>
+    <% } else { %>
+    <p class="text-ink-700 mt-4 max-w-2xl text-lg">Start with the free audit. Plans start with a free trial and can be changed or cancelled at any time.</p>
+    <% } %>
+  </div>
+</div>
+
+<% if (!pricing) { %>
+<section class="py-16" aria-labelledby="no-prices-heading">
+  <div class="container-narrow">
+    <%- ui.banner({ tone: 'warning', text: 'We can’t show the plans right now. Please try again in a few minutes.' }) %>
+    <h2 class="mt-8 text-2xl" id="no-prices-heading">In the meantime</h2>
+    <p class="text-ink-700 mt-2">The free audit needs no account and no card.</p>
+    <p class="mt-4"><%- ui.button({ label: 'Run the free audit', href: '/#audit', iconRight: 'arrow-right' }) %></p>
+  </div>
+</section>
+<% } else { %>
+<section class="py-14 sm:py-16" aria-labelledby="plans-heading">
+  <div class="container-page">
+    <h2 class="sr-only" id="plans-heading">Plans</h2>
+    <ul class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <% for (const plan of pricing.plans) { %>
+      <li class="card flex flex-col<% if (plan.featured) { %> ring-brand-600 ring-2<% } %>" data-plan="<%= plan.code %>">
+        <div class="card-body flex flex-1 flex-col gap-4">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-xl"><%= plan.name %></h3>
+            <% if (plan.featured) { %><%- ui.badge({ text: 'Most popular', tone: 'brand' }) %><% } %>
+          </div>
+          <p><span class="text-ink-950 text-4xl font-bold tracking-tight tabular-nums" data-price><%= plan.price %></span> <span class="text-ink-600 text-sm"><%= plan.perMonth %></span></p>
+          <ul class="text-ink-800 flex-1 space-y-2 text-sm">
+            <% for (const limit of plan.limits) { %><li class="flex gap-2"><span class="text-brand-700" aria-hidden="true"><%- ui.icon({ name: 'check', size: 18 }) %></span><span><%= limit.label %></span></li><% } %>
+            <% for (const feature of plan.features) { %><li class="flex gap-2"><span class="text-brand-700" aria-hidden="true"><%- ui.icon({ name: 'check', size: 18 }) %></span><span><%= feature %></span></li><% } %>
+            <li class="text-ink-600 flex gap-2"><span class="text-ink-400" aria-hidden="true"><%- ui.icon({ name: 'check', size: 18 }) %></span><span><%= plan.samples %></span></li>
+          </ul>
+          <%- ui.button({ label: 'Start with the free audit', href: '/#audit', variant: plan.featured ? 'primary' : 'secondary', iconRight: 'arrow-right' }) %>
+        </div>
+      </li>
+      <% } %>
+    </ul>
+    <p class="text-ink-600 mt-6 text-sm">Prices are in US dollars, per month. Every plan includes all four AI engines: ChatGPT, Perplexity, Gemini and Google AI Overviews.</p>
+  </div>
+</section>
+
+<section class="bg-ink-50 border-ink-200 border-y py-14 sm:py-16" aria-labelledby="compare-heading">
+  <div class="container-page">
+    <h2 class="text-3xl" id="compare-heading">Compare plans</h2>
+    <div class="mt-6">
+      <%
+      const columns = [{ key: 'what', label: 'What you get' }, ...pricing.plans.map((p) => ({ key: p.code, label: p.name }))];
+      const rows = pricing.comparison.map((row) => {
+        const out = { what: row.label };
+        row.cells.forEach((cell, i) => { out[pricing.plans[i].code] = cell.value; });
+        return out;
+      });
+      -%>
+      <%- ui.table({ caption: 'Plans compared', captionHidden: true, columns, rows }) %>
+    </div>
+  </div>
+</section>
+
+<section class="py-14 sm:py-16" aria-labelledby="addons-heading">
+  <div class="container-narrow">
+    <h2 class="text-3xl" id="addons-heading">Add-ons</h2>
+    <p class="text-ink-700 mt-2">Add them to any plan from the billing screen when you need more.</p>
+    <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+      <% for (const addon of pricing.addons) { %>
+      <li class="card card-body" data-addon="<%= addon.code %>">
+        <h3 class="text-lg"><%= addon.name %></h3>
+        <p class="text-ink-950 mt-1 font-semibold"><%= addon.price %></p>
+        <p class="text-ink-700 mt-2 text-sm leading-6"><%= addon.description %></p>
+      </li>
+      <% } %>
+    </ul>
+  </div>
+</section>
+<% } %>
+
+<section class="bg-ink-50 border-ink-200 border-t py-16 sm:py-20" id="faq" aria-labelledby="faq-heading">
+  <div class="container-narrow">
+    <p class="eyebrow">FAQ</p>
+    <h2 class="mt-2 text-3xl sm:text-4xl" id="faq-heading">Pricing questions</h2>
+    <%- include('../partials/faq-list') %>
+  </div>
+</section>

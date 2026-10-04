@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { UTM_KEYS, utmLabel } from '../core/utm.js';
 
 /**
  * The free-audit funnel's PostHog events (docs/UI_DESIGN.md §9), sent from the server so that the page the visitor
@@ -17,11 +18,13 @@ export const FUNNEL_EVENTS = Object.freeze([
   'audit_code_verified', // the right code: the audit is queued
   'audit_report_viewed', // a finished report was opened
   'audit_track_clicked', // "track this weekly" was clicked on a report
+  'signup_completed', // a new account made its first organization
 ]);
 
 /** The only properties an event may carry, and the kind of value each may hold. */
 const PROPERTIES = Object.freeze({
   has_competitor: 'boolean',
+  from_audit: 'boolean', // the sign-up came from a report's "track this weekly"
   consent: 'boolean',
   cached: 'boolean',
   status: ['complete', 'partial', 'failed'],
@@ -37,6 +40,12 @@ function clean(properties = {}) {
   const out = {};
   for (const [key, value] of Object.entries(properties)) {
     const rule = PROPERTIES[key];
+    if (UTM_KEYS.includes(key)) {
+      // Campaign tags: a short plain label or nothing (src/core/utm.js).
+      const label = utmLabel(value);
+      if (label) out[key] = label;
+      continue;
+    }
     if (!rule) throw new Error(`Funnel property "${key}" is not allowed`);
     if (rule === 'boolean' ? typeof value === 'boolean' : rule.includes(value)) out[key] = value;
   }

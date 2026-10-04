@@ -316,3 +316,11 @@ test('every supported type has a way to be written and the list is stable', () =
   );
   assert.deepEqual(problemLines(validateJsonLd({ ...ctx, '@type': 'Article' })).length > 0, true);
 });
+
+test('WebSite needs a name and an address', () => {
+  const site = { ...ctx, '@type': 'WebSite', name: 'AEO Corner', url: 'https://aeocorner.com' };
+  assert.equal(validateJsonLd(site).ok, true);
+  assert.ok(errorsOf({ ...site, url: undefined }).some((e) => /url/.test(e)));
+  assert.ok(errorsOf({ ...site, name: undefined }).some((e) => /name/.test(e)));
+  assert.ok(errorsOf({ ...site, url: 'not a url' }).length > 0);
+});

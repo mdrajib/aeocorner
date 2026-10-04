@@ -1,5 +1,5 @@
 <%
-// Props: idPrefix (unique on the page), variant (hero|compact), values ({ url, competitor_url }), errors ({ url, competitor_url }).
+// Props: idPrefix (unique on the page), variant (hero|compact), utm (campaign tags to carry: src/core/utm.js), values ({ url, competitor_url }), errors ({ url, competitor_url }).
 // Posts to /audit, which asks for the email next. The bot check (Turnstile) is on that step, not here: a token is good
 // for one use, and nobody should solve a challenge before we know the address is worth auditing.
 const p = locals.idPrefix ?? 'audit';
@@ -7,8 +7,10 @@ const values = locals.values ?? {};
 const errors = locals.errors ?? {};
 const compact = locals.variant === 'compact';
 const hasErrors = Object.keys(errors).length > 0;
+const utm = locals.utm ?? {};
 -%>
 <form method="post" action="/audit" class="flex flex-col gap-4" id="<%= p %>-form"<% if (!compact) { %> aria-labelledby="<%= p %>-heading"<% } %>>
+  <% for (const [name, value] of Object.entries(utm)) { %><input type="hidden" name="<%= name %>" value="<%= value %>"><% } %>
   <% if (hasErrors) { %><%- ui.banner({ tone: 'danger', text: 'Please check the highlighted field and try again.' }) %><% } %>
   <%- ui.field({ id: p + '-url', name: 'url', label: 'Your website', type: 'text', inputmode: 'url', autocomplete: 'url', placeholder: 'yourcompany.com', required: true, value: values.url, error: errors.url, hint: compact ? undefined : 'Just the address — we do the rest.' }) %>
   <details class="group"<% if (values.competitor_url || errors.competitor_url) { %> open<% } %>>

@@ -1,5 +1,6 @@
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
+import { cleanUtm } from '../../core/utm.js';
 import { buildMeta } from '../meta.js';
 import { createUi } from '../ui.js';
 
@@ -37,6 +38,7 @@ export function pageRenderer({ config, viewsDir, publicDir }) {
     res.locals.asset = asset;
     res.locals.site = site;
     res.locals.currentPath = req.path;
+    res.locals.utm = cleanUtm(req.query); // campaign tags, carried through the audit form (src/core/utm.js)
     res.locals.flash = [];
 
     /**

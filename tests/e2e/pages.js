@@ -5,7 +5,7 @@ import { publicPages } from '../../src/web/pages.js';
 
 /** @type {{ name: string, path: string, status?: number, audience: 'public' | 'dev' }[]} */
 export const pages = [
-  ...publicPages.map((p) => ({ name: p.view, path: p.path, audience: 'public' })),
+  ...publicPages.map((p) => ({ name: p.name ?? p.view, path: p.path, audience: 'public' })),
   { name: 'not-found', path: '/this-page-does-not-exist', status: 404, audience: 'public' },
   {
     name: 'unsubscribe-invalid',

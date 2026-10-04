@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { answerCards, describeProgress, engineCards, headline } from '../../core/audit-progress.js';
 import { evaluateAuditBudget, toMicros, utcDayStart } from '../../core/spend.js';
 import { reportUrl } from '../../lib/audit-mail.js';
+import { cleanUtm } from '../../core/utm.js';
 import { scoreBand } from '../../lib/funnel.js';
 import { isUlid } from '../../lib/ulid.js';
 import { normalizeWebsite } from '../../lib/url.js';
@@ -188,7 +189,10 @@ export function auditRoutes({ config, db, audit: svc, logger, now = () => new Da
   router.post('/audit', form, async (req, res) => {
     const { values, errors, site } = checkSites(req.body ?? {});
     if (Object.keys(errors).length) return renderHomeWithErrors(res, values, errors);
-    funnel('audit_form_submitted', { has_competitor: Boolean(values.competitor_url) });
+    funnel('audit_form_submitted', {
+      has_competitor: Boolean(values.competitor_url),
+      ...cleanUtm(req.body),
+    });
     res.page('audit-email', emailPage({ values, domain: site.domain }));
   });
 

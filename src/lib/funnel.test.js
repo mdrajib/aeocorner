@@ -78,7 +78,26 @@ describe('funnel events', () => {
       'audit_code_verified',
       'audit_report_viewed',
       'audit_track_clicked',
+      'signup_completed',
     ]);
+  });
+
+  test('campaign tags go through as plain labels; anything else about them is dropped', async () => {
+    const r = recorder();
+    const funnel = createFunnel({ posthog, fetchImpl: r.fetchImpl });
+    await funnel.capture('audit_form_submitted', {
+      utm_source: 'Newsletter',
+      utm_medium: 'jane@example.com',
+      utm_campaign: 'launch',
+    });
+    const props = Object.fromEntries(
+      Object.entries(r.calls[0].body.properties).filter(([k]) => !k.startsWith('$')),
+    );
+    assert.deepEqual(props, { utm_source: 'newsletter', utm_campaign: 'launch' });
+    await assert.rejects(
+      funnel.capture('audit_form_submitted', { utm_content: 'x' }),
+      /not allowed/,
+    );
   });
 
   test('a score becomes a band, and a missing one is "none", never "low"', () => {

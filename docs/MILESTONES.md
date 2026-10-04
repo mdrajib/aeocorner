@@ -413,28 +413,41 @@ flowchart LR
 | # | Task | Needs |
 |---|---|---|
 | 9.01 | 👤 Agree the launch topic list | — |
-| 9.02 | Build the four product pages (Measure, Diagnose, Fix, Prove) | — |
-| 9.03 | Build the agency page | — |
-| 9.04 | Build the pricing page from the `plans` table | — |
-| 9.05 | Finish the methodology page (sample sizes, significance, limits) | — |
-| 9.06 | 👤 Write two design-partner case studies | — |
-| 9.07 | Publish the launch guides and articles | 9.01 |
-| 9.08 | Add Organization, Product and FAQ JSON-LD | — |
-| 9.09 | Add UTM capture and the full PostHog funnel to sign-up | — |
-| 9.10 | List every public page in `sitemap.xml` | 9.02–9.07 |
-| 9.11 | Run our readiness checks on our own site (production config) and fix critical failures | 9.10 |
-| 9.12 | 👤 Sign off all public copy | 9.02–9.07 |
+| 9.02 | ✅ 2026-10-04 Build the four product pages (Measure, Diagnose, Fix, Prove) (`/product/measure`, `/diagnose`, `/fix`, `/prove`: one template (`product.ejs`) and the copy in `src/web/content/product.js`; each has the audit form above the fold, a stage strip, an FAQ and Service and FAQPage markup. **Draft copy until 9.12**) | — |
+| 9.03 | ✅ 2026-10-04 Build the agency page (`/agencies`: the same shape; client seats, one account for many clients, the audit as a sales tool. It says white-label reports are not built yet. **Draft copy until 9.12**) | — |
+| 9.04 | ✅ 2026-10-04 Build the pricing page from the `plans` table (`/pricing`: cards, a comparison table, add-ons, trial and money-back terms and FAQ, all worked out from the rows by `src/core/pricing.js` and the billing constants. A NULL limit is left out, never "unlimited"; `csv_export` is held back until the export exists (`UNSHOWN_FEATURES`). If the table cannot be read the page says so and shows no prices. **The prices are still the hypothesis in `plans` (task 0.17)**) | — |
+| 9.05 | ✅ 2026-10-04 Finish the methodology page (sample sizes, significance, limits) (version 2: sample sizes, how a fix is judged, known limits, references, and a correction: the engines section promised an automatic backup provider that does not exist. The blind-comparison check has not been run, so it is not mentioned) | — |
+| 9.06 | 👤 Write two design-partner case studies (**not started: there are no design-partner results yet.** A case study with invented numbers is not allowed (MVP §11.4). The Day-5 nurture email has nothing to link to until one exists) | — |
+| 9.07 | Publish the launch guides and articles (**blocked on 9.01.** A proposed topic list is below the table) | 9.01 |
+| 9.08 | ✅ 2026-10-04 Add Organization, Product and FAQ JSON-LD (Organization and WebSite on every page; FAQPage wherever there is a visible FAQ; Product with one Offer per plan on pricing; Service on the product and agency pages; BreadcrumbList on every inner page. All checked by our own validator (`src/core/jsonld.js`, which gained `WebSite`)) | — |
+| 9.09 | ✅ 2026-10-04 Add UTM capture and the full PostHog funnel to sign-up (source, medium and campaign are read from the address as plain labels (`src/core/utm.js`), carried through the audit form as hidden fields and sent on the first funnel event; a new `signup_completed` event fires when a new account makes its first organization. Server-side and anonymous, like the others; browser page views stay cookieless) | — |
+| 9.10 | ✅ 2026-10-04 List every public page in `sitemap.xml` (it is built from the registry in `src/web/pages.js`, so a new page is in it by being registered; a test crawls it) | 9.02–9.07 |
+| 9.11 | ✅ 2026-10-04 Run our readiness checks on our own site (production config) and fix critical failures (`tests/adapters/dogfood.test.js` serves the real app with the production configuration and scans it with our crawler: **90/100, no critical failure**. Fixed along the way: breadcrumbs on inner pages, FAQ answers directly under their questions (no accordion), outside references on the methodology page. **Still open, and the founder's:** an About page (D2) and profile links for `sameAs` (C1, D3), which need real facts about the company) | 9.10 |
+| 9.12 | 👤 Sign off all public copy (**needs you:** the product, agency, pricing, methodology and home pages; the money-back wording on pricing; the claims about robots.txt and verified domains on Diagnose) | 9.02–9.07 |
 
 **Parallel:** 9.02–9.06, 9.08 and 9.09 at once. 9.10 → 9.11 at the end.
 
+**Proposed launch topics for 9.01** (for the founder to cut, add to or reorder; each one answers a question buyers type into a search box or an AI engine):
+1. What is answer engine optimization (AEO), and how is it different from SEO?
+2. How to check whether ChatGPT recommends your business.
+3. Why AI answers change every time you ask, and how to measure through the noise.
+4. Does your robots.txt block AI crawlers? GPTBot, OAI-SearchBot, PerplexityBot and ClaudeBot explained.
+5. Structured data for AI answers: what to add first.
+6. How to write a page an AI engine can quote: question headings and short direct answers.
+7. What is llms.txt, and do you need one?
+8. Google AI Overviews: how to find out whether you appear.
+9. How to tell whether an AEO fix worked.
+10. Reporting AI visibility to clients: a guide for agencies.
+
 **Definition of Done:**
-- [ ] Route, raw-HTML, axe and responsive checks cover every new page.
-- [ ] Integration: change a `plans` row and the pricing page changes.
-- [ ] Link check from the sitemap: no broken links, no app or admin pages listed.
-- [ ] JSON-LD validates on every page that has it.
-- [ ] Our own readiness check shows no critical failures.
-- [ ] Production allows the AI crawlers; staging blocks all crawlers.
-- [ ] Funnel events fire in Playwright with no personal data.
+- [x] Route, raw-HTML, axe and responsive checks cover every new page. (the pages are in the registry, so `tests/e2e/pages.js` sweeps them; raw HTML in `tests/routes/marketing-pages.test.js`)
+- [x] Integration: change a `plans` row and the pricing page changes. (`tests/routes/marketing-pages.test.js`: the page equals the real `plans` table, and a changed, a NULL and a new row are followed. The change is made on a stand-in for the table, so no test edits shared reference data)
+- [x] Link check from the sitemap: no broken links, no app or admin pages listed. (same file: crawls from the sitemap, every internal link and `#anchor` must resolve)
+- [x] JSON-LD validates on every page that has it. (same file, against `src/core/jsonld.js`)
+- [x] Our own readiness check shows no critical failures. (`tests/adapters/dogfood.test.js`, in `test:adapters`)
+- [x] Production allows the AI crawlers; staging blocks all crawlers. (`tests/routes/marketing-pages.test.js`, and `indexing.test.js`)
+- [x] Funnel events fire in Playwright with no personal data. (`tests/e2e/funnel.spec.js`, against a PostHog stand-in on the e2e server)
+- [ ] The founder has signed off all public copy and the case studies and guides exist (9.01, 9.06, 9.07, 9.12).
 
 ---
 

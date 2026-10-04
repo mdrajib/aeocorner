@@ -322,6 +322,7 @@ export function appRoutes({
   content = null,
   billing = null,
   google = null,
+  funnel = null,
 }) {
   const router = Router();
 
@@ -409,7 +410,11 @@ export function appRoutes({
       if (typeof req.body.name !== 'string')
         return shown({ name: 'Enter a name for your organization.' });
       try {
+        const first = res.locals.orgs.length === 0;
         const { org } = await db.organizations.createWithOwner({ user: req.user, name });
+        // The last step of the public funnel: a new account that made its first organization. Anonymous: no ids.
+        if (first)
+          funnel?.capture('signup_completed', { from_audit: Boolean(readAuditClaim(req)) });
         // Coming from a report: the next thing is the project for the site that was audited.
         if (readAuditClaim(req)) return res.redirect(303, `/app/o/${org.public_id}/projects/new`);
         return res.redirect(303, `/app/o/${org.public_id}?notice=org-created`);

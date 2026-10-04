@@ -24,7 +24,7 @@ const principles = [
       <h1 class="mt-3 text-4xl sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]" id="audit-heading">Is AI sending your customers to your competitors?</h1>
       <p class="text-ink-200 mt-5 max-w-xl text-lg">See what ChatGPT, Perplexity, Gemini and Google AI Overviews actually say when someone asks about your market. Real answers, a score out of 100, and your top five fixes — in about five minutes.</p>
       <div class="card text-ink-900 mt-8 max-w-xl">
-        <div class="card-body"><%- ui.auditForm({ idPrefix: 'hero', variant: 'hero', values: audit && audit.values, errors: audit && audit.errors }) %></div>
+        <div class="card-body"><%- ui.auditForm({ idPrefix: 'hero', variant: 'hero', utm, values: audit && audit.values, errors: audit && audit.errors }) %></div>
       </div>
     </div>
 
@@ -72,6 +72,7 @@ const principles = [
         <div class="bg-brand-100 text-brand-700 flex size-11 items-center justify-center rounded-lg"><%- ui.icon({ name: s.icon, size: 22 }) %></div>
         <h3 class="mt-4 text-xl"><span class="text-ink-500 mr-1 text-base font-semibold tabular-nums"><%= i + 1 %>.</span><%= s.title %></h3>
         <p class="text-ink-700 mt-2 text-sm leading-6"><%= s.text %></p>
+        <p class="mt-3 text-sm font-semibold"><a href="/product/<%= s.title.toLowerCase() %>">Learn more<span class="sr-only"> about <%= s.title %></span> →</a></p>
       </li>
       <% }) %>
     </ol>
@@ -121,16 +122,6 @@ const principles = [
   <div class="container-narrow">
     <p class="eyebrow">FAQ</p>
     <h2 class="mt-2 text-3xl sm:text-4xl" id="faq-heading">Questions people ask first</h2>
-    <div class="mt-8 flex flex-col gap-3">
-      <% for (const item of faq) { %>
-      <details class="card group">
-        <summary class="card-body flex cursor-pointer list-none items-center justify-between gap-4 !py-4 font-semibold">
-          <h3 class="text-base tracking-normal"><%= item.q %></h3>
-          <span class="text-ink-500 transition group-open:rotate-45" aria-hidden="true"><%- ui.icon({ name: 'plus', size: 20 }) %></span>
-        </summary>
-        <p class="text-ink-700 px-5 pb-5 text-sm leading-6 sm:px-6"><%= item.a %></p>
-      </details>
-      <% } %>
-    </div>
+    <%- include('../partials/faq-list') %>
   </div>
 </section>

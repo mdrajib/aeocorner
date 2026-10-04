@@ -115,6 +115,24 @@ describe('step 1: the address', () => {
     assert.equal(eventsNamed('audit_form_submitted').at(-1).properties.has_competitor, true);
   });
 
+  test('campaign tags on the form reach the funnel event as plain labels; an email in a tag does not', async () => {
+    await agent
+      .post('/audit')
+      .type('form')
+      .send({
+        url: 'example.com',
+        utm_source: 'newsletter',
+        utm_medium: 'email',
+        utm_campaign: 'jane@example.com',
+      })
+      .expect(200);
+    const props = eventsNamed('audit_form_submitted').at(-1).properties;
+    assert.equal(props.utm_source, 'newsletter');
+    assert.equal(props.utm_medium, 'email');
+    assert.ok(!('utm_campaign' in props));
+    assert.doesNotMatch(JSON.stringify(posthogCalls.at(-1)), /jane@/);
+  });
+
   test('the bot check is on this step: the widget renders and Cloudflare’s script loads, and only here', async () => {
     const step = await agent.post('/audit').type('form').send({ url: 'example.com' }).expect(200);
     assert.match(step.text, /<div class="cf-turnstile" data-sitekey="1x00000000000000000000AA"/);

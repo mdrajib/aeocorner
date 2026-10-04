@@ -73,6 +73,13 @@ const VOCAB = {
       primaryImageOfPage: 'ImageObject',
     },
   },
+  // The site's own WebSite block (src/web/meta.js). The customer templates never write it; the marketing site's
+  // validation test (tests/routes/marketing-pages.test.js) does.
+  WebSite: {
+    parent: 'CreativeWork',
+    props: { publisher: 'Organization Person' },
+    required: ['name', 'url'],
+  },
   FAQPage: {
     parent: 'WebPage',
     props: { mainEntity: 'Question' },

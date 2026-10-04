@@ -43,6 +43,7 @@ const PUBLIC_DIR = join(WEB_DIR, 'public');
  *   mailer         sends transactional email.
  *   audit          { otp, limiter, turnstile, mail, jobs, funnel }: what the free audit needs (src/web/routes/audit.js).
  *                  Without it (or without a database) the audit form says the audit isn't open yet.
+ *   funnel         the anonymous PostHog funnel (src/lib/funnel.js). Defaults to the audit's; the sign-up event uses it too.
  *   billing        { stripe, now? }: the Stripe client (src/integrations/stripe.js). Without it the webhook answers 503 and
  *                  the billing screen cannot start a checkout. Whether plans are ENFORCED is `config.billingEnforced`.
  *   jobs           adds jobs (the first scan of a new project). Defaults to a client on `queues`; none means no job is queued.
@@ -62,6 +63,7 @@ export function createApp({
   content = null,
   billing = null,
   google = config.google ? createGoogle(config.google) : null,
+  funnel = audit?.funnel ?? null,
   domainVerifier = db ? createDomainVerifier({ fetcher: createSafeFetcher() }) : null,
   cloudflareKeys,
   extraRoutes,
@@ -113,7 +115,7 @@ export function createApp({
   app.use(sameOriginOnly());
 
   app.use(seoRoutes(config));
-  app.use(publicRoutes(config));
+  app.use(publicRoutes(config, { db, logger }));
   app.use(db && audit ? auditRoutes({ config, db, audit, logger }) : auditStubRoutes());
   if (db) app.use(unsubscribeRoutes({ config, db }));
   if (db) {
@@ -131,6 +133,7 @@ export function createApp({
         content,
         billing,
         google,
+        funnel,
         jobs: jobs ?? (queues ? createJobClient(queues) : null),
       }),
     );

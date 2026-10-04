@@ -3,6 +3,7 @@
 // database is the test database, seeded with a small organization. A /__e2e route signs a browser in as a
 // seeded person. Nothing in this file ships: it lives under tests/ and nothing in src/ imports it.
 import { randomBytes } from 'node:crypto';
+import express from 'express';
 import { unsubscribeToken } from '../../src/core/notify.js';
 import { INTENT_LABELS } from '../../src/core/prompt-rules.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
@@ -645,6 +646,7 @@ const auditSeeds = {
 };
 const queuedJobs = [];
 const queuedContentJobs = [];
+const posthogEvents = [];
 const audit = {
   otp: createOtpStore(testRedis.redis, {
     prefix: testRedis.prefix,
@@ -654,7 +656,10 @@ const audit = {
   turnstile: { verify: async () => ({ ok: true }) },
   mail: createAuditMail({ mailer, baseUrl: config.baseUrl }),
   jobs: { add: async (name, data) => void queuedJobs.push({ name, data }) },
-  funnel: createFunnel({ posthog: null }),
+  // The funnel posts to a PostHog stand-in on this same server (/__e2e/posthog), so a test can read what was sent.
+  funnel: createFunnel({
+    posthog: { host: `http://127.0.0.1:${config.port}/__e2e/posthog`, apiKey: 'phc_e2e' },
+  }),
 };
 
 // --- the app ----------------------------------------------------------------------------------------
@@ -714,6 +719,13 @@ const app = createApp({
     });
     application.get('/__e2e/audit/jobs', (req, res) => res.json(queuedJobs));
     application.get('/__e2e/content/jobs', (req, res) => res.json(queuedContentJobs));
+
+    // A PostHog stand-in: the funnel's server-side events land here, and a test reads them back.
+    application.post('/__e2e/posthog/capture/', express.json(), (req, res) => {
+      posthogEvents.push(req.body);
+      res.json({ status: 1 });
+    });
+    application.get('/__e2e/posthog/events', (req, res) => res.json(posthogEvents));
 
     // The emails the app "sent", newest last, so a test can click the link inside.
     application.get('/__e2e/mail', (req, res) =>
