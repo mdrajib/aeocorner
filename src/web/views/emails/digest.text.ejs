@@ -1,0 +1,33 @@
+<%= digest.project.name %>: your week in AI answers
+
+<%= digest.headline %>
+<% digest.notices.forEach((n) => { %>
+<%= n.title %> <%= n.text %>
+<% }) -%>
+<% if (digest.figures.length) { %>
+<% digest.figures.forEach((f) => { -%>
+<%= f.label %>: <%= f.display %><% if (f.note) { %> (<%= f.note %>)<% } %>
+<% }) -%>
+<% } -%>
+<% if (digest.changes.length) { %>
+What changed
+<% digest.changes.forEach((c) => { -%>
+- <%= c.title %>. <%= c.text %>
+<% }) -%>
+<% } -%>
+<% if (digest.proofs.length) { %>
+A fix worked
+<% digest.proofs.forEach((p) => { -%>
+- <%= p %>
+<% }) -%>
+<% } -%>
+<% if (digest.actions.length) { %>
+What to do next
+<% digest.actions.forEach((a, i) => { -%>
+<%= i + 1 %>. <%= a.title %>
+<% }) -%>
+<% } %>
+Open the dashboard:
+<%- dashboardUrl %>
+
+Change which emails you get: <%- settingsUrl %>

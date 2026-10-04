@@ -4,6 +4,7 @@ import { clearClerkCookies } from '../routes/auth.js';
 import { notFound } from '../middleware/errors.js';
 import { cloudflareAccess } from './cloudflare-access.js';
 import { createStaffAuth } from './auth.js';
+import { adminModules, canOpen, MODULES, navFor } from './admin.js';
 import { queueBoard } from './queues.js';
 
 /**
@@ -52,13 +53,17 @@ export function staffRoutes({ config, db, provider, logger, cloudflareKeys, queu
         staff: req.staff,
         project: { name: 'Staff console' },
         csrfToken: csrfToken(config.appSecret, req.session.sessionId),
-        nav: [{ href: '/', label: 'Overview', icon: 'chart', current: true }],
+        nav: navFor(req.staff, '/', Boolean(queues)),
+        modules: MODULES.filter((m) => canOpen(req.staff.roles, m)),
         flash: [],
         meta: { title: 'Staff console | AEO Corner', description: 'Staff console.', noindex: true },
       },
       { layout: 'app' },
     );
   });
+
+  // The admin modules (costs, providers, failed jobs, review queue, flags, audit log). One wall for all of them.
+  router.use(adminModules({ config, db, staffAuth, queues, logger }));
 
   // The queue dashboard exists only where there is a queue to show (Redis configured).
   if (queues) router.use('/queues', queueBoard({ queues, staffAuth, db, logger }));

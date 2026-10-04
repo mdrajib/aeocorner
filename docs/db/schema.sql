@@ -9,7 +9,8 @@
 --           (prisma/migrations/0001_init/migration.sql). Since 2026-10-03 this file
 --           is the readable snapshot of 0001_init plus every later migration
 --           (0003 adds the domain-verification columns of projects, 0004 the
---           failure columns of content_items). Migrations stay
+--           failure columns of content_items, 0005 a fourth quota meter and the
+--           feature-flag tables). Migrations stay
 --           hand-written SQL; schema.prisma is generated from the database
 --           with `prisma db pull`, never edited by hand (§10.2).
 -- Auth    : Clerk handles sign-in, sessions and MFA (identity only).
@@ -324,7 +325,7 @@ CREATE TABLE entitlement_grants (
 CREATE TABLE quota_usage (
   org_id           BIGINT UNSIGNED NOT NULL,
   period_month     DATE          NOT NULL COMMENT 'first day of the month',
-  meter            ENUM('drafts','runs_now','audits') NOT NULL,
+  meter            ENUM('drafts','runs_now','audits','drafts_billed') NOT NULL COMMENT 'drafts_billed = drafts past the allowance already reported to Stripe',
   used_units       DECIMAL(10,1) NOT NULL DEFAULT 0,
   updated_at       DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (org_id, period_month, meter),
@@ -1430,6 +1431,32 @@ CREATE TABLE admin_audit_log (
   CONSTRAINT fk_admin_audit_log_staff FOREIGN KEY (staff_user_id) REFERENCES staff_users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Every staff write action. App DB user has INSERT + SELECT only';
 
+CREATE TABLE feature_flags (
+  flag_key          VARCHAR(64)   NOT NULL,
+  description       VARCHAR(255)  NOT NULL,
+  enabled_default   BOOLEAN       NOT NULL DEFAULT FALSE,
+  updated_by_staff_id BIGINT UNSIGNED NULL,
+  created_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (flag_key),
+  CONSTRAINT fk_feature_flags_staff FOREIGN KEY (updated_by_staff_id) REFERENCES staff_users (id),
+  CONSTRAINT ck_feature_flags_key CHECK (flag_key REGEXP '^[a-z][a-z0-9_.]*$')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Feature switches set from the admin console';
+
+CREATE TABLE feature_flag_overrides (
+  flag_key          VARCHAR(64)   NOT NULL,
+  org_id            BIGINT UNSIGNED NOT NULL,
+  enabled           BOOLEAN       NOT NULL,
+  set_by_staff_id   BIGINT UNSIGNED NULL,
+  created_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (flag_key, org_id),
+  KEY ix_feature_flag_overrides_org (org_id),
+  CONSTRAINT fk_feature_flag_overrides_flag  FOREIGN KEY (flag_key)        REFERENCES feature_flags (flag_key) ON DELETE CASCADE,
+  CONSTRAINT fk_feature_flag_overrides_org   FOREIGN KEY (org_id)          REFERENCES organizations (id) ON DELETE CASCADE,
+  CONSTRAINT fk_feature_flag_overrides_staff FOREIGN KEY (set_by_staff_id) REFERENCES staff_users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='A flag turned on or off for one organization';
+
 CREATE TABLE impersonation_sessions (
   id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   staff_user_id     BIGINT UNSIGNED NOT NULL,
@@ -1588,4 +1615,4 @@ CREATE TABLE webhook_events (
   KEY ix_webhook_events_status (status, received_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Inbound webhook inbox (verified signatures only). Clerk: external_id = svix-id header';
 
--- End of schema v1 (64 tables).
+-- End of schema v1 (66 tables).

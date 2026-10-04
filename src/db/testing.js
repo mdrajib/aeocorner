@@ -38,6 +38,7 @@ export function fixtures(db) {
   const auditIds = [];
   const leadIds = [];
   const webhookIds = [];
+  const flagKeys = [];
   // Webhook deliveries this file makes through the route carry this prefix, so its cleanup removes its own rows and
   // never another file's mid-test (a shared prefix let one file delete a delivery another was still processing).
   const webhookPrefix = `msg_test_${unique()}_`;
@@ -215,6 +216,64 @@ export function fixtures(db) {
     },
 
     /** The audit-log rows a staff member's actions wrote, oldest first. */
+    /** An item in the extraction review queue about one answer (and, optionally, one tracked entity). */
+    reviewItem(
+      run,
+      snapshot,
+      {
+        source = 'disagreement',
+        entity,
+        status = 'open',
+        reportKind = null,
+        comment = null,
+        details = null,
+        userId = null,
+      } = {},
+    ) {
+      return prisma.review_items.create({
+        data: {
+          org_id: run.org_id,
+          project_id: run.project_id,
+          source,
+          snapshot_id: snapshot.id,
+          run_date: snapshot.run_date,
+          entity_id: entity?.id ?? null,
+          reported_by_user_id: userId,
+          report_kind: reportKind,
+          report_comment: comment,
+          details,
+          status,
+        },
+      });
+    },
+
+    /** A review item's row, for assertions the console does not expose. */
+    reviewRow(id) {
+      return prisma.review_items.findUnique({ where: { id } });
+    },
+
+    /** An answer snapshot's row (its extraction status, say). */
+    snapshotRow(snapshot) {
+      return prisma.answer_snapshots.findFirst({
+        where: { id: snapshot.id, run_date: snapshot.run_date },
+      });
+    },
+
+    /** The aliases of an entity, for assertions. */
+    aliasRows(entity) {
+      return prisma.entity_aliases.findMany({
+        where: { entity_id: entity.id },
+        orderBy: { id: 'asc' },
+      });
+    },
+
+    /** A feature flag key for a test; cleanup removes the ones this file made (and no one else's). */
+    flagKey() {
+      const key = `test.flag_${unique()}`;
+      flagKeys.push(key);
+      return key;
+    },
+
     staffAuditRows(staffId) {
       return prisma.admin_audit_log.findMany({
         where: { staff_user_id: staffId },
@@ -586,6 +645,137 @@ export function fixtures(db) {
       return prisma.content_items.update({ where: { id }, data });
     },
 
+    /** Put an organization on a plan, with a billing status (and any other column of the row). */
+    setOrg(orgId, data) {
+      return prisma.organizations.update({ where: { id: orgId }, data });
+    },
+
+    /** Set columns on a user directly (their timezone, say). */
+    setUser(id, data) {
+      return prisma.users.update({ where: { id }, data });
+    },
+
+    /** A significant change event, as change detection stores it (a test that needs one without a run). */
+    changeEvent(
+      project,
+      {
+        kind = 'mention_rate_change',
+        direction = 'down',
+        engine = null,
+        entity,
+        significant = true,
+        createdAt = new Date(),
+        alertedAt = null,
+        key = `${unique()}`,
+      } = {},
+    ) {
+      return prisma.change_events.create({
+        data: {
+          org_id: project.org_id,
+          project_id: project.id,
+          kind,
+          engine_code: engine,
+          entity_id: entity?.id ?? null,
+          before_start: new Date('2026-09-01T00:00:00Z'),
+          before_end: new Date('2026-09-28T00:00:00Z'),
+          after_start: new Date('2026-09-29T00:00:00Z'),
+          after_end: new Date('2026-10-26T00:00:00Z'),
+          n_before: 120,
+          k_before: direction === 'down' ? 72 : 24,
+          n_after: 120,
+          k_after: direction === 'down' ? 24 : 72,
+          value_before: direction === 'down' ? 0.6 : 0.2,
+          value_after: direction === 'down' ? 0.2 : 0.6,
+          delta_pp: direction === 'down' ? '-40.00' : '40.00',
+          p_value: '0.00000100',
+          direction,
+          is_significant: significant,
+          dedupe_key: key,
+          created_at: createdAt,
+          alerted_at: alertedAt,
+        },
+      });
+    },
+
+    /** A claim an answer made about an entity (the digest and alerts read negative ones about the brand). */
+    claim(
+      project,
+      {
+        entity,
+        attribute = 'pricing',
+        value,
+        polarity = 'negative',
+        runDate = new Date(),
+        snapshotId = 1n,
+      } = {},
+    ) {
+      return prisma.claims.create({
+        data: {
+          run_date: new Date(runDate.toISOString().slice(0, 10)),
+          org_id: project.org_id,
+          project_id: project.id,
+          snapshot_id: snapshotId,
+          mention_id: 1n,
+          entity_id: entity.id,
+          attribute,
+          claim_value: value,
+          polarity,
+        },
+      });
+    },
+
+    /** Set columns on a project directly (an archived project, say). */
+    setProject(id, data) {
+      return prisma.projects.update({ where: { id }, data });
+    },
+
+    /** Set one month's counter for an organization (a quota that has been used up, say). */
+    async setQuota(orgId, period, meter, units) {
+      await prisma.quota_usage.upsert({
+        where: { org_id_period_month_meter: { org_id: orgId, period_month: period, meter } },
+        create: { org_id: orgId, period_month: period, meter, used_units: String(units) },
+        update: { used_units: String(units) },
+      });
+    },
+
+    /** Give an organization an entitlement grant (an add-on, a coupon, a staff grant). */
+    grant(
+      orgId,
+      {
+        meter = 'prompts',
+        amount = 10,
+        source = 'staff_grant',
+        itemId = null,
+        endsAt = null,
+        reason = 'test',
+      } = {},
+    ) {
+      return prisma.entitlement_grants.create({
+        data: {
+          org_id: orgId,
+          meter,
+          amount,
+          source,
+          stripe_subscription_item_id: itemId,
+          ends_at: endsAt,
+          reason,
+          starts_at: new Date(Date.now() - 1000),
+        },
+      });
+    },
+
+    /** The rows of one organization's subscriptions and grants, for assertions the repositories do not expose. */
+    billingRows(orgId) {
+      return Promise.all([
+        prisma.subscriptions.findMany({ where: { org_id: orgId }, orderBy: { id: 'asc' } }),
+        prisma.entitlement_grants.findMany({ where: { org_id: orgId }, orderBy: { id: 'asc' } }),
+        prisma.organizations.findUnique({ where: { id: orgId } }),
+      ]).then(([subscriptions, grants, org]) => ({ subscriptions, grants, org }));
+    },
+
+    /** A Stripe event ID this file's cleanup will remove. */
+    stripeEventId: () => `evt_test_${webhookPrefix}${webhookCount++}`,
+
     /** The raw rows of one table for an item, for assertions the repositories do not expose. */
     contentRows(id) {
       return Promise.all([
@@ -827,6 +1017,9 @@ export function fixtures(db) {
         await prisma.org_activity_log.deleteMany({ where });
         await prisma.usage_ledger.deleteMany({ where });
         await prisma.notifications.deleteMany({ where });
+        await prisma.subscriptions.deleteMany({ where });
+        await prisma.entitlement_grants.deleteMany({ where });
+        await prisma.feature_flag_overrides.deleteMany({ where });
         // Scans reference projects, and take their pages and check results with them.
         // An audit handed to an organization is removed with its own fixtures, not with the organization.
         await prisma.audits.updateMany({ where, data: { org_id: null, project_id: null } });
@@ -836,6 +1029,8 @@ export function fixtures(db) {
         await prisma.content_revisions.deleteMany({ where });
         await prisma.content_items.deleteMany({ where });
         await prisma.integrations.deleteMany({ where });
+        await prisma.traffic_daily.deleteMany({ where });
+        await prisma.search_console_daily.deleteMany({ where });
         await prisma.action_outcomes.deleteMany({ where });
         await prisma.recommendations.deleteMany({ where });
         await prisma.site_scans.deleteMany({ where });
@@ -871,16 +1066,29 @@ export function fixtures(db) {
         await prisma.audits.deleteMany({ where: { id: { in: auditIds } } });
       }
       if (leadIds.length) await prisma.leads.deleteMany({ where: { id: { in: leadIds } } });
-      if (userIds.length) await prisma.users.deleteMany({ where: { id: { in: userIds } } });
+      if (userIds.length) {
+        // Addresses a test put on the suppression list (a bounce, a complaint) are removed with the people.
+        const emails = (
+          await prisma.users.findMany({ where: { id: { in: userIds } }, select: { email: true } })
+        ).map((u) => u.email.toLowerCase());
+        await prisma.email_suppressions.deleteMany({
+          where: { OR: [{ email: { in: emails } }, { email: { startsWith: 'bounce-' } }] },
+        });
+        await prisma.notifications.deleteMany({ where: { user_id: { in: userIds } } });
+        await prisma.users.deleteMany({ where: { id: { in: userIds } } });
+      }
       // Deliveries this file sent through the route carry its own prefix; the others are tracked by id.
       await prisma.webhook_events.deleteMany({
         where: {
           OR: [
             { id: { in: webhookIds } },
             { source: 'clerk', external_id: { startsWith: webhookPrefix } },
+            { source: 'stripe', external_id: { contains: webhookPrefix } },
           ],
         },
       });
+      await prisma.feature_flag_overrides.deleteMany({ where: { flag_key: { in: flagKeys } } });
+      await prisma.feature_flags.deleteMany({ where: { flag_key: { in: flagKeys } } });
       if (staffIds.length) {
         await prisma.admin_audit_log.deleteMany({ where: { staff_user_id: { in: staffIds } } });
         await prisma.staff_roles.deleteMany({ where: { staff_user_id: { in: staffIds } } });

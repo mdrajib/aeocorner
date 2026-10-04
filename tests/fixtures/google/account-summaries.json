@@ -1,0 +1,21 @@
+{
+  "accountSummaries": [
+    {
+      "name": "accountSummaries/1",
+      "account": "accounts/1",
+      "displayName": "Acme Dental",
+      "propertySummaries": [
+        {
+          "property": "properties/123456789",
+          "displayName": "Acme Dental - GA4",
+          "propertyType": "PROPERTY_TYPE_ORDINARY"
+        },
+        {
+          "property": "properties/987654321",
+          "displayName": "Acme Blog",
+          "propertyType": "PROPERTY_TYPE_ORDINARY"
+        }
+      ]
+    }
+  ]
+}

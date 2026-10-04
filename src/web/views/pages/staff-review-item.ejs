@@ -1,0 +1,60 @@
+<%#
+  One review item. Props: item (see system.review.get), resolutions, queued; locals: csrfToken.
+  Shows the question, the start of the answer, what each reader found, and the names being tracked. Not the customer.
+%>
+<%
+const labels = { disagreement: 'The two readers disagree', customer_report: 'Reported by a customer', low_confidence: 'Low confidence', staff: 'Flagged by staff' };
+const resolutionLabels = { extraction_correct: 'The reading is correct', extraction_wrong: 'The reading is wrong', rule_fixed: 'Fixed with a rule change', no_action: 'No action needed' };
+const decided = ['resolved', 'rejected'].includes(item.status);
+const hidden = (name, value) => '<input type="hidden" name="' + name + '" value="' + ui.esc(value) + '">';
+%>
+<p class="text-sm"><a href="/review">Review queue</a></p>
+<h1 class="mt-1 text-3xl">Review #<%= item.id %></h1>
+<div class="mt-2 flex flex-wrap items-center gap-2">
+  <%- ui.badge({ text: labels[item.source] ?? item.source, tone: 'brand' }) %>
+  <%- ui.badge({ text: item.status === 'in_review' ? 'In review' : item.status === 'open' ? 'Open' : item.status === 'rejected' ? 'Turned down' : 'Decided', tone: decided ? 'neutral' : 'warning' }) %>
+</div>
+
+<% if (item.source === 'customer_report') { %>
+<div class="mt-4"><%- ui.banner({ tone: 'info', title: 'A customer reported this answer: ' + (item.reportKind === 'not_us' ? '“That’s not us”' : item.reportKind === 'misread' ? '“This answer was misread”' : item.reportKind ?? 'other') + '.', text: item.reportComment || 'They left no comment.' }) %></div>
+<% } %>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'The answer', headingLevel: 2, html:
+    '<p class="text-ink-700 text-xs">Question</p><p class="font-medium">' + ui.esc(item.answer?.question ?? '—') + '</p>' +
+    '<p class="text-ink-700 mt-3 text-xs">' + ui.esc(item.answer?.engineCode ?? '') + ' answered (the start of it)</p>' +
+    '<blockquote class="border-ink-300 mt-1 border-l-4 pl-3 text-sm">' + ui.esc(item.answer?.excerpt ?? 'The text was not kept.') + '</blockquote>' }) %>
+
+  <%- ui.card({ title: 'What was found', headingLevel: 2, html: item.mentions.length === 0 ? '<p class="text-ink-700 text-sm">No tracked name was found in this answer.</p>' :
+    '<ul class="flex flex-col gap-3 text-sm">' + item.mentions.map((m) => '<li><strong>' + ui.esc(m.entityName) + '</strong> as “' + ui.esc(m.writtenAs) + '” <span class="text-ink-700">(found by ' + (m.detectedBy === 'both' ? 'both readers' : m.detectedBy === 'llm' ? 'Claude only' : 'the rule-based reader only') + (m.excluded ? ', excluded' : '') + ')</span>' + (m.excerpt ? '<br><span class="text-ink-700">“' + ui.esc(m.excerpt) + '”</span>' : '') + '</li>').join('') + '</ul>' }) %>
+</div>
+
+<%- ui.card({ title: 'Names being tracked', headingLevel: 2, html: '<ul class="flex flex-col gap-2 text-sm">' + item.tracked.map((e) => '<li><strong>' + ui.esc(e.name) + '</strong> <span class="text-ink-700">(' + ui.esc(e.kind) + ')</span>' + (e.aliases.length ? '<br>Also called: ' + e.aliases.map(ui.esc).join(', ') : '') + (e.exclusions.length ? '<br>Not the same as: ' + e.exclusions.map(ui.esc).join(', ') : '') + '</li>').join('') + '</ul>' }) %>
+
+<% if (item.details) { %>
+<%- ui.card({ title: 'Why it was queued', headingLevel: 2, html: '<pre class="text-xs whitespace-pre-wrap">' + ui.esc(JSON.stringify(item.details, null, 2)) + '</pre>' }) %>
+<% } %>
+
+<% if (decided) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'success', title: item.status === 'rejected' ? 'Turned down.' : 'Decided: ' + (resolutionLabels[item.resolution] ?? item.resolution ?? 'resolved') + '.', text: item.resolutionNote || '' }) %></div>
+<% } else { %>
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Decide', headingLevel: 2, html:
+    (item.status === 'open' ? '<form method="post" action="/review/' + item.id + '/take" class="mb-4">' + hidden('_csrf', csrfToken) + ui.button({ label: 'Take this one', type: 'submit', variant: 'secondary', size: 'sm' }) + '</form>' : '') +
+    '<form method="post" action="/review/' + item.id + '/resolve" class="flex flex-col gap-3">' + hidden('_csrf', csrfToken) +
+    '<div class="field"><label class="label" for="resolution">What is the verdict?</label><select class="select" id="resolution" name="resolution">' + resolutions.map((r) => '<option value="' + r + '">' + ui.esc(resolutionLabels[r]) + '</option>').join('') + '</select></div>' +
+    '<div class="field"><label class="label" for="note">Note <span class="text-ink-600 font-normal">(optional)</span></label><textarea class="input" id="note" name="note" rows="2"></textarea></div>' +
+    ui.button({ label: 'Save the verdict', type: 'submit', variant: 'primary' }) + '</form>' +
+    '<form method="post" action="/review/' + item.id + '/reject" class="mt-4 flex flex-col gap-3 border-t pt-4">' + hidden('_csrf', csrfToken) +
+    '<div class="field"><label class="label" for="reject-note">Turn the report down, because…</label><textarea class="input" id="reject-note" name="note" rows="2" required></textarea></div>' +
+    ui.button({ label: 'Turn it down', type: 'submit', variant: 'ghost' }) + '</form>' }) %>
+
+  <%- ui.card({ title: 'Correct the rules', headingLevel: 2, html:
+    (item.entityId ? '<form method="post" action="/review/' + item.id + '/alias" class="flex flex-col gap-3">' + hidden('_csrf', csrfToken) +
+    '<div class="field"><label class="label" for="alias-kind">Add…</label><select class="select" id="alias-kind" name="kind"><option value="name">another name for the brand</option><option value="exclude">a name that is NOT the brand</option></select></div>' +
+    '<div class="field"><label class="label" for="alias-value">The name</label><input class="input" id="alias-value" name="value" maxlength="255" required></div>' +
+    ui.button({ label: 'Add and decide', type: 'submit', variant: 'secondary' }) + '</form>' : '<p class="text-ink-700 text-sm">This item names no brand, so there is no alias to add.</p>') +
+    '<div class="mt-4 flex flex-wrap gap-3 border-t pt-4"><form method="post" action="/review/' + item.id + '/reextract">' + hidden('_csrf', csrfToken) + ui.button({ label: 'Read this answer again', type: 'submit', variant: 'secondary', size: 'sm', disabled: !queued }) + '</form>' +
+    '<form method="post" action="/review/' + item.id + '/golden">' + hidden('_csrf', csrfToken) + ui.button({ label: item.goldenSetExportedAt ? 'Already in the golden set' : 'Add to the golden set', type: 'submit', variant: 'ghost', size: 'sm', disabled: Boolean(item.goldenSetExportedAt) }) + '</form></div>' }) %>
+</div>
+<% } %>

@@ -22,8 +22,14 @@ import { idFrom, text, withNotice } from './project-helpers.js';
  * way round) is flagged, not refused: a customer may know better than the rule.
  */
 
-/** The plan's cap on active questions. Plans arrive with billing (Milestone 8); until then every project gets the largest set. */
-export const QUESTION_LIMIT = MAX_SET;
+/**
+ * The cap on active questions in one project: what the organization's plan and add-ons allow, minus the questions in its
+ * other projects (the plan's number is for the whole organization). A plan that does not limit questions (and every
+ * organization before billing is switched on) gets the largest set.
+ */
+export async function questionLimit(req) {
+  return (await req.orgDb.billing.promptRoom(req.project.id)) ?? MAX_SET;
+}
 
 /** How long after asking for a set the page keeps refreshing itself before it says it is taking long. */
 const GENERATING_WINDOW_MS = 3 * 60_000;
@@ -36,7 +42,7 @@ const intentOptions = (allLabel) => [
 
 const ERRORS = Object.freeze({
   DUPLICATE: 'You already track this question.',
-  PLAN_LIMIT: `Your plan allows ${QUESTION_LIMIT} questions and they’re all in use. Archive one to make room.`,
+  PLAN_LIMIT: 'Your plan’s questions are all in use. Archive one to make room, or upgrade.',
   INVALID_INTENT: 'Choose what kind of question this is.',
   INVALID_PRIORITY: 'Priority should be 1, 2 or 3.',
   ARCHIVED: 'This question is archived. Restore it first.',
@@ -111,7 +117,7 @@ export function questionRoutes(router, { jobs, logger, appPage, edit }) {
         flags,
         coverage,
         activeCount: active.length,
-        limit: QUESTION_LIMIT,
+        limit: await questionLimit(req),
         filters,
         clusters,
         intentOptions: intentOptions('All kinds'),
@@ -163,7 +169,7 @@ export function questionRoutes(router, { jobs, logger, appPage, edit }) {
             clusterName: values.topic,
             source: 'manual',
           },
-          { actorUserId: req.user.id, limit: QUESTION_LIMIT },
+          { actorUserId: req.user.id, limit: await questionLimit(req) },
         );
         return back(res, similar.length ? 'question-added-similar' : 'question-added');
       } catch (err) {
@@ -223,7 +229,7 @@ export function questionRoutes(router, { jobs, logger, appPage, edit }) {
               priority: r.priority,
               clusterName: r.clusterName,
             })),
-            { actorUserId: req.user.id, limit: QUESTION_LIMIT, source: 'imported' },
+            { actorUserId: req.user.id, limit: await questionLimit(req), source: 'imported' },
           )
         : [];
       // Every line of the paste gets an answer, in order: the ones we couldn't read, and the ones we tried.
@@ -261,7 +267,7 @@ export function questionRoutes(router, { jobs, logger, appPage, edit }) {
     try {
       if (!jobs) return back(res, 'queue-down');
       const active = (await req.orgDb.prompts.list(req.project.id, { status: 'active' })).length;
-      if (active >= QUESTION_LIMIT) return back(res, 'question-limit');
+      if (active >= (await questionLimit(req))) return back(res, 'question-limit');
       try {
         await jobs.add(
           'questions.generate',
@@ -335,7 +341,7 @@ export function questionRoutes(router, { jobs, logger, appPage, edit }) {
       try {
         await req.orgDb.prompts.setStatus(prompt.id, status, {
           actorUserId: req.user.id,
-          limit: QUESTION_LIMIT,
+          limit: await questionLimit(req),
         });
       } catch (err) {
         if (err instanceof DomainError && err.code === 'PLAN_LIMIT')

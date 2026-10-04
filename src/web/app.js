@@ -14,6 +14,7 @@ import { sameOriginOnly } from './middleware/same-origin.js';
 import { securityHeaders } from './middleware/security.js';
 import { createDomainVerifier } from '../crawler/verify-domain.js';
 import { createSafeFetcher } from '../crawler/safe-fetch.js';
+import { createGoogle } from '../integrations/google.js';
 import { createJobClient } from '../lib/jobs.js';
 import { appRoutes } from './routes/app.js';
 import { auditRoutes, auditStubRoutes } from './routes/audit.js';
@@ -22,6 +23,7 @@ import { inviteRoutes } from './routes/invite.js';
 import { healthRoutes, publicRoutes } from './routes/public.js';
 import { seoRoutes } from './routes/seo.js';
 import { styleguideRoutes } from './routes/styleguide.js';
+import { unsubscribeRoutes } from './routes/unsubscribe.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { onHost, staffRoutes } from './staff/routes.js';
 
@@ -41,6 +43,8 @@ const PUBLIC_DIR = join(WEB_DIR, 'public');
  *   mailer         sends transactional email.
  *   audit          { otp, limiter, turnstile, mail, jobs, funnel }: what the free audit needs (src/web/routes/audit.js).
  *                  Without it (or without a database) the audit form says the audit isn't open yet.
+ *   billing        { stripe, now? }: the Stripe client (src/integrations/stripe.js). Without it the webhook answers 503 and
+ *                  the billing screen cannot start a checkout. Whether plans are ENFORCED is `config.billingEnforced`.
  *   jobs           adds jobs (the first scan of a new project). Defaults to a client on `queues`; none means no job is queued.
  *   queues         the BullMQ queues (src/lib/queues.js). When given, the staff console shows them at /queues.
  *   extraRoutes(app) lets a test mount a route (e.g. one that throws) ahead of the 404 and error handlers.
@@ -56,6 +60,8 @@ export function createApp({
   audit = null,
   jobs = null,
   content = null,
+  billing = null,
+  google = config.google ? createGoogle(config.google) : null,
   domainVerifier = db ? createDomainVerifier({ fetcher: createSafeFetcher() }) : null,
   cloudflareKeys,
   extraRoutes,
@@ -101,7 +107,7 @@ export function createApp({
       ),
     );
   }
-  if (db) app.use(webhookRoutes({ config, db, logger }));
+  if (db) app.use(webhookRoutes({ config, db, logger, billing }));
 
   app.use(maintenanceMode(config));
   app.use(sameOriginOnly());
@@ -109,6 +115,7 @@ export function createApp({
   app.use(seoRoutes(config));
   app.use(publicRoutes(config));
   app.use(db && audit ? auditRoutes({ config, db, audit, logger }) : auditStubRoutes());
+  if (db) app.use(unsubscribeRoutes({ config, db }));
   if (db) {
     const auth = createAuthMiddleware({ config, provider, db });
     app.use(authRoutes({ config, provider, auth }));
@@ -122,6 +129,8 @@ export function createApp({
         logger,
         verifier: domainVerifier,
         content,
+        billing,
+        google,
         jobs: jobs ?? (queues ? createJobClient(queues) : null),
       }),
     );

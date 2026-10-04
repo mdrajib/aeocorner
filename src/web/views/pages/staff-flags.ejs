@@ -1,0 +1,45 @@
+<%#
+  Feature flags (ADMIN_OPERATIONS module 10). Props: flags ([{ key, description, enabledDefault, overrides, read }]); locals: csrfToken.
+  Every change needs a reason and is written to the audit log. A flag the application does not read has no effect, and says so.
+%>
+<%
+const hidden = (name, value) => '<input type="hidden" name="' + name + '" value="' + ui.esc(value) + '">';
+%>
+<h1 class="text-3xl">Feature flags</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">A switch for everyone, with an override for one customer (a beta for a design partner, or a feature off for one that misuses it). The customer is named by the ID in its address bar. Every change needs a reason and is recorded.</p>
+<div class="mt-6 flex flex-col gap-6">
+  <% for (const f of flags) { %>
+  <section class="card" aria-labelledby="flag-<%= f.key.replaceAll('.', '-') %>">
+    <div class="card-body flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 id="flag-<%= f.key.replaceAll('.', '-') %>" class="text-base font-semibold"><code><%= f.key %></code></h2>
+        <%- ui.badge({ text: f.enabledDefault ? 'On for everyone' : 'Off for everyone', tone: f.enabledDefault ? 'success' : 'neutral' }) %>
+        <% if (!f.read) { %><%- ui.badge({ text: 'Not read by the application', tone: 'warning' }) %><% } %>
+      </div>
+      <p class="text-ink-700 text-sm"><%= f.description %></p>
+      <form method="post" action="/flags/default" class="flex flex-wrap items-end gap-3">
+        <%- hidden('_csrf', csrfToken) %><%- hidden('key', f.key) %>
+        <%- ui.checkbox({ id: 'on-' + f.key, name: 'enabled', value: 'on', label: 'On by default', checked: f.enabledDefault }) %>
+        <div class="field"><label class="label" for="why-<%= f.key %>">Reason</label><input class="input" id="why-<%= f.key %>" name="reason" minlength="5" maxlength="500" required></div>
+        <%- ui.button({ label: 'Save default', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+      </form>
+      <% if (f.overrides.length) { %>
+      <ul class="flex flex-col gap-2 text-sm">
+        <% for (const o of f.overrides) { %>
+        <li class="flex flex-wrap items-center gap-2"><strong><%= o.orgName %></strong> <span class="text-ink-700">(<%= o.orgPublicId %>)</span>: <%= o.enabled ? 'on' : 'off' %>
+          <form method="post" action="/flags/clear" class="flex items-center gap-2"><%- hidden('_csrf', csrfToken) %><%- hidden('key', f.key) %><%- hidden('org', o.orgPublicId) %><input class="input" name="reason" placeholder="Reason" minlength="5" maxlength="500" required aria-label="Reason for removing this override"><%- ui.button({ label: 'Remove', type: 'submit', variant: 'ghost', size: 'sm' }) %></form>
+        </li>
+        <% } %>
+      </ul>
+      <% } %>
+      <form method="post" action="/flags/override" class="flex flex-wrap items-end gap-3 border-t pt-3">
+        <%- hidden('_csrf', csrfToken) %><%- hidden('key', f.key) %>
+        <div class="field"><label class="label" for="org-<%= f.key %>">Customer ID</label><input class="input" id="org-<%= f.key %>" name="org" minlength="26" maxlength="26" required></div>
+        <%- ui.checkbox({ id: 'ov-' + f.key, name: 'enabled', value: 'on', label: 'On for this customer', checked: !f.enabledDefault }) %>
+        <div class="field"><label class="label" for="ovwhy-<%= f.key %>">Reason</label><input class="input" id="ovwhy-<%= f.key %>" name="reason" minlength="5" maxlength="500" required></div>
+        <%- ui.button({ label: 'Set for this customer', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+      </form>
+    </div>
+  </section>
+  <% } %>
+</div>

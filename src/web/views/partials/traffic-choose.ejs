@@ -1,0 +1,33 @@
+<%# Choose which GA4 property and Search Console site to read. Props: connection ({ properties, sites, ga4PropertyId, gscSiteUrl }), canManage, csrf, projectBase. %>
+<% const none = !connection.properties.length && !connection.sites.length; %>
+<% if (none) { %>
+<%- ui.banner({ tone: 'warning', title: 'This Google login can’t see any Analytics property or Search Console site.', text: 'Connect again with a Google account that can open your site’s Analytics or Search Console.' }) %>
+<% } %>
+<% if (canManage) { %>
+<form method="post" action="<%= projectBase %>/integrations/google/choose" class="mt-3 flex flex-col gap-4">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="field">
+    <label class="label" for="ga4">Google Analytics 4 property <span class="text-ink-600 font-normal">(for visits from AI)</span></label>
+    <select class="select" id="ga4" name="ga4">
+      <option value="">Don’t read Analytics</option>
+      <% connection.properties.forEach((p) => { %><option value="<%= p.id %>"<%= p.id === connection.ga4PropertyId ? ' selected' : '' %>><%= p.name %><%= p.account ? ' (' + p.account + ')' : '' %></option><% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label class="label" for="gsc">Search Console site <span class="text-ink-600 font-normal">(for searches that name your brand)</span></label>
+    <select class="select" id="gsc" name="gsc">
+      <option value="">Don’t read Search Console</option>
+      <% connection.sites.forEach((s) => { %><option value="<%= s.siteUrl %>"<%= s.siteUrl === connection.gscSiteUrl ? ' selected' : '' %>><%= s.siteUrl %></option><% }) %>
+    </select>
+  </div>
+  <div class="flex flex-wrap gap-3">
+    <%- ui.button({ label: 'Start reading', type: 'submit', variant: 'primary' }) %>
+  </div>
+</form>
+<form method="post" action="<%= projectBase %>/integrations/google/disconnect" class="mt-3">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <%- ui.button({ label: 'Cancel and disconnect', type: 'submit', variant: 'ghost', size: 'sm' }) %>
+</form>
+<% } else { %>
+<p class="text-ink-700 text-sm">An owner or admin has to finish connecting Google.</p>
+<% } %>

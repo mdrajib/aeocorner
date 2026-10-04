@@ -7,14 +7,14 @@
 | **Files** | [db/schema.sql](db/schema.sql) (DDL; becomes Prisma migration `0001_init`) · [db/seed_reference.sql](db/seed_reference.sql) (plans, engines, providers, seed domains) · [db/checks.sql](db/checks.sql) (CI guard-rail checks) |
 | **Target** | MySQL 8.0.19+ on DigitalOcean Managed MySQL |
 | **Auth / ORM** | **Clerk** for sign-in (identity only) · **Prisma 7** with SQL-first migrations. Decided 2026-09-28 ([§10](#10-auth-clerk-orm-prisma-and-migrations)) |
-| **Tested** | Loaded on MySQL 8.4.11 with `sql_require_primary_key=ON` (DigitalOcean's requirement). All 7 guard-rail checks pass. 38 constraint tests pass. Monthly partitioning of all fact tables works. All 10 query patterns in §5 use an index. Prisma 7.10 introspects all 64 tables with no drift, applies the schema as its first migration, and passes the runtime tests in [§10.2](#102-orm-prisma-7-with-sql-first-migrations) |
+| **Tested** | Loaded on MySQL 8.4.11 with `sql_require_primary_key=ON` (DigitalOcean's requirement). All 7 guard-rail checks pass. 38 constraint tests pass. Monthly partitioning of all fact tables works. All 10 query patterns in §5 use an index. Prisma 7.10 introspects all 66 tables with no drift, applies the schema as its first migration, and passes the runtime tests in [§10.2](#102-orm-prisma-7-with-sql-first-migrations) |
 | **Companion to** | [MVP.md](MVP.md) §8 (data model), [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §3 and §7, [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md) §8 |
 
 ---
 
 ## 0. Summary
 
-**64 tables in 16 areas, with 101 foreign keys and 18 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
+**66 tables in 16 areas, with 105 foreign keys and 19 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
 
 The ten decisions that shape it:
 
@@ -98,7 +98,7 @@ These hold public URLs only, never who cited them, so sharing them across tenant
 |---|---|---|
 | `subscriptions` | Mirror of Stripe subscriptions: trial end, grace period, `money_back_until` (D9) | 11 |
 | `entitlement_grants` | Add-ons, credits, coupons and staff grants on top of plan limits. Effective limit = plan + active grants | 11 |
-| `quota_usage` | Monthly counters (drafts, "run now", audits), checked when a customer saves something | 10–11 |
+| `quota_usage` | Monthly counters (drafts, "run now", audits, and `drafts_billed`: drafts past the allowance already reported to Stripe), checked when a customer saves something | 10–11 |
 
 ### 2.6 Free-audit funnel (anonymous until claimed)
 
@@ -186,6 +186,8 @@ Filtering by cluster, intent or locale reads the cell tables joined to `prompts`
 | `notifications` | Every email and in-app message, with a unique `dedupe_key` (sending is idempotent). Also enforces "at most one proactive email per user per day" | 4 |
 | `email_suppressions` | Bounced, complained and globally unsubscribed addresses | 4 |
 | `announcements` | In-app banners, including incident notices, targeted by plan, org or engine | 7–8 |
+| `feature_flags` | The console's switches: a key, its words and its default (migration `0005`). Global: no `org_id` (on the reviewed list in `checks.sql`) | 8 |
+| `feature_flag_overrides` | A flag turned on or off for one organization (migration `0005`) | 8 |
 
 ### 2.15 Internal admin and operations
 
@@ -528,7 +530,7 @@ Tested with Prisma 7.10.0 (the current stable release; Prisma 8 is a release can
 
 | Test | Result |
 |---|---|
-| `prisma db pull` | All 64 tables introspected, and `prisma validate` passes. One fix was needed: enum values can't start with a digit, so `action_outcomes.horizon` is now `week_2` / `week_4` (was `2w` / `4w`) |
+| `prisma db pull` | All 66 tables introspected, and `prisma validate` passes. One fix was needed: enum values can't start with a digit, so `action_outcomes.horizon` is now `week_2` / `week_4` (was `2w` / `4w`) |
 | Drift | Database vs. introspected schema: no differences. Migrations vs. schema: no differences. Adding one field in `schema.prisma` drafts exactly one `ALTER TABLE … ADD COLUMN` and leaves generated columns and CHECKs alone |
 | `prisma migrate deploy` | Applies `schema.sql` and `seed_reference.sql` as migrations `0001_init` and `0002_reference_data` on an empty database |
 | Partitioned fact table | Introspection unchanged, no drift, queries work |

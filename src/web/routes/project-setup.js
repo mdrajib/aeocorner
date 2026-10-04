@@ -5,7 +5,7 @@ import { normalizeEntityName } from '../../core/project-rules.js';
 import { questionsJobId, slotOf } from '../../lib/job-ids.js';
 import { notFound } from '../middleware/errors.js';
 import { READING_WINDOW_MS, readableErrors, sectionFromBody } from './project-brand.js';
-import { QUESTION_LIMIT } from './project-questions.js';
+import { questionLimit } from './project-questions.js';
 import { lines, withNotice } from './project-helpers.js';
 
 /**
@@ -79,7 +79,7 @@ export function setupRoutes(router, { jobs, logger, appPage, edit }) {
         suggested: entities.filter((e) => e.status === 'suggested'),
         prompts: active,
         coverage,
-        limit: QUESTION_LIMIT,
+        limit: await questionLimit(req),
         generating,
         slow,
         engines,

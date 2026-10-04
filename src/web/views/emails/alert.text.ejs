@@ -1,0 +1,9 @@
+<%= items.length === 1 ? 'Something changed' : items.length + ' things changed' %> for <%= projectName %>
+<% items.forEach((item) => { %>
+<%= item.title %>
+<%= item.text %>
+<% }) %>
+See the answers behind this:
+<%- dashboardUrl %>
+
+We only email an alert when a change passed our significance test or an answer said something negative about you. Change your alerts: <%- settingsUrl %>

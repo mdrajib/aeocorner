@@ -46,6 +46,7 @@
       </header>
       <main id="main" tabindex="-1" class="flex-1 p-4 sm:p-6 lg:p-8">
         <% for (const f of (typeof flash !== 'undefined' ? flash : [])) { %><div class="mb-4"><%- ui.banner({ tone: f.tone, text: f.text, dismissible: true }) %></div><% } %>
+        <% if (typeof billingBanner !== 'undefined' && billingBanner) { %><div class="mb-4"><%- ui.banner({ tone: billingBanner.tone, text: billingBanner.text, html: billingBanner.href ? '<a class="font-semibold" href="' + ui.esc(billingBanner.href) + '">' + ui.esc(billingBanner.linkText) + '</a>' : '' }) %></div><% } %>
 <%# A page that waits for a job (res.locals.refreshSeconds) reloads itself; the visitor can stop it (components.js). %>
         <% if (typeof refreshSeconds !== 'undefined' && refreshSeconds) { %>
         <div class="text-ink-700 mb-4 flex flex-wrap items-center gap-3 text-sm" data-auto-refresh="<%= refreshSeconds %>">

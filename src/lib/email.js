@@ -34,6 +34,37 @@ const TEMPLATES = {
     footerReason:
       'You are receiving this because someone invited this email address to join an AEO Corner organization.',
   },
+  'retention-warning': {
+    subject: (d) => `Your AEO Corner data is deleted on ${d.closeDate}`,
+    preheader: (d) => `${d.orgName} is read-only until ${d.closeDate}. Choose a plan to keep it.`,
+    footerReason:
+      'You are receiving this because you own an AEO Corner organization whose subscription was cancelled.',
+  },
+  digest: {
+    subject: (d) => d.digest.subject,
+    preheader: (d) => d.digest.preheader,
+    footerReason:
+      'You are receiving this because you are a member of this AEO Corner organization and the weekly digest is switched on for you.',
+  },
+  alert: {
+    subject: (d) => d.subject,
+    preheader: (d) => d.items[0].text.slice(0, 110),
+    footerReason:
+      'You are receiving this because alerts are switched on for you in this AEO Corner organization.',
+  },
+  'google-reconnect': {
+    subject: (d) => `Reconnect Google for ${d.projectName}`,
+    preheader: () =>
+      'Google stopped sharing your analytics with AEO Corner. It takes a minute to reconnect.',
+    footerReason:
+      'You are receiving this because you manage the Google connection of an AEO Corner project.',
+  },
+  'trial-ending': {
+    subject: (d) => `Your free trial ends on ${d.chargeDate}`,
+    preheader: (d) =>
+      `${d.priceText} is charged on ${d.chargeDate}. Cancel before then to pay nothing.`,
+    footerReason: 'You are receiving this because you started a free trial of AEO Corner.',
+  },
 };
 
 const cache = new Map();

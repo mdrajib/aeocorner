@@ -1,0 +1,201 @@
+{
+  "dimensionHeaders": [
+    {
+      "name": "date"
+    }
+  ],
+  "metricHeaders": [
+    {
+      "name": "sessions",
+      "type": "TYPE_INTEGER"
+    },
+    {
+      "name": "engagedSessions",
+      "type": "TYPE_INTEGER"
+    },
+    {
+      "name": "keyEvents",
+      "type": "TYPE_INTEGER"
+    },
+    {
+      "name": "totalRevenue",
+      "type": "TYPE_INTEGER"
+    }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [
+        {
+          "value": "20260810"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260817"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260824"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260831"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260907"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260914"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260921"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260928"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "200"
+        },
+        {
+          "value": "120"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    }
+  ],
+  "rowCount": 8,
+  "metadata": {
+    "currencyCode": "USD",
+    "timeZone": "America/Chicago"
+  },
+  "kind": "analyticsData#runReport"
+}

@@ -1,0 +1,16 @@
+<%#
+  Email preferences for the signed-in member. Props: prefs ({ digest, alerts }), canAlerts; layout locals: orgBase, csrfToken, org.
+%>
+<h1 class="text-3xl">Email</h1>
+<p class="text-ink-700 mt-2">Which emails <strong>you</strong> get about <strong><%= org.name %></strong>. This is only about you: it doesn’t change what your teammates receive.</p>
+
+<form method="post" action="<%= orgBase %>/notifications" class="mt-6 flex max-w-2xl flex-col gap-6">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- ui.card({ title: 'Emails you can switch off', headingLevel: 2, html:
+    ui.checkbox({ id: 'pref-digest', name: 'digest', label: 'The weekly digest', value: 'on', hint: 'Monday at 8:00 in your timezone: how often AI names you, what changed and what to do next.', checked: prefs.digest }) +
+    '<div class="mt-4">' +
+    ui.checkbox({ id: 'pref-alerts', name: 'alerts', label: 'Alerts', value: 'on', hint: canAlerts ? 'When something drops significantly, a competitor rises, or an AI answer says something negative about you. At most one email a day.' : 'Alerts come with the Growth and Agency plans.', checked: prefs.alerts }) +
+    '</div>' }) %>
+  <%- ui.card({ title: 'Emails you always get', headingLevel: 2, html: '<p class="text-ink-700 text-sm">Messages about your account itself: a free trial about to end, a payment problem, or a cancelled account about to be closed. We only send these when something needs your attention.</p>' }) %>
+  <div><%- ui.button({ label: 'Save', type: 'submit', variant: 'primary' }) %></div>
+</form>

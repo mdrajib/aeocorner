@@ -1,0 +1,14 @@
+<%# The usage meters. Props: view. A meter whose plan does not limit it just says how much is used. %>
+<% if (!view.meters.length) { %>
+<p class="text-ink-700 text-sm">Nothing is used yet.</p>
+<% } else { %>
+<div class="flex flex-col gap-4">
+  <% view.meters.forEach((m) => { %>
+  <% if (m.limit === null) { %>
+  <p class="flex items-baseline justify-between gap-3 text-sm"><span class="text-ink-800 font-medium"><%= m.label %></span><span class="text-ink-700 tabular-nums"><%= m.text %></span></p>
+  <% } else { %>
+  <%- ui.meter({ id: 'meter-' + m.meter, label: m.label, value: m.used, max: Math.max(m.limit, 1), warnAt: 0.8 }) %>
+  <% } %>
+  <% }) %>
+</div>
+<% } %>

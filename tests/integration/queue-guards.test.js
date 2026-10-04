@@ -578,17 +578,23 @@ describe('the hourly scheduler', () => {
 });
 
 describe('recurring jobs and shutdown', () => {
-  test('the hourly tick, both guards and the daily outcomes sweep are registered, once, however many times the worker starts', async () => {
+  test('every recurring job (the tick, the guards, the sweeps, billing, the digest, Google) is registered, once, however many times the worker starts', async () => {
     const h = await runtimeFor({ queueNames: [], schedule: true }); // no workers: nothing runs
     await h.runtime.start({ schedule: true });
     await h.runtime.start({ schedule: true });
     const schedulers = await h.queue('system').getJobSchedulers();
     assert.equal(schedulers.length, SCHEDULES.length);
     assert.deepEqual(schedulers.map((s) => s.name).sort(), [
+      'billing.notices',
+      'billing.reconcile',
+      'billing.report_usage',
+      'digest.tick',
       'guard.provider_health',
       'guard.spend',
       'outcomes.sweep',
+      'retention.sweep',
       'scheduler.tick',
+      'sync.google.sweep',
     ]);
     const tick = schedulers.find((s) => s.name === 'scheduler.tick');
     assert.equal(tick.pattern, '0 * * * *');

@@ -24,6 +24,7 @@ WHERE t.table_schema = DATABASE() AND t.table_type = 'BASE TABLE'
     'users','organizations',                                                   -- identity (org is the tenant root)
     'leads','audit_answers','abuse_blocks',                                    -- anonymous audit funnel
     'email_suppressions','announcements','provider_health','webhook_events',   -- platform operations
+    'feature_flags',                                                           -- staff switches (overrides carry org_id)
     '_prisma_migrations'                                                       -- Prisma Migrate history
   );
 

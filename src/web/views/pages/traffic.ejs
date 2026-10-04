@@ -1,0 +1,70 @@
+<%#
+  E1: AI traffic. Props: view (trafficView: state, labels, channels, totals, brandedClicks, hasBranded, tiles, topPages, window, max) or null,
+  connection ({ status, lastSuccessAt, lastError, pending, properties, sites, ga4PropertyId, gscSiteUrl } or null),
+  configured, canManage, gaOn, gscOn, csrf; locals: orgBase, projectBase, projectName, domain.
+  A week that has not been read is "Couldn’t check", never 0. Changes are shown but never coloured: nothing is tested here.
+%>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName: project.name, domain: domain, current: 'traffic', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
+
+<h2 class="mt-6 text-2xl">AI traffic</h2>
+<p class="text-ink-700 mt-1 max-w-2xl text-sm">Visits to your site that came from an AI answer, read from your own Google Analytics. We only see the day, the source and the page: nothing about the people.</p>
+
+<% if (!configured) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'warning', title: 'Connecting Google is not switched on yet.', text: 'We are waiting for Google to approve our access. We have been told.' }) %></div>
+<% } %>
+
+<% if (!connection) { %>
+<%- ui.card({ title: 'See the visits AI sends you', headingLevel: 3, html: ui.fragment('partials/traffic-connect', { canManage, configured, csrf, projectBase, reconnect: false }) }) %>
+
+<% } else if (connection.pending) { %>
+<%- ui.card({ title: 'Choose what to read', headingLevel: 3, html: ui.fragment('partials/traffic-choose', { connection, canManage, csrf, projectBase }) }) %>
+
+<% } else { %>
+<% if (connection.status === 'broken') { %>
+<div class="mt-6"><%- ui.banner({ tone: 'danger', title: 'Google needs attention.', text: connection.lastError || 'The last read failed.' }) %></div>
+<% } %>
+
+<% if (view && view.state === 'syncing') { %>
+<div class="mt-6"><%- ui.state({ kind: 'loading', title: 'Reading your first weeks from Google…', text: 'The first read looks back 90 days and takes a few minutes. This page updates by itself.' }) %></div>
+<% } else if (view && view.state === 'no_data') { %>
+<div class="mt-6"><%- ui.state({ kind: 'loading', title: 'Reading your first weeks from Google…', text: 'This page updates by itself.' }) %></div>
+<% } else if (view && view.state === 'data') { %>
+
+<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <% const t = view.tiles; %>
+  <%- ui.stat({ label: 'Visits from AI', value: t.aiSessions ? String(t.aiSessions.value) : '—', state: t.aiSessions ? 'ok' : 'unknown', note: t.aiSessions ? t.aiSessions.note : null }) %>
+  <%- ui.stat({ label: 'Share of all visits', value: t.aiShare ? t.aiShare.value + '%' : '—', state: t.aiShare ? 'ok' : 'unknown', note: 'Last four finished weeks' }) %>
+  <%- ui.stat({ label: 'Engaged visits', value: t.engaged === null ? '—' : t.engaged + '%', state: t.engaged === null ? 'unknown' : 'ok', note: 'Of visits from AI' }) %>
+  <%- ui.stat({ label: 'Key events from AI visits', value: t.keyEvents === null ? '—' : String(t.keyEvents), state: t.keyEvents === null ? 'unknown' : 'ok', note: 'Sign-ups, calls, whatever you track' }) %>
+</div>
+
+<div class="mt-6">
+  <%- ui.chart({ title: 'Visits from AI answers, by week', kind: 'line', xLabel: 'Week', labels: view.labels, max: view.max,
+    series: view.channels.map((c) => ({ label: c.label, values: c.values })),
+    summary: 'Line chart of weekly visits to your site from each AI assistant over the last ' + view.labels.length + ' weeks.',
+    emptyText: 'No visits from AI answers yet. They arrive once an AI answer links to your site.' }) %>
+</div>
+
+<% if (view.channels.length === 0) { %>
+<div class="mt-4"><%- ui.banner({ tone: 'info', title: 'No visits from AI answers in this period.', text: 'That is a result, not a gap: Google reported none. When an AI assistant starts sending people to your site, they appear here.' }) %></div>
+<% } %>
+
+<% if (view.hasBranded) { %>
+<div class="mt-6">
+  <%- ui.chart({ title: 'Searches for your brand by name (clicks from Google), by week', kind: 'line', xLabel: 'Week', labels: view.labels, max: Math.max(10, ...view.brandedClicks.filter((v) => v !== null)),
+    series: [{ label: 'Branded clicks', values: view.brandedClicks }],
+    summary: 'Line chart of weekly clicks from Google searches that name your brand.' }) %>
+</div>
+<% } %>
+
+<% if (view.topPages.length) { %>
+<%- ui.card({ title: 'Pages AI sends people to', headingLevel: 3, padded: false, html: ui.table({
+  caption: 'Landing pages of visits from AI, last four finished weeks', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'page', label: 'Page' }, { key: 'sessions', label: 'Visits', numeric: true }, { key: 'engaged', label: 'Engaged', numeric: true }, { key: 'keyEvents', label: 'Key events', numeric: true }],
+  rows: view.topPages.map((p) => ({ page: p.page, sessions: String(p.sessions), engaged: String(p.engaged), keyEvents: String(p.keyEvents) })),
+}) }) %>
+<% } %>
+<% } %>
+
+<%- ui.card({ title: 'The Google connection', headingLevel: 3, html: ui.fragment('partials/traffic-connection', { connection, canManage, csrf, projectBase, gaOn, gscOn }) }) %>
+<% } %>

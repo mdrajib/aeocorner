@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Execution order for the rest of the MVP: Phases 7–15 of [BUILD_PLAN.md](BUILD_PLAN.md), reorganized into 11 sequential milestones of single-action tasks |
 | **Date** | 2026-10-03 |
-| **Status** | In progress. Milestone 7 (Content Studio and WordPress): all tasks 7.01–7.12 are built and tested, including against a real WordPress; open are the live-model runs of research, plan and draft (they cost money), a first real publish to a customer’s site, and submitting the plugin to WordPress.org. Milestone 6 (Action Center and proof): all tasks 6.01–6.10 are built and tested on fixtures; open on its Definition of Done is nothing but the live-model runs (the narrative and its eval, which cost money) and a first real before/after on a design partner. Milestone 5 (dashboard): the screens and their tests are built (5.01–5.10); open are deploying to production (5.11) and onboarding the design partners (5.12), which need the production server (Milestone 2) and the founder. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
+| **Status** | In progress. Milestone 8 (billing, traffic, digest and admin): all 24 tasks are built and tested against stand-ins for Stripe, Google and the mail provider; open are the Stripe test-mode run with a test card (needs the founder’s keys and the `NULL` plan limits, 0.17), Google’s OAuth verification (0.18), and the purge that deletes a closed account’s rows. Milestone 7 (Content Studio and WordPress): all tasks 7.01–7.12 are built and tested, including against a real WordPress; open are the live-model runs of research, plan and draft (they cost money), a first real publish to a customer’s site, and submitting the plugin to WordPress.org. Milestone 6 (Action Center and proof): all tasks 6.01–6.10 are built and tested on fixtures; open on its Definition of Done is nothing but the live-model runs (the narrative and its eval, which cost money) and a first real before/after on a design partner. Milestone 5 (dashboard): the screens and their tests are built (5.01–5.10); open are deploying to production (5.11) and onboarding the design partners (5.12), which need the production server (Milestone 2) and the founder. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
 | **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) (phase detail and required tests) · [MVP.md](MVP.md) §13 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §7 · [UI_DESIGN.md](UI_DESIGN.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. How to read this plan
@@ -366,41 +366,41 @@ flowchart LR
 
 | # | Lane | Task | Needs |
 |---|---|---|---|
-| 8.01 | Billing | 🔒 Create Stripe products and prices from the `plans` table | — |
-| 8.02 | Billing | Build Checkout with the 14-day card trial | 8.01 |
-| 8.03 | Billing | 🔒 Build the Stripe webhook: signature, `webhook_events` dedupe | — |
-| 8.04 | Billing | Sync `subscriptions` and `entitlement_grants` from webhooks | 8.03 |
-| 8.05 | Billing | Add the Customer Portal link | 8.04 |
-| 8.06 | Billing | Report add-on usage to Stripe meters | 8.04 |
-| 8.07 | Billing | Build the plan-limit guard | 8.04 |
-| 8.08 | Billing | Build the billing and settings screens: plan picker, trial, limit reached | 8.02, 8.07 |
-| 8.09 | Traffic | Build Google OAuth for GA4 and Search Console with encrypted tokens | — |
-| 8.10 | Traffic | Sync GA4 into `traffic_daily` | 8.09 |
-| 8.11 | Traffic | Sync Search Console into `search_console_daily` | 8.09 |
-| 8.12 | Traffic | Build the AI-referral charts | 8.10 |
-| 8.13 | Digest | Build the weekly digest content | — |
-| 8.14 | Digest | Alert on significant drops and negative claims | — |
-| 8.15 | Digest | Send through `notifications` with dedupe keys and suppressions | 8.13, 8.14 |
-| 8.16 | Digest | Add one-click unsubscribe | 8.15 |
-| 8.17 | Admin | Build the cost dashboard from `usage_ledger` | — |
-| 8.18 | Admin | Build the provider-health view | — |
-| 8.19 | Admin | Allow job retry from admin | — |
-| 8.20 | Admin | Build the extraction review queue over `review_items` | — |
-| 8.21 | Admin | Build feature flags | — |
-| 8.22 | Admin | Write `admin_audit_log` on every staff action | — |
-| 8.23 | Admin | 🔒 Wire staff routes to the 2FA-required check | — |
-| 8.24 | Billing | Build the cancelled-account retention job (per 0.12) | 8.04 |
+| 8.01 | Billing | ✅ 2026-10-04 🔒 Create Stripe products and prices from the `plans` table (the catalog is made by `npm run stripe:sync` (`src/integrations/stripe-catalog.js`): a product and a monthly price per public plan and add-on, a usage meter for extra drafts, found by fixed ID or lookup key so running it twice makes nothing; tested against a Stripe stand-in. **Not yet run against Stripe: it needs the founder’s test key, and the `NULL` plan limits (0.17) are still placeholders**) | — |
+| 8.02 | Billing | ✅ 2026-10-04 Build Checkout with the 14-day card trial (Checkout from the billing screen: a Stripe customer, the 14-day trial once per organization, the organization’s ID on the subscription, card entered on Stripe’s page (`src/web/routes/org-billing.js`)) | 8.01 |
+| 8.03 | Billing | ✅ 2026-10-04 🔒 Build the Stripe webhook: signature, `webhook_events` dedupe (the webhook: signature on the raw body with a five-minute tolerance, `webhook_events` dedupe by event ID, a failure answers 500 so Stripe retries (`src/integrations/stripe.js`, `src/web/routes/webhooks.js`)) | — |
+| 8.04 | Billing | ✅ 2026-10-04 Sync `subscriptions` and `entitlement_grants` from webhooks (each event asks Stripe for the subscription as it is now and writes that (`src/integrations/stripe-sync.js`, `src/db/repos/system-billing.js`): plan, status, trial, grace, money-back window and add-on grants; replays and late events change nothing) | 8.03 |
+| 8.05 | Billing | ✅ 2026-10-04 Add the Customer Portal link (the Customer Portal button on the billing screen, for an organization that has a Stripe customer) | 8.04 |
+| 8.06 | Billing | ✅ 2026-10-04 Report add-on usage to Stripe meters (extra drafts past the plan’s allowance are reported to a Stripe usage meter hourly, once each (`billing.report_usage`); an add-on for extra questions raises the limit) | 8.04 |
+| 8.07 | Billing | ✅ 2026-10-04 Build the plan-limit guard (one pure rule (`src/core/entitlements.js`) and one read of the plan, grants and usage (`org-billing.js`): projects, questions across projects, seats, drafts, "check now"; enforced on the screens and by the scheduler) | 8.04 |
+| 8.08 | Billing | ✅ 2026-10-04 Build the billing and settings screens: plan picker, trial, limit reached (`/app/o/:org/billing`: plan picker, trial and usage meters, add-ons, limit-reached and paused banners on every page, plan change with a refusal that explains itself) | 8.02, 8.07 |
+| 8.09 | Traffic | ✅ 2026-10-04 Build Google OAuth for GA4 and Search Console with encrypted tokens (the sign-in with two read-only scopes, a state tied to the session, the token encrypted by the web process and opened only by the worker, and a property and site picker (`src/integrations/google.js`, `src/web/routes/project-traffic.js`). **Google’s verification (0.18) has not been done**) | — |
+| 8.10 | Traffic | ✅ 2026-10-04 Sync GA4 into `traffic_daily` (the GA4 reports (AI sources by day and landing page, all visits, organic search) read daily into `traffic_daily` (`sync.google`); fixtures built from the API documentation, not recorded) | 8.09 |
+| 8.11 | Traffic | ✅ 2026-10-04 Sync Search Console into `search_console_daily` (branded searches and pages from Search Console into `search_console_daily`, in the same job) | 8.09 |
+| 8.12 | Traffic | ✅ 2026-10-04 Build the AI-referral charts (`/projects/:pid/traffic`: weekly lines per AI source, share of all visits, top landing pages and branded search, each with its table; a week not yet read is "couldn’t check", never 0) | 8.10 |
+| 8.13 | Digest | ✅ 2026-10-04 Build the weekly digest content (`src/core/digest.js` and `digest.send`: the figures with the dashboard’s rules, what changed, proofs and the next actions; sent Monday 08:00 in each person’s timezone) | — |
+| 8.14 | Digest | ✅ 2026-10-04 Alert on significant drops and negative claims (`src/core/alerts.js` and `alerts.evaluate` after every run: significant drops, a rising competitor and negative claims, each told once; a plan without alerts gets none) | — |
+| 8.15 | Digest | ✅ 2026-10-04 Send through `notifications` with dedupe keys and suppressions (one notifier (`src/lib/notify.js`): dedupe keys, the suppression list (fed by Resend’s signed webhook), at most one proactive email a day) | 8.13, 8.14 |
+| 8.16 | Digest | ✅ 2026-10-04 Add one-click unsubscribe (the link in every digest and alert works with no sign-in (one-click headers; opening it changes nothing), plus an email-preferences page per member) | 8.15 |
+| 8.17 | Admin | ✅ 2026-10-04 Build the cost dashboard from `usage_ledger` (`/costs`: spend by provider and model, margin per plan and per customer, today against the recent average, cost per answer) | — |
+| 8.18 | Admin | ✅ 2026-10-04 Build the provider-health view (`/providers`: error rates over 15 minutes and 24 hours, speed, cost and breaker state from the health records. Resetting a breaker is not built) | — |
+| 8.19 | Admin | ✅ 2026-10-04 Allow job retry from admin (`/jobs`: failed jobs across the queues with a retry button (the Bull Board at `/queues` already retried; this one is plain and audited)) | — |
+| 8.20 | Admin | ✅ 2026-10-04 Build the extraction review queue over `review_items` (`/review`: the queue with the answer and the names being tracked (never the customer), verdicts, alias and exclusion, re-read, golden-set mark) | — |
+| 8.21 | Admin | ✅ 2026-10-04 Build feature flags (`/flags`: a default and a per-customer override, each with a reason; the digest, alerts and Google sync read their flag) | — |
+| 8.22 | Admin | ✅ 2026-10-04 Write `admin_audit_log` on every staff action (every staff change goes through `audited()`: written to `admin_audit_log` first and refused if that fails; `/audit` shows it) | — |
+| 8.23 | Admin | ✅ 2026-10-04 🔒 Wire staff routes to the 2FA-required check (one wall for every module path (Cloudflare, a staff session with a second factor, an active row, the role); a test lists every route and fails if one is not checked) | — |
+| 8.24 | Billing | ✅ 2026-10-04 Build the cancelled-account retention job (per 0.12) (the 90-day clock, a warning email 14 days before, and closing the account at the end (`retention.sweep`). **The rows are not yet deleted** (the purge is a separate job)) | 8.04 |
 
 **Parallel:** the four lanes are independent. Inside each lane, tasks with `—` start at once. 8.23 comes before the other admin screens ship.
 
 **Definition of Done:**
-- [ ] Integration: Stripe webhook replay is a no-op (created, updated, canceled).
-- [ ] Unit: plan-limit guard blocks over-quota and allows in-quota.
-- [ ] Integration: GA4 and Search Console sync against recorded fixtures.
-- [ ] Unit: digest on a fixture week: no drop, no alert; a real drop, an alert.
-- [ ] Admin routes reject non-staff and staff without a second factor.
-- [ ] Axe sweep passes on billing and settings screens.
-- [ ] A test card subscribes in Stripe test mode and the plan applies.
+- [x] Integration: Stripe webhook replay is a no-op (created, updated, canceled). (`tests/integration/billing-repo.test.js` and `tests/routes/billing.test.js`)
+- [x] Unit: plan-limit guard blocks over-quota and allows in-quota. (`src/core/entitlements.test.js`, and on the screens in `tests/routes/billing.test.js`)
+- [x] Integration: GA4 and Search Console sync against recorded fixtures. (`tests/integration/traffic-jobs.test.js`; the fixtures in `tests/fixtures/google/` are built from Google’s documentation, not recorded from a live property: the first live sync is the check)
+- [x] Unit: digest on a fixture week: no drop, no alert; a real drop, an alert. (`src/core/alerts.test.js`, and by email in `tests/integration/digest-jobs.test.js`)
+- [x] Admin routes reject non-staff and staff without a second factor. (`tests/routes/staff-admin.test.js`: every route, every wall)
+- [x] Axe sweep passes on billing and settings screens. (the billing, email-preferences, traffic and unsubscribe pages are in `tests/e2e/pages.js`)
+- [ ] A test card subscribes in Stripe test mode and the plan applies. (Checkout, the return trip and the webhook are tested against a Stripe stand-in; **this one needs the founder’s Stripe test keys**: run `npm run stripe:sync`, then pay with Stripe’s test card)
 
 ---
 

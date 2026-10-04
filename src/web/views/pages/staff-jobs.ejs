@@ -1,0 +1,26 @@
+<%#
+  Failed jobs with a retry button (ADMIN_OPERATIONS module 3). Props: failed ([{ queue, id, name, attempts, reason, failedAt, data }]), available; locals: csrfToken.
+  Every retry is written to the audit log before it happens.
+%>
+<h1 class="text-3xl">Failed jobs</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">Jobs that used up all their attempts. They stay for 30 days. Retrying runs a job again from the start; every step is safe to repeat. The <a href="/queues">full queue board</a> shows everything else.</p>
+<% if (!available) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'The queues are not connected', text: 'This console has no queue connection, so there is nothing to list.' }) %></div>
+<% } else if (failed.length === 0) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'No failed jobs', text: 'Every job either finished or is still being retried.' }) %></div>
+<% } else { %>
+<div class="mt-6">
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Failed jobs', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'job', label: 'Job' }, { key: 'queue', label: 'Queue' }, { key: 'attempts', label: 'Tries', numeric: true }, { key: 'reason', label: 'Why it failed' }, { key: 'when', label: 'When' }, { key: 'act', label: '' }],
+  rows: failed.map((j) => ({
+    job: { html: '<span class="font-medium">' + ui.esc(j.name) + '</span><br><span class="text-ink-700 text-xs [overflow-wrap:anywhere]">' + ui.esc(j.id) + '</span>' },
+    queue: j.queue,
+    attempts: String(j.attempts),
+    reason: j.reason,
+    when: j.failedAt ? j.failedAt.toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '—',
+    act: { html: '<form method="post" action="/jobs/retry"><input type="hidden" name="_csrf" value="' + ui.esc(csrfToken) + '"><input type="hidden" name="queue" value="' + ui.esc(j.queue) + '"><input type="hidden" name="id" value="' + ui.esc(j.id) + '">' + ui.button({ label: 'Retry', type: 'submit', variant: 'secondary', size: 'sm', attrs: { 'aria-label': 'Retry ' + j.name } }) + '</form>' },
+  })),
+}) }) %>
+</div>
+<% } %>

@@ -1,6 +1,7 @@
 import { approvalBlockers, canMove, OPEN, retryStage } from '../../core/content-lifecycle.js';
 import { analyzeBody } from '../../core/content-html.js';
 import { DomainError, isUniqueViolation } from '../errors.js';
+import { entitledLimit } from './org-billing.js';
 import { Prisma } from '../generated/client/client.ts';
 import { transaction } from '../transaction.js';
 import { ulid } from '../../lib/ulid.js';
@@ -127,31 +128,53 @@ export function contentRepos(prisma, orgId) {
     return { ...item, status: to };
   }
 
+  /**
+   * Take `units` from this month's draft allowance. The check and the increment are one statement, so two requests
+   * at once cannot both take the last unit. The limit is the plan's plus add-ons (src/db/repos/org-billing.js). A
+   * customer with the metered "extra drafts" add-on is let through past the limit; those units are counted and the
+   * hourly usage report tells Stripe about each one (src/worker/handlers/billing.js).
+   */
   async function takeDraftUnits(db, units, now) {
-    const org = await db.organizations.findFirst({
-      where: { id: orgId },
-      select: { plan_code: true },
-    });
-    const plan = org?.plan_code
-      ? await db.plans.findUnique({
-          where: { code: org.plan_code },
-          select: { drafts_per_month: true },
-        })
-      : null;
-    const limit =
-      plan?.drafts_per_month != null ? Number(plan.drafts_per_month) : DRAFTS_PLACEHOLDER;
+    const limit = await entitledLimit(db, orgId, 'drafts', now);
     const period = monthStart(now);
     await db.$executeRaw`
       INSERT INTO quota_usage (org_id, period_month, meter, used_units)
       VALUES (${orgId}, ${period}, 'drafts', 0)
       ON DUPLICATE KEY UPDATE org_id = org_id`;
-    const taken = await db.$executeRaw`
+    const taken =
+      limit === null
+        ? await db.$executeRaw`
+      UPDATE quota_usage SET used_units = used_units + ${units}
+      WHERE org_id = ${orgId} AND period_month = ${period} AND meter = 'drafts'`
+        : await db.$executeRaw`
       UPDATE quota_usage SET used_units = used_units + ${units}
       WHERE org_id = ${orgId} AND period_month = ${period} AND meter = 'drafts' AND used_units + ${units} <= ${limit}`;
+    let allowed = Number(taken) === 1;
+    let metered = false;
+    if (!allowed) {
+      const grant = await db.entitlement_grants.findFirst({
+        where: {
+          org_id: orgId,
+          source: 'addon',
+          meter: 'drafts',
+          amount: 0,
+          starts_at: { lte: now },
+          OR: [{ ends_at: null }, { ends_at: { gt: now } }],
+        },
+        select: { id: true },
+      });
+      if (grant) {
+        await db.$executeRaw`
+          UPDATE quota_usage SET used_units = used_units + ${units}
+          WHERE org_id = ${orgId} AND period_month = ${period} AND meter = 'drafts'`;
+        allowed = true;
+        metered = true;
+      }
+    }
     const row = await db.quota_usage.findFirst({
       where: { org_id: orgId, period_month: period, meter: 'drafts' },
     });
-    return { allowed: Number(taken) === 1, used: toNumber(row?.used_units), limit };
+    return { allowed, metered, used: toNumber(row?.used_units), limit };
   }
 
   async function giveBackDraftUnits(db, units, when) {
@@ -935,19 +958,9 @@ export function contentRepos(prisma, orgId) {
       const row = await prisma.quota_usage.findFirst({
         where: { org_id: orgId, period_month: monthStart(now), meter: 'drafts' },
       });
-      const org = await prisma.organizations.findFirst({
-        where: { id: orgId },
-        select: { plan_code: true },
-      });
-      const plan = org?.plan_code
-        ? await prisma.plans.findUnique({
-            where: { code: org.plan_code },
-            select: { drafts_per_month: true },
-          })
-        : null;
       return {
         used: toNumber(row?.used_units),
-        limit: plan?.drafts_per_month != null ? Number(plan.drafts_per_month) : DRAFTS_PLACEHOLDER,
+        limit: await entitledLimit(prisma, orgId, 'drafts', now),
       };
     },
   };

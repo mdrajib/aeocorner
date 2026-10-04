@@ -19,7 +19,7 @@ export class MailError extends Error {
 export function resendMailer({ apiKey, from, fetchImpl = globalThis.fetch, logger }) {
   return {
     kind: 'resend',
-    async send({ to, email, idempotencyKey }) {
+    async send({ to, email, idempotencyKey, headers }) {
       let response;
       try {
         response = await fetchImpl(RESEND_URL, {
@@ -35,6 +35,7 @@ export function resendMailer({ apiKey, from, fetchImpl = globalThis.fetch, logge
             subject: email.subject,
             html: email.html,
             text: email.text,
+            ...(headers && { headers }),
           }),
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });

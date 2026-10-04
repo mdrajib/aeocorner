@@ -1,0 +1,27 @@
+<%#
+  Email preferences from the link in an email. Props: state (confirm | done | invalid), what (e.g. "the weekly digest"), token.
+  The page is the same for any person; it never says whose address it is.
+%>
+<section class="py-20">
+  <div class="container-narrow">
+    <% if (state === 'confirm') { %>
+    <p class="eyebrow">Email preferences</p>
+    <h1 class="mt-3 text-3xl sm:text-4xl">Stop getting <%= what %>?</h1>
+    <p class="text-ink-700 mt-4 max-w-xl text-lg">We’ll stop sending it to you straight away. You can switch it back on in your notification settings whenever you like, and we’ll still email you about your account itself, such as a trial ending.</p>
+    <form method="post" action="/unsubscribe/<%= token %>" class="mt-8">
+      <%- ui.button({ label: 'Yes, unsubscribe me', type: 'submit', variant: 'primary' }) %>
+      <%- ui.button({ label: 'No, keep them', href: '/', variant: 'secondary' }) %>
+    </form>
+    <% } else if (state === 'done') { %>
+    <p class="eyebrow">Done</p>
+    <h1 class="mt-3 text-3xl sm:text-4xl">You won’t get <%= what %> any more</h1>
+    <p class="text-ink-700 mt-4 max-w-xl text-lg">Changed your mind? Sign in and open your notification settings to switch it back on. Messages about your account itself will still reach you.</p>
+    <div class="mt-8"><%- ui.button({ label: 'Back to AEO Corner', href: '/', variant: 'secondary' }) %></div>
+    <% } else { %>
+    <p class="eyebrow">This link doesn’t work</p>
+    <h1 class="mt-3 text-3xl sm:text-4xl">We couldn’t use that link</h1>
+    <p class="text-ink-700 mt-4 max-w-xl text-lg">It may have been cut short when it was copied. Use the unsubscribe link in the email again, or sign in and open your notification settings.</p>
+    <div class="mt-8"><%- ui.button({ label: 'Back to AEO Corner', href: '/', variant: 'secondary' }) %></div>
+    <% } %>
+  </div>
+</section>

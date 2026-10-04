@@ -1,9 +1,22 @@
-<%# The staff console doorway. Props: staff ({ name, email, roles }). The admin modules arrive with the phases that need them. %>
+<%# The staff console. Props: staff ({ name, email, roles }), modules ([{ id, href, label, text }]) the signed-in person may open. %>
 <h1 class="text-3xl">Staff console</h1>
 <p class="text-ink-700 mt-2">Signed in as <strong><%= staff.name %></strong> (<%= staff.email %>).</p>
 <div class="mt-4 flex flex-wrap gap-2" aria-label="Your staff roles" role="list">
   <% for (const role of staff.roles) { %><span role="listitem"><%- ui.badge({ text: role.replace('_', ' '), tone: 'brand' }) %></span><% } %>
 </div>
+<% if (modules.length === 0) { %>
 <div class="mt-6">
-  <%- ui.state({ kind: 'empty', title: 'No admin modules yet', text: 'Customer lookup, run monitoring and provider health are added in later phases. Your sign-in, two-factor check and roles are working.' }) %>
+  <%- ui.state({ kind: 'empty', title: 'Nothing for your roles yet', text: 'Your sign-in, two-factor check and roles are working. Ask a super admin if you need access to a module.' }) %>
 </div>
+<% } else { %>
+<div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+  <% for (const m of modules) { %>
+  <section class="card">
+    <div class="card-body flex h-full flex-col gap-2">
+      <h2 class="text-lg font-semibold"><a href="<%= m.href %>" class="text-ink-900 no-underline hover:underline"><%= m.label %></a></h2>
+      <p class="text-ink-700 text-sm"><%= m.text %></p>
+    </div>
+  </section>
+  <% } %>
+</div>
+<% } %>

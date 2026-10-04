@@ -1,0 +1,61 @@
+{
+  "rows": [
+    {
+      "keys": ["2026-08-10", "https://acme.example.test/pricing"],
+      "clicks": 5,
+      "impressions": 80,
+      "ctr": 0.0625,
+      "position": 4.2
+    },
+    {
+      "keys": ["2026-08-17", "https://acme.example.test/pricing"],
+      "clicks": 6,
+      "impressions": 80,
+      "ctr": 0.075,
+      "position": 4.2
+    },
+    {
+      "keys": ["2026-08-24", "https://acme.example.test/pricing"],
+      "clicks": 7,
+      "impressions": 80,
+      "ctr": 0.0875,
+      "position": 4.2
+    },
+    {
+      "keys": ["2026-08-31", "https://acme.example.test/pricing"],
+      "clicks": 8,
+      "impressions": 80,
+      "ctr": 0.1,
+      "position": 4.2
+    },
+    {
+      "keys": ["2026-09-07", "https://acme.example.test/pricing"],
+      "clicks": 9,
+      "impressions": 80,
+      "ctr": 0.1125,
+      "position": 4.2
+    },
+    {
+      "keys": ["2026-09-14", "https://acme.example.test/pricing"],
+      "clicks": 10,
+      "impressions": 80,
+      "ctr": 0.125,
+      "position": 4.2
+    },
+    {
+      "keys": ["2026-09-21", "https://acme.example.test/pricing"],
+      "clicks": 11,
+      "impressions": 80,
+      "ctr": 0.1375,
+      "position": 4.2
+    },
+    {
+      "keys": ["2026-09-28", "https://acme.example.test/pricing"],
+      "clicks": 12,
+      "impressions": 80,
+      "ctr": 0.15,
+      "position": 4.2
+    }
+  ],
+  "responseAggregationType": "auto"
+}

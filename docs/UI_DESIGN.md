@@ -140,12 +140,12 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | D4 | **Proof card** (before/after) and share | 8 Proof | `…/proof/:id` | app | Phase 11 | D |
 | D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content`, `…/content/:id` | app | **Milestone 7 ✅ 2026-10-04** | D |
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |
-| E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | Phase 13 | E |
-| E2 | Weekly digest email, alert emails, trial-ending email | 7, 9 | n/a | email | Phase 13 | E |
-| E3 | Plan, billing and usage (Stripe Checkout and Portal hand-offs) | 4, 9 | `/app/o/:org/billing` | app | Phase 13 | E |
-| E4 | Settings: members and roles, invitations (**built**); notifications (Phase 13) | 4, 9 | `/app/o/:org/settings` | app | **Phase 2 ✅** / 13 | E |
+| E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | **Milestone 8 ✅ 2026-10-04** | E |
+| E2 | Weekly digest email, alert emails, trial-ending email (and: retention warning, "reconnect Google") | 7, 9 | n/a | email | **Milestone 8 ✅ 2026-10-04** | E |
+| E3 | Plan, billing and usage (Stripe Checkout and Portal hand-offs) | 4, 9 | `/app/o/:org/billing` | app | **Milestone 8 ✅ 2026-10-04** | E |
+| E4 | Settings: members and roles, invitations (**built**); notifications (`/app/o/:org/notifications` and the one-click `/unsubscribe/:token`, **Milestone 8 ✅**) | 4, 9 | `/app/o/:org/settings` | app | **Phase 2 ✅** / **M8 ✅** | E |
 | E6 | No access: signed in and a member, but the role doesn't allow the page | 9 | inline (403) | app | **Phase 2 ✅** | E |
-| E5 | Plan-limit prompts, spend-cap and stale-data banners | 9 | inline | app | Phase 13 | E |
+| E5 | Plan-limit prompts, spend-cap and stale-data banners | 9 | inline | app | **Milestone 8 ✅ 2026-10-04** (plan and payment banners on every page) | E |
 
 ---
 

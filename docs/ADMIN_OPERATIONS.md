@@ -239,3 +239,5 @@ The console grows with the MVP timeline ([MVP §13.2](MVP.md#132-12-week-timelin
 | **9–10** | Recommendation quality page, publishing-error view |
 | **11** | Billing page, cost & margin page, refunds and credits |
 | **12** (launch) | Announcements, the alert set in §7, a runbook check against §5 |
+
+**Built in Milestone 8 (2026-10-04):** cost and margin (module 5), provider health (module 4, read-only: a breaker cannot be reset from the console yet), failed jobs with retry (module 3, beside the Bull Board), the extraction review queue (module 6), feature flags with per-customer overrides (module 10) and the audit log (module 12), behind one wall with every change recorded first ([ADR-0012](adr/0012-billing-traffic-notifications-and-the-console.md)). Not built: the customer lookup, impersonation, announcements and the billing page (module 9).

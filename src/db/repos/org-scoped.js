@@ -1,5 +1,7 @@
 import { DomainError, isForeignKeyViolation, isUniqueViolation } from '../errors.js';
 import { actionRepos } from './org-actions.js';
+import { alertRepos } from './org-alerts.js';
+import { billingRepos } from './org-billing.js';
 import { contentRepos } from './org-content.js';
 import { dashboardRepos } from './org-dashboard.js';
 import { extractionRepos } from './org-extractions.js';
@@ -8,6 +10,7 @@ import { promptRepos } from './org-prompts.js';
 import { scanRepos } from './org-scans.js';
 import { snapshotRepos } from './org-snapshots.js';
 import { trackingRepos } from './org-tracking.js';
+import { trafficRepos } from './org-traffic.js';
 import { usageRepos } from './org-usage.js';
 import { transaction } from '../transaction.js';
 
@@ -345,5 +348,8 @@ export function orgScopedRepos(prisma, orgId) {
     ...dashboardRepos(prisma, orgId),
     ...actionRepos(prisma, orgId),
     ...contentRepos(prisma, orgId),
+    ...billingRepos(prisma, orgId, { appendActivity }),
+    ...alertRepos(prisma, orgId),
+    ...trafficRepos(prisma, orgId),
   };
 }

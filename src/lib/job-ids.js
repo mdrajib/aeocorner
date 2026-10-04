@@ -97,5 +97,14 @@ export const publishJobId = (siteChangeId) => jobId('publish', siteChangeId);
 /** Testing a project's WordPress connection, at most once per ten-minute slot. */
 export const wordpressTestJobId = (projectId, slot) => jobId('wptest', projectId, `s${slot}`);
 
+/** Reading one project's Google data: once a day, or once per ten-minute slot for a "sync now". */
+export const googleSyncJobId = (projectId, tag) => jobId('google', projectId, tag);
+
+/** One project's weekly digest in one hour (the hour is part of the identity: a tick that fires twice makes one). */
+export const digestSendJobId = (projectId, hour) => jobId('digest', projectId, `h${hour}`);
+
+/** The alerts for what one finished run found. */
+export const alertsJobId = (projectId, runId) => jobId('alerts', projectId, `r${runId}`);
+
 /** The ten-minute slot a time falls in. */
 export const slotOf = (date) => Math.floor(date.getTime() / 600_000);

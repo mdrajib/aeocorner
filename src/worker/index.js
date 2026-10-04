@@ -5,12 +5,15 @@ import { createDb } from '../db/index.js';
 import { createAdapters } from '../engines/index.js';
 import { createClaude } from '../llm/claude.js';
 import { createSecretBox } from '../lib/secrets.js';
+import { createGoogle } from '../integrations/google.js';
+import { createStripe } from '../integrations/stripe.js';
 import { createObjectStore } from '../integrations/spaces.js';
 import { createAlerter } from '../lib/alerts.js';
 import { createAuditMail } from '../lib/audit-mail.js';
 import { loadConfig } from '../lib/config.js';
 import { createLogger } from '../lib/logger.js';
 import { createMailer } from '../lib/mailer.js';
+import { createNotifier } from '../lib/notify.js';
 import { closeRedis, createRedis, evictionPolicy } from '../lib/redis.js';
 import { createWorkerRuntime } from './runtime.js';
 
@@ -80,6 +83,14 @@ const content = {
 };
 if (!config.secrets) logger.warn('SECRETS_MASTER_KEY is not set: WordPress publishing will fail.');
 
+// Billing (Milestone 8): the Stripe client for the reconcile and usage-report jobs; plans are enforced exactly when it exists.
+const billing = {
+  enforced: config.billingEnforced,
+  stripe: config.stripe
+    ? createStripe({ secretKey: config.stripe.secretKey, apiVersion: config.stripe.apiVersion })
+    : null,
+};
+
 const runtime = createWorkerRuntime({
   redis,
   prefix: config.redis.prefix,
@@ -90,6 +101,15 @@ const runtime = createWorkerRuntime({
   collection: { adapters, store },
   extraction,
   content,
+  billing,
+  google: config.google ? createGoogle(config.google) : null,
+  mail: createNotifier({
+    db,
+    mailer: createMailer({ config, logger }),
+    baseUrl: config.baseUrl,
+    secret: config.appSecret,
+    logger,
+  }),
   // The free audit: its own daily budget, and the "report ready" email (logged, not sent, without RESEND_API_KEY).
   audit: {
     dailyBudgetUsd: config.auditDailyBudgetUsd,

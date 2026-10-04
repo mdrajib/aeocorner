@@ -21,5 +21,11 @@ export function referenceRepos(prisma) {
       };
     },
   };
-  return { engines };
+  const plans = {
+    /** The plans shown on the plan picker, in display order. */
+    list: () =>
+      prisma.plans.findMany({ where: { is_public: true }, orderBy: { sort_order: 'asc' } }),
+    get: (code) => prisma.plans.findUnique({ where: { code } }),
+  };
+  return { engines, plans };
 }

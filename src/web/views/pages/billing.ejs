@@ -1,0 +1,79 @@
+<%#
+  E3: plan, trial, usage and billing. Props: view (billingView: planName, statusLabel, statusTone, statusLine, lines, meters, banners,
+  choices, hasSubscription, canManage, ctaLabel), addons, trialDays, configured, hasCustomer, pending; layout locals: orgBase, csrfToken, org.
+  Card details are typed on Stripe’s own pages (Checkout and the Customer Portal), never here.
+%>
+<h1 class="text-3xl">Plan and billing</h1>
+<p class="text-ink-700 mt-2">Your plan, what you have used, and how to change either, for <strong><%= org.name %></strong>.</p>
+
+<% if (!configured) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'warning', title: 'Billing is not switched on yet.', text: 'Plans can’t be started until our payment provider is connected. We have been told.' }) %></div>
+<% } %>
+<% if (pending) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'info', title: 'We are confirming your subscription.', text: 'This usually takes a few seconds. Reload this page if it still says no plan.' }) %></div>
+<% } %>
+<% view.banners.forEach((b) => { %><div class="mt-6"><%- ui.banner({ tone: b.tone, text: b.text }) %></div><% }) %>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Your plan', headingLevel: 2, html: ui.fragment('partials/billing-plan', { view, csrfToken, orgBase, hasCustomer, configured }) }) %>
+
+  <%- ui.card({ title: 'Usage', headingLevel: 2, html: ui.fragment('partials/billing-usage', { view }) }) %>
+</div>
+
+<h2 class="mt-10 text-2xl"><%= view.hasSubscription ? 'Change plan' : 'Choose a plan' %></h2>
+<p class="text-ink-700 mt-1 max-w-2xl text-sm">
+  <% if (view.hasSubscription) { %>Changing plan is prorated: you pay or are credited the difference. A smaller plan has to be big enough for what you use now.<% } else { %>Every plan starts with a <%= trialDays %>-day free trial. You enter a card on Stripe’s secure page and pay nothing today; cancel any time before the trial ends and you are not charged.<% } %>
+</p>
+<div class="mt-4 grid gap-6 md:grid-cols-3">
+  <% view.choices.forEach((c) => { %>
+  <section class="card" aria-labelledby="plan-<%= c.code %>">
+    <div class="card-body flex h-full flex-col gap-3">
+      <div class="flex items-center gap-2">
+        <h3 id="plan-<%= c.code %>" class="text-lg font-semibold"><%= c.name %></h3>
+        <% if (c.current) { %><%- ui.badge({ text: 'Your plan', tone: 'info' }) %><% } %>
+      </div>
+      <p class="text-3xl font-semibold"><%= c.priceText %><span class="text-ink-700 text-base font-normal"> a month</span></p>
+      <ul class="text-ink-800 flex flex-1 flex-col gap-1 text-sm">
+        <% c.highlights.forEach((h) => { %><li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span><%= h %></span></li><% }) %>
+      </ul>
+      <% if (!c.current) { %>
+      <form method="post" action="<%= orgBase %>/billing/<%= view.hasSubscription ? 'plan' : 'checkout' %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="plan" value="<%= c.code %>">
+        <%- ui.button({ label: view.hasSubscription ? 'Switch to ' + c.name : 'Start free trial', type: 'submit', variant: view.hasSubscription ? 'secondary' : 'primary', disabled: !configured || !c.canChoose, attrs: { 'aria-label': (view.hasSubscription ? 'Switch to ' : 'Start the free trial of ') + c.name } }) %>
+        <% if (configured && !c.canChoose) { %><p class="text-ink-700 mt-2 text-xs">Not open yet.</p><% } %>
+      </form>
+      <% } %>
+    </div>
+  </section>
+  <% }) %>
+</div>
+
+<% if (view.hasSubscription) { %>
+<h2 class="mt-10 text-2xl">Add-ons</h2>
+<div class="mt-4 grid gap-6 md:grid-cols-2">
+  <% addons.forEach((a) => { %>
+  <section class="card" aria-labelledby="addon-<%= a.code %>">
+    <div class="card-body flex flex-col gap-2">
+      <h3 id="addon-<%= a.code %>" class="text-base font-semibold"><%= a.name %> <span class="text-ink-700 text-sm font-normal">· <%= a.priceText %></span></h3>
+      <p class="text-ink-700 text-sm"><%= a.description %></p>
+      <% if (a.on.length) { %>
+      <p class="text-sm font-medium">On your plan</p>
+      <% a.on.forEach((g) => { %>
+      <form method="post" action="<%= orgBase %>/billing/addons/remove" class="flex gap-2">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="itemId" value="<%= g.itemId %>">
+        <%- ui.button({ label: 'Remove', type: 'submit', variant: 'ghost', size: 'sm', attrs: { 'aria-label': 'Remove ' + a.name } }) %>
+      </form>
+      <% }) %>
+      <% } else { %>
+      <form method="post" action="<%= orgBase %>/billing/addons/add" class="flex flex-wrap items-end gap-3">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="addon" value="<%= a.code %>">
+        <% if (a.quantity) { %><%- ui.field({ id: 'qty-' + a.code, name: 'quantity', label: 'Packs', type: 'number', value: '1' }) %><% } %>
+        <%- ui.button({ label: 'Add', type: 'submit', variant: 'secondary', size: 'sm', attrs: { 'aria-label': 'Add ' + a.name } }) %>
+      </form>
+      <% } %>
+    </div>
+  </section>
+  <% }) %>
+</div>
+<% } %>

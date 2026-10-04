@@ -1,0 +1,44 @@
+<%#
+  Cost and margin (ADMIN_OPERATIONS module 5). Props: days, ranges ([{ days, current }]), total, todayText, anomaly ({ state, text }),
+  perAnswer ({ state, text }), answers, auditsText, meters, plans, orgs. Money comes from the cost ledger; margin from plan prices.
+  A margin is only a number when there was revenue: otherwise it says "No revenue".
+%>
+<h1 class="text-3xl">Cost and margin</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">What the system spent on providers and models, and what each plan earned against it. Figures are from the cost ledger (every paid call, with its cost) and the plans’ prices; the period is the last <%= days %> days.</p>
+<nav aria-label="Period" class="mt-4 flex flex-wrap gap-2">
+  <% for (const r of ranges) { %>
+  <a href="/costs?days=<%= r.days %>" class="<%= r.current ? 'bg-brand-600 border-brand-600 text-white' : 'border-ink-300 text-ink-800 hover:bg-ink-50 bg-white' %> rounded-full border px-3 py-1 text-sm font-medium"<% if (r.current) { %> aria-current="true"<% } %>><%= r.days %> days</a>
+  <% } %>
+</nav>
+
+<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <%- ui.stat({ label: 'Spent in the period', value: total, note: 'Providers and models, all customers' }) %>
+  <%- ui.stat({ label: 'Spent today (UTC)', value: todayText, note: anomaly.text }) %>
+  <%- ui.stat({ label: 'Cost per answer', value: perAnswer.state === 'unknown' ? '—' : perAnswer.text.split(' per answer')[0], state: perAnswer.state === 'unknown' ? 'unknown' : 'ok', note: perAnswer.text }) %>
+  <%- ui.stat({ label: 'Free audits', value: auditsText, note: 'No customer: visitors’ reports' }) %>
+</div>
+<% if (anomaly.state === 'high') { %><div class="mt-4"><%- ui.banner({ tone: 'warning', title: 'Spend today is high.', text: anomaly.text + '. Check the cost by provider below and the spend-cap events.' }) %></div><% } %>
+
+<h2 class="mt-8 text-xl">By plan</h2>
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Revenue, cost and margin by plan', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'plan', label: 'Plan' }, { key: 'orgs', label: 'Customers', numeric: true }, { key: 'paying', label: 'Paying', numeric: true }, { key: 'revenue', label: 'Revenue', numeric: true }, { key: 'cost', label: 'Cost', numeric: true }, { key: 'margin', label: 'Margin', numeric: true }],
+  rows: plans.map((p) => ({ plan: p.plan, orgs: String(p.orgs), paying: String(p.paying), revenue: p.revenue, cost: p.cost, margin: p.margin + (p.marginState === 'on_target' ? ' (on target)' : p.marginState === 'loss' ? ' (loss)' : p.marginState === 'below_target' ? ' (below 70%)' : '') })),
+  emptyText: 'No spend or paying customers in this period.',
+}) }) %>
+
+<h2 class="mt-8 text-xl">By provider and model</h2>
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Cost by provider and model', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'label', label: 'What' }, { key: 'provider', label: 'Provider' }, { key: 'model', label: 'Model' }, { key: 'calls', label: 'Calls', numeric: true }, { key: 'cost', label: 'Cost', numeric: true }, { key: 'share', label: 'Share', numeric: true }],
+  rows: meters,
+  emptyText: 'Nothing was spent in this period.',
+}) }) %>
+
+<h2 class="mt-8 text-xl">Most expensive customers</h2>
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Customers by cost, with margin', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'name', label: 'Customer' }, { key: 'plan', label: 'Plan' }, { key: 'status', label: 'Billing' }, { key: 'cost', label: 'Cost', numeric: true }, { key: 'margin', label: 'Margin', numeric: true }],
+  rows: orgs,
+  emptyText: 'No customer cost anything in this period.',
+}) }) %>

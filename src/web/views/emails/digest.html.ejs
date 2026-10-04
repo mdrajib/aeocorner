@@ -1,0 +1,47 @@
+<%#
+  The weekly digest. Data: digest (src/core/digest.js), dashboardUrl, actionsUrl, settingsUrl.
+  A figure we could not read shows a dash and "Couldn’t check", never 0. Only a significant change is coloured.
+%>
+<%
+// Email has only a few colours, so what a change means is in its words ("rose", "fell"); colour never carries it alone.
+const tone = { success: t['brand-700'], danger: t['ink-950'], warning: t['ink-950'], neutral: t['ink-700'] };
+%>
+<h1 style="margin:0 0 8px 0;font-size:24px;line-height:1.25;color:<%= t['ink-950'] %>;"><%= digest.project.name %>: your week in AI answers</h1>
+<p style="margin:0 0 20px 0;color:<%= t['ink-700'] %>;"><%= digest.headline %></p>
+
+<% digest.notices.forEach((n) => { %>
+<p style="margin:0 0 16px 0;padding:12px;background-color:<%= t['ink-50'] %>;border-radius:8px;"><strong><%= n.title %></strong> <%= n.text %></p>
+<% }) %>
+
+<% if (digest.figures.length) { %>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
+  <% digest.figures.forEach((f) => { %>
+  <tr>
+    <td style="padding:8px 0;border-top:1px solid <%= t['ink-200'] %>;"><%= f.label %></td>
+    <td align="right" style="padding:8px 0;border-top:1px solid <%= t['ink-200'] %>;"><strong style="font-size:20px;color:<%= tone[f.tone] %>;"><%= f.display %></strong><% if (f.note) { %><br><span style="font-size:13px;color:<%= t['ink-700'] %>;"><%= f.note %></span><% } %></td>
+  </tr>
+  <% }) %>
+</table>
+<% } %>
+
+<% if (digest.changes.length) { %>
+<h2 style="margin:0 0 8px 0;font-size:18px;color:<%= t['ink-950'] %>;">What changed</h2>
+<% digest.changes.forEach((c) => { %>
+<p style="margin:0 0 12px 0;"><strong style="color:<%= tone[c.tone] %>;"><%= c.title %></strong><br><span style="color:<%= t['ink-700'] %>;"><%= c.text %></span></p>
+<% }) %>
+<% } %>
+
+<% if (digest.proofs.length) { %>
+<h2 style="margin:16px 0 8px 0;font-size:18px;color:<%= t['ink-950'] %>;">A fix worked</h2>
+<% digest.proofs.forEach((p) => { %><p style="margin:0 0 12px 0;"><%= p %></p><% }) %>
+<% } %>
+
+<% if (digest.actions.length) { %>
+<h2 style="margin:16px 0 8px 0;font-size:18px;color:<%= t['ink-950'] %>;">What to do next</h2>
+<ol style="margin:0 0 20px 20px;padding:0;">
+  <% digest.actions.forEach((a) => { %><li style="margin:0 0 6px 0;"><%= a.title %></li><% }) %>
+</ol>
+<% } %>
+
+<p style="margin:16px 0 24px 0;"><a href="<%= dashboardUrl %>" style="display:inline-block;padding:12px 24px;background-color:<%= t['brand-600'] %>;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">Open the dashboard</a></p>
+<p style="margin:0;font-size:13px;color:<%= t['ink-700'] %>;">You can change which emails you get in <a href="<%= settingsUrl %>" style="color:<%= t['brand-700'] %>;">your notification settings</a>.</p>

@@ -33,7 +33,16 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { notFound } from '../middleware/errors.js';
-import { dateLabel, idFrom, lines, rowsOf, text, toArray, withNotice } from './project-helpers.js';
+import {
+  dateLabel,
+  idFrom,
+  lines,
+  requireCollect,
+  rowsOf,
+  text,
+  toArray,
+  withNotice,
+} from './project-helpers.js';
 
 /**
  * The Content Studio and the WordPress connection of one project (Milestone 7, UI_DESIGN D5 and D6). Registers on the
@@ -201,7 +210,7 @@ export function contentRoutes(
     };
   }
 
-  router.post('/projects/:pid/content', act, async (req, res, next) => {
+  router.post('/projects/:pid/content', act, requireCollect, async (req, res, next) => {
     try {
       const promptId = idFrom(req.body.promptId);
       let title = text(req.body.title, 200);
@@ -225,36 +234,41 @@ export function contentRoutes(
     }
   });
 
-  router.post('/projects/:pid/actions/:rid/content', act, async (req, res, next) => {
-    try {
-      const rid = idFrom(req.params.rid);
-      const detail = rid ? await req.orgDb.recommendations.get(req.project.id, rid) : null;
-      if (!detail) return notFound(req, res);
-      const rec = detail.recommendation;
-      if (rec.fixPath !== 'content' || !['open', 'in_progress'].includes(rec.status)) {
-        return res.redirect(303, withNotice(`${base(res)}/actions/${rid}`, 'action-stale'));
-      }
-      const targetUrl =
-        rec.ruleCode === 'visibility.lost_prompt' ? null : (rec.affectedUrls[0] ?? null);
+  router.post(
+    '/projects/:pid/actions/:rid/content',
+    act,
+    requireCollect,
+    async (req, res, next) => {
       try {
-        const result = await startItem(req, res, {
-          recommendationId: rid,
-          title: rec.title,
-          kind: targetUrl ? 'refresh' : 'new',
-          targetUrl,
-          promptIds: rec.evidence?.promptId ? [BigInt(rec.evidence.promptId)] : [],
-        });
-        return res.redirect(303, result.redirect);
-      } catch (err) {
-        if (err instanceof DomainError && err.code === 'CONTENT_ALREADY_OPEN') {
-          return res.redirect(303, itemBase(res, err.message));
+        const rid = idFrom(req.params.rid);
+        const detail = rid ? await req.orgDb.recommendations.get(req.project.id, rid) : null;
+        if (!detail) return notFound(req, res);
+        const rec = detail.recommendation;
+        if (rec.fixPath !== 'content' || !['open', 'in_progress'].includes(rec.status)) {
+          return res.redirect(303, withNotice(`${base(res)}/actions/${rid}`, 'action-stale'));
         }
-        throw err;
+        const targetUrl =
+          rec.ruleCode === 'visibility.lost_prompt' ? null : (rec.affectedUrls[0] ?? null);
+        try {
+          const result = await startItem(req, res, {
+            recommendationId: rid,
+            title: rec.title,
+            kind: targetUrl ? 'refresh' : 'new',
+            targetUrl,
+            promptIds: rec.evidence?.promptId ? [BigInt(rec.evidence.promptId)] : [],
+          });
+          return res.redirect(303, result.redirect);
+        } catch (err) {
+          if (err instanceof DomainError && err.code === 'CONTENT_ALREADY_OPEN') {
+            return res.redirect(303, itemBase(res, err.message));
+          }
+          throw err;
+        }
+      } catch (err) {
+        return next(err);
       }
-    } catch (err) {
-      return next(err);
-    }
-  });
+    },
+  );
 
   // --- one item ----------------------------------------------------------------------------------------
   async function loadItem(req) {
@@ -566,21 +580,26 @@ export function contentRoutes(
     }
   });
 
-  router.post('/projects/:pid/content/:cid/redraft', act, async (req, res, next) => {
-    try {
-      const item = await loadItem(req);
-      if (!item) return notFound(req, res);
+  router.post(
+    '/projects/:pid/content/:cid/redraft',
+    act,
+    requireCollect,
+    async (req, res, next) => {
       try {
-        await req.orgDb.content.redraft(req.project.id, item.id);
-        await queue(req, item, 'content.draft', item.revisions.length + 1);
-        return back(res, item, 'content-redrafting');
+        const item = await loadItem(req);
+        if (!item) return notFound(req, res);
+        try {
+          await req.orgDb.content.redraft(req.project.id, item.id);
+          await queue(req, item, 'content.draft', item.revisions.length + 1);
+          return back(res, item, 'content-redrafting');
+        } catch (err) {
+          return refused(err, req, res, item);
+        }
       } catch (err) {
-        return refused(err, req, res, item);
+        return next(err);
       }
-    } catch (err) {
-      return next(err);
-    }
-  });
+    },
+  );
 
   router.post('/projects/:pid/content/:cid/approve', approve, async (req, res, next) => {
     try {
@@ -618,50 +637,55 @@ export function contentRoutes(
     }
   });
 
-  router.post('/projects/:pid/content/:cid/publish', approve, async (req, res, next) => {
-    try {
-      const item = await loadItem(req);
-      if (!item) return notFound(req, res);
+  router.post(
+    '/projects/:pid/content/:cid/publish',
+    approve,
+    requireCollect,
+    async (req, res, next) => {
       try {
-        const mode = req.body.mode === 'draft' ? 'draft' : 'publish';
-        const begun = await req.orgDb.content.beginPublish(req.project.id, item.id, {
-          userId: req.user.id,
-          mode,
-        });
+        const item = await loadItem(req);
+        if (!item) return notFound(req, res);
         try {
-          await jobs.add(
-            'content.publish',
-            {
-              orgId: String(req.org.id),
-              projectId: String(req.project.id),
-              itemId: String(item.id),
-              siteChangeId: String(begun.siteChangeId),
-            },
-            { jobId: publishJobId(begun.siteChangeId) },
+          const mode = req.body.mode === 'draft' ? 'draft' : 'publish';
+          const begun = await req.orgDb.content.beginPublish(req.project.id, item.id, {
+            userId: req.user.id,
+            mode,
+          });
+          try {
+            await jobs.add(
+              'content.publish',
+              {
+                orgId: String(req.org.id),
+                projectId: String(req.project.id),
+                itemId: String(item.id),
+                siteChangeId: String(begun.siteChangeId),
+              },
+              { jobId: publishJobId(begun.siteChangeId) },
+            );
+          } catch (err) {
+            logger.error({ err, itemId: String(item.id) }, 'Could not queue publishing');
+            await req.orgDb.content.finishPublish(req.project.id, item.id, {
+              siteChangeId: begun.siteChangeId,
+              outcome: 'failed',
+              error: 'We could not start publishing just now. Nothing was changed on your site.',
+            });
+            return back(res, item, 'content-queue-failed');
+          }
+          return back(
+            res,
+            item,
+            mode === 'draft' ? 'content-publishing-draft' : 'content-publishing',
           );
         } catch (err) {
-          logger.error({ err, itemId: String(item.id) }, 'Could not queue publishing');
-          await req.orgDb.content.finishPublish(req.project.id, item.id, {
-            siteChangeId: begun.siteChangeId,
-            outcome: 'failed',
-            error: 'We could not start publishing just now. Nothing was changed on your site.',
-          });
-          return back(res, item, 'content-queue-failed');
+          return refused(err, req, res, item);
         }
-        return back(
-          res,
-          item,
-          mode === 'draft' ? 'content-publishing-draft' : 'content-publishing',
-        );
       } catch (err) {
-        return refused(err, req, res, item);
+        return next(err);
       }
-    } catch (err) {
-      return next(err);
-    }
-  });
+    },
+  );
 
-  router.post('/projects/:pid/content/:cid/retry', act, async (req, res, next) => {
+  router.post('/projects/:pid/content/:cid/retry', act, requireCollect, async (req, res, next) => {
     try {
       const item = await loadItem(req);
       if (!item) return notFound(req, res);

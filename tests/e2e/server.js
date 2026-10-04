@@ -3,6 +3,7 @@
 // database is the test database, seeded with a small organization. A /__e2e route signs a browser in as a
 // seeded person. Nothing in this file ships: it lives under tests/ and nothing in src/ imports it.
 import { randomBytes } from 'node:crypto';
+import { unsubscribeToken } from '../../src/core/notify.js';
 import { INTENT_LABELS } from '../../src/core/prompt-rules.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
 import { createAuditLimiter } from '../../src/lib/audit-limits.js';
@@ -495,6 +496,102 @@ const contentIds = {};
   });
 }
 
+// Billing and traffic (Milestone 8): the organization is on a trial; the dashboard project has Google connected with eight weeks of
+// AI visits, the running project is waiting for a property to be chosen, and the incomplete one has not connected Google.
+const googleSecret = createSecretBox(config.secrets);
+{
+  await fx.setOrg(org.id, { plan_code: 'starter', billing_status: 'trialing' });
+  const trial = new Date(Date.now() + 6 * DAY);
+  await db.system.billing.subscriptions.apply({
+    parsed: {
+      stripeSubscriptionId: `sub_e2e_${unique()}`,
+      stripeCustomerId: `cus_e2e_${unique()}`,
+      orgPublicId: org.public_id,
+      planCode: 'starter',
+      status: 'trialing',
+      orgStatus: 'trialing',
+      trialEndsAt: trial,
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: trial,
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+      addons: [],
+    },
+  });
+  const grant = (project) =>
+    scoped.google.saveGrant(project.id, {
+      secret: googleSecret.encrypt('rt-e2e', `google:${org.id}:${project.id}`),
+      scopes: [],
+      properties: [{ id: '123456789', name: 'Data Dental - GA4', account: 'Data Dental' }],
+      sites: [{ siteUrl: 'https://data-dental.example.test/', level: 'siteOwner' }],
+      userId: people.owner.id,
+    });
+  await grant(runningProject);
+  await grant(dashProject);
+  await scoped.google.choose(dashProject.id, {
+    ga4PropertyId: '123456789',
+    gscSiteUrl: 'https://data-dental.example.test/',
+  });
+  const monday = (weeksAgo) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) - weeksAgo * 7);
+    return d.toISOString().slice(0, 10);
+  };
+  const rows = [];
+  for (let w = 1; w <= 9; w += 1) {
+    const date = monday(w);
+    rows.push(
+      {
+        metricDate: date,
+        channel: 'chatgpt',
+        landingPage: '/pricing',
+        sessions: 8 + w,
+        engagedSessions: 5,
+        keyEvents: 1,
+        revenue: 0,
+        currency: 'USD',
+      },
+      {
+        metricDate: date,
+        channel: 'perplexity',
+        landingPage: '/',
+        sessions: 4,
+        engagedSessions: 3,
+        keyEvents: 0,
+        revenue: 0,
+        currency: 'USD',
+      },
+      {
+        metricDate: date,
+        channel: 'all',
+        landingPage: '',
+        sessions: 180,
+        engagedSessions: 110,
+        keyEvents: 6,
+        revenue: 0,
+        currency: 'USD',
+      },
+    );
+  }
+  await scoped.traffic.saveGa4(dashProject.id, rows);
+  await scoped.traffic.saveSearch(dashProject.id, [
+    {
+      metricDate: monday(1),
+      dimension: 'query',
+      value: 'data dental austin',
+      isBranded: true,
+      clicks: 14,
+      impressions: 60,
+      avgPosition: 1.3,
+    },
+  ]);
+  await scoped.google.syncResult(dashProject.id, {
+    ok: true,
+    from: monday(9),
+    to: new Date(Date.now() - DAY).toISOString().slice(0, 10),
+  });
+}
+
 const tokens = {
   signedOut: await invite(`new.hire.${unique()}@example.test`, 'editor'),
   accept: await invite(people.invitee.email, 'viewer'),
@@ -518,6 +615,10 @@ const fixtureInfo = {
   contentPublishedId: contentIds.published,
   contentWorkingId: contentIds.working,
   contentFailedId: contentIds.failed,
+  unsubscribeToken: unsubscribeToken(
+    { userId: String(people.owner.id), pref: 'digest' },
+    config.appSecret,
+  ),
   promptId: String(firstPrompt.id),
   membershipId: String(editorSeat.id),
   tokens,

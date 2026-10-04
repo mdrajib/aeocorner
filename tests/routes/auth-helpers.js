@@ -70,6 +70,8 @@ export function authHarness({
   queues,
   jobs,
   content,
+  billing,
+  google,
   domainVerifier,
 } = {}) {
   const db = connectTestDb();
@@ -93,6 +95,8 @@ export function authHarness({
     queues,
     jobs,
     ...(content ? { content } : {}),
+    ...(billing ? { billing } : {}),
+    ...(google ? { google } : {}),
     ...(domainVerifier ? { domainVerifier } : {}),
   });
   const agent = request(app);

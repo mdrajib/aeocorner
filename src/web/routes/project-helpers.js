@@ -62,6 +62,22 @@ export function returnPath(projectBase, where) {
   return places[where] ?? projectBase;
 }
 
+/**
+ * Steps that cost money (tracking, "check now", writing and publishing content) only run while the plan allows
+ * collection. `res.locals.access` is set only when billing is enforced (src/web/routes/app.js), so before Stripe is
+ * switched on every request passes.
+ */
+export function requireCollect(req, res, next) {
+  const access = res.locals.access;
+  if (access && !access.collect) {
+    return res.redirect(
+      303,
+      withNotice(res.locals.projectBase ?? res.locals.orgBase, 'plan-paused'),
+    );
+  }
+  return next();
+}
+
 /** The same path with `?notice=…` (or `&notice=…`) added. */
 export const withNotice = (path, notice) =>
   `${path}${path.includes('?') ? '&' : '?'}notice=${encodeURIComponent(notice)}`;

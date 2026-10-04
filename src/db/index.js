@@ -2,6 +2,7 @@ import { createPrisma } from './client.js';
 import { abuseRepo } from './repos/abuse.js';
 import { auditsRepo } from './repos/audits.js';
 import { leadsRepo } from './repos/leads.js';
+import { notificationsRepo } from './repos/notifications.js';
 import { invitationLinksRepo } from './repos/invitation-links.js';
 import { orgScopedRepos } from './repos/org-scoped.js';
 import { organizationsRepo } from './repos/organizations.js';
@@ -36,6 +37,7 @@ export function createDb(options) {
     audits: auditsRepo(prisma),
     abuse: abuseRepo(prisma),
     leads: leadsRepo(prisma),
+    notifications: notificationsRepo(prisma),
     system: systemRepos(prisma),
     reference: referenceRepos(prisma),
     forOrg: (orgId) => orgScopedRepos(prisma, orgId),

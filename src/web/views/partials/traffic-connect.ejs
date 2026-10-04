@@ -1,0 +1,17 @@
+<%# Connect Google for the first time. Props: canManage, configured, csrf, projectBase. %>
+<div class="flex flex-col gap-3">
+  <p class="text-ink-700 text-sm">Connect Google Analytics and Search Console and this page shows how many people reach your site from ChatGPT, Perplexity, Gemini and the other assistants, and which pages they land on. It takes about two minutes.</p>
+  <ul class="text-ink-800 flex flex-col gap-1 text-sm">
+    <li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span>Read-only: we can look, we can’t change anything in your Google account.</span></li>
+    <li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span>We keep the day, the source, the page and the counts. Nothing about individual visitors.</span></li>
+    <li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span>You can disconnect any time, and we erase the saved login.</span></li>
+  </ul>
+  <% if (canManage) { %>
+  <form method="post" action="<%= projectBase %>/integrations/google/connect">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <%- ui.button({ label: 'Connect Google', type: 'submit', variant: 'primary', disabled: !configured }) %>
+  </form>
+  <% } else { %>
+  <p class="text-ink-700 text-sm">An owner or admin of this organization can connect Google.</p>
+  <% } %>
+</div>

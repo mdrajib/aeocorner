@@ -66,6 +66,19 @@ export function staffRepo(prisma) {
         },
       }),
 
+    /** The newest entries of the audit log, newest first, with the staff member's name (for the console's audit page). */
+    async recentAudit({ limit = 100 } = {}) {
+      const rows = await prisma.admin_audit_log.findMany({
+        orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+        take: Math.min(limit, 500),
+        include: { staff_users: { select: { name: true } } },
+      });
+      return rows.map(({ staff_users: staff, ...row }) => ({
+        ...row,
+        staff_name: staff?.name ?? null,
+      }));
+    },
+
     recordLogin: (staffId, ip) =>
       prisma.staff_users.update({
         where: { id: staffId },

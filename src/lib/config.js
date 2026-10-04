@@ -95,7 +95,22 @@ const envSchema = z.object({
   SECRETS_MASTER_KEY_VERSION: z.coerce.number().int().min(1).max(32000).default(1),
   SECRETS_MASTER_KEY_PREVIOUS: optional(z.string().min(40)),
 
+  // Billing (Milestone 8). With a secret key set, billing is ENFORCED: an organization with no subscription can set a
+  // project up but nothing is tracked until it has started a trial. Without one (a laptop, the tests) nothing is locked.
+  STRIPE_SECRET_KEY: optional(
+    z.string().regex(/^(sk|rk)_(test|live)_/, 'must be a Stripe secret or restricted key'),
+  ),
+  STRIPE_PUBLISHABLE_KEY: optional(z.string().min(1)),
+  STRIPE_WEBHOOK_SECRET: optional(z.string().regex(/^whsec_/, 'must start with whsec_')),
+  STRIPE_API_VERSION: optional(z.string().regex(/^d{4}-d{2}-d{2}(.[a-z]+)?$/)),
+
+  // Google OAuth for GA4 and Search Console (Milestone 8). Both or neither.
+  GOOGLE_OAUTH_CLIENT_ID: optional(z.string().min(1)),
+  GOOGLE_OAUTH_CLIENT_SECRET: optional(z.string().min(1)),
+
   RESEND_API_KEY: optional(z.string().min(1)),
+  // Signs Resend's delivery, bounce and complaint webhooks (Svix). Without it those webhooks are refused.
+  RESEND_WEBHOOK_SECRET: optional(z.string().regex(/^whsec_/, 'must start with whsec_')),
   EMAIL_FROM_ADDRESS: optional(z.string().min(3)),
 });
 
@@ -139,6 +154,40 @@ export function cloudflareTeamDomain(value) {
     .replace(/^https?:\/\//, '')
     .replace(/\/+$/, '');
   return host.includes('.') ? host : `${host}.cloudflareaccess.com`;
+}
+
+/** Stripe: a secret key turns billing on. A live key outside production is refused, as is a key without its webhook secret. */
+function stripeConfig(e, appEnv) {
+  if (!e.STRIPE_SECRET_KEY) return null;
+  const isLive = /^(sk|rk)_live_/.test(e.STRIPE_SECRET_KEY);
+  if (isLive && appEnv !== 'production') {
+    throw new Error(
+      'A live Stripe key is only allowed in the production environment: use a test key here.',
+    );
+  }
+  if (!isLive && appEnv === 'production') {
+    throw new Error('The live site needs a live Stripe key (this one is a test key).');
+  }
+  return {
+    secretKey: e.STRIPE_SECRET_KEY,
+    publishableKey: e.STRIPE_PUBLISHABLE_KEY ?? null,
+    webhookSecret: e.STRIPE_WEBHOOK_SECRET ?? null,
+    apiVersion: e.STRIPE_API_VERSION ?? null,
+    isLive,
+  };
+}
+
+/** Google OAuth needs the client ID and secret together. */
+function googleConfig(e) {
+  const id = e.GOOGLE_OAUTH_CLIENT_ID;
+  const secret = e.GOOGLE_OAUTH_CLIENT_SECRET;
+  if (!id && !secret) return null;
+  if (!id || !secret) {
+    throw new Error(
+      'Google OAuth: set both GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET, or neither.',
+    );
+  }
+  return { clientId: id, clientSecret: secret };
 }
 
 /**
@@ -281,6 +330,9 @@ export function loadConfig(env = process.env) {
     }
   }
 
+  const stripe = stripeConfig(e, appEnv);
+  const google = googleConfig(e);
+
   const cloudflareAccess =
     e.CLOUDFLARE_ACCESS_TEAM_DOMAIN && e.CLOUDFLARE_ACCESS_AUD
       ? {
@@ -331,6 +383,10 @@ export function loadConfig(env = process.env) {
     anthropic: e.ANTHROPIC_API_KEY ? { apiKey: e.ANTHROPIC_API_KEY } : null,
     extraction: { model: e.EXTRACTION_MODEL },
     content: { model: e.CONTENT_MODEL },
+    stripe,
+    google,
+    // Plans are enforced exactly when there is a way to pay.
+    billingEnforced: Boolean(stripe),
     auth: customer
       ? {
           ...customer,
@@ -342,6 +398,7 @@ export function loadConfig(env = process.env) {
     staff,
     email: {
       resendApiKey: e.RESEND_API_KEY ?? null,
+      webhookSecret: e.RESEND_WEBHOOK_SECRET ?? null,
       from: e.EMAIL_FROM_ADDRESS ?? 'AEO Corner <hello@aeocorner.com>',
     },
   };

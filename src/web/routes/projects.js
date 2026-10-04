@@ -24,6 +24,7 @@ import { dateLabel, idFrom, returnPath, withNotice } from './project-helpers.js'
 import { questionRoutes } from './project-questions.js';
 import { setupRoutes } from './project-setup.js';
 import { trackingRoutes } from './project-tracking.js';
+import { trafficRoutes } from './project-traffic.js';
 
 /**
  * Projects inside one organization (Milestone 3): the list, "create a project", and one project's page.
@@ -47,6 +48,8 @@ export function projectRoutes({
   appPage,
   verifier = null,
   content = null,
+  google = null,
+  config = null,
 }) {
   const router = Router({ mergeParams: true });
   const create = auth.requirePermission('project.create');
@@ -164,6 +167,11 @@ export function projectRoutes({
         city: text(req.body.city, 128),
       };
       const errors = {};
+      // The plan's number of projects. Archiving one makes room.
+      const room = await req.orgDb.billing.canAdd('projects');
+      if (!room.allowed) {
+        return res.redirect(303, `${res.locals.orgBase}/billing?notice=plan-limit-projects`);
+      }
       const audit = await claimedAudit(req);
       const site = normalizeWebsite(values.website);
       if (!site.ok) errors.website = 'Enter your website, like acme-dental.com.';
@@ -479,6 +487,7 @@ export function projectRoutes({
   dashboardRoutes(router, { appPage, edit, logger });
   actionRoutes(router, { appPage, act, jobs, logger });
   contentRoutes(router, { appPage, act, approve, manage, jobs, logger, content });
+  trafficRoutes(router, { appPage, manage, jobs, logger, google, config, content });
 
   return { router, visibleIds };
 }

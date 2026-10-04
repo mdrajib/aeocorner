@@ -1,4 +1,4 @@
-import { recsRefreshJobId } from '../lib/job-ids.js';
+import { alertsJobId, recsRefreshJobId } from '../lib/job-ids.js';
 
 /**
  * Ask for a project's recommendations to be brought up to date (`recommendations.refresh`), after a run or a scan
@@ -21,6 +21,27 @@ export async function queueRefresh(ctx, { orgId, projectId, cause, runId = null 
     ctx.logger.warn(
       { err: err.message, projectId: String(projectId), cause },
       'Could not queue a recommendations refresh',
+    );
+    return false;
+  }
+}
+
+/**
+ * Ask for the alerts a finished run may have earned (`alerts.evaluate`). Like the refresh, a failure to queue is logged and
+ * swallowed: the run is already saved, and the next one asks again (the events stay un-alerted for two weeks).
+ */
+export async function queueAlerts(ctx, { orgId, projectId, runId }) {
+  try {
+    await ctx.jobs.add(
+      'alerts.evaluate',
+      { orgId: String(orgId), projectId: String(projectId), runId: String(runId) },
+      { jobId: alertsJobId(projectId, runId) },
+    );
+    return true;
+  } catch (err) {
+    ctx.logger.warn(
+      { err: err.message, projectId: String(projectId) },
+      'Could not queue the alerts',
     );
     return false;
   }

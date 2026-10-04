@@ -15,5 +15,6 @@ One-way-door technical decisions made while building AEO Corner, and the reasoni
 | [0009](0009-charts.md) | Charts: Chart.js, self-hosted, with the data table as the chart | Accepted | 2026-10-03 |
 | [0010](0010-recommendations-and-proof.md) | Recommendations and proof: stable keys, a lifecycle only the system can finish, and words that cannot claim more than the evidence | Accepted | 2026-10-04 |
 | [0011](0011-content-studio-and-wordpress.md) | Content Studio and WordPress: nothing goes live without a person, nothing is trusted from a model, and the connection is signed | Accepted | 2026-10-04 |
+| [0012](0012-billing-traffic-notifications-and-the-console.md) | Billing, traffic, email and the staff console: Stripe is the truth, plans are enforced only where there is a way to pay, secrets are opened only by the worker, and every staff change is recorded first | Accepted | 2026-10-04 |
 
 **Format:** Status, Context, Decision, Consequences. Numbered sequentially, never renumbered or deleted — a reversed decision gets a new ADR marking the old one `Superseded by ADR-000N`, per [CLAUDE.md](../../CLAUDE.md)'s consistency rule.

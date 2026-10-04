@@ -3,7 +3,7 @@ import { isRunning } from '../../core/run-status.js';
 import { DomainError } from '../../db/index.js';
 import { trackingPlanJobId } from '../../lib/job-ids.js';
 import { ulid } from '../../lib/ulid.js';
-import { withNotice } from './project-helpers.js';
+import { requireCollect, withNotice } from './project-helpers.js';
 
 /**
  * Switching tracking on and asking for a check now (Milestone 4). Both register on the project router.
@@ -34,7 +34,7 @@ export function trackingRoutes(router, { jobs, logger, edit }) {
     return { created, run };
   }
 
-  router.post('/projects/:pid/setup/start', edit, async (req, res, next) => {
+  router.post('/projects/:pid/setup/start', edit, requireCollect, async (req, res, next) => {
     try {
       const setup = `${res.locals.projectBase}/setup/start`;
       if (!jobs) return res.redirect(303, withNotice(setup, 'queue-down'));
@@ -62,7 +62,7 @@ export function trackingRoutes(router, { jobs, logger, edit }) {
     }
   });
 
-  router.post('/projects/:pid/run-now', edit, async (req, res, next) => {
+  router.post('/projects/:pid/run-now', edit, requireCollect, async (req, res, next) => {
     try {
       const home = res.locals.projectBase;
       if (!jobs) return res.redirect(303, withNotice(home, 'queue-down'));

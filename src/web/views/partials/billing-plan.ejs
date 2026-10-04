@@ -1,0 +1,16 @@
+<%# The plan card on the billing screen. Props: view, csrfToken, orgBase, hasCustomer, configured. %>
+<div class="flex flex-col gap-3">
+  <div class="flex flex-wrap items-center gap-2">
+    <p class="text-2xl font-semibold"><%= view.planName || 'No plan yet' %></p>
+    <%- ui.badge({ text: view.statusLabel, tone: view.statusTone }) %>
+  </div>
+  <p class="text-ink-800 text-sm font-medium"><%= view.statusLine %></p>
+  <% view.lines.forEach((line) => { %><p class="text-ink-700 text-sm"><%= line %></p><% }) %>
+  <% if (view.canManage && hasCustomer) { %>
+  <form method="post" action="<%= orgBase %>/billing/portal">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.button({ label: 'Manage billing', type: 'submit', variant: 'secondary', disabled: !configured }) %>
+    <p class="text-ink-700 mt-2 text-xs">Opens Stripe, where you update your card, see invoices or cancel.</p>
+  </form>
+  <% } %>
+</div>

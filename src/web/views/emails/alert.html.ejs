@@ -1,0 +1,13 @@
+<%#
+  An alert. Data: projectName, items ([{ tone, title, text }]), dashboardUrl, settingsUrl.
+  Claims are shown as the AI said them and are escaped; we say we have not checked them.
+%>
+<h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.25;color:<%= t['ink-950'] %>;"><%= items.length === 1 ? 'Something changed' : items.length + ' things changed' %> for <%= projectName %></h1>
+<% items.forEach((item) => { %>
+<p style="margin:0 0 16px 0;padding:12px 16px;border-left:4px solid <%= item.tone === 'warning' ? t['signal-400'] : t['brand-600'] %>;background-color:<%= t['ink-50'] %>;">
+  <strong><%= item.title %></strong><br>
+  <span style="color:<%= t['ink-700'] %>;"><%= item.text %></span>
+</p>
+<% }) %>
+<p style="margin:0 0 24px 0;"><a href="<%= dashboardUrl %>" style="display:inline-block;padding:12px 24px;background-color:<%= t['brand-600'] %>;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">See the answers behind this</a></p>
+<p style="margin:0;font-size:13px;color:<%= t['ink-700'] %>;">We only email an alert when a change passed our significance test or an answer said something negative about you. <a href="<%= settingsUrl %>" style="color:<%= t['brand-700'] %>;">Change your alerts</a>.</p>

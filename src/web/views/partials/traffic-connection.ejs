@@ -1,0 +1,14 @@
+<%# The state of a connected Google login. Props: connection, canManage, csrf, projectBase, gaOn, gscOn. %>
+<dl class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+  <div class="flex gap-2"><dt class="text-ink-700">Analytics:</dt><dd class="font-medium"><%= gaOn ? (connection.properties.find((p) => p.id === connection.ga4PropertyId)?.name ?? 'Chosen') : 'Not read' %></dd></div>
+  <div class="flex gap-2"><dt class="text-ink-700">Search Console:</dt><dd class="font-medium [overflow-wrap:anywhere]"><%= gscOn ? connection.gscSiteUrl : 'Not read' %></dd></div>
+  <div class="flex gap-2"><dt class="text-ink-700">Last read:</dt><dd class="font-medium"><%= connection.lastSuccessAt ? connection.lastSuccessAt.toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : 'Not yet' %></dd></div>
+</dl>
+<% if (canManage) { %>
+<div class="mt-3 flex flex-wrap items-center gap-3">
+  <form method="post" action="<%= projectBase %>/integrations/google/sync"><input type="hidden" name="_csrf" value="<%= csrf %>"><%- ui.button({ label: 'Read again now', type: 'submit', variant: 'secondary', size: 'sm' }) %></form>
+  <form method="post" action="<%= projectBase %>/integrations/google/connect"><input type="hidden" name="_csrf" value="<%= csrf %>"><%- ui.button({ label: connection.status === 'broken' ? 'Reconnect Google' : 'Choose different data', type: 'submit', variant: 'secondary', size: 'sm' }) %></form>
+  <form method="post" action="<%= projectBase %>/integrations/google/disconnect"><input type="hidden" name="_csrf" value="<%= csrf %>"><%- ui.button({ label: 'Disconnect', type: 'submit', variant: 'ghost', size: 'sm' }) %></form>
+</div>
+<p class="text-ink-700 mt-2 text-xs">Disconnecting erases the login we saved. To also remove AEO Corner from your Google account, open myaccount.google.com/permissions.</p>
+<% } %>

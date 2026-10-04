@@ -1490,6 +1490,218 @@ describe('content studio and integrations', () => {
   });
 });
 
+describe('billing, alerts, notification choices and Google traffic (Milestone 8)', () => {
+  let aProject;
+  let bProject;
+  const secret = {
+    ciphertext: Buffer.alloc(40, 1),
+    wrappedDek: Buffer.alloc(60, 2),
+    keyVersion: 1,
+  };
+  const grant = (project, owner) => ({
+    secret,
+    scopes: [],
+    properties: [{ id: '111', name: 'B property', account: 'B' }],
+    sites: [],
+    userId: owner.id,
+    projectId: project.id,
+  });
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Billing A');
+    bProject = await fx.project(B.org.id, 'Billing B');
+    await fx.setOrg(B.org.id, {
+      plan_code: 'agency',
+      billing_status: 'active',
+      stripe_customer_id: `cus_b_${Date.now()}`,
+    });
+    await fx.grant(B.org.id, { meter: 'prompts', amount: 77, source: 'staff_grant' });
+    await B.scoped.google.saveGrant(bProject.id, grant(bProject, B.owner));
+    await B.scoped.google.choose(bProject.id, { ga4PropertyId: '111' });
+    await B.scoped.traffic.saveGa4(bProject.id, [
+      {
+        metricDate: '2026-09-01',
+        channel: 'chatgpt',
+        landingPage: '/b',
+        sessions: 5,
+        engagedSessions: 3,
+        keyEvents: 1,
+        revenue: 0,
+        currency: 'USD',
+      },
+    ]);
+  });
+
+  test('billing.summary / limitFor / usage / addons: A sees only A’s plan, grants and counts, never B’s', async () => {
+    const a = await A.scoped.billing.summary();
+    assert.equal(a.planCode, null);
+    assert.equal(a.stripeCustomerId, null);
+    assert.deepEqual(a.grants, []);
+    assert.equal(a.limits.prompts, null);
+    assert.equal(await A.scoped.billing.limitFor('prompts'), null);
+    const b = await B.scoped.billing.summary();
+    assert.equal(b.planCode, 'agency');
+    assert.equal(b.limits.prompts, 500 + 77);
+    assert.equal(
+      (await A.scoped.billing.usage()).projects,
+      (await A.scoped.projects.list()).filter((p) => p.status !== 'archived').length,
+      'A’s own projects only, not B’s',
+    );
+    assert.deepEqual(await A.scoped.billing.addons(), []);
+    assert.equal(await A.scoped.billing.hasMeteredDrafts(), false);
+    assert.equal(
+      (await A.scoped.billing.access()).level,
+      'setup',
+      'A has no plan; B being active does not help it',
+    );
+    assert.equal((await B.scoped.billing.access()).level, 'full');
+  });
+
+  test('billing.canAdd / promptRoom / feature / featureAllowed: decided from A’s own data, whichever project ID is named', async () => {
+    assert.equal((await A.scoped.billing.canAdd('projects')).limit, null);
+    assert.equal(
+      await A.scoped.billing.promptRoom(bProject.id),
+      null,
+      'A has no plan, so no limit: nothing of B’s is read',
+    );
+    assert.equal(await A.scoped.billing.feature('client_seats'), false);
+    assert.equal(
+      await A.scoped.billing.featureAllowed('client_seats'),
+      true,
+      'no plan yet is not held back',
+    );
+    assert.equal(await B.scoped.billing.featureAllowed('client_seats'), true);
+  });
+
+  test('billing.attachCustomer: sets only A’s customer, and B’s is untouched', async () => {
+    const before = (await B.scoped.billing.summary()).stripeCustomerId;
+    await A.scoped.billing.attachCustomer(`cus_a_${Date.now()}`);
+    assert.equal((await B.scoped.billing.summary()).stripeCustomerId, before);
+    assert.match((await A.scoped.billing.summary()).stripeCustomerId, /^cus_a_/);
+  });
+
+  test('billing.note: writes into A’s own activity log only', async () => {
+    const before = (await B.scoped.activity.recent()).length;
+    await A.scoped.billing.note({ action: 'billing.test', summary: 'a note' });
+    assert.equal((await B.scoped.activity.recent()).length, before);
+    assert.ok((await A.scoped.activity.recent()).some((e) => e.action === 'billing.test'));
+  });
+
+  test('alerts.pending / markAlerted / recipients / digestFacts: B’s project is refused', async () => {
+    await refuses(A.scoped.alerts.pending(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.alerts.markAlerted(bProject.id, [1n]), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.alerts.recipients(bProject.id, 'digest'), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.alerts.digestFacts(bProject.id), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('alerts.markAlerted: cannot mark B’s change event told, even through A’s own project', async () => {
+    const event = await fx.changeEvent(bProject, { key: 'tenancy-b' });
+    assert.equal(await A.scoped.alerts.markAlerted(aProject.id, [event.id]), 0);
+    assert.equal((await B.scoped.alerts.pending(bProject.id)).events.length, 1);
+    assert.equal(await B.scoped.alerts.markAlerted(bProject.id, [event.id]), 1);
+  });
+
+  test('alerts.recipients: A’s list never includes B’s members', async () => {
+    const mine = await A.scoped.alerts.recipients(aProject.id, 'digest');
+    assert.ok(!mine.some((r) => r.userId === B.owner.id));
+    assert.ok(mine.some((r) => r.userId === A.owner.id));
+  });
+
+  test('notifyPrefs.get / set: B’s member has no settings in A, and A cannot change B’s', async () => {
+    assert.equal(await A.scoped.notifyPrefs.get(B.owner.id), null);
+    await refuses(
+      A.scoped.notifyPrefs.set(B.owner.id, { digest: false, alerts: false }),
+      'NOT_FOUND',
+    );
+    assert.deepEqual(await B.scoped.notifyPrefs.get(B.owner.id), { digest: true, alerts: true });
+    assert.deepEqual(await A.scoped.notifyPrefs.set(A.owner.id, { digest: false, alerts: true }), {
+      digest: false,
+      alerts: true,
+    });
+  });
+
+  test('google.status / saveGrant / choose / secret / syncResult / disconnect: B’s project is refused, and B’s connection is unchanged', async () => {
+    await refuses(A.scoped.google.status(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      A.scoped.google.saveGrant(bProject.id, grant(bProject, A.owner)),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(
+      A.scoped.google.choose(bProject.id, { ga4PropertyId: '111' }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(A.scoped.google.secret(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      A.scoped.google.syncResult(bProject.id, { ok: false, error: 'x' }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(A.scoped.google.disconnect(bProject.id), 'PROJECT_NOT_IN_ORG');
+    const b = await B.scoped.google.status(bProject.id);
+    assert.equal(b.status, 'connected');
+    assert.equal(b.hasSecret, true);
+    assert.equal(await A.scoped.google.status(aProject.id), null);
+  });
+
+  test('traffic.range / searchRange / saveGa4 / saveSearch: B’s project is refused, and B’s numbers are not readable from A', async () => {
+    const wide = { from: '2020-01-01', to: '2030-01-01' };
+    await refuses(A.scoped.traffic.range(bProject.id, wide), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.traffic.searchRange(bProject.id, wide), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.traffic.saveGa4(bProject.id, []), 'PROJECT_NOT_IN_ORG');
+    await refuses(A.scoped.traffic.saveSearch(bProject.id, []), 'PROJECT_NOT_IN_ORG');
+    assert.deepEqual(await A.scoped.traffic.range(aProject.id, wide), []);
+    assert.equal((await B.scoped.traffic.range(bProject.id, wide)).length, 1);
+  });
+});
+
+describe('what the worker and the staff console may look up across organizations (Milestone 8)', () => {
+  test('billing: the organization a Stripe subscription belongs to is found by its customer or its own ID, nothing else', async () => {
+    const bCustomer = (await B.scoped.billing.summary()).stripeCustomerId;
+    const sub = {
+      stripeSubscriptionId: `sub_x_${Date.now()}`,
+      stripeCustomerId: bCustomer,
+      orgPublicId: A.org.public_id, // claims A but names B's customer: the customer wins, and a mismatch is refused
+      planCode: 'starter',
+      status: 'active',
+      orgStatus: 'active',
+      trialEndsAt: null,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+      addons: [],
+    };
+    const result = await db.system.billing.subscriptions.apply({ parsed: sub });
+    assert.equal(result.orgId, B.org.id, 'it landed on the customer’s organization');
+    assert.equal((await A.scoped.billing.summary()).planCode, null, 'and A was not touched');
+    assert.deepEqual(
+      await db.system.billing.subscriptions.apply({
+        parsed: { ...sub, stripeCustomerId: 'cus_nobody', orgPublicId: 'x' },
+      }),
+      { applied: false, reason: 'unknown_organization' },
+    );
+  });
+
+  test('billing.retention / trials / meters: return only IDs, names for the email, and counts', async () => {
+    const found = await db.system.billing.retention.warnable({ now: new Date(), days: 36500 });
+    for (const w of found)
+      assert.deepEqual(Object.keys(w).sort(), ['orgId', 'orgName', 'owners', 'retainUntil']);
+    const trials = await db.system.billing.trials.ending({ now: new Date(), days: 36500 });
+    for (const t of trials) assert.ok(!('payload' in t));
+  });
+
+  test('costs, providers, review and flags: aggregates and items by ID, never a customer’s name in the review queue', async () => {
+    const since = new Date(Date.now() - 86_400_000);
+    for (const r of await db.system.costs.byMeter({ since })) assert.ok(!('orgId' in r));
+    for (const r of await db.system.costs.daily({ since }))
+      assert.deepEqual(Object.keys(r).sort(), ['costMicros', 'day']);
+    for (const r of await db.system.review.list({}))
+      assert.ok(!('orgId' in r) && !('orgName' in r), 'the list names no customer');
+    const counts = await db.system.review.counts();
+    for (const n of Object.values(counts)) assert.equal(typeof n, 'number');
+    assert.equal(await db.system.flags.isEnabled('test.never_created', A.org.id), false);
+  });
+});
+
 describe('what the worker may look up across organizations about the Action Center', () => {
   test('due(), overdue() and ruleStats() return IDs and counts, never tenant content', async () => {
     for (const row of await db.system.outcomes.due({ now: new Date('2099-01-01') })) {
@@ -1514,6 +1726,24 @@ describe('coverage: no repository function without a leak test', () => {
     usage: ['recent', 'record', 'spentSinceMicros'],
     spend: ['pause', 'resume', 'state'],
     notifications: ['createOnce', 'forUser'],
+    billing: [
+      'access',
+      'addons',
+      'attachCustomer',
+      'canAdd',
+      'feature',
+      'featureAllowed',
+      'hasMeteredDrafts',
+      'limitFor',
+      'note',
+      'promptRoom',
+      'summary',
+      'usage',
+    ],
+    alerts: ['digestFacts', 'markAlerted', 'pending', 'recipients'],
+    notifyPrefs: ['get', 'set'],
+    google: ['choose', 'disconnect', 'saveGrant', 'secret', 'status', 'syncResult'],
+    traffic: ['range', 'saveGa4', 'saveSearch', 'searchRange'],
     projects: [
       'archive',
       'create',
@@ -1634,10 +1864,45 @@ describe('coverage: no repository function without a leak test', () => {
     providerHealth: ['knownProviders', 'recent', 'upsertBucket'],
     outcomes: ['due', 'ruleStats'],
     verifications: ['overdue'],
+    traffic: ['connections'],
+    digest: ['projectsInTimezones', 'timezones'],
+    // Costs and health are aggregates; the review queue shows an item and the names being tracked, never the customer;
+    // flags are staff's switches. Each is only reached from the console, behind its wall, and every write there is audited.
+    costs: ['answers', 'auditsMicros', 'byMeter', 'byOrganization', 'daily'],
+    providers: ['buckets'],
+    review: [
+      'addAlias',
+      'assign',
+      'counts',
+      'get',
+      'list',
+      'markGolden',
+      'reject',
+      'requestReextract',
+      'resolve',
+    ],
+    flags: ['clearOverride', 'ensureKnown', 'isEnabled', 'list', 'set', 'setOverride'],
+  };
+
+  // Billing is a group of groups: what a Stripe webhook and the billing jobs need to find an organization by Stripe's IDs.
+  const SYSTEM_BILLING = {
+    plans: ['get', 'list', 'priceMap', 'setStripePrice'],
+    subscriptions: ['apply', 'reconcilable'],
+    retention: ['close', 'due', 'warnable'],
+    trials: ['ending'],
+    meters: ['draftsToReport', 'markDraftsReported'],
   };
 
   test('every cross-organization system lookup is listed above', () => {
-    assert.deepEqual(Object.keys(db.system).sort(), Object.keys(SYSTEM).sort());
+    assert.deepEqual(Object.keys(db.system).sort(), [...Object.keys(SYSTEM), 'billing'].sort());
+    for (const [group, functions] of Object.entries(SYSTEM_BILLING)) {
+      assert.deepEqual(
+        Object.keys(db.system.billing[group]).sort(),
+        functions,
+        `billing.${group}: review, then list`,
+      );
+    }
+    assert.deepEqual(Object.keys(db.system.billing).sort(), Object.keys(SYSTEM_BILLING).sort());
     for (const [repo, functions] of Object.entries(SYSTEM)) {
       assert.deepEqual(
         Object.keys(db.system[repo]).sort(),
@@ -1658,6 +1923,8 @@ describe('coverage: no repository function without a leak test', () => {
     }
     assert.deepEqual(Object.keys(scoped).sort(), [
       'activity',
+      'alerts',
+      'billing',
       'brandKits',
       'changes',
       'content',
@@ -1665,11 +1932,13 @@ describe('coverage: no repository function without a leak test', () => {
       'draftQuota',
       'entities',
       'extractions',
+      'google',
       'integrations',
       'invitations',
       'memberships',
       'metrics',
       'notifications',
+      'notifyPrefs',
       'orgId',
       'outcomes',
       'projectEngines',
@@ -1681,6 +1950,7 @@ describe('coverage: no repository function without a leak test', () => {
       'scans',
       'snapshots',
       'spend',
+      'traffic',
       'usage',
     ]);
   });

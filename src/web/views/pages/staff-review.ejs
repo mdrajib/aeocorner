@@ -1,0 +1,33 @@
+<%#
+  The extraction review queue (ADMIN_OPERATIONS module 6). Props: items ([{ id, source, status, reportKind, createdAt, engineCode, question, excerpt }]),
+  counts (by source), source (filter or null). A reviewer sees the answer and the names tracked, never who the customer is.
+%>
+<h1 class="text-3xl">Review queue</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">Answers where the rule-based reader and Claude disagree, answers customers reported (“That’s not us”, “this was misread”), and low-confidence readings. Decide each one; a correction can add an alias and read the answer again.</p>
+<%
+const labels = { disagreement: 'The two readers disagree', customer_report: 'Reported by a customer', low_confidence: 'Low confidence', staff: 'Flagged by staff' };
+%>
+<nav aria-label="Kind" class="mt-4 flex flex-wrap gap-2">
+  <a href="/review" class="<%= !source ? 'bg-brand-600 border-brand-600 text-white' : 'border-ink-300 text-ink-800 hover:bg-ink-50 bg-white' %> rounded-full border px-3 py-1 text-sm font-medium"<% if (!source) { %> aria-current="true"<% } %>>All</a>
+  <% for (const [key, label] of Object.entries(labels)) { %>
+  <a href="/review?source=<%= key %>" class="<%= source === key ? 'bg-brand-600 border-brand-600 text-white' : 'border-ink-300 text-ink-800 hover:bg-ink-50 bg-white' %> rounded-full border px-3 py-1 text-sm font-medium"<% if (source === key) { %> aria-current="true"<% } %>><%= label %> (<%= counts[key] ?? 0 %>)</a>
+  <% } %>
+</nav>
+<% if (items.length === 0) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'Nothing to review', text: 'No answers are waiting. They arrive when the two readers disagree or a customer reports one.' }) %></div>
+<% } else { %>
+<div class="mt-6">
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Items to review', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'kind', label: 'Why' }, { key: 'engine', label: 'Engine' }, { key: 'question', label: 'Question' }, { key: 'excerpt', label: 'Answer begins' }, { key: 'status', label: 'Status' }, { key: 'open', label: '' }],
+  rows: items.map((i) => ({
+    kind: labels[i.source] ?? i.source,
+    engine: i.engineCode ?? '—',
+    question: i.question ?? '—',
+    excerpt: (i.excerpt ?? '—').slice(0, 140),
+    status: i.status === 'in_review' ? 'In review' : 'Open',
+    open: { html: ui.button({ label: 'Review', href: '/review/' + i.id, variant: 'secondary', size: 'sm' }) },
+  })),
+}) }) %>
+</div>
+<% } %>

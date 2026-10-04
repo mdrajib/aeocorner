@@ -1,6 +1,7 @@
 import { buildCells, rollupDay, runOutcome, samplesFor } from '../../core/tracking.js';
 import { detectChanges, TREND_WINDOW_DAYS, windowsAt } from '../../core/trends.js';
 import { DomainError, isUniqueViolation } from '../errors.js';
+import { entitledLimit } from './org-billing.js';
 import { transaction } from '../transaction.js';
 
 /**
@@ -794,17 +795,7 @@ export function trackingRepos(prisma, orgId) {
      * Returns `{ allowed, used, limit }`.
      */
     async takeRunNow({ now = new Date() } = {}) {
-      const org = await prisma.organizations.findFirst({
-        where: { id: orgId },
-        select: { plan_code: true },
-      });
-      const plan = org?.plan_code
-        ? await prisma.plans.findUnique({
-            where: { code: org.plan_code },
-            select: { runs_now_per_month: true },
-          })
-        : null;
-      const limit = plan?.runs_now_per_month ?? RUNS_NOW_PLACEHOLDER;
+      const limit = (await entitledLimit(prisma, orgId, 'runs_now', now)) ?? RUNS_NOW_PLACEHOLDER;
       const period = monthStart(now);
       // The row must exist before it can be incremented conditionally.
       await prisma.$executeRaw`
@@ -829,22 +820,12 @@ export function trackingRepos(prisma, orgId) {
 
     /** This month's "run now" use: `{ used, limit }`. */
     async runNowUsage({ now = new Date() } = {}) {
-      const org = await prisma.organizations.findFirst({
-        where: { id: orgId },
-        select: { plan_code: true },
-      });
-      const plan = org?.plan_code
-        ? await prisma.plans.findUnique({
-            where: { code: org.plan_code },
-            select: { runs_now_per_month: true },
-          })
-        : null;
       const row = await prisma.quota_usage.findFirst({
         where: { org_id: orgId, period_month: monthStart(now), meter: 'runs_now' },
       });
       return {
         used: Number(row?.used_units ?? 0),
-        limit: plan?.runs_now_per_month ?? RUNS_NOW_PLACEHOLDER,
+        limit: (await entitledLimit(prisma, orgId, 'runs_now', now)) ?? RUNS_NOW_PLACEHOLDER,
       };
     },
   };

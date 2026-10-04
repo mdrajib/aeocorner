@@ -197,6 +197,18 @@ Migrations run **before** the reload and must work with both the old and the new
 | 11 | A lead row exists | the staff console or `SELECT … FROM leads` | one row for your address |
 | 12 | The budget guard | set `AUDIT_DAILY_BUDGET_USD=0.01`, reload, start an audit | the audit says it is delayed rather than running, and one alert goes to the channel; then restore the value |
 
+## 11b. Billing, email and Google (Milestone 8)
+
+Three outside services need one thing each from you before billing, the digest and AI traffic work in production. None is needed for a laptop.
+
+| Service | What to do | Where it goes |
+|---|---|---|
+| **Stripe** | In the dashboard (test mode first): create a restricted or secret key and a webhook endpoint at `https://<app host>/webhooks/stripe` that sends `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and `invoice.payment_failed`. Turn on the Customer Portal (cancel, update card, invoices). Then run `npm run stripe:sync` once on the server: it makes the products, prices and the extra-drafts meter and stores each plan's price ID. | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, optional `STRIPE_API_VERSION` (a test key on staging, a live key only in production; a mismatch is refused at start). **With the key set, plans are enforced**: an organization with no subscription can set up but nothing is tracked |
+| **Resend** | Add a webhook at `https://<app host>/webhooks/resend` for `email.delivered`, `email.bounced` and `email.complained`. | `RESEND_WEBHOOK_SECRET` (`whsec_…`). Without it bounces and complaints are not recorded |
+| **Google** | In Google Cloud: an OAuth client (web) with the redirect address `https://<app host>/app/google/callback`, scopes `analytics.readonly` and `webmasters.readonly`, then submit the verification (weeks: MILESTONES 0.18). Until Google approves it, only the app's listed test users can connect. | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`; `SECRETS_MASTER_KEY` must also be set |
+
+The worker runs these on a schedule: `billing.reconcile` (05:15 UTC), `billing.report_usage` (hourly), `retention.sweep` (05:45), `billing.notices` (15:00), `digest.tick` (hourly), `sync.google.sweep` (03:40). A failed webhook delivery is retried by Stripe and Resend; `billing.reconcile` is the safety net for Stripe's.
+
 ## 12. Things this runbook does not cover yet
 
 | Gap | Why | When |

@@ -1,0 +1,25 @@
+<%#
+  Provider health (ADMIN_OPERATIONS module 4). Props: rows (summarizeHealth plus statusText, statusTone, p95, cost, lastSeenText), redisReady.
+  Rates are for the last 15 minutes (where a breaker trips) and the last 24 hours; "—" means no requests, not zero errors.
+%>
+<h1 class="text-3xl">Provider health</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">How each data provider has done, from the five-minute health records. A breaker trips when more than 10% of the last 15 minutes’ requests fail. Engines on a tripped provider say “couldn’t check” until it recovers.</p>
+<% if (rows.some((r) => r.status === 'open')) { %><div class="mt-4"><%- ui.banner({ tone: 'danger', title: 'A circuit breaker is open.', text: 'Collection for that provider is paused. Answers wait and are retried; after four hours they become “couldn’t check”.' }) %></div><% } %>
+<div class="mt-6">
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Provider health', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'label', label: 'Provider' }, { key: 'status', label: 'Status' }, { key: 'r15', label: 'Errors, 15 min', numeric: true }, { key: 'r24', label: 'Errors, 24 h', numeric: true }, { key: 'req', label: 'Requests, 24 h', numeric: true }, { key: 'p95', label: 'Slowest p95', numeric: true }, { key: 'cost', label: 'Cost, 24 h', numeric: true }, { key: 'seen', label: 'Last record' }],
+  rows: rows.map((r) => ({
+    label: r.label,
+    status: { html: ui.badge({ text: r.statusText, tone: r.statusTone }) },
+    r15: r.last15.text + (r.last15.requests ? ' of ' + r.last15.requests : ''),
+    r24: r.last24h.text,
+    req: String(r.last24h.requests),
+    p95: r.p95,
+    cost: r.cost,
+    seen: r.lastSeenText,
+  })),
+  emptyText: 'No provider has recorded any traffic in the last 24 hours.',
+}) }) %>
+</div>
+<% if (!redisReady) { %><p class="text-ink-700 mt-4 text-xs">Resetting a breaker needs the queue connection, which is not available here.</p><% } %>

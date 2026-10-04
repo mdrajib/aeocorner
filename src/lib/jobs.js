@@ -124,6 +124,33 @@ export const JOBS = Object.freeze({
   // the payload is only its ID.
   'audit.run': { queue: 'audit', schema: z.object({ auditId: id }) },
 
+  // Billing (Milestone 8). Daily: ask Stripe about every live subscription and store what it says (the webhook does this in
+  // real time; this is the safety net). Hourly: report drafts beyond a plan's allowance to Stripe's usage meter. Daily:
+  // warn cancelled accounts before their read-only period ends, then close the ones whose period is over.
+  'billing.reconcile': { queue: 'system', schema: z.object({}) },
+  'billing.report_usage': { queue: 'system', schema: z.object({}) },
+  'retention.sweep': { queue: 'system', schema: z.object({}) },
+  // Daily: tell owners their trial is about to end.
+  'billing.notices': { queue: 'system', schema: z.object({}) },
+
+  // Google Analytics and Search Console (Milestone 8). Daily: queue one sync per connected project; each sync opens the
+  // project's stored login (only the worker can), reads the days not yet read, and stores them.
+  'sync.google.sweep': { queue: 'system', schema: z.object({}) },
+  'sync.google': { queue: 'system', schema: z.object({ orgId: id, projectId: id }) },
+
+  // The weekly digest and alerts (Milestone 8). Hourly: find the timezones that are at Monday 08:00 and queue one
+  // `digest.send` per project with someone there; that job builds the digest once and sends it to each member whose
+  // local time it is. `alerts.evaluate` follows a finished run: significant drops, a rising competitor, negative claims.
+  'digest.tick': { queue: 'system', schema: z.object({ at: z.iso.datetime().optional() }) },
+  'digest.send': {
+    queue: 'system',
+    schema: z.object({ orgId: id, projectId: id, at: z.iso.datetime() }),
+  },
+  'alerts.evaluate': {
+    queue: 'system',
+    schema: z.object({ orgId: id, projectId: id, runId: id.optional() }),
+  },
+
   // A job that goes through the whole path (queue, retries, rate limit, spend cap, ledger) and does nothing
   // else. It is the Phase 3 exit test, and the way to prove the plumbing on a new machine.
   'system.noop': {

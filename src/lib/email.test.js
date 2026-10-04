@@ -23,6 +23,69 @@ const sample = {
     acceptUrl: 'https://aeocorner.com/invite/abc123',
     expiresDays: 7,
   },
+  'retention-warning': {
+    orgName: 'Acme Dental',
+    closeDate: 'January 2, 2027',
+    billingUrl: 'https://aeocorner.com/app',
+  },
+  digest: {
+    dashboardUrl: 'https://aeocorner.com/app/o/X/projects/Y/dashboard',
+    settingsUrl: 'https://aeocorner.com/app/o/X/notifications',
+    digest: {
+      subject: 'Acme Dental: your weekly AI visibility update',
+      preheader: 'How often AI names you: 40%.',
+      headline: 'A steady week: nothing changed beyond normal variation.',
+      project: { name: 'Acme Dental', domain: 'acme.example' },
+      figures: [
+        {
+          label: 'How often AI names you',
+          display: '40%',
+          note: 'Within normal variation',
+          tone: 'neutral',
+        },
+        {
+          label: 'Your visibility score',
+          display: '—',
+          note: 'Couldn’t check this week',
+          tone: 'neutral',
+        },
+      ],
+      changes: [
+        {
+          tone: 'danger',
+          title: 'How often AI names you fell 12 points',
+          text: 'From 60% to 48%.',
+        },
+      ],
+      actions: [{ title: 'Allow AI search bots in robots.txt', why: null }],
+      proofs: ['“A page” is working: before 1 of 9, since 5 of 9.'],
+      notices: [],
+    },
+  },
+  alert: {
+    subject: 'Something changed: Acme Dental',
+    projectName: 'Acme Dental',
+    items: [
+      {
+        tone: 'danger',
+        title: 'It fell 12 points',
+        text: 'From 60% to 48% (72 of 120 to 58 of 120).',
+      },
+    ],
+    dashboardUrl: 'https://aeocorner.com/app/o/X/projects/Y/dashboard',
+    settingsUrl: 'https://aeocorner.com/app/o/X/notifications',
+  },
+  'google-reconnect': {
+    projectName: 'Acme Dental',
+    trafficUrl: 'https://aeocorner.com/app/o/X/projects/Y/traffic',
+  },
+  'trial-ending': {
+    orgName: 'Acme Dental',
+    planName: 'Starter',
+    priceText: '$79',
+    chargeDate: 'October 18, 2026',
+    billingUrl: 'https://aeocorner.com/app/o/01ARZ3NDEKTSV4RRFFQ69G5FAV/billing',
+  },
 };
 
 // Snapshot-style guard: nothing may leak template syntax or JavaScript placeholders into an email.

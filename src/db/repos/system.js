@@ -1,6 +1,9 @@
+import { accessFor } from '../../core/entitlements.js';
 import { nextDueHorizon } from '../../core/outcomes.js';
 import { toMicros } from '../../core/spend.js';
 import { isForeignKeyViolation } from '../errors.js';
+import { systemAdmin } from './system-admin.js';
+import { systemBilling } from './system-billing.js';
 
 /**
  * Lookups the background worker makes ACROSS organizations, by design: "which projects are due this hour",
@@ -11,13 +14,49 @@ import { isForeignKeyViolation } from '../errors.js';
  * fails if a function is added without being reviewed there). They return IDs and numbers the worker needs to
  * hand each job to the right `forOrg(orgId)`; nothing here returns tenant content.
  */
+/**
+ * Of these organizations (rows with `id`, `billing_status`, `retain_until`), the ones whose plan allows collection right
+ * now. Without `enforced` that is all of them. Shared by the weekly scheduler and the digest.
+ */
+async function collectingOrgs(prisma, orgs, { enforced, now }) {
+  if (!enforced) return new Set(orgs.map((o) => o.id));
+  const pastDue = orgs.filter((o) => o.billing_status === 'past_due').map((o) => o.id);
+  const graces = new Map();
+  if (pastDue.length) {
+    const subs = await prisma.subscriptions.findMany({
+      where: { org_id: { in: pastDue } },
+      orderBy: [{ updated_at: 'desc' }, { id: 'desc' }],
+      select: { org_id: true, grace_until: true },
+    });
+    for (const s of subs) if (!graces.has(s.org_id)) graces.set(s.org_id, s.grace_until);
+  }
+  return new Set(
+    orgs
+      .filter(
+        (o) =>
+          accessFor({
+            enforced: true,
+            billingStatus: o.billing_status,
+            graceUntil: graces.get(o.id) ?? null,
+            retainUntil: o.retain_until,
+            now,
+          }).collect,
+      )
+      .map((o) => o.id),
+  );
+}
+
 export function systemRepos(prisma) {
   const scheduling = {
     /**
      * Active projects whose weekly slot is `hour` (0-167). Skips archived and deleted projects and deleted
      * organizations. Returns only what is needed to enqueue the run.
+     *
+     * With `enforced` (billing is switched on), an organization whose plan does not allow collection right now (no
+     * subscription, payment lapsed past the grace period, cancelled) is skipped: nothing is tracked for it, and nothing is
+     * deleted. See `accessFor` in src/core/entitlements.js.
      */
-    async dueProjects({ hour }) {
+    async dueProjects({ hour, enforced = false, now = new Date() }) {
       const rows = await prisma.projects.findMany({
         where: {
           weekly_slot_hour: hour,
@@ -25,10 +64,25 @@ export function systemRepos(prisma) {
           deleted_at: null,
           organizations: { deleted_at: null },
         },
-        select: { id: true, public_id: true, org_id: true },
+        select: {
+          id: true,
+          public_id: true,
+          org_id: true,
+          organizations: { select: { billing_status: true, retain_until: true } },
+        },
         orderBy: { id: 'asc' },
       });
-      return rows.map((r) => ({ projectId: r.id, projectPublicId: r.public_id, orgId: r.org_id }));
+      const ok = await collectingOrgs(
+        prisma,
+        [...new Map(rows.map((r) => [r.org_id, { id: r.org_id, ...r.organizations }])).values()],
+        { enforced, now },
+      );
+      const allowed = rows.filter((r) => ok.has(r.org_id));
+      return allowed.map((r) => ({
+        projectId: r.id,
+        projectPublicId: r.public_id,
+        orgId: r.org_id,
+      }));
     },
   };
 
@@ -95,6 +149,80 @@ export function systemRepos(prisma) {
         orderBy: { bucket_start: 'desc' },
         take: Math.min(limit, 1000),
       }),
+  };
+
+  const traffic = {
+    /**
+     * Google connections that should be read every day: connected, with a property or a site chosen, in a live
+     * organization. Only IDs and the project's domain are needed to queue each one's sync.
+     */
+    async connections({ limit = 5000 } = {}) {
+      const rows = await prisma.integrations.findMany({
+        where: {
+          type: 'google',
+          status: { in: ['connected', 'broken'] },
+          secret_ciphertext: { not: null },
+          projects: {
+            deleted_at: null,
+            status: { not: 'archived' },
+            organizations: { deleted_at: null },
+          },
+        },
+        select: { org_id: true, project_id: true, status: true },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      return rows.map((r) => ({
+        orgId: r.org_id,
+        projectId: r.project_id,
+        broken: r.status === 'broken',
+      }));
+    },
+  };
+
+  const digest = {
+    /** Every timezone a live user has, so the hourly tick can tell which of them is at Monday 08:00. */
+    async timezones() {
+      const rows = await prisma.users.findMany({
+        where: { deleted_at: null },
+        distinct: ['timezone'],
+        select: { timezone: true },
+      });
+      return rows.map((r) => r.timezone);
+    },
+
+    /**
+     * Active projects with a member in one of `timezones`, in organizations whose plan allows collection: the projects
+     * whose digest may be due this hour. Only IDs; each project's own job finds who to send to.
+     */
+    async projectsInTimezones({ timezones, enforced = false, now = new Date(), limit = 2000 }) {
+      if (timezones.length === 0) return [];
+      const rows = await prisma.projects.findMany({
+        where: {
+          status: 'active',
+          deleted_at: null,
+          organizations: {
+            deleted_at: null,
+            memberships: { some: { users: { timezone: { in: timezones }, deleted_at: null } } },
+          },
+        },
+        select: {
+          id: true,
+          org_id: true,
+          organizations: { select: { billing_status: true, retain_until: true } },
+        },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      const ok = await collectingOrgs(
+        prisma,
+        [...new Map(rows.map((r) => [r.org_id, { id: r.org_id, ...r.organizations }])).values()],
+        { enforced, now },
+      );
+      return rows
+        .filter((r) => ok.has(r.org_id))
+        .map((r) => ({ orgId: r.org_id, projectId: r.id }));
+    },
   };
 
   const outcomes = {
@@ -178,5 +306,15 @@ export function systemRepos(prisma) {
     },
   };
 
-  return { scheduling, spendMonitor, providerHealth, outcomes, verifications };
+  return {
+    scheduling,
+    spendMonitor,
+    providerHealth,
+    outcomes,
+    verifications,
+    traffic,
+    digest,
+    billing: systemBilling(prisma),
+    ...systemAdmin(prisma),
+  };
 }

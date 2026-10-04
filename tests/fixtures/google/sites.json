@@ -1,0 +1,16 @@
+{
+  "siteEntry": [
+    {
+      "siteUrl": "https://acme.example.test/",
+      "permissionLevel": "siteOwner"
+    },
+    {
+      "siteUrl": "sc-domain:acme.example.test",
+      "permissionLevel": "siteFullUser"
+    },
+    {
+      "siteUrl": "https://not-ours.example.test/",
+      "permissionLevel": "siteUnverifiedUser"
+    }
+  ]
+}

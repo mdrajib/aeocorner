@@ -18,7 +18,11 @@ async function schedulerTick(ctx, data) {
   let due = 0;
   let started = 0;
   for (const slot of slots) {
-    const projects = await ctx.db.system.scheduling.dueProjects({ hour: slot.hour });
+    const projects = await ctx.db.system.scheduling.dueProjects({
+      hour: slot.hour,
+      enforced: Boolean(ctx.billing?.enforced),
+      now: at,
+    });
     due += projects.length;
     // `tracking.start` is handled by src/worker/handlers/tracking.js. A worker without a handler for it (a test
     // that replaces the handlers) would only create jobs that can never succeed, so nothing is enqueued and the

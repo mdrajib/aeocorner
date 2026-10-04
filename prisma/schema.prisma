@@ -868,6 +868,7 @@ model organizations {
   updated_at              DateTime                     @default(now())
   audits                  audits[]
   entitlement_grants      entitlement_grants[]
+  feature_flag_overrides  feature_flag_overrides[]
   invitations             invitations[]
   leads                   leads[]
   memberships             memberships[]
@@ -926,35 +927,35 @@ model project_engines {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model projects {
-  id                                      BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  public_id                               String                  @unique(map: "uq_projects_public_id") @db.Char(26)
-  org_id                                  BigInt                  @db.UnsignedBigInt
-  name                                    String                  @db.VarChar(128)
-  domain                                  String                  @db.VarChar(253)
-  country                                 String                  @db.Char(2)
-  language                                String                  @db.VarChar(16)
-  city                                    String                  @default("") @db.VarChar(128)
-  timezone                                String                  @default("UTC") @db.VarChar(64)
-  cadence                                 projects_cadence        @default(weekly)
-  weekly_slot_hour                        Int                     @db.UnsignedSmallInt
-  status                                  projects_status         @default(onboarding)
+  id                                      BigInt                         @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id                               String                         @unique(map: "uq_projects_public_id") @db.Char(26)
+  org_id                                  BigInt                         @db.UnsignedBigInt
+  name                                    String                         @db.VarChar(128)
+  domain                                  String                         @db.VarChar(253)
+  country                                 String                         @db.Char(2)
+  language                                String                         @db.VarChar(16)
+  city                                    String                         @default("") @db.VarChar(128)
+  timezone                                String                         @default("UTC") @db.VarChar(64)
+  cadence                                 projects_cadence               @default(weekly)
+  weekly_slot_hour                        Int                            @db.UnsignedSmallInt
+  status                                  projects_status                @default(onboarding)
   paused_reason                           projects_paused_reason?
-  source_audit_id                         BigInt?                 @db.UnsignedBigInt
-  brand_profile_version                   Int?                    @db.UnsignedInt
+  source_audit_id                         BigInt?                        @db.UnsignedBigInt
+  brand_profile_version                   Int?                           @db.UnsignedInt
   first_run_at                            DateTime?
   last_run_at                             DateTime?
   baseline_ready_at                       DateTime?
-  created_by_user_id                      BigInt?                 @db.UnsignedBigInt
+  created_by_user_id                      BigInt?                        @db.UnsignedBigInt
   deleted_at                              DateTime?
   purge_after                             DateTime?
-  created_at                              DateTime                @default(now())
-  updated_at                              DateTime                @default(now())
-  active_domain                           String?                 @db.VarChar(253)
-  domain_verify_token                     String?                 @db.Char(32)
+  created_at                              DateTime                       @default(now())
+  updated_at                              DateTime                       @default(now())
+  active_domain                           String?                        @db.VarChar(253)
+  domain_verify_token                     String?                        @db.Char(32)
   domain_verified_at                      DateTime?
   domain_verify_method                    projects_domain_verify_method?
   action_outcomes                         action_outcomes[]
-  audits_audits_project_idToprojects      audits[]                @relation("audits_project_idToprojects")
+  audits_audits_project_idToprojects      audits[]                       @relation("audits_project_idToprojects")
   brand_profiles                          brand_profiles[]
   change_events                           change_events[]
   content_items                           content_items[]
@@ -963,9 +964,9 @@ model projects {
   integrations                            integrations[]
   membership_projects                     membership_projects[]
   project_engines                         project_engines[]
-  users                                   users?                  @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_projects_created_by")
-  organizations                           organizations           @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_org")
-  audits_projects_source_audit_idToaudits audits?                 @relation("projects_source_audit_idToaudits", fields: [source_audit_id], references: [id], onUpdate: NoAction, map: "fk_projects_source_audit")
+  users                                   users?                         @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_projects_created_by")
+  organizations                           organizations                  @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_projects_org")
+  audits_projects_source_audit_idToaudits audits?                        @relation("projects_source_audit_idToaudits", fields: [source_audit_id], references: [id], onUpdate: NoAction, map: "fk_projects_source_audit")
   prompt_clusters                         prompt_clusters[]
   prompts                                 prompts[]
   recommendations                         recommendations[]
@@ -1477,6 +1478,8 @@ model staff_users {
   data_requests                                               data_requests[]
   entitlement_grants                                          entitlement_grants[]
   entity_aliases                                              entity_aliases[]
+  feature_flag_overrides                                      feature_flag_overrides[]
+  feature_flags                                               feature_flags[]
   impersonation_sessions                                      impersonation_sessions[]
   org_notes                                                   org_notes[]
   review_items_review_items_assigned_staff_idTostaff_users    review_items[]           @relation("review_items_assigned_staff_idTostaff_users")
@@ -1674,6 +1677,38 @@ model webhook_events {
   @@index([status, received_at], map: "ix_webhook_events_status")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model feature_flag_overrides {
+  flag_key        String        @db.VarChar(64)
+  org_id          BigInt        @db.UnsignedBigInt
+  enabled         Boolean
+  set_by_staff_id BigInt?       @db.UnsignedBigInt
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now())
+  feature_flags   feature_flags @relation(fields: [flag_key], references: [flag_key], onDelete: Cascade, onUpdate: NoAction, map: "fk_feature_flag_overrides_flag")
+  organizations   organizations @relation(fields: [org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_feature_flag_overrides_org")
+  staff_users     staff_users?  @relation(fields: [set_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feature_flag_overrides_staff")
+
+  @@id([flag_key, org_id])
+  @@index([set_by_staff_id], map: "fk_feature_flag_overrides_staff")
+  @@index([org_id], map: "ix_feature_flag_overrides_org")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model feature_flags {
+  flag_key               String                   @id @db.VarChar(64)
+  description            String                   @db.VarChar(255)
+  enabled_default        Boolean                  @default(false)
+  updated_by_staff_id    BigInt?                  @db.UnsignedBigInt
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime                 @default(now())
+  feature_flag_overrides feature_flag_overrides[]
+  staff_users            staff_users?             @relation(fields: [updated_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feature_flags_staff")
+
+  @@index([updated_by_staff_id], map: "fk_feature_flags_staff")
+}
+
 enum abuse_blocks_kind {
   ip
   ip_prefix
@@ -1730,12 +1765,6 @@ enum entitlement_grants_meter {
 enum providers_kind {
   answer_data
   llm
-}
-
-enum quota_usage_meter {
-  drafts
-  runs_now
-  audits
 }
 
 enum web_domains_class {
@@ -2419,4 +2448,11 @@ enum answer_snapshots_extraction_status {
   done
   skipped
   failed
+}
+
+enum quota_usage_meter {
+  drafts
+  runs_now
+  audits
+  drafts_billed
 }

@@ -1,0 +1,11 @@
+<%# The audit log (ADMIN_OPERATIONS module 12): the newest 100 staff actions. Props: entries ([{ when, staff, action, target, reason }]). It cannot be edited. %>
+<h1 class="text-3xl">Audit log</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">Everything staff have changed, newest first. An action is written here before it happens, and the log cannot be edited or removed from the application.</p>
+<div class="mt-6">
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Staff actions', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'when', label: 'When' }, { key: 'staff', label: 'Who' }, { key: 'action', label: 'What' }, { key: 'target', label: 'On' }, { key: 'reason', label: 'Why' }],
+  rows: entries,
+  emptyText: 'Nothing has been recorded yet.',
+}) }) %>
+</div>

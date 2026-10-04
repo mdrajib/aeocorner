@@ -7,6 +7,12 @@ import { publicPages } from '../../src/web/pages.js';
 export const pages = [
   ...publicPages.map((p) => ({ name: p.view, path: p.path, audience: 'public' })),
   { name: 'not-found', path: '/this-page-does-not-exist', status: 404, audience: 'public' },
+  {
+    name: 'unsubscribe-invalid',
+    path: '/unsubscribe/not-a-token',
+    status: 404,
+    audience: 'public',
+  },
   { name: 'styleguide', path: '/_styleguide', audience: 'dev' },
   { name: 'app-shell', path: '/_styleguide/app-shell', audience: 'dev' },
 ];
@@ -183,6 +189,31 @@ export const appPages = [
     name: 'wordpress-viewer',
     as: 'viewer',
     path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/integrations/wordpress`,
+  },
+  // Plan and billing, email choices and AI traffic (Milestone 8). The unsubscribe link needs no sign-in (`as: null`).
+  { name: 'unsubscribe-confirm', as: null, path: (f) => `/unsubscribe/${f.unsubscribeToken}` },
+  { name: 'billing', as: 'owner', path: (f) => `/app/o/${f.orgId}/billing` },
+  { name: 'notifications', as: 'owner', path: (f) => `/app/o/${f.orgId}/notifications` },
+  { name: 'notifications-viewer', as: 'viewer', path: (f) => `/app/o/${f.orgId}/notifications` },
+  {
+    name: 'traffic',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/traffic`,
+  },
+  {
+    name: 'traffic-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/traffic`,
+  },
+  {
+    name: 'traffic-choose',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.runningProjectId}/traffic`,
+  },
+  {
+    name: 'traffic-connect',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}/traffic`,
   },
   {
     name: 'project-actions-empty',

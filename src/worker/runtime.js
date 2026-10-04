@@ -11,13 +11,16 @@ import { DEFAULT_AUDIT_DAILY_BUDGET_USD } from '../core/spend.js';
 import { createAuditBudget } from './audit-budget.js';
 import { Deferral, deferJob } from './deferral.js';
 import { auditHandlers } from './handlers/audit.js';
+import { billingHandlers } from './handlers/billing.js';
 import { collectHandlers } from './handlers/collect.js';
 import { actionHandlers } from './handlers/actions.js';
 import { contentHandlers } from './handlers/content.js';
 import { crawlHandlers } from './handlers/crawl.js';
+import { digestHandlers } from './handlers/digest.js';
 import { extractHandlers } from './handlers/extract.js';
 import { setupHandlers } from './handlers/setup.js';
 import { systemHandlers } from './handlers/system.js';
+import { trafficHandlers } from './handlers/traffic.js';
 import { trackingHandlers } from './handlers/tracking.js';
 import { createProviderCaller } from './provider-call.js';
 import { createSpendGuard } from './spend-guard.js';
@@ -29,6 +32,15 @@ export const SCHEDULES = Object.freeze([
   { name: 'guard.provider_health', repeat: { every: 5 * 60_000 } },
   // Before/after measurements that came due, and re-checks that never ran (Milestone 6).
   { name: 'outcomes.sweep', repeat: { pattern: '30 4 * * *', tz: 'UTC' } },
+  // Billing (Milestone 8): reconcile with Stripe, report metered usage, close cancelled accounts.
+  { name: 'billing.reconcile', repeat: { pattern: '15 5 * * *', tz: 'UTC' } },
+  { name: 'billing.report_usage', repeat: { pattern: '20 * * * *', tz: 'UTC' } },
+  { name: 'retention.sweep', repeat: { pattern: '45 5 * * *', tz: 'UTC' } },
+  { name: 'billing.notices', repeat: { pattern: '0 15 * * *', tz: 'UTC' } },
+  // The weekly digest: each hour, the projects with someone at Monday 08:00 (Milestone 8).
+  { name: 'digest.tick', repeat: { pattern: '5 * * * *', tz: 'UTC' } },
+  // Google Analytics and Search Console, once a day for every connected project (Milestone 8).
+  { name: 'sync.google.sweep', repeat: { pattern: '40 3 * * *', tz: 'UTC' } },
 ]);
 
 /**
@@ -50,6 +62,11 @@ export const SCHEDULES = Object.freeze([
  *                                   and the model keys for the Brand Kit/questions (default haiku45) and for reading
  *                                   answers (default: the extraction model). audit.run also needs `crawler`,
  *                                   `collection` and `extraction`; without them it fails at once
+ * @param {object} [deps.billing]    { enforced, stripe } for the billing jobs: whether plans are enforced (the scheduler skips
+ *                                   organizations that may not collect) and the Stripe client (src/integrations/stripe.js)
+ * @param {object} [deps.google]     the Google client (src/integrations/google.js) for the traffic sync; without it that job does nothing
+ * @param {object} [deps.mail]       the notifier (src/lib/notify.js): every email the worker sends on its own (retention and
+ *                                   trial notices, the weekly digest, alerts) goes through it
  * @param {object} [deps.tracking]   { timing } overrides for how often a run looks again and when it gives up (src/worker/handlers/tracking.js); tests use tiny values
  * @param {object} [deps.extraction] { claude, store, model } for the extract.* jobs: the Claude client (src/llm/claude.js),
  *                                   the bucket the answers are in, and the model key (src/llm/models.js); without it
@@ -68,6 +85,9 @@ export function createWorkerRuntime({
   extraction = null,
   content = null,
   tracking = null,
+  billing = null,
+  google = null,
+  mail = null,
   audit = {},
   now = () => new Date(),
   queueNames = Object.keys(QUEUES),
@@ -85,6 +105,9 @@ export function createWorkerRuntime({
     ...trackingHandlers,
     ...actionHandlers,
     ...contentHandlers,
+    ...billingHandlers,
+    ...digestHandlers,
+    ...trafficHandlers,
     ...extraHandlers,
   };
 
@@ -127,6 +150,9 @@ export function createWorkerRuntime({
     extraction,
     content,
     tracking,
+    billing,
+    google,
+    mail,
     audit: { ...audit, budget: auditBudget },
     now,
     isHandled: (name) => typeof handlers[name] === 'function',

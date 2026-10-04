@@ -1,0 +1,903 @@
+{
+  "dimensionHeaders": [
+    {
+      "name": "date"
+    },
+    {
+      "name": "sessionSource"
+    },
+    {
+      "name": "landingPage"
+    }
+  ],
+  "metricHeaders": [
+    {
+      "name": "sessions",
+      "type": "TYPE_INTEGER"
+    },
+    {
+      "name": "engagedSessions",
+      "type": "TYPE_INTEGER"
+    },
+    {
+      "name": "keyEvents",
+      "type": "TYPE_INTEGER"
+    },
+    {
+      "name": "totalRevenue",
+      "type": "TYPE_INTEGER"
+    }
+  ],
+  "rows": [
+    {
+      "dimensionValues": [
+        {
+          "value": "20260810"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "10"
+        },
+        {
+          "value": "6"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260810"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260810"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260810"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260817"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "11"
+        },
+        {
+          "value": "7"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260817"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260817"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260817"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260824"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "12"
+        },
+        {
+          "value": "8"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260824"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260824"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260824"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260831"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "13"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260831"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260831"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260831"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260907"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "14"
+        },
+        {
+          "value": "10"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260907"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260907"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260907"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260914"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "15"
+        },
+        {
+          "value": "11"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260914"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260914"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260914"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260921"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "16"
+        },
+        {
+          "value": "12"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260921"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260921"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260921"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260928"
+        },
+        {
+          "value": "chatgpt.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "17"
+        },
+        {
+          "value": "13"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260928"
+        },
+        {
+          "value": "chat.openai.com"
+        },
+        {
+          "value": "/pricing"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "2"
+        },
+        {
+          "value": "1"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260928"
+        },
+        {
+          "value": "perplexity.ai"
+        },
+        {
+          "value": "/"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "5"
+        },
+        {
+          "value": "4"
+        },
+        {
+          "value": "0"
+        },
+        {
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "dimensionValues": [
+        {
+          "value": "20260928"
+        },
+        {
+          "value": "google"
+        },
+        {
+          "value": "/ignored"
+        }
+      ],
+      "metricValues": [
+        {
+          "value": "99"
+        },
+        {
+          "value": "50"
+        },
+        {
+          "value": "9"
+        },
+        {
+          "value": "99"
+        }
+      ]
+    }
+  ],
+  "rowCount": 32,
+  "metadata": {
+    "currencyCode": "USD",
+    "timeZone": "America/Chicago"
+  },
+  "kind": "analyticsData#runReport"
+}

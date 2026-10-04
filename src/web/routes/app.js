@@ -16,7 +16,11 @@ import { hashToken, newToken } from '../../lib/tokens.js';
 import { normalizeWebsite } from '../../lib/url.js';
 import { readAuditClaim } from '../auth/audit-claim.js';
 import { csrfProtection } from '../auth/csrf.js';
+import { accessText } from '../../core/billing.js';
 import { chosenProjects, memberAccessRoutes } from './member-access.js';
+import { billingRoutes } from './org-billing.js';
+import { notificationRoutes } from './org-notifications.js';
+import { googleCallbackRoute } from './project-traffic.js';
 import { projectRoutes } from './projects.js';
 import { notFound } from '../middleware/errors.js';
 
@@ -211,6 +215,83 @@ const NOTICES = {
     'Connecting WordPress is not switched on yet on our side. We have been told.',
   ],
   'too-many-invites': ['danger', 'There are already 50 invitations waiting. Cancel some first.'],
+  'google-connected': ['success', 'Connected. Choose what to read below.'],
+  'google-partial': [
+    'warning',
+    'Connected, but you did not allow everything we asked for. We can only read what you allowed.',
+  ],
+  'google-denied': ['info', 'Nothing was connected: Google access was not given.'],
+  'google-failed': [
+    'danger',
+    'We couldn’t finish connecting to Google. Nothing was saved. Try again in a minute.',
+  ],
+  'google-not-configured': [
+    'danger',
+    'Connecting Google is not switched on yet on our side. We have been told.',
+  ],
+  'google-chosen': [
+    'success',
+    'Saved. We are reading your first weeks from Google now: this page fills in by itself.',
+  ],
+  'google-bad-choice': [
+    'danger',
+    'That choice wasn’t available, so nothing was changed. Choose from the lists.',
+  ],
+  'google-syncing': [
+    'success',
+    'Reading from Google now. New numbers appear here in a few minutes.',
+  ],
+  'google-disconnected': [
+    'info',
+    'Disconnected. We erased the saved login; the traffic we already read stays.',
+  ],
+  'notifications-saved': ['success', 'Saved. Your email choices are updated.'],
+  'billing-started': ['success', 'Thank you. Your free trial is starting.'],
+  'billing-canceled': ['info', 'No problem. Nothing was charged and no plan was started.'],
+  'billing-unavailable': [
+    'danger',
+    'Billing is not switched on yet on our side. We have been told.',
+  ],
+  'billing-bad-plan': ['danger', 'That plan isn’t available.'],
+  'billing-not-ready': ['warning', 'That plan isn’t open for sign-up yet. We have been told.'],
+  'billing-has-plan': ['info', 'You already have a plan. Use “Change plan” below.'],
+  'billing-no-plan': ['warning', 'Start a plan first.'],
+  'billing-no-customer': ['warning', 'There is no billing account yet. Start a plan first.'],
+  'billing-same-plan': ['info', 'That is already your plan.'],
+  'billing-plan-changed': [
+    'success',
+    'Your plan was changed. Stripe prorates the difference on your next invoice.',
+  ],
+  'billing-downgrade-blocked': [
+    'warning',
+    'You use more projects or questions than that plan allows. Archive some first, then switch. Nothing is deleted.',
+  ],
+  'billing-addon-added': ['success', 'Added to your plan.'],
+  'billing-addon-removed': ['info', 'Removed from your plan.'],
+  'billing-stripe-error': [
+    'danger',
+    'We couldn’t reach our payment provider just now. Nothing was changed. Try again in a minute.',
+  ],
+  'plan-limit-projects': [
+    'warning',
+    'Your plan’s projects are all in use. Upgrade to add another.',
+  ],
+  'plan-limit-seats': [
+    'warning',
+    'Your plan’s team seats are all in use. Upgrade to invite more people.',
+  ],
+  'plan-no-client-seats': [
+    'warning',
+    'Client seats are part of the Agency plan. Upgrade to limit someone to selected projects.',
+  ],
+  'plan-paused': [
+    'warning',
+    'Nothing was started: tracking is off for your account right now. See Plan and billing.',
+  ],
+  'plan-readonly': [
+    'warning',
+    'This account is read-only right now, so nothing was changed. See Plan and billing.',
+  ],
 };
 
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(320));
@@ -239,6 +320,8 @@ export function appRoutes({
   jobs = null,
   verifier = null,
   content = null,
+  billing = null,
+  google = null,
 }) {
   const router = Router();
 
@@ -343,10 +426,46 @@ export function appRoutes({
 
   // --- One organization -------------------------------------------------------------------------------
   const org = Router({ mergeParams: true });
-  const projectsApi = projectRoutes({ db, jobs, auth, logger, appPage, verifier, content });
+  const projectsApi = projectRoutes({
+    db,
+    jobs,
+    auth,
+    logger,
+    appPage,
+    verifier,
+    content,
+    google,
+    config,
+  });
+  googleCallbackRoute(router, { config, db, google, content, logger });
 
-  org.use((req, res, next) => {
+  org.use(async (req, res, next) => {
     const base = `/app/o/${req.org.public_id}`;
+    // When billing is enforced, a plan problem (no plan yet, payment lapsed, cancelled) is said on every page.
+    try {
+      if (config.billingEnforced) {
+        const access = await req.orgDb.billing.access({ enforced: true });
+        const message = accessText(access);
+        if (message) {
+          const isOwner = res.locals.can('billing.manage');
+          res.locals.billingBanner = {
+            tone: access.level === 'setup' ? 'info' : 'warning',
+            text: isOwner
+              ? message
+              : `${message} Ask an owner of this organization to open Plan and billing.`,
+            href: isOwner ? `${base}/billing` : null,
+            linkText: access.level === 'setup' ? 'Choose a plan' : 'Open plan and billing',
+          };
+        }
+        res.locals.access = access;
+        // A cancelled, read-only account can look at everything and change nothing (except to subscribe again).
+        if (!access.edit && req.method === 'POST' && !req.path.startsWith('/billing')) {
+          return res.redirect(303, `${base}/billing?notice=plan-readonly`);
+        }
+      }
+    } catch (err) {
+      return next(err);
+    }
     res.locals.orgBase = base;
     res.locals.nav = [
       {
@@ -362,6 +481,16 @@ export function appRoutes({
               label: 'Team',
               icon: 'shield',
               current: req.path.startsWith('/settings'),
+            },
+          ]
+        : []),
+      ...(res.locals.can('billing.manage')
+        ? [
+            {
+              href: `${base}/billing`,
+              label: 'Billing',
+              icon: 'card',
+              current: req.path.startsWith('/billing'),
             },
           ]
         : []),
@@ -456,6 +585,8 @@ export function appRoutes({
   });
 
   memberAccessRoutes(org, { auth, appPage });
+  billingRoutes(org, { auth, appPage, billing, config, db, logger });
+  notificationRoutes(org, { appPage });
 
   org.post('/members/:id/role', manage, async (req, res, next) => {
     try {
@@ -566,6 +697,16 @@ export function appRoutes({
 
       if ((await req.orgDb.invitations.listPending()).length >= MAX_PENDING_INVITATIONS) {
         return res.redirect(303, `${res.locals.orgBase}/settings?notice=too-many-invites`);
+      }
+      // The plan's team seats (members and invitations still waiting count), and client seats are a plan feature.
+      if (!(await req.orgDb.billing.canAdd('seats')).allowed) {
+        return res.redirect(303, `${res.locals.orgBase}/settings?notice=plan-limit-seats`);
+      }
+      if (
+        chosen.access === 'selected' &&
+        !(await req.orgDb.billing.featureAllowed('client_seats'))
+      ) {
+        return res.redirect(303, `${res.locals.orgBase}/settings?notice=plan-no-client-seats`);
       }
 
       const token = newToken();
