@@ -24,6 +24,21 @@ The Action Center is where the product's promise (Measure, Diagnose, Fix, Prove)
 
 **6. Confidence learns, slowly.** A rule's confidence is a prior (a number we chose) mixed with how its fixes actually turned out across all projects, counting the prior as 10 observations (`calibratedConfidence`). The cross-organization lookup behind it returns counts only.
 
+### Addendum 2026-10-04: sharing a proven win
+
+A proven win's card has a Share button (UI_DESIGN D4; [CUSTOMER_JOURNEY](../CUSTOMER_JOURNEY.md) day 30: the customer shows the result to a boss or a client). It makes a public, read-only page at `/p/:publicId`. What was decided:
+
+| Decision | Why |
+|---|---|
+| **Only a proven win over all engines can be shared**, and the repository enforces it, not just the screen | A shared page is the customer vouching for us to a third party. A "within normal variation" or a decline is never presented as a result outside the company |
+| **The address is the secret** (a ULID), one row per outcome. Stopping sets `revoked_at`; sharing again makes a **new** address | A link someone kept after a stop must stay dead. Double clicks keep one link, so a link just copied is never broken |
+| **The page shows only the brand, its domain, the recommendation's title and the counts and test result.** It is built from the outcome and never receives a question, an answer or a competitor. Before sharing, the screen says what the page shows and what it never shows | A recommendation's title is the one free-text field; the person sees that it is included. Nothing about the organization or its people is read |
+| **Public lookups are one reviewed function** (`system.proofShares.byPublicId`); unknown, malformed, stopped, closed-organization and archived-project addresses are the same 404 | No page may confirm that something exists behind a guess |
+| **`Cache-Control: no-store`, no referrer, noindex, no analytics, `/p/` disallowed in robots.txt** | Stopping a share must work at once; the address must not leak through a referrer or a search index |
+| `site.approve` (owner, admin, editor) may share and stop | Putting words on the public internet is as big a step as publishing a page |
+
+Not built: an image card to download, and a "viewed" count. The page does not record who opened it.
+
 ## Consequences
 
 - Nothing in the Action Center can be marked a win without the numbers: not by a person, not by a template.

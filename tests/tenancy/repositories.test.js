@@ -1541,6 +1541,62 @@ describe('auto-fix approvals', () => {
   });
 });
 
+describe('shared proof cards (D4)', () => {
+  let aProject;
+  let bProject;
+  let bRec;
+  let bOutcome;
+  let bShare;
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Proof A');
+    bProject = await fx.project(B.org.id, 'Proof B');
+    bRec = await fx.recommendation(bProject, { title: 'B fix' });
+    bOutcome = await fx.forceOutcome({ ...bRec, org_id: B.org.id, project_id: bProject.id });
+    bShare = await B.scoped.proofShares.share(bProject.id, bRec.id, bOutcome.id, {
+      userId: B.owner.id,
+    });
+  });
+
+  test('every call: B’s project is not found from A', async () => {
+    const f = A.scoped.proofShares;
+    await refuses(f.forRecommendation(bProject.id, bRec.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      f.share(bProject.id, bRec.id, bOutcome.id, { userId: A.owner.id }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(f.revoke(bProject.id, bRec.id, bOutcome.id), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('B’s outcome is not reachable through A’s own project, and B’s share is untouched', async () => {
+    const f = A.scoped.proofShares;
+    const aRec = await fx.recommendation(aProject, { title: 'A fix' });
+    await refuses(
+      f.share(aProject.id, bRec.id, bOutcome.id, { userId: A.owner.id }),
+      'OUTCOME_NOT_FOUND',
+    );
+    await refuses(f.revoke(aProject.id, aRec.id, bOutcome.id), 'OUTCOME_NOT_FOUND');
+    assert.deepEqual(await f.forRecommendation(aProject.id, bRec.id), []);
+    const live = await B.scoped.proofShares.forRecommendation(bProject.id, bRec.id);
+    assert.deepEqual(
+      live.map((s) => s.publicId),
+      [bShare.publicId],
+    );
+  });
+
+  test('the public lookup answers only to the address, and returns no organization or user', async () => {
+    const found = await db.system.proofShares.byPublicId(bShare.publicId);
+    assert.deepEqual(Object.keys(found).sort(), [
+      'brandName',
+      'domain',
+      'outcome',
+      'startedAt',
+      'title',
+    ]);
+    assert.ok(!('orgId' in found.outcome) && !('projectId' in found.outcome));
+    assert.equal(await db.system.proofShares.byPublicId('1'.repeat(26)), null);
+  });
+});
+
 describe('billing, alerts, notification choices and Google traffic (Milestone 8)', () => {
   let aProject;
   let bProject;
@@ -1796,6 +1852,7 @@ describe('coverage: no repository function without a leak test', () => {
       'usage',
     ],
     autofix: ['appliedNodes', 'approve', 'current', 'finish', 'forApply', 'markApplying'],
+    proofShares: ['forRecommendation', 'revoke', 'share'],
     alerts: ['digestFacts', 'markAlerted', 'pending', 'recipients'],
     notifyPrefs: ['get', 'set'],
     google: ['choose', 'disconnect', 'saveGrant', 'secret', 'status', 'syncResult'],
@@ -1920,6 +1977,7 @@ describe('coverage: no repository function without a leak test', () => {
     providerHealth: ['knownProviders', 'recent', 'upsertBucket'],
     outcomes: ['due', 'ruleStats'],
     verifications: ['overdue'],
+    proofShares: ['byPublicId'],
     traffic: ['connections'],
     digest: ['projectsInTimezones', 'timezones'],
     // Costs and health are aggregates; the review queue shows an item and the names being tracked, never the customer;
@@ -2003,6 +2061,7 @@ describe('coverage: no repository function without a leak test', () => {
       'projectEngines',
       'projects',
       'prompts',
+      'proofShares',
       'quota',
       'recommendations',
       'runs',

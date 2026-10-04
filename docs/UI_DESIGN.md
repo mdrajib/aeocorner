@@ -137,7 +137,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | D1 | **Action Center** (ranked recommendations) | 7 Loop | `…/actions` | app | **Milestone 6 ✅ 2026-10-04** (to do, checking and measuring, results, dismissed) | D |
 | D2 | Recommendation detail: evidence, fix path, status timeline | 7 | `…/actions/:id` | app | **Milestone 6 ✅ 2026-10-04** | D |
 | D3 | Auto-fix preview and approve | 7 | modal / page | app | **✅ 2026-10-04** (a page at `/actions/:rid/autofix`; Organization and WebSite schema on the home page; see CLAUDE.md "Auto-fix") | D |
-| D4 | **Proof card** (before/after) and share | 8 Proof | `…/proof/:id` | app | Phase 11 | D |
+| D4 | **Proof card** (before/after) and share | 8 Proof | `…/actions/:rid` (the card); `/p/:publicId` (the shared page, public) | app + public | **Milestone 6 ✅ 2026-10-04** (the card); **✅ 2026-10-04** (share: a public read-only link for a proven win, stoppable at any time; no question, answer or competitor is shown) | D |
 | D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content`, `…/content/:id` | app | **Milestone 7 ✅ 2026-10-04** | D |
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |
 | E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | **Milestone 8 ✅ 2026-10-04** | E |

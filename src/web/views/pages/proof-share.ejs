@@ -1,0 +1,36 @@
+<%#
+  A shared proof card (D4), public and read-only. Props: proof ({ brandName, domain, title, horizon, label, tone, sentence, rows, sure, computedOn }).
+  Only a proven win reaches this page. It shows nothing but these fields: no question, answer or competitor.
+%>
+<section class="py-16">
+  <div class="container-narrow">
+    <p class="eyebrow">A result measured by AEO Corner</p>
+    <h1 class="mt-3 text-3xl sm:text-4xl [overflow-wrap:anywhere]"><%= proof.brandName %><% if (proof.domain) { %> <span class="text-ink-700 text-xl font-normal">(<%= proof.domain %>)</span><% } %></h1>
+
+    <section class="card mt-8" aria-label="The result">
+      <div class="card-body flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-base font-semibold">Check at <%= proof.horizon %></h2>
+          <%- ui.badge({ text: proof.label, tone: proof.tone }) %>
+        </div>
+        <p class="text-ink-900 text-lg"><%= proof.sentence %></p>
+        <dl class="text-sm">
+          <% for (const r of proof.rows) { %><div class="flex flex-wrap gap-2"><dt class="text-ink-700"><%= r.label %>:</dt><dd class="font-medium"><%= r.text %></dd></div><% } %>
+        </dl>
+        <% if (proof.sure) { %>
+        <details>
+          <summary class="cursor-pointer text-sm font-medium">How sure are we?</summary>
+          <p class="text-ink-700 mt-2 text-sm"><%= proof.sure %></p>
+        </details>
+        <% } %>
+        <p class="text-ink-600 text-xs">Checked <%= proof.computedOn %></p>
+      </div>
+    </section>
+
+    <p class="text-ink-700 mt-6 max-w-2xl text-sm">AEO Corner asks the AI answer engines the same questions again and again, and counts how often they name the brand. A result is called real only if the change is large enough and unlikely to be chance. <a href="/methodology">Read how we measure</a>.</p>
+
+    <div class="mt-8 flex flex-wrap gap-3">
+      <%- ui.button({ label: 'See how your brand shows up in AI answers', href: '/', variant: 'primary' }) %>
+    </div>
+  </div>
+</section>

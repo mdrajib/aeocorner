@@ -8,6 +8,7 @@ import { dashboardRepos } from './org-dashboard.js';
 import { extractionRepos } from './org-extractions.js';
 import { projectRepos } from './org-projects.js';
 import { promptRepos } from './org-prompts.js';
+import { proofShareRepos } from './org-proof-shares.js';
 import { scanRepos } from './org-scans.js';
 import { snapshotRepos } from './org-snapshots.js';
 import { trackingRepos } from './org-tracking.js';
@@ -358,6 +359,7 @@ export function orgScopedRepos(prisma, orgId) {
     ...actionRepos(prisma, orgId),
     ...contentRepos(prisma, orgId),
     ...autofixRepos(prisma, orgId),
+    ...proofShareRepos(prisma, orgId),
     ...billingRepos(prisma, orgId, { appendActivity }),
     ...alertRepos(prisma, orgId),
     ...trafficRepos(prisma, orgId),

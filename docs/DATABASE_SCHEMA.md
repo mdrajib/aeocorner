@@ -160,6 +160,7 @@ Filtering by cluster, intent or locale reads the cell tables joined to `prompts`
 | `recommendation_events` | Status history. Feeds rule quality (dismiss, verified and proven-win rates per rule; ADMIN module 7) | 9 |
 | `fix_verifications` | Same-day re-checks (immediately, then +1 h and +24 h): re-fetch the page as a bot, re-run a readiness check, or confirm the URL is live | 9 |
 | `action_outcomes` | Before/after at +2 and +4 weeks, overall and per engine: k/n before and after, change in percentage points, p-value, verdict. **Proven wins are counted from this table** | 9 |
+| `proof_shares` | A proven win shared as a public read-only page (D4): one row per outcome, a ULID `public_id` as the address, `revoked_at` when stopped (sharing again makes a new address). Added by migration `0006` | 10 |
 
 ### 2.12 Integrations, Content Studio and site changes
 

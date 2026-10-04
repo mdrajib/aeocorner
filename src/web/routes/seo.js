@@ -8,6 +8,7 @@ const DISALLOWED = [
   '/_styleguide',
   '/audit',
   '/r/',
+  '/p/',
   '/app',
   '/invite',
   '/sign-in',

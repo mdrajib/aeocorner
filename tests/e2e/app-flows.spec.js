@@ -276,8 +276,8 @@ test('an editor opens the Action Center, reads a recommendation and starts it', 
   // A finished fix shows what happened, in numbers.
   await page.goto(`/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`);
   await expect(page.getByText('from 10 of 120 to 40 of 118 answers')).toBeVisible();
-  await page.getByText('How sure are we?').click();
-  await expect(page.getByText(/statistical test/)).toBeVisible();
+  await page.getByText('How sure are we?').first().click();
+  await expect(page.getByText(/statistical test/).first()).toBeVisible();
 
   expect(problems, 'no console errors, including CSP violations').toEqual([]);
 });
@@ -336,4 +336,52 @@ test('the WordPress screen shows a connection and never a password', async ({ pa
   await expect(page.getByText('Connected', { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel('Application password')).toBeVisible();
   await expect(page.getByRole('link', { name: 'download the plugin' })).toBeVisible();
+});
+
+test('an editor shares a proven win, copies the link, and anyone can read the page it opens', async ({
+  page,
+  browser,
+  request,
+}) => {
+  const problems = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') problems.push(message.text());
+  });
+  page.on('pageerror', (error) => problems.push(error.message));
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'editor',
+    next: `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+
+  // The two-week check is not shared yet; the four-week check already is.
+  const card = page.getByRole('region', { name: 'Check at 2 weeks' });
+  await card.getByRole('button', { name: 'Share this result' }).click();
+  await expect(page.getByText(/Anyone with the link can read this result/).first()).toBeVisible();
+  const shared = page.getByRole('region', { name: 'Check at 2 weeks' });
+  const link = await shared.getByLabel('Public link').inputValue();
+  expect(link).toMatch(/\/p\/[0-9A-Z]{26}$/);
+
+  await shared.getByRole('button', { name: 'Copy link' }).click();
+  await expect(page.getByText('Link copied.')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link);
+
+  // Someone with no account opens it.
+  const stranger = await browser.newContext({ baseURL: new globalThis.URL(page.url()).origin });
+  const reader = await stranger.newPage();
+  await reader.goto(new globalThis.URL(link).pathname);
+  await expect(reader.getByRole('heading', { level: 1 })).toContainText('Data Dental');
+  await expect(reader.getByText('from 10 of 120 to 40 of 118 answers')).toBeVisible();
+  await expect(reader.getByText(/csrf|sign out/i)).toHaveCount(0);
+
+  // Stopping it ends the link at once, and the seeded share is left alone.
+  await shared.getByRole('button', { name: 'Stop sharing' }).click();
+  await expect(page.getByText('Stopped sharing. The link no longer works.')).toBeVisible();
+  expect((await reader.goto(new globalThis.URL(link).pathname)).status()).toBe(404);
+  await stranger.close();
+
+  expect(problems, 'no console errors, including CSP violations').toEqual([]);
 });

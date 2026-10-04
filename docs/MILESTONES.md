@@ -312,7 +312,7 @@ flowchart LR
 | 6.06 | ✅ 2026-10-04 Build the same-day "fix verified" re-check with the crawler (`fix_verifications`) (`fix.verify`: a fresh scan and the one check, at once, +1 h and +24 h; "couldn’t check" is its own reason) | 6.05 |
 | 6.07 | ✅ 2026-10-04 Capture the baseline when a recommendation is marked done (`markDone` saves the 28-day baseline for the targeted questions; later refreshes do not change it) | 6.05 |
 | 6.08 | ✅ 2026-10-04 Build the +2 and +4 week `action_outcomes` job using the significance test (`outcomes.sweep` daily and `outcomes.measure`: the product’s significance test over complete cells; +2 weeks closes only a win or a decline) | 6.07 |
-| 6.09 | ✅ 2026-10-04 Build the Action Center list and detail screens (`/projects/:pid/actions` and `/actions/:rid`, with the proof card, plus "Top actions" on the dashboard) | 6.02, 6.05 |
+| 6.09 | ✅ 2026-10-04 Build the Action Center list and detail screens (`/projects/:pid/actions` and `/actions/:rid`, with the proof card, plus "Top actions" on the dashboard; the card's Share button, a public stoppable link for a proven win, was added 2026-10-04) | 6.02, 6.05 |
 | 6.10 | ✅ 2026-10-04 Count "proven wins" per project (`recommendations.provenWins`: shown on the Action Center and the dashboard) | 6.08 |
 
 **Parallel:** 6.01 and 6.02 at once. After 6.05: 6.06, 6.07 and 6.09 in parallel. 6.03 → 6.04 runs beside them.

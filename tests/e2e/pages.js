@@ -248,6 +248,13 @@ export const appPages = [
     path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`,
   },
   {
+    name: 'project-action-proven-win-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`,
+  },
+  { name: 'proof-share', as: null, path: (f) => `/p/${f.proofShareId}` },
+  { name: 'proof-share-unknown', as: null, status: 404, path: () => `/p/${'0'.repeat(26)}` },
+  {
     name: 'member-access',
     as: 'owner',
     path: (f) => `/app/o/${f.orgId}/members/${f.membershipId}/access`,

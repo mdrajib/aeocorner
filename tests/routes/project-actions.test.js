@@ -593,3 +593,155 @@ describe('auto-fix: preview and approve (D3)', () => {
     assert.match(page.text, /Approve and apply/, 'and it can be tried again');
   });
 });
+
+describe('sharing a proven win (D4)', () => {
+  /** A project with a measured result: `verdict` is what the test said about the A1 fix. */
+  async function withOutcome(verdict = 'proven_win') {
+    const ctx = await withActions();
+    const rec = ctx.rec('readiness.A1');
+    await ctx.scoped.recommendations.markDone(ctx.project.id, rec.id, {
+      userId: ctx.owner.user.id,
+    });
+    await ctx.scoped.recommendations.settleVerification(ctx.project.id, rec.id, {
+      verdict: 'verified',
+      reason: 'passed',
+    });
+    const outcome = await h.fx.forceOutcome(
+      { ...rec, org_id: ctx.project.org_id, project_id: ctx.project.id },
+      { verdict },
+    );
+    const page = `${ctx.base}/actions/${rec.id}`;
+    return {
+      ...ctx,
+      rec,
+      outcome,
+      page,
+      post: (who, move) => ctx[who].post(`${page}/proof/${outcome.id}/${move}`),
+    };
+  }
+  const linkOf = (html) => html.match(/value="[^"]*(\/p\/[0-9A-Z]{26})"/)?.[1] ?? null;
+
+  test('the owner shares a win, the link works for anyone, and says only what was promised', async () => {
+    const ctx = await withOutcome();
+    const before = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(before.text, /Share this result/);
+    assert.match(
+      before.text,
+      /It never shows your questions, the engines’ answers, your competitors/,
+    );
+    assert.equal(linkOf(before.text), null, 'nothing is shared until someone does it');
+
+    const res = await ctx.post('owner', 'share').expect(303);
+    assert.match(res.headers.location, /notice=proof-shared/);
+    const after = await ctx.owner.get(ctx.page).expect(200);
+    const path = linkOf(after.text);
+    assert.ok(path, 'the link is on the card');
+    assert.match(after.text, /Copy link/);
+    assert.match(after.text, /Stop sharing/);
+
+    // Anyone, with no sign-in at all.
+    const shared = await h.agent.get(path).expect(200);
+    assert.match(shared.text, /Action Dental/);
+    assert.match(shared.text, /from 10 of 120 to 40 of 118 answers/);
+    assert.match(shared.text, /Proven win/);
+    assert.match(shared.text, /How sure are we\?/);
+    assert.doesNotMatch(shared.text, /Best family dentist\?/, 'no question is ever shown');
+    assert.doesNotMatch(shared.text, /csrf|\/app\/o\//i, 'nothing of the signed-in area');
+    assert.equal(shared.headers['cache-control'], 'no-store');
+    assert.equal(shared.headers['referrer-policy'], 'no-referrer');
+    assert.match(shared.headers['x-robots-tag'], /noindex/);
+    assert.doesNotMatch(shared.text, /posthog/i, 'no analytics on a private address');
+  });
+
+  test('sharing twice keeps one link', async () => {
+    const ctx = await withOutcome();
+    await ctx.post('owner', 'share').expect(303);
+    const first = linkOf((await ctx.owner.get(ctx.page)).text);
+    await ctx.post('owner', 'share').expect(303);
+    assert.equal(linkOf((await ctx.owner.get(ctx.page)).text), first);
+  });
+
+  test('stopping sharing kills the link; sharing again makes a different one', async () => {
+    const ctx = await withOutcome();
+    await ctx.post('owner', 'share').expect(303);
+    const old = linkOf((await ctx.owner.get(ctx.page)).text);
+    const res = await ctx.post('owner', 'unshare').expect(303);
+    assert.match(res.headers.location, /notice=proof-unshared/);
+    await h.agent.get(old).expect(404);
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.equal(linkOf(page.text), null);
+    assert.match(page.text, /Share this result/);
+
+    await ctx.post('owner', 'share').expect(303);
+    const fresh = linkOf((await ctx.owner.get(ctx.page)).text);
+    assert.notEqual(fresh, old);
+    await h.agent.get(old).expect(404);
+    await h.agent.get(fresh).expect(200);
+  });
+
+  test('owners, admins and editors may share (as they may publish); a viewer may read the link and nothing more', async () => {
+    const ctx = await withOutcome();
+    const refused = await ctx.post('viewer', 'share');
+    assert.notEqual(refused.status, 303);
+    const viewerPage = await ctx.viewer.get(ctx.page).expect(200);
+    assert.doesNotMatch(viewerPage.text, /Share this result/);
+    assert.deepEqual(
+      await ctx.scoped.proofShares.forRecommendation(ctx.project.id, ctx.rec.id),
+      [],
+    );
+
+    await ctx.post('editor', 'share').expect(303);
+    const viewerSees = await ctx.viewer.get(ctx.page).expect(200);
+    assert.ok(linkOf(viewerSees.text), 'a viewer may read the link');
+    assert.doesNotMatch(viewerSees.text, /Stop sharing/);
+    const stop = await ctx.post('viewer', 'unshare');
+    assert.notEqual(stop.status, 303);
+    assert.equal(
+      (await ctx.scoped.proofShares.forRecommendation(ctx.project.id, ctx.rec.id)).length,
+      1,
+    );
+  });
+
+  test('a result that is not a win offers no share button, and a forged request is refused', async () => {
+    const ctx = await withOutcome('no_change');
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.doesNotMatch(page.text, /Share this result/);
+    const res = await ctx.post('owner', 'share').expect(303);
+    assert.match(res.headers.location, /notice=proof-not-shareable/);
+    assert.deepEqual(
+      await ctx.scoped.proofShares.forRecommendation(ctx.project.id, ctx.rec.id),
+      [],
+    );
+  });
+
+  test('another organization cannot share or stop this one’s result, and a bad address is a plain 404', async () => {
+    const mine = await withOutcome();
+    const other = await withActions({ raise: false });
+    await mine.post('owner', 'share').expect(303);
+    await other.owner.post(`${mine.page}/proof/${mine.outcome.id}/share`).expect(404);
+    await other.owner.post(`${mine.page}/proof/${mine.outcome.id}/unshare`).expect(404);
+    assert.equal(
+      (await mine.scoped.proofShares.forRecommendation(mine.project.id, mine.rec.id)).length,
+      1,
+    );
+
+    const unknown = await h.agent.get(`/p/${'0'.repeat(26)}`).expect(404);
+    const malformed = await h.agent.get('/p/not-an-address').expect(404);
+    assert.equal(unknown.text, malformed.text, 'a wrong address says nothing about what exists');
+    assert.match(unknown.headers['cache-control'], /no-store/);
+  });
+
+  test('a form without the CSRF token is refused', async () => {
+    const ctx = await withOutcome();
+    const res = await ctx.owner.post(
+      `${ctx.page}/proof/${ctx.outcome.id}/share`,
+      {},
+      { csrf: null },
+    );
+    assert.notEqual(res.status, 303);
+    assert.deepEqual(
+      await ctx.scoped.proofShares.forRecommendation(ctx.project.id, ctx.rec.id),
+      [],
+    );
+  });
+});

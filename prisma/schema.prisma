@@ -50,6 +50,7 @@ model action_outcomes {
   notified_at       DateTime?
   projects          projects                @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_action_outcomes_project")
   recommendations   recommendations         @relation(fields: [recommendation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_outcomes_rec")
+  proof_shares      proof_shares?
 
   @@unique([recommendation_id, horizon, engine_scope], map: "uq_action_outcomes_check")
   @@index([project_id, org_id], map: "fk_action_outcomes_project")
@@ -979,6 +980,7 @@ model projects {
   site_scans                              site_scans[]
   tracked_entities                        tracked_entities[]
   traffic_daily                           traffic_daily[]
+  proof_shares                            proof_shares[]
 
   @@unique([id, org_id], map: "uq_projects_id_org")
   @@unique([org_id, active_domain], map: "uq_projects_org_domain")
@@ -1042,6 +1044,27 @@ model prompts {
   @@index([replaces_prompt_id], map: "fk_prompts_replaces")
   @@index([cluster_id], map: "ix_prompts_cluster")
   @@index([project_id, status], map: "ix_prompts_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model proof_shares {
+  id                 BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id             BigInt          @db.UnsignedBigInt
+  project_id         BigInt          @db.UnsignedBigInt
+  outcome_id         BigInt          @unique(map: "uq_proof_shares_outcome") @db.UnsignedBigInt
+  /// ULID: the address of the public page
+  public_id          String          @unique(map: "uq_proof_shares_public") @db.Char(26)
+  created_by_user_id BigInt?         @db.UnsignedBigInt
+  created_at         DateTime        @default(now())
+  /// when the current address was made
+  shared_at          DateTime        @default(now())
+  revoked_at         DateTime?
+  action_outcomes    action_outcomes @relation(fields: [outcome_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_proof_shares_outcome")
+  projects           projects        @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_proof_shares_project")
+  users              users?          @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_proof_shares_user")
+
+  @@index([project_id, org_id], map: "ix_proof_shares_project")
+  @@index([created_by_user_id], map: "fk_proof_shares_user")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -1624,6 +1647,7 @@ model users {
   site_changes_site_changes_approved_by_user_idTousers    site_changes[]      @relation("site_changes_approved_by_user_idTousers")
   site_changes_site_changes_rolled_back_by_user_idTousers site_changes[]      @relation("site_changes_rolled_back_by_user_idTousers")
   organizations                                           organizations?      @relation(fields: [last_org_id], references: [id], onUpdate: NoAction, map: "fk_users_last_org")
+  proof_shares                                            proof_shares[]
 
   @@index([last_org_id], map: "fk_users_last_org")
   @@index([email], map: "ix_users_email")

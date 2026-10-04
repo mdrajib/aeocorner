@@ -1,6 +1,6 @@
 <%# D2/D4: one recommendation. Props: rec ({ id, title, status, badge, category, fixPath, fixPathLabel, fixPathNote, effort, looksFixed, followUp,
     affectedUrls }), why (paragraphs), steps, evidence ([{ label, text, href }]), questions ([{ text, href }]), timeline, panel, proofs, history,
-    dismissReasons, canAct, actionBase, listHref; locals: orgBase, projectBase, projectName, domain, csrfToken. %>
+    dismissReasons, canAct, canApprove, shareFields, shareNever, actionBase, listHref (a proof card: { id, canShare, shareUrl }); locals: orgBase, projectBase, projectName, domain, csrfToken. %>
 <%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'actions', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
 
 <p class="mt-4 text-sm"><a href="<%= listHref %>">All recommendations</a></p>
@@ -58,6 +58,31 @@
       </details>
       <% } %>
       <p class="text-ink-600 text-xs">Checked <%= p.computedOn %></p>
+      <% if (p.canShare) { %>
+      <div class="border-ink-300 flex flex-col gap-2 border-t pt-3" data-proof-share>
+        <% if (p.shareUrl) { %>
+        <label class="text-sm font-medium" for="share-<%= p.id %>">Public link</label>
+        <div class="flex flex-wrap items-center gap-2">
+          <input id="share-<%= p.id %>" class="input min-w-0 flex-1" type="text" readonly value="<%= p.shareUrl %>">
+          <%- ui.button({ label: 'Copy link', variant: 'secondary', size: 'sm', attrs: { 'data-copy-from': 'share-' + p.id } }) %>
+          <%- ui.button({ label: 'Open', variant: 'ghost', size: 'sm', href: p.shareUrl }) %>
+        </div>
+        <p class="text-ink-700 text-xs">Anyone with this link can read this result. It shows <%= shareFields.join('; ') %>. It never shows <%= shareNever.join(', ') %>.</p>
+        <% if (canApprove) { %>
+        <form method="post" action="<%= actionBase %>/proof/<%= p.id %>/unshare">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <%- ui.button({ label: 'Stop sharing', type: 'submit', variant: 'ghost', size: 'sm' }) %>
+        </form>
+        <% } %>
+        <% } else if (canApprove) { %>
+        <form method="post" action="<%= actionBase %>/proof/<%= p.id %>/share" class="flex flex-col gap-2">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <p class="text-ink-700 text-xs">Make a link to this result for a boss or a client. Anyone with the link can read it, and you can stop sharing at any time. It shows <%= shareFields.join('; ') %>. It never shows <%= shareNever.join(', ') %>.</p>
+          <div><%- ui.button({ label: 'Share this result', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
+        </form>
+        <% } %>
+      </div>
+      <% } %>
     </div>
   </section>
   <% } %>

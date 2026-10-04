@@ -349,8 +349,16 @@ const actionIds = {};
     { ...won, org_id: org.id, project_id: dashProject.id },
     { verdict: 'proven_win' },
   );
+  // The four-week check is a win too, and is shared: the page shows one card to share and one already shared.
+  const shared = await fx.forceOutcome(
+    { ...won, org_id: org.id, project_id: dashProject.id },
+    { horizon: 'week_4', verdict: 'proven_win', kAfter: 45 },
+  );
   await fx.forceRecommendation(won.id, { status: 'proven_win' });
   actionIds.win = String(won.id);
+  actionIds.shareAddress = (
+    await scoped.proofShares.share(dashProject.id, won.id, shared.id, { userId: people.owner.id })
+  ).publicId;
 }
 
 // The Content Studio: a page at each step on the dashboard project, and a WordPress connection on the sample project.
@@ -631,6 +639,7 @@ const fixtureInfo = {
   dashboardPromptId: String(dashQ1.id),
   actionOpenId: actionIds.open,
   actionWinId: actionIds.win,
+  proofShareId: actionIds.shareAddress,
   actionAutofixId: actionIds.autofix,
   contentReadyId: contentIds.ready,
   contentApprovedId: contentIds.approved,

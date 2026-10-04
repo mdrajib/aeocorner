@@ -156,6 +156,15 @@ const NOTICES = {
     'danger',
     'We could not start that just now. Nothing was changed on your site. Try again in a minute.',
   ],
+  'proof-shared': [
+    'success',
+    'Shared. Anyone with the link can read this result. Copy it below. You can stop sharing at any time.',
+  ],
+  'proof-unshared': ['info', 'Stopped sharing. The link no longer works.'],
+  'proof-not-shareable': [
+    'warning',
+    'Only a proven win can be shared, and that result is not one. Nothing was shared.',
+  ],
   'action-stale': [
     'warning',
     'That recommendation has changed since you opened the page, so nothing was done. It is shown as it is now.',

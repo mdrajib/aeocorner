@@ -274,6 +274,7 @@ describe('links and the sitemap', () => {
     '/app',
     '/audit',
     '/r/',
+    '/p/',
     '/_styleguide',
     '/invite',
     '/sign-',

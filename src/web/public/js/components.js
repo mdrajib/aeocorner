@@ -58,6 +58,22 @@ document.addEventListener('click', (event) => {
     showToast({ message: toaster.dataset.toastMessage, tone: toaster.dataset.toastTone });
     return;
   }
+  // "Copy link": the button names the read-only field that holds the address. Without the clipboard API the field is
+  // selected so the person can copy it by hand; the field is there either way.
+  const copier = event.target.closest('[data-copy-from]');
+  if (copier) {
+    const field = document.getElementById(copier.dataset.copyFrom);
+    if (field) {
+      field.select();
+      const done = () => showToast({ message: 'Link copied.', tone: 'success' });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(field.value).then(done, () => {});
+      } else if (document.execCommand && document.execCommand('copy')) {
+        done();
+      }
+    }
+    return;
+  }
   const opener = event.target.closest('[data-modal-open]');
   if (opener) {
     const dialog = document.getElementById(opener.dataset.modalOpen);

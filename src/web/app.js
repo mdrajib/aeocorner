@@ -18,6 +18,7 @@ import { createGoogle } from '../integrations/google.js';
 import { createJobClient } from '../lib/jobs.js';
 import { appRoutes } from './routes/app.js';
 import { auditRoutes, auditStubRoutes } from './routes/audit.js';
+import { proofShareRoutes } from './routes/proof-share.js';
 import { authRoutes } from './routes/auth.js';
 import { inviteRoutes } from './routes/invite.js';
 import { healthRoutes, publicRoutes } from './routes/public.js';
@@ -117,6 +118,7 @@ export function createApp({
   app.use(seoRoutes(config));
   app.use(publicRoutes(config, { db, logger }));
   app.use(db && audit ? auditRoutes({ config, db, audit, logger }) : auditStubRoutes());
+  if (db) app.use(proofShareRoutes({ db }));
   if (db) app.use(unsubscribeRoutes({ config, db }));
   if (db) {
     const auth = createAuthMiddleware({ config, provider, db });

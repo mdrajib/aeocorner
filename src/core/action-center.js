@@ -328,6 +328,7 @@ export function proofCards(detail, { brandName }) {
           ? ''
           : `We call a change real only if it is at least ${SIGNIFICANCE.minDeltaPp} points and a statistical test (p < ${SIGNIFICANCE.alpha}) says it is unlikely to be chance. Here p ${o.p < 0.001 ? '< 0.001' : `= ${Math.round(o.p * 1000) / 1000}`}.`;
     return {
+      id: o.id == null ? null : String(o.id),
       horizon: HORIZONS[o.horizon]?.label ?? o.horizon,
       verdict: o.verdict,
       tone:

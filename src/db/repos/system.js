@@ -4,6 +4,7 @@ import { toMicros } from '../../core/spend.js';
 import { isForeignKeyViolation } from '../errors.js';
 import { systemAdmin } from './system-admin.js';
 import { systemBilling } from './system-billing.js';
+import { systemProof } from './system-proof.js';
 
 /**
  * Lookups the background worker makes ACROSS organizations, by design: "which projects are due this hour",
@@ -316,5 +317,6 @@ export function systemRepos(prisma) {
     digest,
     billing: systemBilling(prisma),
     ...systemAdmin(prisma),
+    ...systemProof(prisma),
   };
 }

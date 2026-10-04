@@ -15,6 +15,7 @@ import { AUTOFIX_RULES, buildAutofix, isAutofixable, parseExtras } from '../../c
 import { STATUS_LABELS } from '../../core/content-lifecycle.js';
 import { DEFAULT_ENGINE_LABELS } from '../../core/narrative.js';
 import { effortLabel } from '../../core/ice.js';
+import { canShare, NEVER_SHARED, SHARED_FIELDS } from '../../core/proof-share.js';
 import { DISMISS_REASONS, timelineFor } from '../../core/recommendation-lifecycle.js';
 import { describeRun, isRunning } from '../../core/run-status.js';
 import { DomainError } from '../../db/index.js';
@@ -33,6 +34,8 @@ import { dateLabel, idFrom, text, withNotice } from './project-helpers.js';
  *   POST /projects/:pid/actions/:rid/dismiss     with a reason
  *   POST /projects/:pid/actions/:rid/confirm     an unverified fix: "I have fixed it, start measuring"
  *   POST /projects/:pid/actions/:rid/redo        an unverified fix: "fix it again"
+ *   POST /projects/:pid/actions/:rid/proof/:oid/share    D4  make a proven win's public link (`site.approve`)
+ *   POST /projects/:pid/actions/:rid/proof/:oid/unshare  D4  stop sharing it: the link stops working
  *   GET  /projects/:pid/actions/:rid/autofix          D3  preview the exact structured data an auto-fix would put on the home page
  *   POST /projects/:pid/actions/:rid/autofix/approve  approve exactly what was previewed (`site.approve`): queues the write
  *
@@ -67,7 +70,8 @@ const EMPTY = {
   },
 };
 
-export function actionRoutes(router, { appPage, act, approve, jobs, logger }) {
+export function actionRoutes(router, { appPage, act, approve, jobs, logger, baseUrl = '' }) {
+  const origin = String(baseUrl ?? '').replace(/\/+$/, '');
   const tabs = (req, res) => ({
     orgBase: res.locals.orgBase,
     projectBase: res.locals.projectBase,
@@ -147,6 +151,12 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger }) {
       const written = (await req.orgDb.content.forRecommendations(req.project.id, [rec.id])).get(
         rec.id,
       );
+      const shares = new Map(
+        (await req.orgDb.proofShares.forRecommendation(req.project.id, rid)).map((s) => [
+          String(s.outcomeId),
+          s,
+        ]),
+      );
       return appPage(res, 'action-detail', {
         ...tabs(req, res),
         domain,
@@ -171,7 +181,17 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger }) {
         questions: detail.prompts.map((p) => ({ text: p.text, href: `${base}/answers/${p.id}` })),
         timeline: timelineFor(rec.status, { reached }),
         panel: statusPanel(detail),
-        proofs: proofCards(detail, { brandName }),
+        proofs: proofCards(detail, { brandName }).map((card, i) => {
+          const shared = shares.get(card.id);
+          return {
+            ...card,
+            canShare: canShare(detail.outcomes[i]),
+            shareUrl: shared ? `${origin}/p/${shared.publicId}` : null,
+          };
+        }),
+        shareFields: SHARED_FIELDS,
+        shareNever: NEVER_SHARED,
+        canApprove: res.locals.can('site.approve'),
         history: historyLines(detail.events),
         dismissReasons: Object.entries(DISMISS_REASONS).map(([value, label]) => ({ value, label })),
         canAct: res.locals.can('content.create'),
@@ -357,6 +377,43 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger }) {
       return next(err);
     }
   });
+
+  // --- D4 Share a proven win ----------------------------------------------------------------------------
+  for (const move of ['share', 'unshare']) {
+    router.post(
+      `/projects/:pid/actions/:rid/proof/:oid/${move}`,
+      approve,
+      async (req, res, next) => {
+        try {
+          const rid = idFrom(req.params.rid);
+          const oid = idFrom(req.params.oid);
+          if (!rid || !oid) return notFound(req, res);
+          const back = (notice) =>
+            res.redirect(
+              303,
+              withNotice(`${res.locals.projectBase}/actions/${req.params.rid}`, notice),
+            );
+          try {
+            if (move === 'share') {
+              await req.orgDb.proofShares.share(req.project.id, rid, oid, { userId: req.user.id });
+              return back('proof-shared');
+            }
+            await req.orgDb.proofShares.revoke(req.project.id, rid, oid);
+            return back('proof-unshared');
+          } catch (err) {
+            if (err instanceof DomainError) {
+              if (err.code === 'NOT_SHAREABLE') return back('proof-not-shareable');
+              if (['OUTCOME_NOT_FOUND', 'PROJECT_NOT_IN_ORG'].includes(err.code))
+                return notFound(req, res);
+            }
+            throw err;
+          }
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+  }
 
   // --- Moves ---------------------------------------------------------------------------------------------
   const MOVES = {
