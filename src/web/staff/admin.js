@@ -8,6 +8,7 @@ import {
   usd,
 } from '../../core/admin-costs.js';
 import { STATUS_TEXT, summarizeHealth } from '../../core/admin-health.js';
+import { byUrgency, capRow, parseCap } from '../../core/spend-cap.js';
 import { FLAG_KEY, KNOWN_FLAGS } from '../../core/flags.js';
 import { createJobClient } from '../../lib/jobs.js';
 import { extractAnswerJobId } from '../../lib/job-ids.js';
@@ -21,6 +22,7 @@ import { listFailedJobs, retryFailedJob } from './jobs.js';
  * active staff row (`staffAuth.identify`), then the role each module needs (`staffAuth.requireRole`; a super admin passes all).
  *
  *   /costs       cost and margin (finance, ops)
+ *   /spend       daily spend caps: who is near theirs, and change one (finance, ops)
  *   /providers   provider health (ops)
  *   /jobs        failed jobs, with retry (ops)
  *   /review      the extraction review queue (reviewer)
@@ -40,6 +42,14 @@ export const MODULES = Object.freeze([
     icon: 'money',
     roles: ['finance', 'ops'],
     text: 'What the system costs, by provider and by customer, and the margin on each plan.',
+  },
+  {
+    id: 'spend',
+    href: '/spend',
+    label: 'Spend caps',
+    icon: 'shield',
+    roles: ['finance', 'ops'],
+    text: 'Each customer’s daily spend limit, who is close to it, and a form to change it.',
   },
   {
     id: 'providers',
@@ -184,6 +194,15 @@ export function adminModules({ config, db, staffAuth, queues = null, logger }) {
     ],
     'review-invalid': ['danger', 'That was not understood, so nothing was changed.'],
     'review-late': ['warning', 'Someone else decided it first, so nothing was changed.'],
+    'cap-saved': [
+      'success',
+      'Saved. Collection that the old cap had paused resumes at the next spend check, within 15 minutes.',
+    ],
+    'cap-invalid': [
+      'danger',
+      'That was not understood, so nothing was changed. A reason of at least five characters is needed.',
+    ],
+    'cap-missing': ['warning', 'That customer was not found.'],
     'flag-saved': ['success', 'Saved.'],
     'flag-invalid': [
       'danger',
@@ -263,6 +282,74 @@ export function adminModules({ config, db, staffAuth, queues = null, logger }) {
       next(err);
     }
   });
+
+  // --- Spend caps ----------------------------------------------------------------------------------------------
+  const financeOps = staffAuth.requireRole('finance', 'ops');
+  const ORG_PUBLIC_ID = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+  router.get('/spend', financeOps, async (req, res, next) => {
+    try {
+      const now = new Date();
+      const lookup = text(req.query.org, 26);
+      const rows = await db.system.spend.list({
+        now,
+        orgPublicId: ORG_PUBLIC_ID.test(lookup) ? lookup.toUpperCase() : null,
+      });
+      const shown = byUrgency(rows.map((r) => ({ ...r, ...capRow({ ...r, now }) })));
+      page(req, res, 'staff-spend', {
+        title: 'Spend caps',
+        flash: notice(req),
+        lookup,
+        lookupMissing: lookup !== '' && rows.length === 0,
+        rows: shown.map((r) => ({
+          id: r.orgPublicId,
+          name: r.orgName,
+          plan: r.planCode ?? 'no plan',
+          cap: r.capText,
+          source: r.capSource,
+          spent: r.spentText,
+          percent: r.percent,
+          state: r.state,
+          resumes: r.resumesAt
+            ? `${r.resumesAt.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+            : '',
+          input: r.capInput,
+        })),
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post(
+    '/spend/cap',
+    financeOps,
+    ...form,
+    audited(
+      (req) => ({
+        action: 'spend.cap_set',
+        targetType: 'organization',
+        targetId: text(req.body.org, 26),
+        reason: text(req.body.reason, 500) || null,
+        afterState: { capUsd: parseCap(text(req.body.cap, 20)).capUsd ?? null },
+      }),
+      async (req, res, next) => {
+        try {
+          const org = text(req.body.org, 26);
+          const reason = text(req.body.reason, 500);
+          const cap = parseCap(text(req.body.cap, 20));
+          if (!ORG_PUBLIC_ID.test(org) || !cap.ok || reason.length < 5)
+            return res.redirect(303, here('/spend', 'cap-invalid'));
+          const done = await db.system.spend.setCap({
+            orgPublicId: org.toUpperCase(),
+            capUsd: cap.capUsd,
+          });
+          return res.redirect(303, here('/spend', done ? 'cap-saved' : 'cap-missing'));
+        } catch (err) {
+          return next(err);
+        }
+      },
+    ),
+  );
 
   // --- Provider health (8.18) --------------------------------------------------------------------------------
   router.get('/providers', staffAuth.requireRole('ops'), async (req, res, next) => {

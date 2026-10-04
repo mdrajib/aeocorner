@@ -1,6 +1,6 @@
 import { KNOWN_FLAGS, resolveFlag } from '../../core/flags.js';
 import { normalizeEntityName } from '../../core/project-rules.js';
-import { toMicros } from '../../core/spend.js';
+import { toMicros, utcDayStart } from '../../core/spend.js';
 import { DomainError, isUniqueViolation } from '../errors.js';
 import { transaction } from '../transaction.js';
 
@@ -480,5 +480,75 @@ export function systemAdmin(prisma) {
     },
   };
 
-  return { costs, providers, review, flags };
+  // --- Spend caps ------------------------------------------------------------------------------------------------
+  const spend = {
+    /**
+     * The organizations whose cap matters today: those that spent something since UTC midnight, have a cap of their own,
+     * or are paused. With `orgPublicId`, that one organization whatever its state. Names and money, nothing else.
+     */
+    async list({ now = new Date(), orgPublicId = null, limit = 100 } = {}) {
+      const spentRows = await prisma.usage_ledger.groupBy({
+        by: ['org_id'],
+        where: { occurred_at: { gte: utcDayStart(now) }, org_id: { not: null } },
+        _sum: { cost_usd: true },
+      });
+      const spentOf = new Map(
+        spentRows.map((r) => [r.org_id, toMicros(r._sum.cost_usd?.toString() ?? '0')]),
+      );
+      const orgs = await prisma.organizations.findMany({
+        where: orgPublicId
+          ? { public_id: orgPublicId, deleted_at: null }
+          : {
+              deleted_at: null,
+              OR: [
+                { id: { in: [...spentOf.keys()] } },
+                { spend_cap_usd_daily: { not: null } },
+                { collection_paused_until: { gt: now } },
+              ],
+            },
+        select: {
+          id: true,
+          public_id: true,
+          name: true,
+          plan_code: true,
+          spend_cap_usd_daily: true,
+          collection_paused_until: true,
+        },
+        orderBy: { id: 'asc' },
+        take: Math.min(limit, 500),
+      });
+      return orgs.map((o) => ({
+        orgPublicId: o.public_id,
+        orgName: o.name,
+        planCode: o.plan_code,
+        orgCapUsd: o.spend_cap_usd_daily?.toString() ?? null,
+        pausedUntil: o.collection_paused_until,
+        spentMicros: spentOf.get(o.id) ?? 0,
+      }));
+    },
+
+    /**
+     * Set an organization's own daily cap (`capUsd`, two-decimal text), or take it away with `null` so it follows its plan
+     * again. Returns what it was and what it is now, or `null` if there is no such organization. Collection that the old cap
+     * paused resumes at the next spend check (15 minutes at most), which compares today's spend with the new cap.
+     */
+    async setCap({ orgPublicId, capUsd }) {
+      const org = await prisma.organizations.findFirst({
+        where: { public_id: orgPublicId, deleted_at: null },
+        select: { id: true, name: true, spend_cap_usd_daily: true },
+      });
+      if (!org) return null;
+      await prisma.organizations.update({
+        where: { id: org.id },
+        data: { spend_cap_usd_daily: capUsd },
+      });
+      return {
+        orgName: org.name,
+        before: org.spend_cap_usd_daily?.toString() ?? null,
+        after: capUsd,
+      };
+    },
+  };
+
+  return { costs, providers, review, flags, spend };
 }

@@ -1886,6 +1886,8 @@ describe('coverage: no repository function without a leak test', () => {
       'resolve',
     ],
     flags: ['clearOverride', 'ensureKnown', 'isEnabled', 'list', 'set', 'setOverride'],
+    // Spend caps: names and money per customer, for staff only; the one write is audited by the route.
+    spend: ['list', 'setCap'],
   };
 
   // Billing is a group of groups: what a Stripe webhook and the billing jobs need to find an organization by Stripe's IDs.

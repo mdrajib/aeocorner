@@ -90,7 +90,7 @@ So for a collection provider the human's job is: confirm, tell the right people,
 ### 5.3 The bill is climbing: a spend cap, a retry loop or abuse
 
 1. **Costs** page: which organization, which provider, which step? The ledger has one row per charge, so "what was bought" is always answerable.
-2. Each organization has a **daily cap** (its own, or its plan's default). Reaching it **pauses that organization's collection** until the next UTC midnight, tells its owners and the team, and holds jobs without failing them. Raising the cap (`organizations.spend_cap_usd_daily`, until the console gets an edit form) and the 15-minute guard resume it.
+2. Each organization has a **daily cap** (its own, or its plan's default). Reaching it **pauses that organization's collection** until the next UTC midnight, tells its owners and the team, and holds jobs without failing them. Raising the cap (staff console, **Spend caps**, `/spend`: finance or ops, with a reason, recorded in the audit log) and the 15-minute guard resume it.
 3. Free audits have their own **daily budget** (`AUDIT_DAILY_BUDGET_USD`) across all visitors: when it is spent, new audits are delayed to the next day and one alert goes out. A burst of audits from one address, IP or domain is the abuse flow (A7): block in the console's audits and abuse page; five refusals block an IP for a day by themselves.
 4. A **retry loop** shows as many ledger rows for one answer. Every charge is keyed by attempt, so a loop would be visible, and the circuit breaker should stop it; if it didn't, stop the worker (§5.2) first and read the code second.
 5. Never "refund" the ledger by deleting rows; add a note and fix the cause.
@@ -160,7 +160,6 @@ A follow-up that changes a rule updates the affected doc in the same pass (the C
 
 | Gap | Effect | When |
 |---|---|---|
-| No console form to change an organization's spend cap | Edit `organizations.spend_cap_usd_daily` in MySQL | Before the first customer asks |
 | No per-provider kill switch | Stop the worker to stop spending | Before launch if a provider shows price drift |
 | No status page, announcement banner UI or customer-detail screen (the `announcements` table exists) | Use the maintenance page and email the owners from the team's address | When the first S2 reaches customers |
 | No loop that re-wraps stored secrets after a master-key change | The old master key must be kept | Before the first rotation |

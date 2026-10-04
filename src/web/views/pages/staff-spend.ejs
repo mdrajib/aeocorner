@@ -1,0 +1,44 @@
+<%#
+  Spend caps (ADMIN_OPERATIONS module 5). Props: rows ([{ id, name, plan, cap, source, spent, percent, state, resumes, input }]),
+  lookup, lookupMissing; locals: csrfToken. Shows the customers whose cap matters today (spent something, have their own cap, or
+  are paused), most urgent first, and one form each to set the cap or give it back to the plan. Every change needs a reason and is
+  written to the audit log. A blank cap means "follow the plan".
+%>
+<%
+const hidden = (name, value) => '<input type="hidden" name="' + name + '" value="' + ui.esc(value) + '">';
+const tone = { paused: 'danger', near: 'warning', ok: 'success' };
+const word = { paused: 'Collection paused', near: 'Close to the cap', ok: 'Within the cap' };
+%>
+<h1 class="text-3xl">Spend caps</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">Each customer has a daily limit on what the system may spend for them (UTC day). Reaching it pauses their collection until midnight and alerts the team. A customer follows its plan’s limit until it is given one of its own; leave the box empty to go back to the plan’s. Every change needs a reason and is recorded.</p>
+
+<form method="get" action="/spend" class="mt-6 flex flex-wrap items-end gap-3">
+  <div class="field"><label class="label" for="spend-find">Find a customer by ID</label><input class="input" id="spend-find" name="org" value="<%= lookup %>" minlength="26" maxlength="26" placeholder="26-character ID from its address bar"></div>
+  <%- ui.button({ label: 'Show', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+  <% if (lookup) { %><a class="text-sm underline" href="/spend">Back to the list</a><% } %>
+</form>
+<% if (lookupMissing) { %><div class="mt-4"><%- ui.banner({ tone: 'warning', title: 'No customer has that ID.', text: 'Copy it from the address bar of the customer’s app (the part after /app/o/).' }) %></div><% } %>
+
+<div class="mt-6 flex flex-col gap-4">
+  <% for (const r of rows) { %>
+  <section class="card" aria-labelledby="cap-<%= r.id %>">
+    <div class="card-body flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 id="cap-<%= r.id %>" class="text-base font-semibold"><%= r.name %></h2>
+        <span class="text-ink-700 text-sm">(<%= r.id %>, <%= r.plan %>)</span>
+        <%- ui.badge({ text: word[r.state], tone: tone[r.state] }) %>
+      </div>
+      <p class="text-sm">Spent today <strong><%= r.spent %></strong> of <strong><%= r.cap %></strong><%= r.percent === null ? '' : ' (' + r.percent + '%)' %>. The cap is <%= r.source === 'own' ? 'its own' : 'its plan’s' %>.<% if (r.resumes) { %> Paused until <%= r.resumes %> unless the cap is raised.<% } %></p>
+      <form method="post" action="/spend/cap" class="flex flex-wrap items-end gap-3">
+        <%- hidden('_csrf', csrfToken) %><%- hidden('org', r.id) %>
+        <div class="field"><label class="label" for="cap-input-<%= r.id %>">Daily cap in dollars</label><input class="input" id="cap-input-<%= r.id %>" name="cap" value="<%= r.input %>" inputmode="decimal" maxlength="9" placeholder="Follow the plan"></div>
+        <div class="field"><label class="label" for="cap-why-<%= r.id %>">Reason</label><input class="input" id="cap-why-<%= r.id %>" name="reason" minlength="5" maxlength="500" required></div>
+        <%- ui.button({ label: 'Save cap', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+      </form>
+    </div>
+  </section>
+  <% } %>
+  <% if (rows.length === 0 && !lookupMissing) { %>
+  <%- ui.card({ html: '<p class="text-ink-700 text-sm">Nobody has spent anything today, has a cap of their own, or is paused. Find a customer by ID above to change its cap.</p>' }) %>
+  <% } %>
+</div>

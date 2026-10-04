@@ -517,3 +517,111 @@ describe('every change is recorded first, or refused', () => {
     assert.equal((await ops.get('/audit')).status, 403);
   });
 });
+
+describe('spend caps', () => {
+  const capOf = async (org) =>
+    (await h.fx.billingRows(org.id)).org.spend_cap_usd_daily?.toString() ?? null;
+
+  test('finance sets a customer’s cap with a reason, and the change is recorded', async () => {
+    const fin = await staffer(['finance']);
+    const o = await h.fx.org();
+    const other = await h.fx.org();
+    assert.equal(await capOf(o.org), null);
+    assert.match(
+      location(
+        await fin.post('/spend/cap', {
+          org: o.org.public_id,
+          cap: '$120.5',
+          reason: 'a big agency client',
+        }),
+      ),
+      /cap-saved/,
+    );
+    assert.equal(await capOf(o.org), '120.5');
+    assert.equal(await capOf(other.org), null, 'only that customer');
+    assert.deepEqual(await actions(fin.member), ['spend.cap_set']);
+    const [row] = await h.fx.staffAuditRows(fin.member.id);
+    assert.equal(row.reason, 'a big agency client');
+    assert.equal(row.target_id, o.org.public_id);
+    assert.deepEqual(row.after_state, { capUsd: '120.50' });
+  });
+
+  test('a blank cap gives the customer back to its plan', async () => {
+    const ops = await staffer(['ops']);
+    const o = await h.fx.org();
+    await h.fx.setOrgSpend(o.org.id, { capUsd: '80' });
+    assert.match(
+      location(
+        await ops.post('/spend/cap', { org: o.org.public_id, cap: '', reason: 'follow the plan' }),
+      ),
+      /cap-saved/,
+    );
+    assert.equal(await capOf(o.org), null);
+  });
+
+  test('a cap that is not a plain amount in range, or has no reason, changes nothing', async () => {
+    const fin = await staffer(['finance']);
+    const o = await h.fx.org();
+    await h.fx.setOrgSpend(o.org.id, { capUsd: '30' });
+    for (const body of [
+      { cap: '-5', reason: 'a good reason' },
+      { cap: '0.5', reason: 'a good reason' },
+      { cap: '99999', reason: 'a good reason' },
+      { cap: '12.345', reason: 'a good reason' },
+      { cap: '40', reason: '' },
+      { cap: '40', reason: 'no' },
+    ]) {
+      assert.match(
+        location(await fin.post('/spend/cap', { org: o.org.public_id, ...body })),
+        /cap-invalid/,
+        JSON.stringify(body),
+      );
+    }
+    assert.equal(await capOf(o.org), '30');
+  });
+
+  test('an unknown customer is reported, and a role without the module is turned away', async () => {
+    const fin = await staffer(['finance']);
+    assert.match(
+      location(
+        await fin.post('/spend/cap', {
+          org: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+          cap: '20',
+          reason: 'not here',
+        }),
+      ),
+      /cap-missing/,
+    );
+    const reviewer = await staffer(['reviewer']);
+    const o = await h.fx.org();
+    const res = await reviewer.post('/spend/cap', {
+      org: o.org.public_id,
+      cap: '20',
+      reason: 'sneaky',
+    });
+    assert.equal(res.status, 403);
+    assert.equal(await capOf(o.org), null);
+  });
+
+  test('the page lists a paused customer first, and finds any customer by its ID', async () => {
+    const fin = await staffer(['finance']);
+    const paused = await h.fx.org({ name: 'Paused Co' });
+    const quiet = await h.fx.org({ name: 'Quiet Co' });
+    await h.fx.setOrg(paused.org.id, {
+      spend_cap_usd_daily: '10',
+      collection_paused_until: new Date(Date.now() + 3_600_000),
+    });
+    const list = await fin.get('/spend');
+    assert.equal(list.status, 200);
+    assert.match(list.text, /Paused Co/);
+    assert.match(list.text, /Collection paused/);
+    assert.doesNotMatch(list.text, /Quiet Co/, 'a customer with nothing going on is not listed');
+    const found = await fin.get(`/spend?org=${quiet.org.public_id}`);
+    assert.match(found.text, /Quiet Co/);
+    assert.match(found.text, /its plan’s/);
+    assert.match(
+      (await fin.get('/spend?org=01ARZ3NDEKTSV4RRFFQ69G5FAV')).text,
+      /No customer has that ID/,
+    );
+  });
+});

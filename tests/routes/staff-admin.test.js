@@ -97,6 +97,8 @@ describe('the wall around every module', () => {
   // Every route the modules register: [method, path as registered, roles that may use it ([] = super admin only), example path].
   const ROUTES = [
     ['get', '/costs', ['finance', 'ops'], '/costs'],
+    ['get', '/spend', ['finance', 'ops'], '/spend'],
+    ['post', '/spend/cap', ['finance', 'ops'], '/spend/cap'],
     ['get', '/providers', ['ops'], '/providers'],
     ['get', '/jobs', ['ops'], '/jobs'],
     ['post', '/jobs/retry', ['ops'], '/jobs/retry'],
