@@ -313,12 +313,32 @@ const actionIds = {};
         summary: 'Organization schema has no logo',
       },
       { code: 'F3', status: 'partial', points: 1, possible: 3, summary: 'Two pages share a title' },
+      {
+        code: 'C4',
+        status: 'fail',
+        points: 0,
+        possible: 3,
+        summary: 'The home page has no WebSite schema.',
+      },
     ],
   });
   await refreshProject({ db, scoped }, { projectId: dashProject.id, now: new Date() });
   const recs = await scoped.recommendations.list(dashProject.id);
   const byRule = (code) => recs.find((r) => r.ruleCode === code);
   actionIds.open = String(byRule('readiness.A1').id);
+  actionIds.autofix = String(byRule('readiness.C4').id);
+  // The plugin is connected on this project, so the auto-fix screen (D3) shows a real preview.
+  await scoped.integrations.saveWordpress(dashProject.id, {
+    config: {
+      siteUrl: 'https://www.dashboard-dental.example.test',
+      username: 'editor',
+      pluginInstalled: true,
+      pluginConnected: true,
+      canPublish: true,
+    },
+    secret: { ciphertext: Buffer.alloc(40, 1), wrappedDek: Buffer.alloc(60, 2), keyVersion: 1 },
+    userId: people.owner.id,
+  });
   const won = byRule('readiness.C1');
   await scoped.recommendations.markDone(dashProject.id, won.id, { userId: people.owner.id });
   await scoped.recommendations.settleVerification(dashProject.id, won.id, {
@@ -611,6 +631,7 @@ const fixtureInfo = {
   dashboardPromptId: String(dashQ1.id),
   actionOpenId: actionIds.open,
   actionWinId: actionIds.win,
+  actionAutofixId: actionIds.autofix,
   contentReadyId: contentIds.ready,
   contentApprovedId: contentIds.approved,
   contentPublishedId: contentIds.published,

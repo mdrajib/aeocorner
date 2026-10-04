@@ -231,6 +231,18 @@ export const appPages = [
     path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionOpenId}`,
   },
   {
+    name: 'project-action-autofix',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionAutofixId}/autofix`,
+  },
+  {
+    name: 'project-action-autofix-viewer',
+    as: 'viewer',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionAutofixId}/autofix`,
+  },
+  {
     name: 'project-action-proven-win',
     as: 'owner',
     path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`,

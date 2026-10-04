@@ -677,6 +677,11 @@ export function fixtures(db) {
       });
     },
 
+    /** Set columns on a site change directly (to tamper with what was approved). */
+    forceSiteChange(id, data) {
+      return prisma.site_changes.update({ where: { id }, data });
+    },
+
     /** Set columns on a user directly (their timezone, say). */
     setUser(id, data) {
       return prisma.users.update({ where: { id }, data });

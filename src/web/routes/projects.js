@@ -485,7 +485,7 @@ export function projectRoutes({
   setupRoutes(router, { jobs, logger, appPage, edit });
   trackingRoutes(router, { jobs, logger, edit });
   dashboardRoutes(router, { appPage, edit, logger });
-  actionRoutes(router, { appPage, act, jobs, logger });
+  actionRoutes(router, { appPage, act, approve, jobs, logger });
   contentRoutes(router, { appPage, act, approve, manage, jobs, logger, content });
   trafficRoutes(router, { appPage, manage, jobs, logger, google, config, content });
 

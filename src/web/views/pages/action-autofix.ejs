@@ -1,0 +1,67 @@
+<%#
+  D3: preview and approve an auto-fix. Props: rec ({ id, title, status }), fixLabel, pluginReady, connected, wordpressHref, canApprove, open,
+  inFlight (a write is under way: nothing more can be approved), change ({ tone, text, status, when } | null), built ({ targetUrl, hash, includes, notIncluded } | null), builtError, code (the exact JSON-LD),
+  extrasErrors ({ logoUrl, sameAs }), logoUrl, sameAs, actionBase; locals: orgBase, projectBase, projectName, domain, csrfToken.
+  What is shown is exactly what is sent: the approval form carries a fingerprint of this data, and a change underneath it
+  (the Brand Kit, what is already on the page) is refused and shown again.
+%>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'actions', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
+
+<p class="mt-4 text-sm"><a href="<%= actionBase %>">Back to the recommendation</a></p>
+<h2 class="mt-2 max-w-3xl text-2xl [overflow-wrap:anywhere]"><%= fixLabel %> on <%= domain || projectName %></h2>
+<p class="text-ink-700 mt-2 max-w-3xl text-sm">Fixes: <%= rec.title %>. Read exactly what we would add, then approve it. Nothing changes on your site until you do.</p>
+
+<% if (change) { %>
+<div class="mt-6"><%- ui.banner({ tone: change.tone, title: change.text, text: change.status === 'applied' ? 'Written ' + change.when + '. We are now fetching your page the way an AI crawler does, and checking it is there. You will see the result on the recommendation.' : change.status === 'failed' ? 'Nothing on your site was left half-changed. You can try again below.' : 'This page updates by itself.' }) %></div>
+<% } %>
+
+<% if (!connected || !pluginReady) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'warning', title: connected ? 'The AEO Corner plugin is not connected.' : 'WordPress is not connected.', text: 'Auto-fix writes through our WordPress plugin, so it needs the plugin on your site. Everything else on this page waits until it is connected.' }) %></div>
+<div class="mt-4"><%- ui.button({ label: 'Connect WordPress and the plugin', href: wordpressHref, variant: 'primary' }) %></div>
+<% } else if (builtError) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'danger', title: 'We cannot prepare this fix yet.', text: builtError }) %></div>
+<% } else if (built) { %>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Where it goes', headingLevel: 3, html:
+    '<p class="text-ink-800">Your home page, <strong class="[overflow-wrap:anywhere]">' + ui.esc(built.targetUrl) + '</strong>, as a block of structured data in the page’s head. The AEO Corner plugin adds it. Nothing else on your site changes, and nothing is shown to visitors.</p>' }) %>
+  <%- ui.card({ title: 'What it says', headingLevel: 3, html:
+    '<ul class="flex list-disc flex-col gap-1 pl-5 text-ink-800">' + built.includes.map((t) => '<li>' + ui.esc(t) + '</li>').join('') + '</ul>'
+    + (built.notIncluded.length ? '<h4 class="mt-4 text-sm font-semibold">Not included</h4><ul class="text-ink-700 mt-1 list-disc pl-5 text-sm">' + built.notIncluded.map((t) => '<li>' + ui.esc(t) + '</li>').join('') + '</ul>' : '') }) %>
+</div>
+
+<h3 class="mt-8 text-xl">The exact code</h3>
+<p class="text-ink-700 mt-1 text-sm">This is what is written, word for word.</p>
+<pre class="draft-code mt-3" tabindex="0" aria-label="The structured data that would be added"><code><%= code %></code></pre>
+
+<% if (open && !inFlight) { %>
+<form method="get" action="<%= actionBase %>/autofix" class="mt-8 flex max-w-xl flex-col gap-3">
+  <h3 class="text-base font-semibold">Add more to it</h3>
+  <p class="text-ink-700 text-sm">We only write what we know. If you add these, the preview above changes, and the check can earn those points.</p>
+  <%- ui.field({ id: 'af-logo', name: 'logoUrl', label: 'Logo address', type: 'url', value: logoUrl, error: extrasErrors.logoUrl, placeholder: 'https://www.example.com/logo.png', hint: 'The full address of your logo image.' }) %>
+  <%- ui.field({ id: 'af-same', name: 'sameAs', label: 'Profile links', type: 'textarea', rows: 3, value: sameAs, error: extrasErrors.sameAs, hint: 'One full address per line: your LinkedIn page, Crunchbase, Google Business Profile, Wikipedia…' }) %>
+  <div><%- ui.button({ label: 'Update the preview', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
+</form>
+
+<% if (canApprove) { %>
+<section class="card mt-8" aria-labelledby="approve-h">
+  <div class="card-body flex flex-col gap-3">
+    <h3 id="approve-h" class="text-base font-semibold">Approve this</h3>
+    <p class="text-ink-700 text-sm">We write exactly the code above to your home page, then fetch the page as an AI crawler would and confirm it is there. Marking it done and measuring the effect start by themselves.</p>
+    <form method="post" action="<%= actionBase %>/autofix/approve" class="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="hash" value="<%= built.hash %>">
+      <input type="hidden" name="logoUrl" value="<%= logoUrl %>">
+      <input type="hidden" name="sameAs" value="<%= sameAs %>">
+      <%- ui.button({ label: 'Approve and apply', type: 'submit', variant: 'primary' }) %>
+      <%- ui.button({ label: 'Cancel', href: actionBase, variant: 'ghost' }) %>
+    </form>
+  </div>
+</section>
+<% } else { %>
+<p class="text-ink-700 mt-6 text-sm">You can read this fix, but approving changes to the live site is for owners, admins and editors.</p>
+<% } %>
+<% } else if (!inFlight) { %>
+<p class="text-ink-700 mt-6 text-sm">This recommendation is no longer open, so there is nothing to approve.</p>
+<% } %>
+<% } %>

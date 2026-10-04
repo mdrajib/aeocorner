@@ -46,6 +46,10 @@ Why not Docker or a hosted instance: no Docker on this project, and a hosted ins
 
 **8. The editor is TipTap, bundled and self-hosted, with its CSS injection off (7.08).** `npm run build:editor` bundles TipTap 3 (`@tiptap/core`, starter kit, table) with esbuild into `src/web/public/vendor/editor.js` (423 KB, committed like the other vendored assets, loaded only on the item page). The CSP is unchanged. What was checked: TipTap's `injectCSS` creates a `<style>` element, which `style-src 'self'` forbids, so it is switched off and the editor's look is in `tailwind/components.css`; ProseMirror's own style changes are CSSOM assignments, which the CSP allows. The Playwright flow loads the editor, types, saves, and fails on any console error, which includes CSP violations. The page works without JavaScript: the draft is a plain textarea of HTML that the editor upgrades; the server sanitizes whatever is posted.
 
+### Addendum 2026-10-04: auto-fix approval (UI_DESIGN D3)
+
+The plugin can write one thing besides a post: a JSON-LD block for an address. So auto-fix is offered only for the two readiness checks that block fixes (C1 Organization, C4 WebSite) on the home page. It reuses the publish pattern: a person approves exactly what they previewed (a fingerprint of the data travels with the approval), a `site_changes` row records it, a job writes it, and the recommendation is marked done with the same-day re-check. Robots.txt, sitemap and title fixes (A1, A4, F3) are still guidance: the plugin has no way to change them, and the rules table keeps its `auto_fix` label for them until it does. The plugin replaces the block for an address, so each fix writes the whole graph. Not built: undoing an applied fix from the screen (the plugin has the delete route).
+
 ## Consequences
 
 - A page can be wrong about nothing the facts registry does not support, and the customer can see which facts were checked. The cost is blandness: a topic with no checkable facts gets a draft built from the Brand Kit alone, and the screen says so.

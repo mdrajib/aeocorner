@@ -116,6 +116,11 @@ export const JOBS = Object.freeze({
     queue: 'content',
     schema: z.object({ orgId: id, projectId: id, itemId: id, siteChangeId: id }),
   },
+  // Write an approved auto-fix (structured data for the home page) through the plugin, then mark the fix done.
+  'autofix.apply': {
+    queue: 'content',
+    schema: z.object({ orgId: id, projectId: id, siteChangeId: id }),
+  },
   // Check a project's WordPress connection: does the site answer, is the login still good, is the plugin there.
   'wordpress.test': { queue: 'content', schema: z.object({ orgId: id, projectId: id }) },
 

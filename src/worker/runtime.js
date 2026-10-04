@@ -14,6 +14,7 @@ import { auditHandlers } from './handlers/audit.js';
 import { billingHandlers } from './handlers/billing.js';
 import { collectHandlers } from './handlers/collect.js';
 import { actionHandlers } from './handlers/actions.js';
+import { autofixHandlers } from './handlers/autofix.js';
 import { contentHandlers } from './handlers/content.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { digestHandlers } from './handlers/digest.js';
@@ -105,6 +106,7 @@ export function createWorkerRuntime({
     ...trackingHandlers,
     ...actionHandlers,
     ...contentHandlers,
+    ...autofixHandlers,
     ...billingHandlers,
     ...digestHandlers,
     ...trafficHandlers,

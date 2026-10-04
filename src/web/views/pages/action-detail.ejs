@@ -84,6 +84,18 @@
 </section>
 <% } %>
 
+<% if (autofix && (autofix.canStart || autofix.change)) { %>
+<section class="card mt-8" aria-labelledby="autofix-h">
+  <div class="card-body flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h3 id="autofix-h" class="text-base font-semibold">We can do this for you</h3>
+      <p class="text-ink-700 mt-1 max-w-xl text-sm"><%= autofix.change ? autofix.change.text : 'Preview the exact code we would add to your home page through the WordPress plugin. Nothing changes until you approve it.' %></p>
+    </div>
+    <%- ui.button({ label: autofix.change ? 'Open the fix' : 'Preview the fix', href: autofix.href, variant: 'primary' }) %>
+  </div>
+</section>
+<% } %>
+
 <% if (canAct && ['open', 'in_progress', 'unverified'].includes(rec.status)) { %>
 <section class="card mt-8" aria-labelledby="do-h">
   <div class="card-body flex flex-col gap-4">

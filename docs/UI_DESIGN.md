@@ -136,7 +136,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | C5 | First-visit guided tour (3 steps) | 6 | overlay | app | Phase 10 | C |
 | D1 | **Action Center** (ranked recommendations) | 7 Loop | `…/actions` | app | **Milestone 6 ✅ 2026-10-04** (to do, checking and measuring, results, dismissed) | D |
 | D2 | Recommendation detail: evidence, fix path, status timeline | 7 | `…/actions/:id` | app | **Milestone 6 ✅ 2026-10-04** | D |
-| D3 | Auto-fix preview and approve | 7 | modal / page | app | Phase 11 | D |
+| D3 | Auto-fix preview and approve | 7 | modal / page | app | **✅ 2026-10-04** (a page at `/actions/:rid/autofix`; Organization and WebSite schema on the home page; see CLAUDE.md "Auto-fix") | D |
 | D4 | **Proof card** (before/after) and share | 8 Proof | `…/proof/:id` | app | Phase 11 | D |
 | D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content`, `…/content/:id` | app | **Milestone 7 ✅ 2026-10-04** | D |
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |

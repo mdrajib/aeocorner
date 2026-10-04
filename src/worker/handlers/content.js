@@ -483,7 +483,7 @@ async function contentQc(ctx, data, job) {
 // ---------------------------------------------------------------------------------------------------------------
 // WordPress
 
-function wordpressFor(ctx, orgId, projectId, integration) {
+export function wordpressFor(ctx, orgId, projectId, integration) {
   if (!ctx.content?.secrets)
     throw new UnrecoverableError('Secrets are not configured on this worker (SECRETS_MASTER_KEY)');
   if (!ctx.crawler?.fetcher)

@@ -1490,6 +1490,57 @@ describe('content studio and integrations', () => {
   });
 });
 
+describe('auto-fix approvals', () => {
+  let aProject;
+  let bProject;
+  let bRec;
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Autofix A');
+    bProject = await fx.project(B.org.id, 'Autofix B');
+    bRec = await fx.recommendation(bProject, {
+      rule_code: 'readiness.C1',
+      category: 'structured_data',
+      fix_path: 'auto_fix',
+    });
+  });
+
+  test('every project-level call: B’s project is not found from A', async () => {
+    const f = A.scoped.autofix;
+    const asA = [
+      () => f.current(bProject.id, bRec.id),
+      () => f.appliedNodes(bProject.id, 'https://b.example.test/'),
+      () =>
+        f.approve(bProject.id, bRec.id, {
+          userId: A.owner.id,
+          targetUrl: 'https://b.example.test/',
+          jsonld: {},
+          hash: 'x',
+          ruleCode: 'readiness.C1',
+        }),
+      () => f.forApply(bProject.id, 1n),
+      () => f.markApplying(bProject.id, 1n),
+      () => f.finish(bProject.id, 1n, { ok: true }),
+    ];
+    for (const call of asA) await refuses(call(), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('B’s recommendation is not reachable through A’s own project', async () => {
+    const f = A.scoped.autofix;
+    assert.equal(await f.current(aProject.id, bRec.id), null);
+    await refuses(
+      f.approve(aProject.id, bRec.id, {
+        userId: A.owner.id,
+        targetUrl: 'https://a.example.test/',
+        jsonld: {},
+        hash: 'x',
+        ruleCode: 'readiness.C1',
+      }),
+      'RECOMMENDATION_NOT_FOUND',
+    );
+    assert.equal(await f.forApply(aProject.id, 999999n), null);
+  });
+});
+
 describe('billing, alerts, notification choices and Google traffic (Milestone 8)', () => {
   let aProject;
   let bProject;
@@ -1744,6 +1795,7 @@ describe('coverage: no repository function without a leak test', () => {
       'summary',
       'usage',
     ],
+    autofix: ['appliedNodes', 'approve', 'current', 'finish', 'forApply', 'markApplying'],
     alerts: ['digestFacts', 'markAlerted', 'pending', 'recipients'],
     notifyPrefs: ['get', 'set'],
     google: ['choose', 'disconnect', 'saveGrant', 'secret', 'status', 'syncResult'],
@@ -1930,6 +1982,7 @@ describe('coverage: no repository function without a leak test', () => {
     assert.deepEqual(Object.keys(scoped).sort(), [
       'activity',
       'alerts',
+      'autofix',
       'billing',
       'brandKits',
       'changes',

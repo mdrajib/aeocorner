@@ -449,3 +449,147 @@ describe('on the dashboard', () => {
     assert.match(page.text, /aria-current="page">Actions</);
   });
 });
+
+describe('auto-fix: preview and approve (D3)', () => {
+  const secret = {
+    ciphertext: Buffer.alloc(40, 1),
+    wrappedDek: Buffer.alloc(60, 2),
+    keyVersion: 1,
+  };
+
+  /** The usual project, with its WordPress connected (the plugin too, unless `plugin: false`). */
+  async function withSite({ plugin = true } = {}) {
+    const ctx = await withActions();
+    await ctx.scoped.integrations.saveWordpress(ctx.project.id, {
+      config: {
+        siteUrl: 'https://www.act-site.example.test',
+        username: 'editor',
+        pluginConnected: plugin,
+      },
+      secret,
+      userId: ctx.owner.user.id,
+    });
+    ctx.c1 = ctx.rec('readiness.C1');
+    ctx.page = `${ctx.base}/actions/${ctx.c1.id}/autofix`;
+    return ctx;
+  }
+  const hashOf = (html) => html.match(/name="hash" value="([0-9a-f]{64})"/)?.[1];
+  const form = (extra = {}) => ({ ...extra });
+
+  test('the preview shows the exact code, where it goes, and what was left out', async () => {
+    const ctx = await withSite();
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /Add Organization schema|Organization schema on/);
+    assert.match(page.text, /https:\/\/www\.act-site\.example\.test\//);
+    assert.match(page.text, /&#34;@type&#34;: &#34;Organization&#34;/);
+    assert.match(page.text, /Not included/);
+    assert.match(page.text, /Approve and apply/);
+    assert.ok(hashOf(page.text), 'the approval carries a fingerprint of what was shown');
+  });
+
+  test('a logo and profile links change the preview, and a bad address is refused with a message', async () => {
+    const ctx = await withSite();
+    const logo = encodeURIComponent('https://www.act-site.example.test/logo.png');
+    const ok = await ctx.owner.get(`${ctx.page}?logoUrl=${logo}`).expect(200);
+    assert.match(ok.text, /logo\.png/);
+    assert.notEqual(hashOf(ok.text), hashOf((await ctx.owner.get(ctx.page)).text));
+    const bad = await ctx.owner.get(`${ctx.page}?logoUrl=javascript:alert(1)`).expect(200);
+    assert.match(bad.text, /full https:\/\/ address/);
+  });
+
+  test('only a fix the plugin can write has a preview; a viewer can read it but not approve', async () => {
+    const ctx = await withSite();
+    await ctx.owner.get(`${ctx.base}/actions/${ctx.rec('readiness.A1').id}/autofix`).expect(404);
+    const asViewer = await ctx.viewer.get(ctx.page).expect(200);
+    assert.match(asViewer.text, /owners, admins and editors/);
+    assert.doesNotMatch(asViewer.text, /Approve and apply/);
+    const detail = await ctx.owner.get(`${ctx.base}/actions/${ctx.c1.id}`).expect(200);
+    assert.match(detail.text, /We can do this for you/);
+    const a1 = await ctx.owner.get(`${ctx.base}/actions/${ctx.rec('readiness.A1').id}`).expect(200);
+    assert.doesNotMatch(a1.text, /We can do this for you/);
+  });
+
+  test('without the plugin the page says so and offers no approval', async () => {
+    const ctx = await withSite({ plugin: false });
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /plugin is not connected/);
+    assert.doesNotMatch(page.text, /Approve and apply/);
+    const res = await ctx.owner
+      .post(`${ctx.page}/approve`, form({ hash: 'x'.repeat(64) }))
+      .expect(303);
+    assert.match(res.headers.location, /autofix-no-plugin/);
+    assert.equal(await ctx.scoped.autofix.current(ctx.project.id, ctx.c1.id), null);
+  });
+
+  test('approving what was shown queues the write once and puts the fix in progress', async () => {
+    const ctx = await withSite();
+    const hash = hashOf((await ctx.owner.get(ctx.page)).text);
+    const before = added.length;
+    const res = await ctx.owner.post(`${ctx.page}/approve`, form({ hash })).expect(303);
+    assert.match(res.headers.location, /autofix-applying/);
+    const job = added.slice(before).find((j) => j.name === 'autofix.apply');
+    assert.ok(job);
+    const change = await ctx.scoped.autofix.current(ctx.project.id, ctx.c1.id);
+    assert.equal(change.status, 'approved');
+    assert.equal(change.approvedByUserId, ctx.owner.user.id);
+    assert.equal(change.payload.hash, hash);
+    assert.deepEqual(job.data, {
+      orgId: String(
+        (await h.db.organizations.findForUser({ publicId: ctx.orgId, userId: ctx.owner.user.id }))
+          .org.id,
+      ),
+      projectId: String(ctx.project.id),
+      siteChangeId: String(change.id),
+    });
+    const detail = await ctx.scoped.recommendations.get(ctx.project.id, ctx.c1.id);
+    assert.equal(detail.recommendation.status, 'in_progress');
+    const page = await ctx.owner.get(res.headers.location).expect(200);
+    assert.match(page.text, /Writing it to your site now/);
+    assert.doesNotMatch(page.text, /Approve and apply/);
+
+    const again = await ctx.owner.post(`${ctx.page}/approve`, form({ hash })).expect(303);
+    assert.match(again.headers.location, /autofix-already/);
+    assert.equal(added.slice(before).filter((j) => j.name === 'autofix.apply').length, 1);
+  });
+
+  test('a change under the preview since it was shown is refused, not quietly sent', async () => {
+    const ctx = await withSite();
+    const before = added.length;
+    const res = await ctx.owner
+      .post(`${ctx.page}/approve`, form({ hash: 'a'.repeat(64) }))
+      .expect(303);
+    assert.match(res.headers.location, /autofix-changed/);
+    assert.equal(added.length, before);
+    assert.equal(await ctx.scoped.autofix.current(ctx.project.id, ctx.c1.id), null);
+  });
+
+  test('a viewer cannot approve, and another organization cannot reach the page', async () => {
+    const ctx = await withSite();
+    const hash = hashOf((await ctx.owner.get(ctx.page)).text);
+    const before = added.length;
+    const asViewer = await ctx.viewer.post(`${ctx.page}/approve`, form({ hash }));
+    assert.notEqual(asViewer.status, 303);
+    assert.equal(added.length, before);
+    const other = await withActions();
+    await other.owner.get(`${ctx.base}/actions/${ctx.c1.id}/autofix`).expect(404);
+    await other.owner.post(`${ctx.page}/approve`, form({ hash })).expect(404);
+    assert.equal(await ctx.scoped.autofix.current(ctx.project.id, ctx.c1.id), null);
+  });
+
+  test('a queue that is down leaves nothing half-done and says so', async () => {
+    const ctx = await withSite();
+    const hash = hashOf((await ctx.owner.get(ctx.page)).text);
+    failQueue = true;
+    try {
+      const res = await ctx.owner.post(`${ctx.page}/approve`, form({ hash })).expect(303);
+      assert.match(res.headers.location, /autofix-queue-failed/);
+    } finally {
+      failQueue = false;
+    }
+    const change = await ctx.scoped.autofix.current(ctx.project.id, ctx.c1.id);
+    assert.equal(change.status, 'failed');
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /Nothing was changed on your site/);
+    assert.match(page.text, /Approve and apply/, 'and it can be tried again');
+  });
+});

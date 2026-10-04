@@ -135,6 +135,27 @@ const NOTICES = {
   'action-redo': ['info', 'Back in progress. Mark it done again when the change is live.'],
   'action-dismissed': ['info', 'Dismissed. We will not suggest it again for a while.'],
   'action-reason': ['danger', 'Choose why you are dismissing it.'],
+  'autofix-applying': [
+    'success',
+    'Approved. We are writing it to your site now; this page updates when it is done, and then we check your site the way an AI crawler sees it.',
+  ],
+  'autofix-changed': [
+    'warning',
+    'What we would write changed since you opened the page (your Brand Kit or your site moved), so nothing was sent. Read the new preview, then approve it.',
+  ],
+  'autofix-invalid': [
+    'danger',
+    'Check the logo and profile addresses: each must be a full https:// address. Nothing was sent.',
+  ],
+  'autofix-already': ['info', 'This fix was already approved and is being written to your site.'],
+  'autofix-no-plugin': [
+    'warning',
+    'The AEO Corner plugin is not connected to your WordPress site, so nothing was changed. Connect it first.',
+  ],
+  'autofix-queue-failed': [
+    'danger',
+    'We could not start that just now. Nothing was changed on your site. Try again in a minute.',
+  ],
   'action-stale': [
     'warning',
     'That recommendation has changed since you opened the page, so nothing was done. It is shown as it is now.',

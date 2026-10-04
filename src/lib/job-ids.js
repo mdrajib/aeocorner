@@ -94,6 +94,9 @@ export const contentJobId = (stage, itemId, round) => jobId('content', stage, it
 /** Sending one approved change to WordPress: the change row is the identity. */
 export const publishJobId = (siteChangeId) => jobId('publish', siteChangeId);
 
+/** Writing one approved auto-fix to the customer's site: the change row is the identity. */
+export const autofixJobId = (siteChangeId) => jobId('autofix', siteChangeId);
+
 /** Testing a project's WordPress connection, at most once per ten-minute slot. */
 export const wordpressTestJobId = (projectId, slot) => jobId('wptest', projectId, `s${slot}`);
 

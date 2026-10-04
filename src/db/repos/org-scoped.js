@@ -1,6 +1,7 @@
 import { DomainError, isForeignKeyViolation, isUniqueViolation } from '../errors.js';
 import { actionRepos } from './org-actions.js';
 import { alertRepos } from './org-alerts.js';
+import { autofixRepos } from './org-autofix.js';
 import { billingRepos } from './org-billing.js';
 import { contentRepos } from './org-content.js';
 import { dashboardRepos } from './org-dashboard.js';
@@ -356,6 +357,7 @@ export function orgScopedRepos(prisma, orgId) {
     ...dashboardRepos(prisma, orgId),
     ...actionRepos(prisma, orgId),
     ...contentRepos(prisma, orgId),
+    ...autofixRepos(prisma, orgId),
     ...billingRepos(prisma, orgId, { appendActivity }),
     ...alertRepos(prisma, orgId),
     ...trafficRepos(prisma, orgId),

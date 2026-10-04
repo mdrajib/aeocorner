@@ -11,15 +11,16 @@ import {
   stepsOf,
   CATEGORY_LABELS,
 } from '../../core/action-center.js';
+import { AUTOFIX_RULES, buildAutofix, isAutofixable, parseExtras } from '../../core/autofix.js';
 import { STATUS_LABELS } from '../../core/content-lifecycle.js';
 import { DEFAULT_ENGINE_LABELS } from '../../core/narrative.js';
 import { effortLabel } from '../../core/ice.js';
 import { DISMISS_REASONS, timelineFor } from '../../core/recommendation-lifecycle.js';
 import { describeRun, isRunning } from '../../core/run-status.js';
 import { DomainError } from '../../db/index.js';
-import { fixVerifyJobId } from '../../lib/job-ids.js';
+import { autofixJobId, fixVerifyJobId } from '../../lib/job-ids.js';
 import { notFound } from '../middleware/errors.js';
-import { idFrom, text, withNotice } from './project-helpers.js';
+import { dateLabel, idFrom, text, withNotice } from './project-helpers.js';
 
 /**
  * The Action Center of one project (Milestone 6, UI_DESIGN D1-D4). Registers on the project router.
@@ -32,6 +33,8 @@ import { idFrom, text, withNotice } from './project-helpers.js';
  *   POST /projects/:pid/actions/:rid/dismiss     with a reason
  *   POST /projects/:pid/actions/:rid/confirm     an unverified fix: "I have fixed it, start measuring"
  *   POST /projects/:pid/actions/:rid/redo        an unverified fix: "fix it again"
+ *   GET  /projects/:pid/actions/:rid/autofix          D3  preview the exact structured data an auto-fix would put on the home page
+ *   POST /projects/:pid/actions/:rid/autofix/approve  approve exactly what was previewed (`site.approve`): queues the write
  *
  * Everyone in the organization who can see the project can read these screens; changing one needs `content.create`
  * (owner, admin or editor). A person's moves go through `recommendations.transition` and `markDone`, which ask the
@@ -64,7 +67,7 @@ const EMPTY = {
   },
 };
 
-export function actionRoutes(router, { appPage, act, jobs, logger }) {
+export function actionRoutes(router, { appPage, act, approve, jobs, logger }) {
   const tabs = (req, res) => ({
     orgBase: res.locals.orgBase,
     projectBase: res.locals.projectBase,
@@ -179,11 +182,177 @@ export function actionRoutes(router, { appPage, act, jobs, logger }) {
             }
           : null,
         writable: rec.fixPath === 'content' && ['open', 'in_progress'].includes(rec.status),
+        autofix: isAutofixable(rec.ruleCode)
+          ? {
+              href: `${base}/actions/${rec.id}/autofix`,
+              label: AUTOFIX_RULES[rec.ruleCode].action,
+              canStart: ['open', 'in_progress'].includes(rec.status),
+              change: autofixChange(await req.orgDb.autofix.current(req.project.id, rec.id)),
+            }
+          : null,
         actionBase: `${base}/actions/${rec.id}`,
         listHref: `${base}/actions`,
         engineNames: DEFAULT_ENGINE_LABELS,
         meta: meta(req, rec.title),
       });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // --- D3 Auto-fix: preview and approve -----------------------------------------------------------------
+  /** What the screens say about the latest write for a recommendation, in words a customer can read. */
+  function autofixChange(change) {
+    if (!change) return null;
+    const when = change.appliedAt ?? change.approvedAt ?? change.createdAt;
+    const states = {
+      approved: { tone: 'info', text: 'Approved. Writing it to your site now.' },
+      applying: { tone: 'info', text: 'Writing it to your site now.' },
+      applied: { tone: 'success', text: 'Written to your site.' },
+      failed: { tone: 'danger', text: change.lastError ?? 'It could not be written to your site.' },
+    };
+    const s = states[change.status];
+    return s ? { ...s, status: change.status, when: dateLabel(when) } : null;
+  }
+
+  /**
+   * Everything the preview and the approval both need, worked out the same way both times, so what a person approves is
+   * what they saw: the recommendation, the connected site, the brand, and what the fix would write.
+   */
+  async function proposalFor(req, rid, input) {
+    const detail = await req.orgDb.recommendations.get(req.project.id, rid);
+    if (!detail || !isAutofixable(detail.recommendation.ruleCode)) return { detail: null };
+    const rec = detail.recommendation;
+    const [integration, kit, brand, change] = await Promise.all([
+      req.orgDb.integrations.wordpress(req.project.id),
+      req.orgDb.brandKits.current(req.project.id),
+      brandOf(req),
+      req.orgDb.autofix.current(req.project.id, rec.id),
+    ]);
+    const connected = integration?.status === 'connected';
+    const pluginReady = connected && Boolean(integration.config?.pluginConnected);
+    const extras = parseExtras({ logoUrl: input.logoUrl, sameAs: input.sameAs });
+    let built = null;
+    if (pluginReady) {
+      const homeUrl = integration.config.siteUrl;
+      const identity = kit?.data?.identity ?? {};
+      built = buildAutofix({
+        ruleCode: rec.ruleCode,
+        brand: {
+          name: identity.brandName || brand?.name || req.project.name,
+          legalName: identity.legalName,
+          definition: identity.definition,
+        },
+        homeUrl,
+        domain: req.project.domain,
+        extras: extras.ok ? extras : {},
+        existingNodes: await req.orgDb.autofix.appliedNodes(
+          req.project.id,
+          homeUrl.endsWith('/') ? homeUrl : `${homeUrl}/`,
+        ),
+      });
+    }
+    return { detail, rec, integration, connected, pluginReady, extras, built, change, brand };
+  }
+
+  router.get('/projects/:pid/actions/:rid/autofix', async (req, res, next) => {
+    try {
+      const rid = idFrom(req.params.rid);
+      const p = rid ? await proposalFor(req, rid, req.query) : { detail: null };
+      if (!p.detail) return notFound(req, res);
+      const base = res.locals.projectBase;
+      const change = autofixChange(p.change);
+      // The page looks again by itself while the write is under way.
+      if (change && ['approved', 'applying'].includes(change.status)) res.locals.refreshSeconds = 5;
+      return appPage(res, 'action-autofix', {
+        ...tabs(req, res),
+        domain: p.brand?.primary_domain ?? req.project.domain ?? '',
+        current: 'actions',
+        rec: { id: String(p.rec.id), title: p.rec.title, status: p.rec.status },
+        fixLabel: AUTOFIX_RULES[p.rec.ruleCode].label,
+        pluginReady: p.pluginReady,
+        connected: p.connected,
+        wordpressHref: `${base}/integrations/wordpress`,
+        canApprove: res.locals.can('site.approve'),
+        open: ['open', 'in_progress'].includes(p.rec.status),
+        inFlight: Boolean(change && ['approved', 'applying'].includes(change.status)),
+        change,
+        built: p.built?.ok ? p.built : null,
+        builtError: p.built && !p.built.ok ? p.built.reason : null,
+        code: p.built?.ok ? JSON.stringify(p.built.jsonld, null, 2) : '',
+        extrasErrors: p.extras.ok ? {} : p.extras.errors,
+        logoUrl: text(req.query.logoUrl, 2000),
+        sameAs: text(req.query.sameAs, 4000),
+        actionBase: `${base}/actions/${p.rec.id}`,
+        meta: meta(req, `Fix: ${AUTOFIX_RULES[p.rec.ruleCode].label}`),
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  router.post('/projects/:pid/actions/:rid/autofix/approve', approve, async (req, res, next) => {
+    try {
+      const rid = idFrom(req.params.rid);
+      const p = rid ? await proposalFor(req, rid, req.body) : { detail: null };
+      if (!p.detail) return notFound(req, res);
+      const base = `${res.locals.projectBase}/actions/${p.rec.id}`;
+      const preview = (notice) => {
+        const q = new URLSearchParams();
+        if (text(req.body.logoUrl, 2000)) q.set('logoUrl', text(req.body.logoUrl, 2000));
+        if (text(req.body.sameAs, 4000)) q.set('sameAs', text(req.body.sameAs, 4000));
+        const qs = q.toString();
+        return res.redirect(303, withNotice(`${base}/autofix${qs ? `?${qs}` : ''}`, notice));
+      };
+      if (!p.pluginReady) return preview('autofix-no-plugin');
+      if (!p.extras.ok || !p.built?.ok) return preview('autofix-invalid');
+      // The person approves the data they saw. If anything under it moved (the Brand Kit, what is already on the page),
+      // what we would write is no longer what they looked at: show it again instead of sending something new.
+      if (text(req.body.hash, 64) !== p.built.hash) return preview('autofix-changed');
+      let begun;
+      try {
+        if (p.rec.status === 'open') {
+          await req.orgDb.recommendations.transition(req.project.id, rid, 'in_progress', {
+            userId: req.user.id,
+          });
+        }
+        begun = await req.orgDb.autofix.approve(req.project.id, rid, {
+          userId: req.user.id,
+          targetUrl: p.built.targetUrl,
+          jsonld: p.built.jsonld,
+          hash: p.built.hash,
+          ruleCode: p.rec.ruleCode,
+        });
+      } catch (err) {
+        if (err instanceof DomainError) {
+          if (err.code === 'ALREADY_APPROVED') return preview('autofix-already');
+          if (['PLUGIN_NOT_CONNECTED', 'WORDPRESS_NOT_CONNECTED'].includes(err.code))
+            return preview('autofix-no-plugin');
+          if (['STALE_STATUS', 'INVALID_TRANSITION'].includes(err.code))
+            return preview('action-stale');
+          if (err.code === 'RECOMMENDATION_NOT_FOUND') return notFound(req, res);
+        }
+        throw err;
+      }
+      try {
+        await jobs.add(
+          'autofix.apply',
+          {
+            orgId: String(req.org.id),
+            projectId: String(req.project.id),
+            siteChangeId: String(begun.siteChangeId),
+          },
+          { jobId: autofixJobId(begun.siteChangeId) },
+        );
+      } catch (err) {
+        logger.error({ err, recommendationId: String(rid) }, 'Could not queue the auto-fix');
+        await req.orgDb.autofix.finish(req.project.id, begun.siteChangeId, {
+          ok: false,
+          error: 'We could not start that just now. Nothing was changed on your site.',
+        });
+        return preview('autofix-queue-failed');
+      }
+      return res.redirect(303, withNotice(`${base}/autofix`, 'autofix-applying'));
     } catch (err) {
       return next(err);
     }
