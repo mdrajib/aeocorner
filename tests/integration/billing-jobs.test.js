@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { after, describe, test } from 'node:test';
+import { after, beforeEach, describe, test } from 'node:test';
 import pino from 'pino';
 import { addDays } from '../../src/core/entitlements.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
@@ -27,8 +27,29 @@ const stripe = createStripe({ secretKey: stub.secretKey, baseUrl: stub.url });
 const mailer = memoryMailer();
 const alerts = memoryAlerter();
 let clock = new Date();
+
+/**
+ * The usage report scans every organization in the database. Other test files (billing-repo, the tenancy suite) leave
+ * organizations with unreported drafts while they run, and this file would report them to its own Stripe stand-in, use
+ * up `failNext` on them, and mark them reported under their feet. This file only ever sees its own customers.
+ */
+const meters = db.system.billing.meters;
+const scopedDb = {
+  ...db,
+  system: {
+    ...db.system,
+    billing: {
+      ...db.system.billing,
+      meters: {
+        ...meters,
+        draftsToReport: async (args) =>
+          (await meters.draftsToReport(args)).filter((r) => r.customerId.startsWith('cus_job_')),
+      },
+    },
+  },
+};
 const ctx = {
-  db,
+  db: scopedDb,
   alerts,
   logger: pino({ level: 'silent' }),
   now: () => clock,
@@ -91,6 +112,12 @@ describe('billing.reconcile', () => {
 });
 
 describe('billing.report_usage', () => {
+  // The clock was taken when the file loaded; a grant made in the test starts "now", which under load is later than that,
+  // so it would not be active yet at the old clock. Move the clock to just after the test begins.
+  beforeEach(() => {
+    clock = new Date(Date.now() + 1_000);
+  });
+
   test('each whole draft past the allowance goes to the meter once, and a second run sends nothing new', async () => {
     const { org } = await fx.org();
     const customer = customerFor(org);

@@ -440,3 +440,63 @@ describe('an answer stays inside its organization', () => {
     assert.equal((await other.scoped.usage.recent()).length, 0, 'nothing charged to the other org');
   });
 });
+
+describe('the daily spend cap holds back real collection (Milestone 10, task 10.07)', () => {
+  test('once the cap is reached no more answers are asked for; the jobs wait, nothing fails, and raising the cap lets them through', async () => {
+    const capped = await fx.org();
+    const cappedProject = await fx.project(capped.org.id, 'Capped');
+    // One Perplexity answer costs $0.003776: the third one crosses $0.01 (the cap column keeps whole cents).
+    await fx.setOrgSpend(capped.org.id, { capUsd: '0.01' });
+    routes['POST /v1/agent'] = { body: fixture('perplexity/agent-ok.json') };
+    const mine = { owner: capped, proj: cappedProject };
+    const reloadMine = (snapshot) => capped.scoped.snapshots.get(snapshot.id);
+
+    await finished(await collect('perplexity', mine));
+    await finished(await collect('perplexity', mine));
+    assert.equal((await fx.organizationRow(capped.org.id)).collection_paused_until, null);
+    await finished(await collect('perplexity', mine));
+    assert.ok(
+      (await fx.organizationRow(capped.org.id)).collection_paused_until,
+      'the answer that crossed the cap paused collection',
+    );
+    const askedBefore = providerCalls('POST /v1/agent');
+    assert.equal(askedBefore, 3);
+
+    // Three more answers are wanted. None is asked for, none fails, none becomes "not mentioned".
+    const wanted = [];
+    for (let i = 0; i < 3; i += 1) wanted.push(await collect('perplexity', mine));
+    for (const snapshot of wanted) {
+      const job = await finished(snapshot, ['delayed']);
+      assert.equal(job.attemptsMade, 0, 'waiting for the cap does not use up an attempt');
+    }
+    assert.equal(providerCalls('POST /v1/agent'), askedBefore, 'the provider was not called');
+    for (const snapshot of wanted) {
+      const row = await reloadMine(snapshot);
+      assert.equal(row.status, 'pending');
+      assert.equal(
+        (await capped.scoped.usage.recent({ limit: 50 })).filter((r) => r.ref_id === snapshot.id)
+          .length,
+        0,
+      );
+    }
+    assert.equal(
+      (await other.scoped.usage.recent({ limit: 50 })).length,
+      0,
+      'the cap is the organization’s own: another organization is not held',
+    );
+
+    // Another organization carries on while this one is held.
+    const unaffected = await collect('perplexity');
+    assert.equal((await finished(unaffected)).returnvalue.status, 'ok');
+
+    // The owner raises the cap; the guard lifts the pause; the held jobs run.
+    await fx.setOrgSpend(capped.org.id, { capUsd: '5' });
+    await h.runtime.ctx.spendGuard.check(capped.org.id);
+    assert.equal((await fx.organizationRow(capped.org.id)).collection_paused_until, null);
+    for (const snapshot of wanted) {
+      await (await queue().getJob(answerJobId(snapshot.id))).promote();
+      assert.equal((await finished(snapshot)).returnvalue.status, 'ok');
+    }
+    assert.equal(providerCalls('POST /v1/agent'), askedBefore + 1 + wanted.length);
+  });
+});

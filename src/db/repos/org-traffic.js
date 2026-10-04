@@ -81,7 +81,9 @@ export function trafficRepos(prisma, orgId) {
         last_error_at: null,
       };
       if (existing) {
-        return toConnection(await prisma.integrations.update({ where: { id: existing.id }, data }));
+        return toConnection(
+          await prisma.integrations.update({ where: { id: existing.id, org_id: orgId }, data }),
+        );
       }
       try {
         return toConnection(
@@ -92,7 +94,9 @@ export function trafficRepos(prisma, orgId) {
       } catch (err) {
         if (!isUniqueViolation(err)) throw err;
         const row = await prisma.integrations.findFirst({ where: where(projectId) });
-        return toConnection(await prisma.integrations.update({ where: { id: row.id }, data }));
+        return toConnection(
+          await prisma.integrations.update({ where: { id: row.id, org_id: orgId }, data }),
+        );
       }
     },
 
@@ -123,7 +127,7 @@ export function trafficRepos(prisma, orgId) {
       };
       return toConnection(
         await prisma.integrations.update({
-          where: { id: row.id },
+          where: { id: row.id, org_id: orgId },
           data: {
             status: 'connected',
             config: toJson(next),
@@ -161,7 +165,7 @@ export function trafficRepos(prisma, orgId) {
       if (!row || row.status === 'disconnected') return false;
       if (!ok) {
         await prisma.integrations.update({
-          where: { id: row.id },
+          where: { id: row.id, org_id: orgId },
           data: {
             status: 'broken',
             last_error_at: now,
@@ -177,7 +181,7 @@ export function trafficRepos(prisma, orgId) {
         synced_to: config.synced_to && config.synced_to > to ? config.synced_to : to,
       };
       await prisma.integrations.update({
-        where: { id: row.id },
+        where: { id: row.id, org_id: orgId },
         data: {
           status: 'connected',
           config: toJson(widened),

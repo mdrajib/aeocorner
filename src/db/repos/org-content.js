@@ -883,7 +883,7 @@ export function contentRepos(prisma, orgId) {
       const existing = await find();
       if (existing)
         return toIntegration(
-          await prisma.integrations.update({ where: { id: existing.id }, data }),
+          await prisma.integrations.update({ where: { id: existing.id, org_id: orgId }, data }),
         );
       try {
         return toIntegration(
@@ -896,7 +896,9 @@ export function contentRepos(prisma, orgId) {
         if (!isUniqueViolation(err)) throw err;
         const row = await find();
         if (!row) throw err;
-        return toIntegration(await prisma.integrations.update({ where: { id: row.id }, data }));
+        return toIntegration(
+          await prisma.integrations.update({ where: { id: row.id, org_id: orgId }, data }),
+        );
       }
     },
 
@@ -918,7 +920,7 @@ export function contentRepos(prisma, orgId) {
       });
       if (!row || row.status === 'disconnected') return false;
       await prisma.integrations.update({
-        where: { id: row.id },
+        where: { id: row.id, org_id: orgId },
         data: ok
           ? {
               status: 'connected',

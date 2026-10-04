@@ -34,7 +34,7 @@ export async function startStripeStub({ secretKey = 'sk_test_stub' } = {}) {
     portals: [],
     calls: [],
     failNext: null,
-    seq: 0,
+    seq: Math.floor(Math.random() * 900_000), // random start: customer IDs must not collide with rows an earlier, killed run left behind
   };
   const next = (prefix) => `${prefix}_${(state.seq += 1).toString().padStart(4, '0')}`;
   const json = (res, status, body) => {

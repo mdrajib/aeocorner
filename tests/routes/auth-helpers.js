@@ -74,6 +74,8 @@ export function authHarness({
   google,
   domainVerifier,
   funnel,
+  audit,
+  logger,
 } = {}) {
   const db = connectTestDb();
   const fx = fixtures(db);
@@ -87,7 +89,7 @@ export function authHarness({
   });
   const app = createApp({
     config,
-    logger: silentLogger,
+    logger: logger ?? silentLogger,
     db,
     provider,
     staffProvider,
@@ -100,6 +102,7 @@ export function authHarness({
     ...(google ? { google } : {}),
     ...(domainVerifier ? { domainVerifier } : {}),
     ...(funnel ? { funnel } : {}),
+    ...(audit ? { audit } : {}),
   });
   const agent = request(app);
 

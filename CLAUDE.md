@@ -265,3 +265,12 @@ The dev machine runs Windows 11. MySQL is a native Windows install, not Docker. 
 - **Dates:** always absolute (`2026-09-28`). Mark settled decisions `✅ Decided <date>` in the decision tables.
 - **Consistency:** when a decision changes, search all of `docs/` and update every mention in the same pass.
 - **Vendor facts** (pricing, SDK APIs, versions): check them against current sources before writing, and record the date checked.
+
+## Hardening and launch (Milestone 10; the plan is in `docs/MILESTONES.md`, incidents in `docs/RUNBOOK_INCIDENTS.md`)
+
+- **A write on tenant data names `org_id`, even by primary key** (`update({ where: { id, org_id: orgId } })`). `tests/tenancy/leak-sweep.test.js` reads every query in `src/db/repos/org-*.js` against the schema's tables with `org_id` and fails on one that doesn't; a tenant table no repository touches must be listed in `NOT_BUILT` with a reason.
+- **`npm run test:security`** is the one security pass (SSRF, auth, tenancy sweep, webhooks, secrets). `tests/routes/webhook-audit.test.js` attacks every `/webhooks/*` door the same way and pins the list of doors; `tests/integration/secrets-audit.test.js` plants canary credentials and looks for them in every column, log line and screen. The logger redacts credential fields (`REDACT_PATHS`).
+- **The subprocessor list is `src/core/subprocessors.js`** (privacy page, `/subprocessors`, `/dpa`). `tests/routes/subprocessors.test.js` compares it with the config's environment variables, `package.json`, provider hosts and the `providers` seed: wiring a new vendor fails it until the list says so. The three pages are drafts for counsel.
+- **`npm run test:journey`** (`tests/journey/`, own CI step, never beside the route tests: it sets the plans' Stripe prices) drives a new customer from the free audit to a done recommendation through the real web app and worker.
+- **Cost measurement:** `npm run cost:report -- --since <time>` (cost per prompt-run and per audit against $0.12 and $0.75, `src/core/unit-cost.js`); `npm run load:audits` and `tests/load/` are the staging-only load test, **not yet run**. A prompt-run is about $0.16 with Opus 5.5, so the $0.12 target and decision D4 are in conflict until the founder chooses.
+- **Known open before launch:** the purge of closed accounts' rows does not exist (the DPA promises it); a database restore has not been drilled; no console form for spend caps; the design-partner polish (10.08) waits for partners.

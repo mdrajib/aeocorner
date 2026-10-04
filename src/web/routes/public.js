@@ -3,6 +3,7 @@ import { MONEY_BACK_DAYS, TRIAL_DAYS } from '../../core/entitlements.js';
 import { pricingFaq, pricingView } from '../../core/pricing.js';
 import { homeFaq } from '../content/faq.js';
 import { agency, stageBySlug, stages } from '../content/product.js';
+import { SUBPROCESSORS } from '../../core/subprocessors.js';
 import { publicPages } from '../pages.js';
 
 const CONTEXT = 'https://schema.org';
@@ -122,6 +123,10 @@ async function pageData(page, { db, logger }) {
         faq: pricingFaq(pricing ?? { trialDays: TRIAL_DAYS, moneyBackDays: MONEY_BACK_DAYS }),
       };
     }
+    case 'privacy':
+    case 'subprocessors':
+    case 'dpa':
+      return { faq: [], subprocessors: SUBPROCESSORS };
     default:
       return { faq: [] };
   }

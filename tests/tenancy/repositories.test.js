@@ -1694,6 +1694,10 @@ describe('what the worker and the staff console may look up across organizations
     for (const r of await db.system.costs.byMeter({ since })) assert.ok(!('orgId' in r));
     for (const r of await db.system.costs.daily({ since }))
       assert.deepEqual(Object.keys(r).sort(), ['costMicros', 'day']);
+    const unit = await db.system.costs.unitCosts({ from: since, to: new Date() });
+    assert.deepEqual(Object.keys(unit).sort(), ['audits', 'meters', 'promptRuns']);
+    assert.deepEqual(Object.keys(unit.audits).sort(), ['costMicros', 'count', 'worstMicros']);
+    for (const r of unit.meters) assert.deepEqual(Object.keys(r).sort(), ['costMicros', 'meter']);
     for (const r of await db.system.review.list({}))
       assert.ok(!('orgId' in r) && !('orgName' in r), 'the list names no customer');
     const counts = await db.system.review.counts();
@@ -1868,7 +1872,7 @@ describe('coverage: no repository function without a leak test', () => {
     digest: ['projectsInTimezones', 'timezones'],
     // Costs and health are aggregates; the review queue shows an item and the names being tracked, never the customer;
     // flags are staff's switches. Each is only reached from the console, behind its wall, and every write there is audited.
-    costs: ['answers', 'auditsMicros', 'byMeter', 'byOrganization', 'daily'],
+    costs: ['answers', 'auditsMicros', 'byMeter', 'byOrganization', 'daily', 'unitCosts'],
     providers: ['buckets'],
     review: [
       'addAlias',

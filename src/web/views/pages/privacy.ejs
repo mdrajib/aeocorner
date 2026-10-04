@@ -1,21 +1,3 @@
-<%
-const subprocessors = [
-  ['Anthropic', 'Language model that reads AI answers and drafts content', 'Answer text, brand details, page excerpts'],
-  ['OpenAI', 'Fallback answer collection (only if enabled)', 'Questions we ask on your behalf'],
-  ['Google', 'Gemini and AI Overview data; Google Analytics and Search Console if you connect them', 'Questions we ask on your behalf; metrics you authorise'],
-  ['Perplexity', 'Answer collection', 'Questions we ask on your behalf'],
-  ['DataForSEO', 'Answer collection', 'Questions we ask on your behalf'],
-  ['SerpApi', 'Google AI Overview collection', 'Search queries we run on your behalf'],
-  ['DigitalOcean', 'Hosting, database, queues and file storage', 'All service data'],
-  ['Cloudflare', 'DNS, network protection and bot checks on the audit form', 'IP address, request metadata'],
-  ['Clerk', 'Sign-in and sessions', 'Name, email, sign-in details'],
-  ['Stripe', 'Payments and billing', 'Payment and billing details (we never see card numbers)'],
-  ['Resend', 'Sending email', 'Email address, message content'],
-  ['PostHog', 'Cookieless site analytics', 'Page views and referrer; no cookies or stored identifiers'],
-  ['Sentry', 'Error monitoring', 'Technical error data'],
-  ['Langfuse', 'Monitoring of language-model quality (if cloud-hosted)', 'Prompts and model outputs'],
-];
--%>
 <div class="bg-ink-50 border-ink-200 border-b py-12 sm:py-16">
   <div class="container-narrow">
     <p class="eyebrow">Legal</p>
@@ -57,14 +39,14 @@ const subprocessors = [
     <h2>5. Who we share data with</h2>
     <p>We do not sell personal data. We share it with the companies below only as needed to run the service.</p>
     <h3 id="subprocessors">Subprocessors</h3>
-    <p>[This list will be confirmed before launch. We will update it when it changes.]</p>
+    <p>The same list, with where each company processes data, is on the <a href="/subprocessors">subprocessors page</a>. We tell customers 30 days before we add one.</p>
     <div class="table-wrap">
       <table class="table">
         <caption class="sr-only">Subprocessors</caption>
         <thead><tr><th scope="col">Company</th><th scope="col">Purpose</th><th scope="col">Data involved</th></tr></thead>
         <tbody>
-          <% for (const [name, purpose, data] of subprocessors) { %>
-          <tr><th scope="row" class="row-head"><%= name %></th><td><%= purpose %></td><td><%= data %></td></tr>
+          <% for (const s of subprocessors.filter((x) => x.status === 'in_use')) { %>
+          <tr><th scope="row" class="row-head"><%= s.name %></th><td><%= s.purpose %></td><td><%= s.data %></td></tr>
           <% } %>
         </tbody>
       </table>

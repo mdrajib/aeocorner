@@ -99,6 +99,40 @@ export function systemAdmin(prisma) {
       return toMicros(_sum.cost_usd?.toString() ?? '0');
     },
 
+    /**
+     * What one window cost, for the unit-cost report (Milestone 10): organization spend by meter, the prompt-runs
+     * collected (a question asked in one run, all its engines and samples), and what each free audit that ran its own
+     * pipeline cost. Aggregates only: no organization, project or audit identifier leaves this function.
+     */
+    async unitCosts({ from, to }) {
+      const meters = await prisma.usage_ledger.groupBy({
+        by: ['meter'],
+        where: { occurred_at: { gte: from, lt: to }, org_id: { not: null } },
+        _sum: { cost_usd: true },
+      });
+      const [runs] = await prisma.$queryRaw`
+        SELECT COUNT(*) AS n FROM (
+          SELECT DISTINCT run_id, prompt_id FROM answer_snapshots
+          WHERE collected_at >= ${from} AND collected_at < ${to} AND status IN ('ok', 'no_answer')) t`;
+      const audits = await prisma.$queryRaw`
+        SELECT SUM(l.cost_usd) AS cost FROM audits a JOIN usage_ledger l ON l.audit_id = a.id
+        WHERE a.cached_from_audit_id IS NULL AND l.occurred_at >= ${from} AND l.occurred_at < ${to}
+        GROUP BY a.id`;
+      const costs = audits.map((a) => toMicros(String(a.cost ?? '0')));
+      return {
+        meters: meters.map((m) => ({
+          meter: m.meter,
+          costMicros: toMicros(m._sum.cost_usd?.toString() ?? '0'),
+        })),
+        promptRuns: Number(runs?.n ?? 0),
+        audits: {
+          count: costs.length,
+          costMicros: costs.reduce((a, b) => a + b, 0),
+          worstMicros: costs.length ? Math.max(...costs) : 0,
+        },
+      };
+    },
+
     /** Answers collected (read or confirmed absent) since `since`: the divisor of cost per answer. */
     answers: ({ since }) =>
       prisma.answer_snapshots.count({

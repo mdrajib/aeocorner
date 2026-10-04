@@ -1097,3 +1097,34 @@ export function fixtures(db) {
     },
   };
 }
+
+/** Names of the tables that carry an `org_id` column, read from the schema itself (the tenant leak sweep uses it). */
+export async function tablesWithOrgId(db) {
+  const rows = await db._prisma.$queryRaw`
+    SELECT DISTINCT table_name AS name FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND column_name = 'org_id' ORDER BY table_name`;
+  return rows.map((r) => String(r.name));
+}
+
+/**
+ * Tables where `needle` appears in ANY column of ANY of the organization's rows (text, JSON and binary alike). The
+ * secrets audit plants a known password and token, then asks where they ended up: the answer must be nowhere.
+ */
+export async function tablesContaining(db, orgId, needle) {
+  const prisma = db._prisma;
+  const tables = await tablesWithOrgId(db);
+  const hits = [];
+  for (const table of tables) {
+    const cols = await prisma.$queryRaw`
+      SELECT column_name AS name FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = ${table}`;
+    const all = cols.map((c) => `CAST(\`${String(c.name)}\` AS BINARY)`).join(', ');
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT COUNT(*) AS n FROM \`${table}\` WHERE org_id = ? AND LOCATE(CAST(? AS BINARY), CONCAT_WS('|', ${all})) > 0`,
+      orgId,
+      String(needle),
+    );
+    if (Number(rows[0].n) > 0) hits.push(table);
+  }
+  return hits;
+}

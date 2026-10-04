@@ -20,6 +20,7 @@ export default [
       'src/db/generated/**',
       'coverage/**',
       'test-results/**',
+      'tests/load/**', // k6 scripts: k6's own module system and globals
       'playwright-report/**',
     ],
   },

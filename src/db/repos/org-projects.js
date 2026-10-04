@@ -57,10 +57,13 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
     const name = kit.identity.brandName;
     if (name !== brand.name) {
       await tx.tracked_entities.update({
-        where: { id: brand.id },
+        where: { id: brand.id, org_id: orgId },
         data: { name, name_normalized: normalizeEntityName(name) },
       });
-      await tx.projects.update({ where: { id: projectId }, data: { name: name.slice(0, 128) } });
+      await tx.projects.update({
+        where: { id: projectId, org_id: orgId },
+        data: { name: name.slice(0, 128) },
+      });
     }
     await tx.entity_aliases.deleteMany({
       where: { entity_id: brand.id, org_id: orgId, source: 'brand_kit' },
@@ -77,7 +80,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
     }
     for (const a of wanted.values()) {
       const exists = await tx.entity_aliases.findFirst({
-        where: { entity_id: brand.id, kind: a.kind, value_normalized: a.key },
+        where: { entity_id: brand.id, org_id: orgId, kind: a.kind, value_normalized: a.key },
         select: { id: true },
       });
       if (exists) continue; // the customer already added this one by hand
@@ -220,7 +223,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         const project = await ownProject(tx, projectId);
         if (Object.keys(checked.value).length === 0) return project;
         const updated = await tx.projects.update({
-          where: { id: project.id },
+          where: { id: project.id, org_id: orgId },
           data: checked.value,
         });
         if (checked.value.name && checked.value.name !== project.name) {
@@ -269,7 +272,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         const project = await ownProject(tx, projectId);
         if (project.domain_verified_at) return project;
         const updated = await tx.projects.update({
-          where: { id: project.id },
+          where: { id: project.id, org_id: orgId },
           data: { domain_verified_at: new Date(), domain_verify_method: method },
         });
         await appendActivity(tx, {
@@ -302,7 +305,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         ]);
         if (questions === 0 || engines === 0) throw new DomainError('NOT_READY');
         const updated = await tx.projects.update({
-          where: { id: project.id },
+          where: { id: project.id, org_id: orgId },
           data: { status: 'active' },
         });
         await appendActivity(tx, {
@@ -322,7 +325,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         const project = await ownProject(tx, projectId);
         const now = new Date();
         await tx.projects.update({
-          where: { id: project.id },
+          where: { id: project.id, org_id: orgId },
           data: {
             status: 'archived',
             deleted_at: now,
@@ -464,7 +467,10 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
           data.primary_domain = domain;
         }
         try {
-          const updated = await tx.tracked_entities.update({ where: { id: entity.id }, data });
+          const updated = await tx.tracked_entities.update({
+            where: { id: entity.id, org_id: orgId },
+            data,
+          });
           await appendActivity(tx, {
             actorUserId,
             action: 'entity.updated',
@@ -495,7 +501,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         const kind =
           entity.kind === 'discovered' && status === 'active' ? 'competitor' : entity.kind;
         const updated = await tx.tracked_entities.update({
-          where: { id: entity.id },
+          where: { id: entity.id, org_id: orgId },
           data: { status, kind },
         });
         await appendActivity(tx, {
@@ -611,7 +617,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
           },
         });
         await tx.projects.update({
-          where: { id: projectId },
+          where: { id: projectId, org_id: orgId },
           data: { brand_profile_version: version },
         });
         await syncBrandNames(tx, projectId, parsed.kit, actorUserId);

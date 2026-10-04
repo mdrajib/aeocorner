@@ -1,4 +1,4 @@
-# AEO Corner — Milestones (Phases 7–15)
+# AEO Corner — Milestones (Phases 7–15) **Prepared, not run** (needs staging and k6): `tests/load/web.k6.js`, `npm run load:audits`, and the plan and pass bar in `tests/load/README.md` **Prepared, not run**: `npm run cost:report` (`src/core/unit-cost.js`). **Open for the founder:** MVP §12.1 already estimates a prompt-run at about $0.16 with Opus 5.5, above the $0.12 target **Not done: there is no partner feedback yet.** Needs the design partners Drafted: `/dpa` and `/subprocessors` pages from one list (`src/core/subprocessors.js`), marked as drafts for counsel. **The DPA promises deletion within 30 days; the purge job that does it does not exist yet** All suites green on this machine on 2026-10-04 (see the list below); not yet one CI run
 
 | | |
 |---|---|
@@ -477,12 +477,12 @@ flowchart LR
 **Parallel:** everything except 10.06, 10.11, 10.12, 10.13 and 10.14 starts at once.
 
 **Definition of Done:**
-- [ ] A new user goes from free audit to first executed recommendation with no human help (10.12 passes).
-- [ ] Golden-set accuracy meets the MVP §10 targets; the eval runs in CI.
-- [ ] Cost per prompt-run ≤ $0.12 and per audit ≤ $0.75 under load; spend caps tested.
-- [ ] Every engine has a working fallback or a documented degraded mode.
-- [ ] SSRF, auth and tenancy tests pass; secrets encrypted; webhooks verified.
-- [ ] ToS, Privacy Policy, DPA and subprocessor list published.
+- [x] A new user goes from free audit to first executed recommendation with no human help (10.12 passes: `npm run test:journey`).
+- [ ] Golden-set accuracy meets the MVP §10 targets; the eval runs in CI. (the CI job exists and skips the Claude half until `ANTHROPIC_API_KEY` is a repository secret; the targets themselves are the founder's call, decision D4)
+- [ ] Cost per prompt-run ≤ $0.12 and per audit ≤ $0.75 under load; spend caps tested. (spend caps tested; the cost measurement needs staging, and the prompt-run target conflicts with the Opus 5.5 choice: founder)
+- [x] Every engine has a working fallback or a documented degraded mode. (the degraded mode, ADR-0006 decision 11, now also in `docs/RUNBOOK_INCIDENTS.md` §4)
+- [x] SSRF, auth and tenancy tests pass; secrets encrypted; webhooks verified. (`npm run test:security`)
+- [ ] ToS, Privacy Policy, DPA and subprocessor list published. (all four pages are live as drafts; counsel and the founder must complete the [brackets] and remove the draft notices)
 - [ ] Full axe sweep green; every suite green in one CI run.
 
 ## 3. Open questions this plan surfaced

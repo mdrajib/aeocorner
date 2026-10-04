@@ -1,0 +1,40 @@
+<div class="bg-ink-50 border-ink-200 border-b py-12 sm:py-16">
+  <div class="container-narrow">
+    <p class="eyebrow">Legal</p>
+    <h1 class="mt-2 text-4xl sm:text-5xl">Subprocessors</h1>
+    <p class="text-ink-700 mt-3">Last updated: 4 October 2026 (draft)</p>
+  </div>
+</div>
+
+<div class="container-narrow py-12">
+  <%- ui.banner({ tone: 'warning', title: 'Draft — not yet reviewed by a lawyer', text: 'The list below matches the companies our software is connected to today. Locations and contract terms are to be confirmed by the founder and counsel before launch, and this notice removed.' }) %>
+
+  <article class="prose-aeo mt-8">
+    <p>A subprocessor is a company that handles customer or visitor data for AEO Corner so that we can run the service. The <a href="/dpa">Data Processing Agreement</a> and the <a href="/privacy">Privacy Policy</a> refer to this list.</p>
+
+    <h2>Which companies handle data for us today?</h2>
+    <p>These companies are connected to the software now, each for the purpose shown.</p>
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">Subprocessors in use</caption>
+        <thead><tr><th scope="col">Company</th><th scope="col">Purpose</th><th scope="col">Data involved</th><th scope="col">Where</th></tr></thead>
+        <tbody>
+          <% for (const s of subprocessors.filter((x) => x.status === 'in_use')) { %>
+          <tr><th scope="row" class="row-head"><%= s.name %></th><td><%= s.purpose %></td><td><%= s.data %></td><td><%= s.location %></td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Which backups are switched off?</h2>
+    <p>These are prepared as backups but are not used. If we switch one on, it joins the list above and we tell customers first.</p>
+    <ul>
+      <% for (const s of subprocessors.filter((x) => x.status === 'if_enabled')) { %>
+      <li><strong><%= s.name %></strong>: <%= s.purpose %>.</li>
+      <% } %>
+    </ul>
+
+    <h2>How do we tell you about changes?</h2>
+    <p>We tell customers by email at least 30 days before a new subprocessor starts handling their data. A customer who objects on reasonable data-protection grounds can write to [privacy contact email] and we will work with them on an alternative or let them end the service with a refund of the unused period.</p>
+  </article>
+</div>

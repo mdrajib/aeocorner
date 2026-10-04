@@ -72,8 +72,13 @@ export function orgScopedRepos(prisma, orgId) {
         );
       }
     }
-    await tx.membership_projects.deleteMany({ where: { membership_id: membership.id } });
-    await tx.memberships.update({ where: { id: membership.id }, data: { project_access: access } });
+    await tx.membership_projects.deleteMany({
+      where: { membership_id: membership.id, org_id: orgId },
+    });
+    await tx.memberships.update({
+      where: { id: membership.id, org_id: orgId },
+      data: { project_access: access },
+    });
     if (access === 'selected' && wanted.length) {
       try {
         await tx.membership_projects.createMany({
@@ -150,7 +155,10 @@ export function orgScopedRepos(prisma, orgId) {
         if (target.role === role) return target;
         if (target.role === 'owner' && owners <= 1) throw new DomainError('LAST_OWNER');
 
-        const updated = await tx.memberships.update({ where: { id: target.id }, data: { role } });
+        const updated = await tx.memberships.update({
+          where: { id: target.id, org_id: orgId },
+          data: { role },
+        });
         if (OWNER_ROLES.includes(role) && target.project_access === 'selected') {
           await writeProjectAccess(tx, updated, 'all', []);
         }
@@ -175,7 +183,7 @@ export function orgScopedRepos(prisma, orgId) {
         if (!target) throw new DomainError('NOT_FOUND');
         if (target.role === 'owner' && owners <= 1) throw new DomainError('LAST_OWNER');
 
-        await tx.memberships.delete({ where: { id: target.id } });
+        await tx.memberships.delete({ where: { id: target.id, org_id: orgId } });
         // The removed person's "last opened" organization must not point at somewhere they can't go.
         await tx.users.updateMany({
           where: { id: target.user_id, last_org_id: orgId },

@@ -95,6 +95,15 @@ jobs:
       - name: Adapter/contract tests
         run: npm run test:adapters
 
+      # Free audit to first executed recommendation, through the real web app and worker (Milestone 10, task 10.12).
+      # Its own step: it sets the plans' Stripe prices, which the route tests do too, so it must not run beside them.
+      - name: Full customer journey
+        run: npm run test:journey
+
+      # SSRF, auth, tenancy, webhooks and secrets again, as one pass (task 10.04).
+      - name: Security pass
+        run: npm run test:security
+
       - name: npm audit (production dependencies)
         run: npm audit --omit=dev --audit-level=high
 

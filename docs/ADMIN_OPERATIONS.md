@@ -63,7 +63,7 @@ The team's routine: **about 15 minutes a day, 2–3 hours a week, half a day a m
 | 1 | **Ops home** | Today at a glance: runs (scheduled / done / partial / failed), queue backlogs, data-provider error rates, spend today vs. budget, audits, signups, trials, open alerts | Jump to any problem |
 | 2 | **Customers** (orgs and projects) | Search by email, domain or org. Per org: plan, Stripe status, usage vs. limits, **cost and margin (30 days)**, projects, run history, integration status, members, staff notes | Impersonate, extend trial, grant credits or extra questions, pause/resume tracking, "run now", resend emails, export data, delete (GDPR) |
 | 3 | **Runs & jobs** | Every BullMQ queue (waiting, active, failed, delayed) via the embedded **Bull Board** dashboard. Partial and failed runs, with a breakdown by engine and provider | Retry, discard, re-run for one project, drain a stuck queue |
-| 4 | **Data providers** | Per provider: success rate, response time, error rate (15 min / 24 h), **circuit-breaker state**, primary/backup routing per engine, spend vs. monthly budget, API-key age | Switch an engine to its backup provider (reason required), reset a breaker, set budgets |
+| 4 | **Data providers** | Per provider: success rate, response time, error rate (15 min / 24 h), **circuit-breaker state**, the routing per engine (primary only for the MVP), spend vs. monthly budget, API-key age | Read-only today: the breaker state and the health history |
 | 5 | **Cost & margin** | From `usage_ledger` + Stripe: cost per question-run by engine, provider and AI model; margin per org and per plan; top-cost orgs; spend-cap events; anomalies (a run costing more than 2× expected) | Adjust an org's spend cap, flag an org for review |
 | 6 | **Extraction review queue** | Cases where the rule-based check and Claude disagree, customers' "That's not us" reports, low-confidence readings. Each shows the answer text with highlights, the extraction result and the tracked names | Mark correct/incorrect, fix an alias, **re-extract** affected rows, **add to golden set** |
 | 7 | **Recommendation quality** | Per rule: how often it fires, dismiss rate, verified rate, proven-win rate. Content quality-check failures. Publishing errors | Disable a noisy rule (feature flag), adjust a rule's confidence |
@@ -84,7 +84,7 @@ flowchart TD
   A["Alert or support ticket"] --> B{"What kind?"}
   B -->|"Data provider"| P["Check provider health page"]
   P --> P1{"Error rate over 10 percent for 15 min?"}
-  P1 -->|"Yes"| P2["Breaker switches engine to backup<br/>confirm, post banner if customers affected"]
+  P1 -->|"Yes"| P2["Breaker holds that engine's jobs (no fallback adapter for the MVP)<br/>confirm, tell customers only if numbers will be a day late"]
   P1 -->|"No"| P3["Retry failed tasks, watch"]
   B -->|"Jobs"| J["Runs and jobs page"]
   J --> J1["Read error, fix cause, retry failed jobs<br/>partial runs stay out of trend math"]
@@ -110,7 +110,7 @@ flowchart TD
 |---|---|---|---|---|
 | A1 | **Morning ops check** | Daily | Ops home → failed jobs → provider health → spend vs. budget → new trials → support inbox | No red items, or each red item has an owner |
 | A2 | **Failed or partial run** | Alert or ops home | Runs & jobs → read the error → fix the cause (provider, bad data, bug) → retry → confirm the run completes. If it can't be fixed within 24 h, the customer sees "couldn't check" for the missing cells | Run is complete, or partial with the customer informed |
-| A3 | **Data-provider outage** | Circuit breaker trips (automatic) | Confirm the switch to backup → check that backup results look normal → post a banner if data will be delayed → switch back once healthy for 1 hour | Engine back on primary, banner removed |
+| A3 | **Data-provider outage** | Circuit breaker trips (automatic) | Confirm the breaker holds the engine's jobs (they wait, up to 4 hours) → tell customers only if numbers will be a day late → see [RUNBOOK_INCIDENTS §4](RUNBOOK_INCIDENTS.md) | Breaker closed; the run complete, or `partial` and explained |
 | A4 | **"The numbers look wrong"** (support) | Customer ticket or "That's not us" | Customer detail → read-only impersonation → click the number → inspect the actual answers → review queue → fix the alias or rule → re-extract affected rows → reply with the correction | Customer confirms. The case is added to the golden set |
 | A5 | **Cost anomaly or spend cap hit** | Alert | Cost & margin → which org, engine or step? → bug (e.g., retry loop), abuse, or legitimate growth? → fix, raise the cap or contact the customer | Cost per run back within the expected range |
 | A6 | **Weekly extraction review** | Weekly | Clear the review queue → check the disagreement rate trend → add 10–20 hard cases to the golden set | Queue empty; disagreement rate ≤ target |
@@ -159,7 +159,7 @@ These are the BullMQ queues and scheduled jobs the admin console monitors ([§3]
 | `scheduler.tick` | Every hour | Finds projects whose weekly slot is due and enqueues runs (job ID = project + slot, so no duplicates) | Next tick catches up |
 | `audit.run` | Free audit submitted | Full audit pipeline (MVP F1) | Retried; customer sees "couldn't check" per engine |
 | `crawl.readiness` | Before each weekly run; on demand | Re-crawls key pages and re-runs readiness checks (`crawl` queue; job ID `scan-<scan id>`). Obeys robots.txt; writes one `usage_ledger` row (requests made, cost 0) | Retried up to 5 times; then the scan is marked `failed` and the job stays in the failed set; last good result kept |
-| `collect.answer` | Each run (question × engine × sample) | Sends to the data provider, then stores the raw answer in Spaces and a snapshot row. For a provider that queues the question (DataForSEO standard), the same job comes back every minute to ask whether it is ready; waiting uses up no retry ([ADR-0006](adr/0006-engine-adapters.md)) | Up to 5 retries → backup provider → marked "couldn't check". Bad credentials or an unreadable answer: "couldn't check" at once. A queued task not ready after 75 min (20 for priority): "couldn't check" |
+| `collect.answer` | Each run (question × engine × sample) | Sends to the data provider, then stores the raw answer in Spaces and a snapshot row. For a provider that queues the question (DataForSEO standard), the same job comes back every minute to ask whether it is ready; waiting uses up no retry ([ADR-0006](adr/0006-engine-adapters.md)) | Up to 5 retries → marked "couldn't check". Bad credentials or an unreadable answer: "couldn't check" at once. A queued task not ready after 75 min (20 for priority): "couldn't check" |
 | `extract.batch` / `extract.poll` | After collection | Submits the Claude Batch API job; polls and stores mentions and citations | Retry; falls back to synchronous extraction for stuck batches |
 | `metrics.rollup` | After extraction; nightly full pass | Builds `metric_daily`, runs significance tests, creates change events | Retry; dashboards keep the last good rollup |
 | `recs.refresh` | After rollup | Runs the rule engine; adds or updates recommendations | Retry |

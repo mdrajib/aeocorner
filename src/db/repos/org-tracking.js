@@ -455,6 +455,7 @@ export function trackingRepos(prisma, orgId) {
             prompt_id: BigInt(c.promptId),
             engine_code: c.engineCode,
             entity_id: BigInt(e.entityId),
+            org_id: orgId,
             k_mentioned: e.kMentioned,
             k_recommended: e.kRecommended,
             k_cited: e.kCited,

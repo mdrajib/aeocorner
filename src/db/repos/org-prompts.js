@@ -82,6 +82,7 @@ export function promptRepos(prisma, orgId, { appendActivity }) {
     const hash = questionHash(f.text);
     const where = {
       project_id: project.id,
+      org_id: orgId,
       country: project.country,
       language: project.language,
       city: project.city,
@@ -95,7 +96,7 @@ export function promptRepos(prisma, orgId, { appendActivity }) {
     if (existing) {
       // The same question was archived earlier: bring it back, so its history joins up with its past.
       const prompt = await tx.prompts.update({
-        where: { id: existing.id },
+        where: { id: existing.id, org_id: orgId },
         data: { status: 'active', paused_reason: null, archived_at: null, priority: f.priority },
       });
       return { prompt, restored: true };
@@ -211,7 +212,7 @@ export function promptRepos(prisma, orgId, { appendActivity }) {
           // Same question (the wording may differ only in case or punctuation, which we treat as the same):
           // keep the row, so its history stays one line.
           const updated = await tx.prompts.update({
-            where: { id: prompt.id },
+            where: { id: prompt.id, org_id: orgId },
             data: {
               intent: f.intent,
               priority: f.priority,
@@ -232,6 +233,7 @@ export function promptRepos(prisma, orgId, { appendActivity }) {
         const clash = await tx.prompts.findFirst({
           where: {
             project_id: project.id,
+            org_id: orgId,
             country: prompt.country,
             language: prompt.language,
             city: prompt.city,
@@ -241,7 +243,7 @@ export function promptRepos(prisma, orgId, { appendActivity }) {
         if (clash) throw new DomainError('DUPLICATE');
 
         await tx.prompts.update({
-          where: { id: prompt.id },
+          where: { id: prompt.id, org_id: orgId },
           data: { status: 'archived', archived_at: new Date() },
         });
         const replacement = await tx.prompts.create({
@@ -292,7 +294,7 @@ export function promptRepos(prisma, orgId, { appendActivity }) {
           throw new DomainError('PLAN_LIMIT');
         }
         const updated = await tx.prompts.update({
-          where: { id: prompt.id },
+          where: { id: prompt.id, org_id: orgId },
           data: {
             status,
             paused_reason: status === 'paused' ? 'user' : null,

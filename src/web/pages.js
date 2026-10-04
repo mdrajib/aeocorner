@@ -87,4 +87,24 @@ export const publicPages = [
     lastmod: '2026-10-02',
     priority: 0.3,
   },
+  {
+    path: '/subprocessors',
+    crumb: 'Subprocessors',
+    view: 'subprocessors',
+    title: 'Subprocessors | AEO Corner',
+    description:
+      'The companies that handle customer and visitor data for AEO Corner, what they do, and where.',
+    lastmod: '2026-10-04',
+    priority: 0.3,
+  },
+  {
+    path: '/dpa',
+    crumb: 'Data Processing Agreement',
+    view: 'dpa',
+    title: 'Data Processing Agreement | AEO Corner',
+    description:
+      'How AEO Corner handles personal data on behalf of customers: roles, security measures, subprocessors and deletion.',
+    lastmod: '2026-10-04',
+    priority: 0.3,
+  },
 ];

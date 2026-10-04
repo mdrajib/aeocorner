@@ -1,0 +1,61 @@
+<div class="bg-ink-50 border-ink-200 border-b py-12 sm:py-16">
+  <div class="container-narrow">
+    <p class="eyebrow">Legal</p>
+    <h1 class="mt-2 text-4xl sm:text-5xl">Data Processing Agreement</h1>
+    <p class="text-ink-700 mt-3">Last updated: 4 October 2026 (draft)</p>
+  </div>
+</div>
+
+<div class="container-narrow py-12">
+  <%- ui.banner({ tone: 'warning', title: 'Draft — not yet reviewed by a lawyer', text: 'This is a working draft of the terms we intend to offer. Items in [square brackets] must be completed by counsel before launch, and this notice removed. It is not yet an agreement.' }) %>
+
+  <article class="prose-aeo mt-8">
+    <h2>1. What does this agreement cover?</h2>
+    <p>This agreement applies when AEO Corner (“we”) handles personal data on behalf of a customer (“you”) while providing the service under our <a href="/terms">Terms of Service</a>. For that data you are the controller and we are the processor. For our own account, billing and security records, we are a controller, as the <a href="/privacy">Privacy Policy</a> says.</p>
+
+    <h2>2. What data do we process, and why?</h2>
+    <p>Only what is needed to measure your brand in AI answers and to help you apply fixes you approve, as listed here.</p>
+    <ul>
+      <li><strong>Subject matter:</strong> measuring how AI answer engines describe your brand, checking your website, and helping you apply fixes you approve.</li>
+      <li><strong>Data:</strong> the names and work email addresses of your team members, the brand, competitor and question details you enter, the public web pages and AI answers we collect for you, and credentials you give us to connect your own systems (stored encrypted).</li>
+      <li><strong>People:</strong> your team members and any individuals named in public pages or AI answers about your brand.</li>
+      <li><strong>Duration:</strong> while your account exists, then as described in section 8.</li>
+    </ul>
+
+    <h2>3. What do we commit to?</h2>
+    <p>We handle your data only on your instructions, keep it confidential, help with requests, and report breaches promptly.</p>
+    <ul>
+      <li>We process the data only on your documented instructions, which are these terms and your use of the service. If we think an instruction breaks the law we will say so.</li>
+      <li>People who can reach the data are bound by confidentiality. Our staff console records what staff do, and a reviewer role cannot see which customer a record belongs to.</li>
+      <li>We keep the security measures in section 4.</li>
+      <li>We help you answer requests from individuals and regulators, as far as the data we hold allows. We tell you promptly if an individual writes to us about your data.</li>
+      <li>We tell you without undue delay, and within [72] hours, after we become aware of a breach affecting your data.</li>
+    </ul>
+
+    <h2>4. How do we keep the data secure?</h2>
+    <p>Each organisation’s data is kept apart and tested for leaks, and credentials are encrypted outside the database.</p>
+    <ul>
+      <li>Each organisation’s data is separated in the application and checked by automated tests that try to read one organisation’s data from another.</li>
+      <li>Connection credentials (for example a WordPress application password or a Google token) are encrypted with a key that is held outside the database, and only our background worker can open them.</li>
+      <li>Data is encrypted in transit. Sign-in is handled by a dedicated provider; our staff sign in separately with two-step verification.</li>
+      <li>Requests from other companies (payments, email, sign-in) are accepted only when their signature checks out.</li>
+      <li>Websites we are asked to read are fetched through a guarded client that refuses internal addresses, so a customer’s address cannot be used to reach our own systems.</li>
+      <li>[Backups, access reviews and incident response: counsel to confirm wording against the final runbooks.]</li>
+    </ul>
+
+    <h2>5. Which companies help us handle it?</h2>
+    <p>You allow us to use the companies on the <a href="/subprocessors">subprocessors page</a>. We bind each to data-protection terms no less protective than these. We tell you at least 30 days before adding one, and you may object as that page describes.</p>
+
+    <h2>6. What happens to data sent abroad?</h2>
+    <p>[Counsel to complete: the transfer mechanism for data sent outside the EEA/UK, such as the standard contractual clauses and the UK addendum.]</p>
+
+    <h2>7. Can you check that we keep to this?</h2>
+    <p>On reasonable notice, and no more than once a year unless there has been a breach, we will give you what you need to check we are keeping to this agreement: answers to a security questionnaire and, where we have them, the reports of our subprocessors.</p>
+
+    <h2>8. What happens when the service ends?</h2>
+    <p>When your account closes you can export your data. We then delete it within [30] days, except what the law requires us to keep (for example invoices), and what remains in backups, which is overwritten on the normal cycle.</p>
+
+    <h2>9. Who do you contact?</h2>
+    <p>[Legal entity name and registered address]. [Privacy contact email].</p>
+  </article>
+</div>
