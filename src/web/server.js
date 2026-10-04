@@ -1,3 +1,4 @@
+import { createSafeFetcher } from '../crawler/safe-fetch.js';
 import { createDb } from '../db/index.js';
 import { createAuditLimiter } from '../lib/audit-limits.js';
 import { createAuditMail } from '../lib/audit-mail.js';
@@ -7,6 +8,7 @@ import { createJobClient } from '../lib/jobs.js';
 import { createLogger } from '../lib/logger.js';
 import { createMailer } from '../lib/mailer.js';
 import { createOtpStore } from '../lib/otp.js';
+import { createSecretBox } from '../lib/secrets.js';
 import { closeQueues, createQueues } from '../lib/queues.js';
 import { closeRedis, createRedis } from '../lib/redis.js';
 import { createTurnstile } from '../lib/turnstile.js';
@@ -83,7 +85,21 @@ if (!audit)
     'The free audit is closed: it needs DATABASE_URL, REDIS_URL and TURNSTILE_SECRET_KEY.',
   );
 
-const app = createApp({ config, logger, db, queues, audit });
+// The Content Studio's web side (Milestone 7): Redis to show a draft as it is written, the key that seals a customer's
+// WordPress password (the web process only ever encrypts; the worker opens it), and the safe fetcher that checks a
+// site before it is saved. Without a secrets key the WordPress screen says it is not set up.
+const content = redis
+  ? {
+      redis,
+      prefix: config.redis.prefix,
+      secrets: config.secrets ? createSecretBox(config.secrets) : null,
+      fetcher: createSafeFetcher(),
+    }
+  : null;
+if (!config.secrets)
+  logger.warn('SECRETS_MASTER_KEY is not set: customers cannot connect WordPress.');
+
+const app = createApp({ config, logger, db, queues, audit, content });
 
 const server = app.listen(config.port, () => {
   logger.info(

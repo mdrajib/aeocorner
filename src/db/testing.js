@@ -470,6 +470,134 @@ export function fixtures(db) {
       return prisma.recommendations.update({ where: { id }, data });
     },
 
+    /** A recommendation row with sensible defaults, for tests that need one to point at. */
+    recommendation(project, overrides = {}) {
+      return prisma.recommendations.create({
+        data: {
+          org_id: project.org_id,
+          project_id: project.id,
+          rule_code: 'visibility.lost_prompt',
+          rule_version: 1,
+          stable_key: `k${unique()}`,
+          why_md: 'why',
+          category: 'content_new',
+          fix_path: 'content',
+          title: 'Lost',
+          evidence: {},
+          impact: '1',
+          confidence: '0.5',
+          effort: 3,
+          ice: '0.1',
+          ...overrides,
+        },
+      });
+    },
+
+    /** The raw WordPress integration row of a project (to check what is stored, never to read a secret back). */
+    integrationRow(projectId) {
+      return prisma.integrations.findFirst({ where: { project_id: projectId, type: 'wordpress' } });
+    },
+    integrationCount(projectId) {
+      return prisma.integrations.count({ where: { project_id: projectId } });
+    },
+
+    /**
+     * A Content Studio item in any state, written directly (no pipeline, no draft allowance taken), with one revision
+     * when `html` is given. For route and browser tests that need a page to look at.
+     */
+    async contentItem(
+      project,
+      {
+        title = `Page ${unique()}`,
+        status = 'ready',
+        kind = 'new',
+        format = 'faq',
+        brief = null,
+        research = null,
+        qc = null,
+        jsonld = null,
+        html = null,
+        failure = null,
+        publishedUrl = null,
+        recommendationId = null,
+        userId = null,
+      } = {},
+    ) {
+      const item = await prisma.content_items.create({
+        data: {
+          public_id: ulid(),
+          org_id: project.org_id,
+          project_id: project.id,
+          recommendation_id: recommendationId,
+          kind,
+          format,
+          title,
+          status: ['approved', 'publishing', 'published'].includes(status) ? 'ready' : status,
+          brief: brief ?? undefined,
+          research: research ?? undefined,
+          jsonld: jsonld ?? undefined,
+          created_by_user_id: userId,
+        },
+      });
+      let revision = null;
+      if (html) {
+        revision = await prisma.content_revisions.create({
+          data: {
+            org_id: project.org_id,
+            content_item_id: item.id,
+            revision: 1,
+            body_html: html,
+            word_count: html
+              .replace(/<[^>]+>/g, ' ')
+              .split(/s+/)
+              .filter(Boolean).length,
+            source: 'ai_draft',
+          },
+        });
+      }
+      const data = { current_revision_id: revision?.id ?? null };
+      if (qc) {
+        data.qc = { ...qc, revisionId: String(revision?.id ?? '') };
+        data.qc_score = qc.score;
+      }
+      if (failure) {
+        data.failed_stage = failure.stage;
+        data.failure_reason = failure.reason;
+      }
+      if (['approved', 'publishing', 'published'].includes(status)) {
+        Object.assign(data, {
+          approved_revision_id: revision?.id,
+          approved_at: new Date(),
+          approved_by_user_id: userId,
+          status,
+        });
+        if (status === 'published')
+          Object.assign(data, {
+            published_url: publishedUrl,
+            published_at: new Date(),
+            cms_ref: '1',
+          });
+      }
+      return prisma.content_items.update({ where: { id: item.id }, data });
+    },
+
+    /** Set columns on a content item directly (a test that needs a state the pipeline would take time to reach). */
+    forceContent(id, data) {
+      return prisma.content_items.update({ where: { id }, data });
+    },
+
+    /** The raw rows of one table for an item, for assertions the repositories do not expose. */
+    contentRows(id) {
+      return Promise.all([
+        prisma.content_items.findUnique({ where: { id } }),
+        prisma.content_revisions.findMany({
+          where: { content_item_id: id },
+          orderBy: { revision: 'asc' },
+        }),
+        prisma.site_changes.findMany({ where: { content_item_id: id }, orderBy: { id: 'asc' } }),
+      ]).then(([item, revisions, changes]) => ({ item, revisions, changes }));
+    },
+
     /**
      * A finished website scan with the given check results (`[{ code, status, points, possible, summary }]`), as the
      * crawler leaves one. Returns the scan row.
@@ -703,6 +831,11 @@ export function fixtures(db) {
         // An audit handed to an organization is removed with its own fixtures, not with the organization.
         await prisma.audits.updateMany({ where, data: { org_id: null, project_id: null } });
         await prisma.fix_verifications.deleteMany({ where });
+        await prisma.site_changes.deleteMany({ where });
+        await prisma.content_target_prompts.deleteMany({ where });
+        await prisma.content_revisions.deleteMany({ where });
+        await prisma.content_items.deleteMany({ where });
+        await prisma.integrations.deleteMany({ where });
         await prisma.action_outcomes.deleteMany({ where });
         await prisma.recommendations.deleteMany({ where });
         await prisma.site_scans.deleteMany({ where });

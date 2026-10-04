@@ -69,6 +69,7 @@ export function authHarness({
   cloudflareKeys,
   queues,
   jobs,
+  content,
   domainVerifier,
 } = {}) {
   const db = connectTestDb();
@@ -91,6 +92,7 @@ export function authHarness({
     cloudflareKeys,
     queues,
     jobs,
+    ...(content ? { content } : {}),
     ...(domainVerifier ? { domainVerifier } : {}),
   });
   const agent = request(app);

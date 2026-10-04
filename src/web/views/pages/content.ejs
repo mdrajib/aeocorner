@@ -1,0 +1,71 @@
+<%# D5: the Content Studio board. Props: columns ([{ key, label, empty, cards }]), total, prompts ([{ id, text }]), quota ({ used, limit }),
+    wordpress ({ status, siteName } or null), canAct; locals: orgBase, projectBase, projectName, domain, current, csrfToken. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'content', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
+
+<div class="mt-6 flex flex-wrap items-start justify-between gap-4">
+  <div class="max-w-2xl">
+    <h2 class="text-2xl">Content Studio</h2>
+    <p class="text-ink-700 mt-1 text-sm">We write pages that answer the questions your customers ask AI engines, from what the engines say today and facts we can check. You read, edit and approve every page. Nothing reaches your site until you publish it.</p>
+  </div>
+  <div class="w-full sm:w-64">
+    <%- ui.meter({ id: 'drafts-meter', label: 'Drafts this month', value: quota.used, max: quota.limit }) %>
+    <p class="text-ink-700 mt-1 text-xs"><%= quota.used %> of <%= quota.limit %> used. A refresh counts as half.</p>
+  </div>
+</div>
+
+<% if (wordpress && wordpress.status === 'connected') { %>
+<p class="text-ink-700 mt-4 text-sm">WordPress: connected to <%= wordpress.siteName %>. <a href="<%= projectBase %>/integrations/wordpress">Settings</a></p>
+<% } else if (wordpress && wordpress.status === 'broken') { %>
+<div class="mt-4"><%- ui.banner({ tone: 'warning', title: 'The WordPress connection needs attention.', html: '<a href="' + ui.esc(projectBase) + '/integrations/wordpress">Open the WordPress settings</a>' }) %></div>
+<% } else { %>
+<p class="text-ink-700 mt-4 text-sm">WordPress is not connected. You can still copy or download the approved pages. <a href="<%= projectBase %>/integrations/wordpress">Connect WordPress</a></p>
+<% } %>
+
+<% if (canAct) { %>
+<section class="card mt-6" aria-labelledby="new-h">
+  <div class="card-body">
+    <h3 id="new-h" class="text-base font-semibold">Write a page</h3>
+    <form method="post" action="<%= projectBase %>/content" class="mt-3 flex max-w-2xl flex-col gap-3">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (prompts.length) { %>
+      <%- ui.field({ id: 'new-prompt', name: 'promptId', label: 'A question your customers ask', type: 'select', options: [{ value: '', label: 'Choose a question' }].concat(prompts.map((p) => ({ value: p.id, label: p.text }))) }) %>
+      <% } %>
+      <%- ui.field({ id: 'new-title', name: 'title', label: prompts.length ? 'Or what the page is about' : 'What the page is about', hint: 'For example: how much a family dentist costs in Austin.' }) %>
+      <div><%- ui.button({ label: 'Start writing', type: 'submit', variant: 'primary' }) %></div>
+    </form>
+  </div>
+</section>
+<% } else { %>
+<p class="text-ink-700 mt-6 text-sm">You can read the pages here, but writing them is for owners, admins and editors.</p>
+<% } %>
+
+<% if (total === 0) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'No pages yet', text: 'Pick a question above, or start from a recommendation in the Action Center. The first draft is ready in a few minutes.', action: { label: 'See the recommendations', href: projectBase + '/actions' } }) %></div>
+<% } else { %>
+<div class="mt-8 grid gap-6 lg:grid-cols-3">
+  <% for (const column of columns) { %>
+  <section aria-labelledby="col-<%= column.key %>">
+    <h3 id="col-<%= column.key %>" class="text-base font-semibold"><%= column.label %> <span class="text-ink-600 font-normal">(<%= column.cards.length %>)</span></h3>
+    <% if (column.cards.length === 0) { %>
+    <p class="text-ink-700 mt-2 text-sm"><%= column.empty %></p>
+    <% } else { %>
+    <ul class="mt-3 flex flex-col gap-3">
+      <% for (const card of column.cards) { %>
+      <li class="card">
+        <div class="card-body flex flex-col gap-2">
+          <a href="<%= card.href %>" class="font-semibold [overflow-wrap:anywhere]"><%= card.title %></a>
+          <div class="flex flex-wrap items-center gap-2">
+            <%- ui.badge({ text: card.badge.text, tone: card.badge.tone }) %>
+            <%- ui.badge({ text: card.format, tone: 'neutral' }) %>
+            <% if (card.kind === 'Refresh') { %><%- ui.badge({ text: card.kind, tone: 'neutral' }) %><% } %>
+          </div>
+          <% if (card.score !== null) { %><p class="text-ink-700 text-sm">Quality check: <%= card.score %> out of 100<% if (card.blocked) { %> · needs a fix before approval<% } %></p><% } %>
+        </div>
+      </li>
+      <% } %>
+    </ul>
+    <% } %>
+  </section>
+  <% } %>
+</div>
+<% } %>

@@ -1,0 +1,266 @@
+<%# D5: one Content Studio item. Props: item ({ publicId, title, status, badge, format, kind, running, failed, words, revision, bodyHtml, revisions,
+    approvedAt, publishedAt, costUsd }), steps, panel, qc, research, brief, briefErrors, formats, schemaTypes, jsonld, changes, recommendation,
+    factCount, canAct, canApprove, canManage, itemBase, boardHref, wordpressBase; locals: orgBase, projectBase, projectName, domain, csrfToken. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'content', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
+
+<p class="mt-4 text-sm"><a href="<%= boardHref %>">All pages</a></p>
+<div class="mt-1 flex flex-wrap items-center gap-2">
+  <%- ui.badge({ text: item.badge.text, tone: item.badge.tone }) %>
+  <%- ui.badge({ text: item.format, tone: 'neutral' }) %>
+  <%- ui.badge({ text: item.kind, tone: 'neutral' }) %>
+</div>
+<h2 class="mt-2 max-w-3xl text-2xl [overflow-wrap:anywhere]"><%= item.title %></h2>
+<% if (item.isRefresh && item.targetUrl) { %><p class="text-ink-700 mt-1 text-sm [overflow-wrap:anywhere]">Updates the page at <%= item.targetUrl %>. Publishing replaces it in place.</p><% } %>
+
+<%
+const activeIndex = steps.findIndex((s) => s.state === 'active' || s.state === 'failed');
+const currentStep = activeIndex >= 0 ? activeIndex : steps.length - 1;
+const working = { researching: 'Reading what the engines answer today and researching the topic.', briefing: 'Planning the page.', drafting: 'Writing the page.', qc: 'Checking the page.', publishing: 'Sending the page to WordPress.' };
+-%>
+<div class="mt-6">
+  <%- ui.stepper({ label: 'Where this page is', steps: steps.map((s) => ({ label: s.state === 'failed' ? s.label + ' (stopped)' : s.label })), current: currentStep }) %>
+</div>
+
+<% if (item.running) { %>
+<div class="mt-6" data-content-live data-events="<%= itemBase %>/events">
+  <%- ui.banner({ tone: 'info', title: working[item.status], text: 'You can leave this page: it keeps going, and the page below updates by itself.' }) %>
+  <% if (item.status === 'drafting') { %>
+  <section class="card mt-4" aria-labelledby="live-h">
+    <div class="card-body">
+      <h3 id="live-h" class="text-base font-semibold">The draft so far</h3>
+      <div class="draft-preview mt-3" data-content-live-draft aria-live="off"><p class="text-ink-700 text-sm">The text appears here as it is written.</p></div>
+    </div>
+  </section>
+  <% } %>
+</div>
+<% } %>
+
+<% if (item.failed) { %>
+<div class="mt-6">
+  <%- ui.banner({ tone: 'danger', title: 'This stopped' + (item.failed.stage ? ' while ' + ({ researching: 'researching', briefing: 'planning', drafting: 'writing', qc: 'checking', publishing: 'publishing' }[item.failed.stage] || 'working') : '') + '.', text: item.failed.reason || 'Something went wrong.' }) %>
+  <% if (canAct) { %>
+  <div class="mt-3 flex flex-wrap items-center gap-3">
+    <form method="post" action="<%= itemBase %>/retry"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Try again', type: 'submit', variant: 'primary' }) %></form>
+    <form method="post" action="<%= itemBase %>/archive"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Put it away', type: 'submit', variant: 'ghost' }) %></form>
+  </div>
+  <% } %>
+</div>
+<% } %>
+
+<% if (recommendation) { %>
+<p class="text-ink-700 mt-4 text-sm">This page is the fix for the recommendation <a href="<%= recommendation.href %>"><%= recommendation.title %></a>. Publishing it marks that recommendation done and starts measuring.</p>
+<% } %>
+
+<% if (item.status === 'published') { %>
+<div class="mt-6"><%- ui.banner({ tone: 'success', title: 'Published' + (item.publishedAt ? ' on ' + item.publishedAt : '') + '.', html: panel.publishedUrl ? '<a href="' + ui.esc(panel.publishedUrl) + '">' + ui.esc(panel.publishedUrl) + '</a>' : '' }) %></div>
+<% } %>
+
+<% if (item.bodyHtml) { %>
+<div class="mt-8 grid gap-6 lg:grid-cols-3">
+  <div class="lg:col-span-2">
+    <section class="card" aria-labelledby="draft-h">
+      <div class="card-body flex flex-col gap-4">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 id="draft-h" class="text-base font-semibold">The page</h3>
+          <p class="text-ink-700 text-sm">Version <%= item.revision %> · <%= item.words.toLocaleString('en-US') %> words</p>
+        </div>
+        <% if (panel.canEdit) { %>
+        <form method="post" action="<%= itemBase %>/save" class="flex flex-col gap-3">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="revision" value="<%= item.revision %>">
+          <div data-editor data-editor-label="The page text">
+            <label for="draft-html" class="sr-only">The page as HTML</label>
+            <textarea id="draft-html" name="html" rows="22" class="textarea font-mono text-sm" data-editor-source><%= item.bodyHtml %></textarea>
+          </div>
+          <p class="text-ink-700 text-sm">Saving makes a new version and checks it again. Earlier versions are kept. <% if (item.status === 'approved') { %>Saving takes your approval back.<% } %></p>
+          <div><%- ui.button({ label: 'Save changes', type: 'submit', variant: 'primary' }) %></div>
+        </form>
+        <% } else { %>
+        <div class="draft-preview"><%- item.bodyHtml %></div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <div class="flex flex-col gap-6">
+    <% if (qc) { %>
+    <section class="card" aria-labelledby="qc-h">
+      <div class="card-body flex flex-col gap-3">
+        <h3 id="qc-h" class="text-base font-semibold">Quality check</h3>
+        <%- ui.stat({ label: 'Score', value: String(qc.score) + ' / 100', note: qc.stale ? 'This is for an earlier version.' : qc.headline }) %>
+        <ul class="flex flex-col gap-3 text-sm">
+          <% for (const c of qc.checks) { %>
+          <li>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="font-medium"><%= c.label %></span>
+              <%- ui.badge({ text: c.statusText + (c.blocking ? ' · must fix' : ''), tone: c.blocking ? 'danger' : c.tone }) %>
+            </div>
+            <p class="text-ink-600 text-xs"><%= c.points %> of <%= c.weight %> points. <%= c.help %></p>
+            <% if (c.findings.length) { %><ul class="text-ink-800 mt-1 list-disc pl-5"><% for (const f of c.findings) { %><li class="[overflow-wrap:anywhere]"><%= f %></li><% } %></ul><% } %>
+          </li>
+          <% } %>
+        </ul>
+        <% if (qc.note) { %><p class="text-ink-700 text-xs"><%= qc.note %></p><% } %>
+      </div>
+    </section>
+    <% } %>
+
+    <section class="card" aria-labelledby="pub-h">
+      <div class="card-body flex flex-col gap-3">
+        <h3 id="pub-h" class="text-base font-semibold">Approve and publish</h3>
+        <p class="text-ink-700 text-sm"><%= panel.wordpress %>.</p>
+        <% if (item.status === 'ready') { %>
+          <% if (panel.approveBlockers.length) { %>
+          <ul class="text-ink-800 list-disc pl-5 text-sm">
+            <% for (const b of panel.approveBlockers) { %><li><%= b %></li><% } %>
+          </ul>
+          <% } %>
+          <% if (!panel.mayApprove) { %>
+          <p class="text-ink-700 text-sm">Approving is for owners, admins and editors.</p>
+          <% } else { %>
+          <form method="post" action="<%= itemBase %>/approve" class="flex flex-col gap-2">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="revisionId" value="<%= item.revisionId %>">
+            <div><%- ui.button({ label: 'I have read it: approve', type: 'submit', variant: 'primary', disabled: !panel.canApprove }) %></div>
+            <p class="text-ink-600 text-xs">Approving does not publish anything. It locks this version: if you change the text afterwards, you approve it again.</p>
+          </form>
+          <% } %>
+        <% } else if (item.status === 'approved') { %>
+          <p class="text-ink-800 text-sm">Approved<% if (item.approvedAt) { %> on <%= item.approvedAt %><% } %>. <% if (panel.draftUrl) { %>A draft is saved in WordPress: <a href="<%= panel.draftUrl %>">open it</a>.<% } %></p>
+          <% if (panel.canPublish) { %>
+          <div class="flex flex-wrap gap-3">
+            <form method="post" action="<%= itemBase %>/publish"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="mode" value="publish"><%- ui.button({ label: panel.cannotPublishLive ? 'Publish now (this user cannot)' : 'Publish now', type: 'submit', variant: 'primary', disabled: panel.cannotPublishLive }) %></form>
+            <% if (!item.isRefresh) { %><form method="post" action="<%= itemBase %>/publish"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="mode" value="draft"><%- ui.button({ label: 'Save as a WordPress draft', type: 'submit', variant: 'secondary' }) %></form><% } %>
+          </div>
+          <% if (panel.pluginMissing) { %><p class="text-ink-700 text-xs">Without the AEO Corner plugin the structured data travels inside the post, and WordPress may remove it. <a href="<%= wordpressBase %>">Set up the plugin</a>.</p><% } %>
+          <% } else if (panel.needsConnection) { %>
+          <p class="text-ink-800 text-sm"><% if (canManage) { %><a href="<%= wordpressBase %>">Connect WordPress</a> to publish from here, or<% } else { %>Ask an owner or admin to connect WordPress, or<% } %> take the page with you:</p>
+          <% } %>
+          <p class="flex flex-wrap gap-3 text-sm"><a href="<%= itemBase %>/export.html">Download HTML with structured data</a> <a href="<%= itemBase %>/export.md">Download Markdown</a></p>
+          <% if (panel.canUnapprove) { %>
+          <form method="post" action="<%= itemBase %>/unapprove"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Take the approval back', type: 'submit', variant: 'ghost', size: 'sm' }) %></form>
+          <% } %>
+        <% } else if (item.status === 'published') { %>
+          <p class="text-ink-800 text-sm">It is live. To change it, edit the text in a new draft.</p>
+          <% if (canAct) { %>
+          <form method="post" action="<%= itemBase %>/redraft"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Write a new draft from the plan', type: 'submit', variant: 'secondary', size: 'sm' }) %></form>
+          <% } %>
+          <p class="flex flex-wrap gap-3 text-sm"><a href="<%= itemBase %>/export.html">Download HTML</a> <a href="<%= itemBase %>/export.md">Download Markdown</a></p>
+        <% } else { %>
+          <p class="text-ink-700 text-sm">You can approve the page when it has been checked.</p>
+        <% } %>
+        <% if (changes.length) { %>
+        <h4 class="mt-2 text-sm font-semibold">What we sent to your site</h4>
+        <ul class="text-ink-800 flex flex-col gap-1 text-sm">
+          <% for (const c of changes) { %><li><%= c.when %>: <%= c.kind %> <%= c.mode %> · <%= c.status === 'applied' ? 'done' : c.status === 'failed' ? 'failed' : 'working' %><% if (c.error) { %> (<%= c.error %>)<% } %></li><% } %>
+        </ul>
+        <% } %>
+      </div>
+    </section>
+  </div>
+</div>
+<% } %>
+
+<% if (jsonld) { %>
+<details class="mt-8">
+  <summary class="cursor-pointer text-base font-semibold">Structured data (JSON-LD)</summary>
+  <p class="text-ink-700 mt-2 text-sm">This is what search and AI crawlers read about the page. We build it from the text, check it before every save and again before it leaves, and it says only what the page says. <%= jsonld.ok ? 'It is valid.' : 'It has problems: ' + jsonld.problems.join(' ') %></p>
+  <% if (jsonld.warnings.length) { %><ul class="text-ink-700 mt-1 list-disc pl-5 text-sm"><% for (const w of jsonld.warnings) { %><li><%= w %></li><% } %></ul><% } %>
+  <pre class="draft-code mt-3"><code><%= jsonld.text %></code></pre>
+</details>
+<% } %>
+
+<% if (brief) { %>
+<details class="mt-4"<% if (briefErrors.length) { %> open<% } %>>
+  <summary class="cursor-pointer text-base font-semibold">The plan this page was written from</summary>
+  <% if (briefErrors.length) { %>
+  <div class="mt-3"><%- ui.banner({ tone: 'danger', title: 'The plan was not saved.', html: '<ul class="list-disc pl-5">' + briefErrors.map((e) => '<li>' + ui.esc(e) + '</li>').join('') + '</ul>' }) %></div>
+  <% } %>
+  <% if (item.status === 'ready' && canAct) { %>
+  <form method="post" action="<%= itemBase %>/brief" class="mt-3 flex max-w-3xl flex-col gap-4">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.field({ id: 'brief-title', name: 'title', label: 'Page title', value: brief.title, required: true }) %>
+    <%- ui.field({ id: 'brief-meta', name: 'metaDescription', label: 'Description for search results', value: brief.metaDescription, required: true, hint: 'One sentence, under 155 characters.' }) %>
+    <%- ui.field({ id: 'brief-audience', name: 'audience', label: 'Who is asking', value: brief.audience }) %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- ui.field({ id: 'brief-format', name: 'format', label: 'Kind of page', type: 'select', value: brief.format, options: formats }) %>
+      <%- ui.field({ id: 'brief-schema', name: 'schemaType', label: 'Structured data', type: 'select', value: brief.schemaType, options: schemaTypes.map((t) => ({ value: t, label: t })) }) %>
+    </div>
+    <fieldset class="flex flex-col gap-4">
+      <legend class="text-sm font-semibold">Sections</legend>
+      <% brief.outline.forEach((s, i) => { %>
+      <div class="border-ink-200 flex flex-col gap-2 rounded-md border p-3">
+        <%- ui.field({ id: 'outline-h-' + i, name: 'outline_heading', label: 'Section ' + (i + 1) + ': a question', value: s.heading }) %>
+        <%- ui.field({ id: 'outline-a-' + i, name: 'outline_answer', label: 'Direct answer (60 words or fewer)', type: 'textarea', rows: 3, value: s.directAnswer }) %>
+        <%- ui.field({ id: 'outline-p-' + i, name: 'outline_points', label: 'Cover (one per line)', type: 'textarea', rows: 2, value: s.points }) %>
+        <%- ui.field({ id: 'outline-f-' + i, name: 'outline_facts', label: 'Facts it may use', value: s.factIds, hint: factCount + ' facts are available: b1, b2… are from your Brand Kit, r1, r2… from research.' }) %>
+      </div>
+      <% }) %>
+    </fieldset>
+    <%- ui.field({ id: 'brief-entities', name: 'entities', label: 'Names to mention (one per line)', type: 'textarea', rows: 3, value: brief.entities }) %>
+    <div class="flex flex-wrap gap-3">
+      <%- ui.button({ label: 'Save the plan', type: 'submit', variant: 'secondary' }) %>
+      <button type="submit" name="then" value="redraft" class="btn btn-primary">Save and write a new draft</button>
+    </div>
+  </form>
+  <% } else { %>
+  <dl class="mt-3 flex max-w-3xl flex-col gap-3 text-sm">
+    <div><dt class="text-ink-700">Title</dt><dd class="font-medium"><%= brief.title %></dd></div>
+    <div><dt class="text-ink-700">Description</dt><dd><%= brief.metaDescription %></dd></div>
+    <% brief.outline.forEach((s, i) => { %><div><dt class="text-ink-700">Section <%= i + 1 %></dt><dd><span class="font-medium"><%= s.heading %></span><br><%= s.directAnswer %></dd></div><% }) %>
+  </dl>
+  <p class="text-ink-700 mt-3 text-sm">The plan can be edited while the page waits for review.</p>
+  <% } %>
+</details>
+<% } %>
+
+<% if (research) { %>
+<details class="mt-4">
+  <summary class="cursor-pointer text-base font-semibold">What we found out</summary>
+  <% if (research.warning) { %><div class="mt-3"><%- ui.banner({ tone: 'warning', title: 'Be careful with the facts.', text: research.warning }) %></div><% } %>
+  <div class="mt-3 grid gap-6 lg:grid-cols-2">
+    <div>
+      <h4 class="text-sm font-semibold">Facts from research (<%= research.facts.length %>)</h4>
+      <% if (research.facts.length === 0) { %><p class="text-ink-700 mt-1 text-sm">None. The page uses only what your Brand Kit says.</p><% } else { %>
+      <ul class="mt-2 flex flex-col gap-3 text-sm">
+        <% for (const f of research.facts) { %>
+        <li>
+          <p class="[overflow-wrap:anywhere]"><%= f.claim %></p>
+          <p class="text-ink-700 text-xs"><a href="<%= f.url %>" rel="noopener noreferrer" class="[overflow-wrap:anywhere]"><%= f.url %></a> · <%= f.label %></p>
+          <% if (f.quote) { %><blockquote class="text-ink-700 border-ink-200 mt-1 border-l-2 pl-2 text-xs">“<%= f.quote %>”</blockquote><% } %>
+        </li>
+        <% } %>
+      </ul>
+      <% } %>
+    </div>
+    <div>
+      <% if (research.question) { %><h4 class="text-sm font-semibold">What the engines answer today: “<%= research.question %>”</h4><% } %>
+      <% if (research.engines.length) { %>
+      <ul class="mt-2 flex flex-col gap-1 text-sm">
+        <% for (const e of research.engines) { %><li><span class="font-medium"><%= e.code %></span>: <%= e.readable %> readable <%= e.readable === 1 ? 'answer' : 'answers' %>; named <%= e.named %></li><% } %>
+      </ul>
+      <% } %>
+      <% if (research.sources.length) { %>
+      <h4 class="mt-4 text-sm font-semibold">Pages the engines cite</h4>
+      <ul class="mt-2 flex flex-col gap-1 text-sm">
+        <% for (const s of research.sources) { %><li class="[overflow-wrap:anywhere]"><%= s.title %> · cited <%= s.cited %>×<% if (s.format) { %> · <%= s.format %><% } %><% if (s.own) { %> · yours<% } %></li><% } %>
+      </ul>
+      <% } %>
+      <% if (research.formatBasis) { %><p class="text-ink-700 mt-3 text-xs">Kind of page chosen from: <%= research.formatBasis %>.</p><% } %>
+    </div>
+  </div>
+</details>
+<% } %>
+
+<% if (item.revisions.length) { %>
+<details class="mt-4">
+  <summary class="cursor-pointer text-base font-semibold">Versions (<%= item.revisions.length %>)</summary>
+  <ol class="mt-3 flex flex-col gap-1 text-sm">
+    <% for (const r of item.revisions) { %><li>Version <%= r.revision %> · <%= r.source %> · <%= r.words.toLocaleString('en-US') %> words · <%= r.when %></li><% } %>
+  </ol>
+</details>
+<% } %>
+
+<% if (canAct && !item.running && item.status !== 'published' && item.status !== 'failed') { %>
+<form method="post" action="<%= itemBase %>/archive" class="mt-8"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Put this page away', type: 'submit', variant: 'ghost', size: 'sm' }) %></form>
+<% } %>

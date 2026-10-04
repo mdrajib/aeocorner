@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
 import { DEFAULT_AUDIT_DAILY_BUDGET_USD, toMicros } from '../core/spend.js';
+import { parseMasterKey } from './secrets.js';
 
 // Empty strings in .env mean "not set" — treat them as undefined so optional keys stay optional.
 const optional = (schema) => z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
@@ -84,10 +85,21 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: optional(z.string().min(1)),
   // The model that reads answers (decision D4, ADR-0007): opus55 or haiku45.
   EXTRACTION_MODEL: z.enum(['opus55', 'haiku45']).default('opus55'),
+  // The model that researches, plans and writes Content Studio drafts. The checked facts come from code, not the model.
+  CONTENT_MODEL: z.enum(['opus55', 'haiku45']).default('opus55'),
+
+  // Envelope-encryption master key for customers' integration credentials (WordPress, later Google): 32 random
+  // bytes, base64. The previous key stays set while old secrets are re-wrapped after a rotation. Without a key the
+  // integrations screens say they are not set up; development falls back to a fixed key.
+  SECRETS_MASTER_KEY: optional(z.string().min(40)),
+  SECRETS_MASTER_KEY_VERSION: z.coerce.number().int().min(1).max(32000).default(1),
+  SECRETS_MASTER_KEY_PREVIOUS: optional(z.string().min(40)),
 
   RESEND_API_KEY: optional(z.string().min(1)),
   EMAIL_FROM_ADDRESS: optional(z.string().min(3)),
 });
+
+const DEV_SECRETS_KEY = Buffer.alloc(32, 'aeo-corner-development-only-key').toString('base64');
 
 const DEV_APP_SECRET = 'development-only-secret-do-not-use-in-production';
 
@@ -176,6 +188,25 @@ function clerkApp({ publishableKey, secretKey, label }) {
   const frontendApi = frontendApiOf(publishableKey);
   if (!frontendApi) throw new Error(`${label}: the publishable key is not a valid Clerk key.`);
   return { publishableKey, secretKey, frontendApi, isLive: publishableKey.startsWith('pk_live_') };
+}
+
+/** The master keys for encrypting integration credentials; null when none is set in production. */
+function secretsConfig(e, isProduction) {
+  const given = e.SECRETS_MASTER_KEY ?? (isProduction ? null : DEV_SECRETS_KEY);
+  if (!given) return null;
+  const current = { version: e.SECRETS_MASTER_KEY_VERSION, key: parseMasterKey(given) };
+  const previous = e.SECRETS_MASTER_KEY_PREVIOUS
+    ? [
+        {
+          version: e.SECRETS_MASTER_KEY_VERSION - 1,
+          key: parseMasterKey(e.SECRETS_MASTER_KEY_PREVIOUS),
+        },
+      ]
+    : [];
+  if (previous.length && previous[0].version < 1) {
+    throw new Error('SECRETS_MASTER_KEY_PREVIOUS needs SECRETS_MASTER_KEY_VERSION of 2 or more.');
+  }
+  return { current, previous };
 }
 
 /** Credentials for the answer-engine providers; each is null when it is not set. */
@@ -296,8 +327,10 @@ export function loadConfig(env = process.env) {
     alertWebhookUrl: e.ALERT_WEBHOOK_URL ?? null,
     spaces: spacesConfig(e, appEnv),
     providers: providersConfig(e),
+    secrets: secretsConfig(e, isProduction),
     anthropic: e.ANTHROPIC_API_KEY ? { apiKey: e.ANTHROPIC_API_KEY } : null,
     extraction: { model: e.EXTRACTION_MODEL },
+    content: { model: e.CONTENT_MODEL },
     auth: customer
       ? {
           ...customer,

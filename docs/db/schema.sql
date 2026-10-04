@@ -8,7 +8,8 @@
 -- Status  : Design artifact, 2026-09-28. Becomes the first Prisma migration
 --           (prisma/migrations/0001_init/migration.sql). Since 2026-10-03 this file
 --           is the readable snapshot of 0001_init plus every later migration
---           (0003 adds the domain-verification columns of projects). Migrations stay
+--           (0003 adds the domain-verification columns of projects, 0004 the
+--           failure columns of content_items). Migrations stay
 --           hand-written SQL; schema.prisma is generated from the database
 --           with `prisma db pull`, never edited by hand (§10.2).
 -- Auth    : Clerk handles sign-in, sessions and MFA (identity only).
@@ -1137,6 +1138,8 @@ CREATE TABLE content_items (
   created_by_user_id    BIGINT UNSIGNED NULL,
   created_at            DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at            DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  failed_stage          VARCHAR(16)   NULL COMMENT 'the stage that failed: researching | briefing | drafting | qc | publishing',
+  failure_reason        VARCHAR(500)  NULL COMMENT 'plain-language reason, never a response body or a secret',
   PRIMARY KEY (id),
   UNIQUE KEY uq_content_items_public_id (public_id),
   KEY ix_content_items_board (project_id, status),

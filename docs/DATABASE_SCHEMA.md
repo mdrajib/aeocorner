@@ -166,7 +166,7 @@ Filtering by cluster, intent or locale reads the cell tables joined to `prompts`
 | Table | Purpose | Used from |
 |---|---|---|
 | `integrations` | WordPress and Google (one OAuth grant covers GA4 and Search Console). Secrets are envelope-encrypted: ciphertext, wrapped data key, key version | 10–11 |
-| `content_items` | Content Studio items: brief, research sources, QC, JSON-LD, status, publishing references. **A CHECK constraint blocks `approved/publishing/published` without an approved revision** | 10 |
+| `content_items` | Content Studio items: brief, research sources, QC, JSON-LD, status, publishing references; `failed_stage` and `failure_reason` say where a failed pipeline stopped (migration `0004`). **A CHECK constraint blocks `approved/publishing/published` without an approved revision** | 10 |
 | `content_revisions` | Draft history. Approval pins one exact revision, so an edit after approval doesn't silently go live | 10 |
 | `content_target_prompts` | The questions a piece of content targets | 10 |
 | `site_changes` | Every change pushed to a customer site (JSON-LD, meta, robots.txt, llms.txt, posts, IndexNow): payload, approval, remote reference, previous value for rollback | 10 |

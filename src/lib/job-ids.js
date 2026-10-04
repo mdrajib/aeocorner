@@ -84,5 +84,18 @@ export const fixVerifyJobId = (recommendationId, attempt, sweep = null) =>
 export const outcomeJobId = (recommendationId, dayText) =>
   jobId('measure', recommendationId, dayText);
 
+/**
+ * One stage of one Content Studio item. `round` tells apart the same stage run again for the same item (the next
+ * revision number for a draft and its check, the ten-minute slot for research and the plan), so a finished stage's ID
+ * can't swallow a later one, and a double click is one job.
+ */
+export const contentJobId = (stage, itemId, round) => jobId('content', stage, itemId, `r${round}`);
+
+/** Sending one approved change to WordPress: the change row is the identity. */
+export const publishJobId = (siteChangeId) => jobId('publish', siteChangeId);
+
+/** Testing a project's WordPress connection, at most once per ten-minute slot. */
+export const wordpressTestJobId = (projectId, slot) => jobId('wptest', projectId, `s${slot}`);
+
 /** The ten-minute slot a time falls in. */
 export const slotOf = (date) => Math.floor(date.getTime() / 600_000);

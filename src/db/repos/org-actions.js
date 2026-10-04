@@ -692,7 +692,7 @@ export function actionRepos(prisma, orgId) {
      * @returns `{ recommendation, verifiable, schedule }`: `verifiable` is whether a re-check job should be queued
      *          now, `schedule` the three attempts' times
      */
-    async markDone(projectId, recId, { userId = null, now = new Date() } = {}) {
+    async markDone(projectId, recId, { userId = null, now = new Date(), verify = null } = {}) {
       await ownProject(projectId);
       const rec = await findRow(prisma, projectId, recId);
       if (!rec) throw new DomainError('RECOMMENDATION_NOT_FOUND');
@@ -714,7 +714,8 @@ export function actionRepos(prisma, orgId) {
         perPrompt: counted.perPrompt,
         partialCellsLeftOut: counted.partialCells,
       };
-      const method = verifyMethodFor(rec.rule_code);
+      // A published page has its own check (the page is fetched and read); every other fix uses what its rule says.
+      const method = verify?.method ?? verifyMethodFor(rec.rule_code);
       const schedule = verificationSchedule(now);
 
       await transaction(prisma, async (tx) => {
@@ -744,9 +745,14 @@ export function actionRepos(prisma, orgId) {
               attempt: index + 1,
               method: method ?? 'manual',
               status: method ? 'pending' : 'not_verifiable',
+              target_url: verify?.targetUrl ? String(verify.targetUrl).slice(0, 2048) : null,
               scheduled_for: scheduledFor,
               checked_at: method ? null : now,
-              details: method ? undefined : { reason: 'no automatic check for this kind of fix' },
+              details: method
+                ? verify?.expect
+                  ? toJson({ expect: verify.expect })
+                  : undefined
+                : { reason: 'no automatic check for this kind of fix' },
             },
           });
         }
@@ -773,6 +779,7 @@ export function actionRepos(prisma, orgId) {
       return rows.map((v) => ({
         attempt: v.attempt,
         method: v.method,
+        targetUrl: v.target_url,
         status: v.status,
         scheduledFor: v.scheduled_for,
         checkedAt: v.checked_at,

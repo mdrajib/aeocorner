@@ -6,12 +6,14 @@ import { randomBytes } from 'node:crypto';
 import { INTENT_LABELS } from '../../src/core/prompt-rules.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
 import { createAuditLimiter } from '../../src/lib/audit-limits.js';
+import { createSafeFetcher } from '../../src/crawler/safe-fetch.js';
 import { createAuditMail } from '../../src/lib/audit-mail.js';
 import { loadConfig } from '../../src/lib/config.js';
 import { createFunnel } from '../../src/lib/funnel.js';
 import { createLogger } from '../../src/lib/logger.js';
 import { memoryMailer } from '../../src/lib/mailer.js';
 import { createOtpStore } from '../../src/lib/otp.js';
+import { createSecretBox } from '../../src/lib/secrets.js';
 import { hashToken, newToken } from '../../src/lib/tokens.js';
 import { createApp } from '../../src/web/app.js';
 import { auditFixtures } from '../helpers/audit-fixtures.js';
@@ -329,6 +331,170 @@ const actionIds = {};
   actionIds.win = String(won.id);
 }
 
+// The Content Studio: a page at each step on the dashboard project, and a WordPress connection on the sample project.
+const contentIds = {};
+{
+  const html =
+    '<p>A crown is a cap that covers a damaged tooth. A porcelain crown usually costs between $900 and $1,500 at Data Dental.</p>' +
+    '<h2>How much does a crown cost?</h2><p>A porcelain crown costs between $900 and $1,500. The price depends on the tooth and the material.</p>' +
+    '<h2>How long does a crown take?</h2><p>Same-day crowns take about two hours. A lab-made crown takes two visits.</p>' +
+    '<h2>Does insurance cover a crown?</h2><p>Often in part. Ask your plan what it pays.</p>';
+  const brief = {
+    format: 'faq',
+    title: 'How much does a crown cost in Austin?',
+    metaDescription:
+      'What a porcelain crown costs in Austin, what changes the price and how to pay for it.',
+    audience: 'adults who need a crown',
+    outline: [
+      {
+        heading: 'How much does a crown cost?',
+        directAnswer: 'A porcelain crown costs between $900 and $1,500.',
+        points: ['price range'],
+        factIds: ['b1'],
+      },
+      {
+        heading: 'How long does a crown take?',
+        directAnswer: 'Same-day crowns take about two hours.',
+        points: [],
+        factIds: [],
+      },
+      {
+        heading: 'Does insurance cover a crown?',
+        directAnswer: 'Often in part. Ask your plan what it pays.',
+        points: [],
+        factIds: [],
+      },
+    ],
+    entities: ['Austin'],
+    internalLinks: [],
+    schemaType: 'FAQPage',
+    version: 'b1',
+  };
+  const research = {
+    version: 'r1',
+    warning: null,
+    searches: 3,
+    fetches: 1,
+    facts: [
+      {
+        claim: 'A porcelain crown typically costs $800 to $1,700 per tooth.',
+        url: 'https://www.ada.org/crowns',
+        quote: 'typically costs between $800 and $1,700 per tooth',
+        verified: true,
+      },
+      { claim: 'Half of adults have a crown.', url: 'https://example.test/stats', verified: false },
+    ],
+    pack: {
+      question: 'How much does a crown cost?',
+      engines: [
+        { engineCode: 'perplexity', readable: 3, named: [{ name: 'Rival Smiles', count: 2 }] },
+      ],
+      sources: [
+        {
+          url: 'https://reviews.example.test/austin-dentists',
+          title: 'Best dentists in Austin',
+          timesCited: 3,
+          isOwn: false,
+          format: 'best_of',
+        },
+      ],
+      format: { recommended: 'faq', basis: 'the way the question is asked' },
+    },
+  };
+  const check = (code, label, weight, points, status, findings = []) => ({
+    code,
+    label,
+    weight,
+    points,
+    status,
+    blocking: false,
+    findings,
+  });
+  const qc = {
+    version: 1,
+    score: 86,
+    ready: true,
+    blocking: [],
+    words: 300,
+    checks: [
+      check('answer_first', 'Answer first', 25, 25, 'pass'),
+      check('unsupported_claims', 'Claims have sources', 20, 14, 'warn', [
+        'No source for: "A porcelain crown costs between $900 and $1,500."',
+      ]),
+      check('heading_structure', 'Headings', 15, 15, 'pass'),
+      check('reading_level', 'Reading level', 10, 10, 'pass'),
+      check('banned_words', 'Words to avoid', 10, 10, 'pass'),
+      check('overlap', 'Not a copy of your site', 10, 10, 'pass'),
+      check('schema_valid', 'Structured data', 10, 2, 'fail', [
+        'A FAQPage is better with description.',
+      ]),
+    ],
+  };
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Article',
+        headline: 'How much does a crown cost in Austin?',
+        author: { '@type': 'Organization', name: 'Acme Dental' },
+        publisher: { '@type': 'Organization', name: 'Acme Dental' },
+        datePublished: '2026-10-04',
+        dateModified: '2026-10-04',
+      },
+    ],
+  };
+  const make = (status, extra = {}) =>
+    fx.contentItem(dashProject, {
+      title: 'How much does a crown cost in Austin?',
+      status,
+      brief,
+      research,
+      qc,
+      jsonld,
+      html,
+      userId: people.owner.id,
+      ...extra,
+    });
+  contentIds.ready = (await make('ready')).public_id;
+  contentIds.approved = (await make('approved')).public_id;
+  contentIds.published = (
+    await make('published', { publishedUrl: 'https://www.example.test/crown-cost/' })
+  ).public_id;
+  contentIds.working = (
+    await fx.contentItem(dashProject, {
+      title: 'Teeth whitening aftercare',
+      status: 'drafting',
+      brief,
+      research,
+    })
+  ).public_id;
+  contentIds.failed = (
+    await fx.contentItem(dashProject, {
+      title: 'Emergency dentist hours',
+      status: 'failed',
+      failure: {
+        stage: 'researching',
+        reason: 'The writing service was busy or unavailable. Try again in a few minutes.',
+      },
+    })
+  ).public_id;
+  await scoped.integrations.saveWordpress(project.id, {
+    config: {
+      siteUrl: 'https://wp.example.test',
+      username: 'editor',
+      siteName: 'Sample Dental Blog',
+      pluginInstalled: true,
+      pluginConnected: true,
+      pluginVersion: '1.0.0',
+      seoPlugin: 'yoast',
+      canPublish: true,
+      checkedAt: new Date().toISOString(),
+    },
+    secret: { ciphertext: Buffer.alloc(40, 1), wrappedDek: Buffer.alloc(60, 2), keyVersion: 1 },
+    userId: people.owner.id,
+  });
+}
+
 const tokens = {
   signedOut: await invite(`new.hire.${unique()}@example.test`, 'editor'),
   accept: await invite(people.invitee.email, 'viewer'),
@@ -347,6 +513,11 @@ const fixtureInfo = {
   dashboardPromptId: String(dashQ1.id),
   actionOpenId: actionIds.open,
   actionWinId: actionIds.win,
+  contentReadyId: contentIds.ready,
+  contentApprovedId: contentIds.approved,
+  contentPublishedId: contentIds.published,
+  contentWorkingId: contentIds.working,
+  contentFailedId: contentIds.failed,
   promptId: String(firstPrompt.id),
   membershipId: String(editorSeat.id),
   tokens,
@@ -372,6 +543,7 @@ const auditSeeds = {
   })(),
 };
 const queuedJobs = [];
+const queuedContentJobs = [];
 const audit = {
   otp: createOtpStore(testRedis.redis, {
     prefix: testRedis.prefix,
@@ -392,6 +564,14 @@ const app = createApp({
   provider,
   mailer,
   audit,
+  // The Content Studio's own queue (it only remembers), a Redis that holds no draft, and the dev key for secrets.
+  content: {
+    jobs: { add: async (name, data) => void queuedContentJobs.push({ name, data }) },
+    redis: { get: async () => null },
+    prefix: 'e2e',
+    secrets: createSecretBox(config.secrets),
+    fetcher: createSafeFetcher(),
+  },
   extraRoutes(application) {
     application.get('/__e2e/fixtures', (req, res) => res.json(fixtureInfo));
 
@@ -432,6 +612,7 @@ const app = createApp({
       }
     });
     application.get('/__e2e/audit/jobs', (req, res) => res.json(queuedJobs));
+    application.get('/__e2e/content/jobs', (req, res) => res.json(queuedContentJobs));
 
     // The emails the app "sent", newest last, so a test can click the link inside.
     application.get('/__e2e/mail', (req, res) =>

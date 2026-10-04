@@ -64,6 +64,26 @@
 </div>
 <% } %>
 
+<% if (contentItem) { %>
+<section class="card mt-8" aria-labelledby="content-h">
+  <div class="card-body flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h3 id="content-h" class="text-base font-semibold">A page for this is in the Content Studio</h3>
+      <p class="text-ink-700 mt-1 text-sm">Status: <%= contentItem.status %>. Publishing it marks this recommendation done and starts measuring.</p>
+    </div>
+    <%- ui.button({ label: 'Open the page', href: contentItem.href, variant: 'primary' }) %>
+  </div>
+</section>
+<% } else if (writable && canAct) { %>
+<section class="card mt-8" aria-labelledby="content-h">
+  <div class="card-body flex flex-col gap-3">
+    <h3 id="content-h" class="text-base font-semibold">Let us write it</h3>
+    <p class="text-ink-700 text-sm">We research the topic, plan the page and write a draft that answers the question, with structured data. You read it, edit it and approve it. Nothing goes on your site until you publish it, and publishing marks this recommendation done.</p>
+    <form method="post" action="<%= actionBase %>/content"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Write it in the Content Studio', type: 'submit', variant: 'primary' }) %></form>
+  </div>
+</section>
+<% } %>
+
 <% if (canAct && ['open', 'in_progress', 'unverified'].includes(rec.status)) { %>
 <section class="card mt-8" aria-labelledby="do-h">
   <div class="card-body flex flex-col gap-4">

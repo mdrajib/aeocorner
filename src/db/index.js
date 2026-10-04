@@ -13,6 +13,7 @@ import { webhookEventsRepo } from './repos/webhook-events.js';
 
 export { DomainError } from './errors.js';
 export { RUNS_NOW_PLACEHOLDER } from './repos/org-tracking.js';
+export { DRAFTS_PLACEHOLDER } from './repos/org-content.js';
 
 /**
  * The data layer's public face. The rest of the app never sees Prisma: it gets these repositories.

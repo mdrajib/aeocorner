@@ -411,6 +411,8 @@ model content_items {
   created_by_user_id                             BigInt?                  @db.UnsignedBigInt
   created_at                                     DateTime                 @default(now())
   updated_at                                     DateTime                 @default(now())
+  failed_stage                                   String?                  @db.VarChar(16)
+  failure_reason                                 String?                  @db.VarChar(500)
   users_content_items_approved_by_user_idTousers users?                   @relation("content_items_approved_by_user_idTousers", fields: [approved_by_user_id], references: [id], onUpdate: NoAction, map: "fk_content_items_approved_by")
   users_content_items_created_by_user_idTousers  users?                   @relation("content_items_created_by_user_idTousers", fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "fk_content_items_created_by")
   projects                                       projects                 @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_content_items_project")

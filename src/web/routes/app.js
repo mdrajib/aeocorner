@@ -135,6 +135,81 @@ const NOTICES = {
     'warning',
     'That recommendation has changed since you opened the page, so nothing was done. It is shown as it is now.',
   ],
+  'content-started': [
+    'success',
+    'We have started. We read what the AI engines answer today, research the topic, plan the page and write it. This usually takes a few minutes, and this page updates as it goes.',
+  ],
+  'content-queue-failed': [
+    'danger',
+    'We could not start that just now. Nothing was changed. Try again in a minute.',
+  ],
+  'content-quota': [
+    'warning',
+    'This month’s drafts are used up. Drafts are counted when they start; one that fails before it is written is given back.',
+  ],
+  'content-needs-topic': ['warning', 'Choose a question, or type what the page should be about.'],
+  'content-saved': ['success', 'Saved as a new version. We are checking it again.'],
+  'content-unchanged': ['info', 'Nothing was different, so nothing was saved.'],
+  'content-empty': [
+    'danger',
+    'The page has no text. Write something, or go back to the earlier version.',
+  ],
+  'content-stale-text': [
+    'warning',
+    'The text changed since you opened the page, so nothing was saved. It is shown as it is now: check it, then try again.',
+  ],
+  'content-stale': [
+    'warning',
+    'This page has changed since you opened it, so nothing was done. It is shown as it is now.',
+  ],
+  'content-brief-saved': [
+    'success',
+    'The plan is saved. Write a new draft from it whenever you like.',
+  ],
+  'content-redrafting': [
+    'success',
+    'Writing a new draft from the plan. Your earlier versions are kept.',
+  ],
+  'content-approved': ['success', 'Approved. Nothing is on your site until you publish it.'],
+  'content-blocked': [
+    'warning',
+    'This draft cannot be approved yet. The reasons are listed under “Approve and publish”.',
+  ],
+  'content-unapproved': ['info', 'Approval taken back. You can edit the text again.'],
+  'content-publishing': [
+    'success',
+    'Publishing to WordPress. This page shows the result in a moment.',
+  ],
+  'content-publishing-draft': [
+    'success',
+    'Saving a draft in WordPress. Nothing goes live: you publish it from WordPress, or here.',
+  ],
+  'content-retried': ['success', 'Trying again.'],
+  'content-archived': [
+    'info',
+    'Put away. It is not counted any more and is not shown on the board.',
+  ],
+  'content-no-wordpress': [
+    'warning',
+    'WordPress is not connected for this project, so nothing was sent. Connect it first.',
+  ],
+  'wp-connected': [
+    'success',
+    'Connected. The plugin is set up, so structured data is added on your server and new pages are announced to search engines.',
+  ],
+  'wp-connected-no-plugin': [
+    'success',
+    'Connected. You can publish pages. For structured data that crawlers reliably see, install the AEO Corner plugin and press “Check again”.',
+  ],
+  'wp-testing': ['info', 'Checking your site. This page shows the result in a few seconds.'],
+  'wp-disconnected': [
+    'info',
+    'Disconnected. We deleted the saved password. If you installed the plugin, you can also disconnect it in WordPress under Settings.',
+  ],
+  'wp-not-configured': [
+    'danger',
+    'Connecting WordPress is not switched on yet on our side. We have been told.',
+  ],
   'too-many-invites': ['danger', 'There are already 50 invitations waiting. Cancel some first.'],
 };
 
@@ -155,7 +230,16 @@ export function suggestOrgName(domainInput) {
     .join(' ');
 }
 
-export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verifier = null }) {
+export function appRoutes({
+  config,
+  db,
+  auth,
+  mailer,
+  logger,
+  jobs = null,
+  verifier = null,
+  content = null,
+}) {
   const router = Router();
 
   // Everything under /app: signed-in only, never cached, never indexed.
@@ -259,7 +343,7 @@ export function appRoutes({ config, db, auth, mailer, logger, jobs = null, verif
 
   // --- One organization -------------------------------------------------------------------------------
   const org = Router({ mergeParams: true });
-  const projectsApi = projectRoutes({ db, jobs, auth, logger, appPage, verifier });
+  const projectsApi = projectRoutes({ db, jobs, auth, logger, appPage, verifier, content });
 
   org.use((req, res, next) => {
     const base = `/app/o/${req.org.public_id}`;

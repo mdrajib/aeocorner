@@ -11,6 +11,7 @@ import {
   stepsOf,
   CATEGORY_LABELS,
 } from '../../core/action-center.js';
+import { STATUS_LABELS } from '../../core/content-lifecycle.js';
 import { DEFAULT_ENGINE_LABELS } from '../../core/narrative.js';
 import { effortLabel } from '../../core/ice.js';
 import { DISMISS_REASONS, timelineFor } from '../../core/recommendation-lifecycle.js';
@@ -139,6 +140,10 @@ export function actionRoutes(router, { appPage, act, jobs, logger }) {
       // The page looks again by itself while the same-day re-check is under way.
       if (rec.status === 'done' || rec.status === 'verified') res.locals.refreshSeconds = 15;
       const reached = detail.events.map((e) => e.toStatus);
+      // A fix that is a page to write can be started in the Content Studio (Milestone 7); one already started is linked.
+      const written = (await req.orgDb.content.forRecommendations(req.project.id, [rec.id])).get(
+        rec.id,
+      );
       return appPage(res, 'action-detail', {
         ...tabs(req, res),
         domain,
@@ -167,6 +172,13 @@ export function actionRoutes(router, { appPage, act, jobs, logger }) {
         history: historyLines(detail.events),
         dismissReasons: Object.entries(DISMISS_REASONS).map(([value, label]) => ({ value, label })),
         canAct: res.locals.can('content.create'),
+        contentItem: written
+          ? {
+              href: `${base}/content/${written.publicId}`,
+              status: STATUS_LABELS[written.status] ?? written.status,
+            }
+          : null,
+        writable: rec.fixPath === 'content' && ['open', 'in_progress'].includes(rec.status),
         actionBase: `${base}/actions/${rec.id}`,
         listHref: `${base}/actions`,
         engineNames: DEFAULT_ENGINE_LABELS,

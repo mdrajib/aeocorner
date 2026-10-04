@@ -1,0 +1,72 @@
+<%# D6: connect WordPress. Props: wordpress ({ status, siteUrl, siteName, username, canPublish, pluginInstalled, pluginConnected, pluginVersion, seoPlugin, lastError, checkedAt } or null),
+    error, form ({ siteUrl, username }), configured, canManage, wpBase, boardHref; locals: orgBase, projectBase, projectName, domain, csrfToken. %>
+<%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'content', ranges: [], updatedLabel: null, stale: null, lastRun: null }) %>
+
+<p class="mt-4 text-sm"><a href="<%= boardHref %>">Content Studio</a></p>
+<h2 class="mt-1 text-2xl">WordPress</h2>
+<p class="text-ink-700 mt-1 max-w-2xl text-sm">Connect your WordPress site to publish approved pages from AEO Corner. Nothing is published without your approval, and we never see your WordPress password: you give us an application password that you can revoke at any time.</p>
+
+<% if (!configured) { %>
+<div class="mt-6"><%- ui.banner({ tone: 'warning', title: 'Connecting WordPress is not switched on yet.', text: 'We have not set up the key that keeps your password safe. We have been told.' }) %></div>
+<% } %>
+
+<% if (wordpress) { %>
+<section class="card mt-6" aria-labelledby="state-h">
+  <div class="card-body flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <h3 id="state-h" class="text-base font-semibold"><%= wordpress.siteName || wordpress.siteUrl %></h3>
+      <%- ui.badge({ text: wordpress.status === 'connected' ? 'Connected' : 'Needs attention', tone: wordpress.status === 'connected' ? 'success' : 'danger' }) %>
+    </div>
+    <dl class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+      <div class="flex gap-2"><dt class="text-ink-700">Address:</dt><dd class="font-medium [overflow-wrap:anywhere]"><%= wordpress.siteUrl %></dd></div>
+      <div class="flex gap-2"><dt class="text-ink-700">Logged in as:</dt><dd class="font-medium"><%= wordpress.username %></dd></div>
+      <div class="flex gap-2"><dt class="text-ink-700">Can publish:</dt><dd class="font-medium"><%= wordpress.canPublish ? 'Yes' : 'No: pages are saved as drafts' %></dd></div>
+      <div class="flex gap-2"><dt class="text-ink-700">AEO Corner plugin:</dt><dd class="font-medium"><%= wordpress.pluginConnected ? 'Connected' + (wordpress.pluginVersion ? ' (version ' + wordpress.pluginVersion + ')' : '') : wordpress.pluginInstalled ? 'Installed, not connected yet' : 'Not installed' %></dd></div>
+      <% if (wordpress.seoPlugin) { %><div class="flex gap-2"><dt class="text-ink-700">SEO plugin:</dt><dd class="font-medium"><%= wordpress.seoPlugin === 'yoast' ? 'Yoast SEO' : 'Rank Math' %></dd></div><% } %>
+      <% if (wordpress.checkedAt) { %><div class="flex gap-2"><dt class="text-ink-700">Last checked:</dt><dd class="font-medium"><%= wordpress.checkedAt %></dd></div><% } %>
+    </dl>
+    <% if (wordpress.lastError) { %><%- ui.banner({ tone: 'danger', title: 'The last check failed.', text: wordpress.lastError }) %><% } %>
+    <% if (!wordpress.pluginConnected) { %>
+    <%- ui.banner({ tone: 'info', title: 'The plugin makes structured data reliable.', text: 'Most AI crawlers do not run JavaScript, so structured data has to be added by your server. The AEO Corner plugin does that. Without it, we put the data inside the post, and WordPress may remove it.' }) %>
+    <% } %>
+    <% if (canManage) { %>
+    <div class="flex flex-wrap items-center gap-3">
+      <form method="post" action="<%= wpBase %>/test"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Check again', type: 'submit', variant: 'secondary' }) %></form>
+      <form method="post" action="<%= wpBase %>/disconnect"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Disconnect', type: 'submit', variant: 'ghost' }) %></form>
+    </div>
+    <% } %>
+  </div>
+</section>
+<% } %>
+
+<% if (canManage) { %>
+<div class="mt-8 grid gap-6 lg:grid-cols-2">
+  <section class="card" aria-labelledby="connect-h">
+    <div class="card-body">
+      <h3 id="connect-h" class="text-base font-semibold"><%= wordpress ? 'Connect a different site, or change the login' : 'Connect your site' %></h3>
+      <% if (error) { %><div class="mt-3"><%- ui.banner({ tone: 'danger', title: 'We could not connect.', text: error }) %></div><% } %>
+      <form method="post" action="<%= wpBase %>" class="mt-3 flex flex-col gap-3" autocomplete="off">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- ui.field({ id: 'wp-site', name: 'siteUrl', label: 'Site address', type: 'url', value: form.siteUrl, required: true, placeholder: 'https://www.example.com', hint: 'The address visitors use, not the admin page.' }) %>
+        <%- ui.field({ id: 'wp-user', name: 'username', label: 'WordPress user name', value: form.username, required: true, autocomplete: 'off' }) %>
+        <%- ui.field({ id: 'wp-pass', name: 'appPassword', label: 'Application password', type: 'password', required: true, autocomplete: 'off', hint: 'Made in WordPress under Users, Profile, Application Passwords. We keep it encrypted and never show it again.' }) %>
+        <div><%- ui.button({ label: 'Connect', type: 'submit', variant: 'primary', disabled: !configured }) %></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="steps-h">
+    <div class="card-body">
+      <h3 id="steps-h" class="text-base font-semibold">How to set it up</h3>
+      <ol class="mt-3 flex list-decimal flex-col gap-2 pl-5 text-sm">
+        <li>In WordPress, open <span class="font-medium">Users → Profile</span> and add an application password called “AEO Corner”. Use an administrator if you want the plugin; an editor is enough to publish.</li>
+        <li>Paste the address, user name and that password on the left, and press Connect.</li>
+        <li>For structured data that crawlers can see, <a href="<%= wpBase %>/plugin.zip">download the plugin</a>, upload it in <span class="font-medium">Plugins → Add New → Upload Plugin</span>, activate it, and press “Check again” here.</li>
+        <li>Revoke the application password in WordPress whenever you like. We stop working at once.</li>
+      </ol>
+    </div>
+  </section>
+</div>
+<% } else { %>
+<p class="text-ink-700 mt-6 text-sm">Connecting WordPress is for owners and admins.</p>
+<% } %>

@@ -1329,6 +1329,167 @@ describe('action center: recommendations, re-checks and outcomes', () => {
   });
 });
 
+describe('content studio and integrations', () => {
+  // An item at every step in B's project, and a WordPress connection. Everything below is called as A.
+  let aProject;
+  let bProject;
+  let bItem;
+  let bReady;
+  const HTML = '<h2>How much?</h2><p>Between $900 and $1,500.</p>';
+  const secret = {
+    ciphertext: Buffer.alloc(40, 1),
+    wrappedDek: Buffer.alloc(60, 2),
+    keyVersion: 1,
+  };
+  const qc = { version: 1, score: 90, ready: true, blocking: [], checks: [], words: 400 };
+
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Content A');
+    bProject = await fx.project(B.org.id, 'Content B');
+    bItem = await B.scoped.content.create(bProject.id, { title: 'B item' });
+    bReady = await B.scoped.content.create(bProject.id, { title: 'B ready' });
+    const c = B.scoped.content;
+    await c.saveResearch(bProject.id, bReady.id, { research: { facts: [] } });
+    await c.saveBrief(bProject.id, bReady.id, {
+      brief: {
+        format: 'faq',
+        title: 'B ready page title',
+        metaDescription: 'x'.repeat(30),
+        audience: 'a',
+        outline: [],
+        entities: [],
+        internalLinks: [],
+        schemaType: 'Article',
+      },
+    });
+    const draft = await c.saveDraft(bProject.id, bReady.id, { html: HTML });
+    await c.saveQc(bProject.id, bReady.id, {
+      revisionId: draft.revisionId,
+      qc,
+      jsonld: { '@context': 'https://schema.org', '@type': 'Article', headline: 'x' },
+    });
+    await B.scoped.integrations.saveWordpress(bProject.id, {
+      config: { siteUrl: 'https://b.example.test', username: 'b' },
+      secret,
+    });
+  });
+
+  test('every project-level call: B’s project is not found from A', async () => {
+    const c = A.scoped.content;
+    const i = A.scoped.integrations;
+    const asA = [
+      () => c.create(bProject.id, { title: 'x' }),
+      () => c.list(bProject.id),
+      () => c.get(bProject.id, bItem.publicId),
+      () => c.revision(bProject.id, bItem.id, 1),
+      () => c.forRecommendations(bProject.id, [1]),
+      () => c.counts(bProject.id),
+      () => c.saveResearch(bProject.id, bItem.id, { research: {} }),
+      () => c.saveBrief(bProject.id, bItem.id, { brief: {} }),
+      () => c.saveDraft(bProject.id, bItem.id, { html: HTML }),
+      () => c.saveQc(bProject.id, bItem.id, { revisionId: 1n, qc, jsonld: null }),
+      () => c.fail(bProject.id, bItem.id, { stage: 'drafting', reason: 'x' }),
+      () => c.editBrief(bProject.id, bReady.id, { brief: { title: 'x', format: 'faq' } }),
+      () => c.saveEdit(bProject.id, bReady.id, { html: '<p>x</p>' }),
+      () => c.approve(bProject.id, bReady.id, { userId: A.owner.id, revisionId: 1n }),
+      () => c.unapprove(bProject.id, bReady.id),
+      () => c.redraft(bProject.id, bReady.id),
+      () => c.retry(bProject.id, bItem.id),
+      () => c.archive(bProject.id, bItem.id),
+      () => c.beginPublish(bProject.id, bReady.id, { userId: A.owner.id, mode: 'publish' }),
+      () => c.forPublish(bProject.id, bReady.id),
+      () => c.markApplying(bProject.id, 1n),
+      () => c.rememberPost(bProject.id, bReady.id, { cmsRef: '1' }),
+      () =>
+        c.finishPublish(bProject.id, bReady.id, {
+          siteChangeId: 1n,
+          outcome: 'published',
+          cmsRef: '1',
+          url: 'x',
+        }),
+      () => c.siteChanges(bProject.id, bReady.id),
+      () => c.forPipeline(bProject.id, bItem.id),
+      () => i.wordpress(bProject.id),
+      () => i.saveWordpress(bProject.id, { config: {}, secret }),
+      () => i.wordpressSecret(bProject.id),
+      () => i.wordpressResult(bProject.id, { ok: false, error: 'x' }),
+      () => i.disconnectWordpress(bProject.id),
+    ];
+    for (const call of asA) await refuses(call(), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('B’s item addressed through A’s own project is simply not there', async () => {
+    const c = A.scoped.content;
+    assert.equal(await c.get(aProject.id, bItem.publicId), null);
+    assert.equal(await c.get(aProject.id, String(bItem.id)), null);
+    assert.equal(await c.revision(aProject.id, bReady.id, 1), null);
+    assert.equal(await c.forPipeline(aProject.id, bItem.id), null);
+    assert.equal(await c.forPublish(aProject.id, bReady.id), null);
+    assert.deepEqual(await c.siteChanges(aProject.id, bReady.id), []);
+    for (const call of [
+      () => c.saveResearch(aProject.id, bItem.id, { research: {} }),
+      () => c.fail(aProject.id, bItem.id, { stage: 'drafting', reason: 'x' }),
+      () => c.saveEdit(aProject.id, bReady.id, { html: '<p>x</p>' }),
+      () => c.approve(aProject.id, bReady.id, { userId: A.owner.id, revisionId: 1n }),
+      () => c.unapprove(aProject.id, bReady.id),
+      () => c.redraft(aProject.id, bReady.id),
+      () => c.archive(aProject.id, bItem.id),
+      () => c.beginPublish(aProject.id, bReady.id, { userId: A.owner.id, mode: 'publish' }),
+      () =>
+        c.finishPublish(aProject.id, bReady.id, {
+          siteChangeId: 1n,
+          outcome: 'published',
+          cmsRef: '1',
+          url: 'x',
+        }),
+    ]) {
+      await refuses(call(), 'CONTENT_NOT_FOUND');
+    }
+    assert.deepEqual(await c.forRecommendations(aProject.id, []), new Map());
+    assert.deepEqual(await c.counts(aProject.id), {});
+    assert.deepEqual(await c.list(aProject.id), []);
+  });
+
+  test('A cannot attach B’s recommendation or B’s question to its own item', async () => {
+    const prompt = await fx.prompt(bProject, { text: 'B question for content?' });
+    await refuses(
+      A.scoped.content.create(aProject.id, { title: 'x', promptIds: [prompt.id] }),
+      'PROMPT_NOT_IN_PROJECT',
+    );
+    await refuses(
+      A.scoped.content.create(aProject.id, { title: 'x', recommendationId: 1 }),
+      'RECOMMENDATION_NOT_FOUND',
+    );
+  });
+
+  test('A’s connection to its own project does not touch B’s, and the secret never appears in a read', async () => {
+    assert.equal(await A.scoped.integrations.wordpress(aProject.id), null);
+    assert.equal(await A.scoped.integrations.wordpressSecret(aProject.id), null);
+    const seen = await B.scoped.integrations.wordpress(bProject.id);
+    assert.equal(seen.status, 'connected');
+    assert.deepEqual(Object.keys(seen).sort(), [
+      'config',
+      'connectedAt',
+      'disconnectedAt',
+      'hasSecret',
+      'id',
+      'lastError',
+      'lastErrorAt',
+      'lastSuccessAt',
+      'status',
+      'type',
+    ]);
+  });
+
+  test('after all of that B’s data is what it was', async () => {
+    const got = await B.scoped.content.get(bProject.id, bReady.publicId);
+    assert.equal(got.status, 'ready');
+    assert.equal(got.revisions.length, 1);
+    assert.equal((await B.scoped.content.get(bProject.id, bItem.publicId)).status, 'researching');
+    assert.equal((await B.scoped.integrations.wordpress(bProject.id)).status, 'connected');
+  });
+});
+
 describe('what the worker may look up across organizations about the Action Center', () => {
   test('due(), overdue() and ruleStats() return IDs and counts, never tenant content', async () => {
     for (const row of await db.system.outcomes.due({ now: new Date('2099-01-01') })) {
@@ -1409,6 +1570,41 @@ describe('coverage: no repository function without a leak test', () => {
       'verificationsOf',
     ],
     outcomes: ['measure', 'recent'],
+    content: [
+      'approve',
+      'archive',
+      'beginPublish',
+      'counts',
+      'create',
+      'editBrief',
+      'fail',
+      'finishPublish',
+      'forPipeline',
+      'forPublish',
+      'forRecommendations',
+      'get',
+      'list',
+      'markApplying',
+      'redraft',
+      'rememberPost',
+      'retry',
+      'revision',
+      'saveBrief',
+      'saveDraft',
+      'saveEdit',
+      'saveQc',
+      'saveResearch',
+      'siteChanges',
+      'unapprove',
+    ],
+    draftQuota: ['draftsUsed'],
+    integrations: [
+      'disconnectWordpress',
+      'saveWordpress',
+      'wordpress',
+      'wordpressResult',
+      'wordpressSecret',
+    ],
     brandKits: ['current', 'get', 'history', 'save'],
     projectEngines: ['list', 'setEnabled'],
     prompts: ['add', 'clusters', 'edit', 'importMany', 'list', 'setStatus'],
@@ -1464,9 +1660,12 @@ describe('coverage: no repository function without a leak test', () => {
       'activity',
       'brandKits',
       'changes',
+      'content',
       'dashboard',
+      'draftQuota',
       'entities',
       'extractions',
+      'integrations',
       'invitations',
       'memberships',
       'metrics',

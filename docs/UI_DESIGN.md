@@ -138,7 +138,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | D2 | Recommendation detail: evidence, fix path, status timeline | 7 | `…/actions/:id` | app | **Milestone 6 ✅ 2026-10-04** | D |
 | D3 | Auto-fix preview and approve | 7 | modal / page | app | Phase 11 | D |
 | D4 | **Proof card** (before/after) and share | 8 Proof | `…/proof/:id` | app | Phase 11 | D |
-| D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content` | app | Phase 12 | D |
+| D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content`, `…/content/:id` | app | **Milestone 7 ✅ 2026-10-04** | D |
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |
 | E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | Phase 13 | E |
 | E2 | Weekly digest email, alert emails, trial-ending email | 7, 9 | n/a | email | Phase 13 | E |
@@ -349,6 +349,7 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
  D5 Content Studio   List (draft · in review · published)  →  Brief  →  Editor (rich text) with side panel:
                      quality score + checklist │ evidence used │ [ Approve ] [ Publish to WordPress / Copy ]
  D6 WordPress setup  Site URL · application password (never shown again) · [ Test connection ] · plugin download
+                     (built at `…/integrations/wordpress` in Milestone 7: connect, "Check again", disconnect, plugin zip)
 ```
 
 ### 5.5 Group E — traffic, billing and settings (sign off before Phase 13)

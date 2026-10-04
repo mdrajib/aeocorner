@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Execution order for the rest of the MVP: Phases 7–15 of [BUILD_PLAN.md](BUILD_PLAN.md), reorganized into 11 sequential milestones of single-action tasks |
 | **Date** | 2026-10-03 |
-| **Status** | In progress. Milestone 6 (Action Center and proof): all tasks 6.01–6.10 are built and tested on fixtures; open on its Definition of Done is nothing but the live-model runs (the narrative and its eval, which cost money) and a first real before/after on a design partner. Milestone 5 (dashboard): the screens and their tests are built (5.01–5.10); open are deploying to production (5.11) and onboarding the design partners (5.12), which need the production server (Milestone 2) and the founder. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
+| **Status** | In progress. Milestone 7 (Content Studio and WordPress): all tasks 7.01–7.12 are built and tested, including against a real WordPress; open are the live-model runs of research, plan and draft (they cost money), a first real publish to a customer’s site, and submitting the plugin to WordPress.org. Milestone 6 (Action Center and proof): all tasks 6.01–6.10 are built and tested on fixtures; open on its Definition of Done is nothing but the live-model runs (the narrative and its eval, which cost money) and a first real before/after on a design partner. Milestone 5 (dashboard): the screens and their tests are built (5.01–5.10); open are deploying to production (5.11) and onboarding the design partners (5.12), which need the production server (Milestone 2) and the founder. Milestone 4 (tracking engine): all tasks 4.01–4.12 are built and tested on fixture engines; open on its Definition of Done: a real project's unattended weekly run on staging, and the cost per prompt-run from the ledger (both need real keys and the staging server). Milestone 1 (audit engine) is built. Milestone 3: all tasks 3.01–3.15 are built. Open on the Definition of Done: a real-Clerk sign-up run (needs 0.15) and one live-model run of the extractor and generator (costs money). Milestone 2: the audit screens (2.01–2.07) and the provisioning runbook (2.08) are built; the Droplets, the staging E2E, the load test and the production switch (2.09–2.13) are waiting on the founder's accounts and keys |
 | **Companion docs** | [BUILD_PLAN.md](BUILD_PLAN.md) (phase detail and required tests) · [MVP.md](MVP.md) §13 · [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) §7 · [UI_DESIGN.md](UI_DESIGN.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. How to read this plan
@@ -334,27 +334,27 @@ flowchart LR
 
 | # | Task | Needs |
 |---|---|---|
-| 7.01 | 🔒 Build the JSON-LD validator against schema.org | — |
-| 7.02 | 🔒 Decide the WordPress test instance (ADR) | — |
-| 7.03 | Build the evidence pack from a recommendation | — |
-| 7.04 | Build the research step (Claude with web search and fetch) | 7.03 |
-| 7.05 | Build the brief generator | 7.04 |
-| 7.06 | Build the streamed draft generator | 7.05 |
-| 7.07 | Build the QC rubric scorer | 7.06 |
-| 7.08 | Check TipTap against the strict CSP (ADR-0003), then vendor it | — |
-| 7.09 | Build the editor and approval flow with `content_revisions` | 7.06, 7.08 |
-| 7.10 | Build the WordPress REST connection with encrypted credentials | 7.02 |
-| 7.11 | Build the WordPress plugin: schema and meta injection, IndexNow (contractor) | 7.02 |
-| 7.12 | Publish → mark the recommendation done → capture the baseline | 7.01, 7.09, 7.10 |
+| 7.01 | ✅ 2026-10-04 🔒 Build the JSON-LD validator against schema.org (`src/core/jsonld.js`: a schema.org vocabulary of the types we write, dates, URLs and script-breaking text checked; `scriptTag` refuses to write unvalidated data; [ADR-0011](adr/0011-content-studio-and-wordpress.md)) | — |
+| 7.02 | ✅ 2026-10-04 🔒 Decide the WordPress test instance (ADR) (decided in ADR-0011: a stand-in for every run, **WordPress Playground** for the real-WordPress contract test, the founder’s staging site before launch. Verified on WordPress 6.2 / PHP 7.4 and on the latest, 7.1.2 / PHP 8.5) | — |
+| 7.03 | ✅ 2026-10-04 Build the evidence pack from a recommendation (`src/core/evidence-pack.js`: what each engine answers, who it names, which pages it cites and their format, from our own tracking data) | — |
+| 7.04 | ✅ 2026-10-04 Build the research step (Claude with web search and fetch) (`src/llm/research.js` and the `content.research` job: server-side web search and fetch; a fact needs an address the tools returned and a quotation found on the page. Not run live yet) | 7.03 |
+| 7.05 | ✅ 2026-10-04 Build the brief generator (`src/llm/brief.js`: question headings, answers of 60 words or fewer, known facts, offered links only; the customer’s edits go through the same rules. Not run live yet) | 7.04 |
+| 7.06 | ✅ 2026-10-04 Build the streamed draft generator (`src/llm/draft.js` and `content.draft`: streamed through Redis to a server-sent-events page; sanitized, links limited, a cut-off reply never saved. Not run live yet) | 7.05 |
+| 7.07 | ✅ 2026-10-04 Build the QC rubric scorer (`src/core/content-qc.js`: seven checks, scored 0–100; four problems block approval) | 7.06 |
+| 7.08 | ✅ 2026-10-04 Check TipTap against the strict CSP (ADR-0003), then vendor it (TipTap 3 bundled with esbuild into `vendor/editor.js`, `injectCSS: false`; the browser test mounts it, types and saves with no CSP violation; [ADR-0011](adr/0011-content-studio-and-wordpress.md)) | — |
+| 7.09 | ✅ 2026-10-04 Build the editor and approval flow with `content_revisions` (`/projects/:pid/content`, `/content/:cid`, `content_revisions`, approval pins a revision; only a person can approve) | 7.06, 7.08 |
+| 7.10 | ✅ 2026-10-04 Build the WordPress REST connection with encrypted credentials (`src/integrations/wordpress.js`, `src/lib/secrets.js`: application password envelope-encrypted, the safe fetcher now does writes without ever redirecting a credential; `/integrations/wordpress`) | 7.02 |
+| 7.11 | ✅ 2026-10-04 Build the WordPress plugin: schema and meta injection, IndexNow (contractor) (`wordpress-plugin/aeo-corner-connector/`, written here instead of by a contractor: signed REST routes, JSON-LD in `wp_head`, titles and descriptions, IndexNow, one-click disconnect. Not yet submitted to WordPress.org) | 7.02 |
+| 7.12 | ✅ 2026-10-04 Publish → mark the recommendation done → capture the baseline (`content.publish`: post id remembered at once, a `site_changes` row, then the recommendation is started and marked done with its baseline and a `url_live` re-check) | 7.01, 7.09, 7.10 |
 
 **Parallel:** **Lane A** (content pipeline) 7.03 → 7.07, strictly sequential. **Lane B** (publishing) 7.02 → 7.10, 7.11; the contractor can start 7.11 as soon as 7.02 is decided. 7.01 and 7.08 are independent. All join at 7.12.
 
 **Definition of Done:**
-- [ ] Unit: JSON-LD is validated before every save.
-- [ ] Unit: QC rubric scores good and bad fixture drafts correctly.
-- [ ] Integration: draft → publish against the WordPress test instance.
-- [ ] Contract: the plugin's injection checked on a real WordPress install.
-- [ ] Axe sweep and leak tests pass for the new screens and queries.
+- [x] Unit: JSON-LD is validated before every save. (`src/core/jsonld.test.js`; the plan, the draft’s templates, the check and the publish job all call it)
+- [x] Unit: QC rubric scores good and bad fixture drafts correctly. (`src/core/content-qc.test.js`)
+- [x] Integration: draft → publish against the WordPress test instance. (`tests/integration/content-jobs.test.js`, end to end through the recommendation done, its baseline and the live check)
+- [x] Contract: the plugin's injection checked on a real WordPress install. (`npm run test:wordpress`: WordPress 6.2 with PHP 7.4 and the latest, in WordPress Playground)
+- [x] Axe sweep and leak tests pass for the new screens and queries. (`tests/e2e/pages.js`, `tests/tenancy/repositories.test.js`)
 
 ---
 

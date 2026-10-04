@@ -102,6 +102,23 @@ export const JOBS = Object.freeze({
   // One fix's +2 or +4 week before/after comparison.
   'outcomes.measure': { queue: 'system', schema: z.object({ orgId: id, recommendationId: id }) },
 
+  // The Content Studio's pipeline (Milestone 7, MVP F8): one job per stage, each queuing the next when it succeeds.
+  // Everything but the IDs comes from the item's row. Research and the draft are paid Claude calls; the check is free.
+  'content.research': {
+    queue: 'content',
+    schema: z.object({ orgId: id, projectId: id, itemId: id }),
+  },
+  'content.brief': { queue: 'content', schema: z.object({ orgId: id, projectId: id, itemId: id }) },
+  'content.draft': { queue: 'content', schema: z.object({ orgId: id, projectId: id, itemId: id }) },
+  'content.qc': { queue: 'content', schema: z.object({ orgId: id, projectId: id, itemId: id }) },
+  // Send an approved item to the customer's WordPress. The change row (`site_changes`) says what and who approved it.
+  'content.publish': {
+    queue: 'content',
+    schema: z.object({ orgId: id, projectId: id, itemId: id, siteChangeId: id }),
+  },
+  // Check a project's WordPress connection: does the site answer, is the login still good, is the plugin there.
+  'wordpress.test': { queue: 'content', schema: z.object({ orgId: id, projectId: id }) },
+
   // Run one free audit from start to finish (Milestone 1, MVP F1): read the site, work out the brand, ask four engines
   // five questions, score and list the fixes. The domain, the visitor and everything else come from the audit row;
   // the payload is only its ID.

@@ -123,6 +123,68 @@ export const appPages = [
     path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions`,
   },
   {
+    name: 'project-content',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content`,
+  },
+  {
+    name: 'project-content-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content`,
+  },
+  {
+    name: 'project-content-empty',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}/content`,
+  },
+  {
+    name: 'content-item-ready',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content/${f.contentReadyId}`,
+  },
+  {
+    name: 'content-item-ready-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content/${f.contentReadyId}`,
+  },
+  {
+    name: 'content-item-approved',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content/${f.contentApprovedId}`,
+  },
+  {
+    name: 'content-item-published',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content/${f.contentPublishedId}`,
+  },
+  {
+    name: 'content-item-working',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content/${f.contentWorkingId}`,
+  },
+  {
+    name: 'content-item-failed',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/content/${f.contentFailedId}`,
+  },
+  {
+    name: 'wordpress-connect',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/integrations/wordpress`,
+  },
+  {
+    name: 'wordpress-connected',
+    as: 'admin',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/integrations/wordpress`,
+  },
+  {
+    name: 'wordpress-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/integrations/wordpress`,
+  },
+  {
     name: 'project-actions-empty',
     as: 'owner',
     path: (f) => `/app/o/${f.orgId}/projects/${f.incompleteProjectId}/actions`,

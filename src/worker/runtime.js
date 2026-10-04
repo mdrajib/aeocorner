@@ -13,6 +13,7 @@ import { Deferral, deferJob } from './deferral.js';
 import { auditHandlers } from './handlers/audit.js';
 import { collectHandlers } from './handlers/collect.js';
 import { actionHandlers } from './handlers/actions.js';
+import { contentHandlers } from './handlers/content.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { extractHandlers } from './handlers/extract.js';
 import { setupHandlers } from './handlers/setup.js';
@@ -65,6 +66,7 @@ export function createWorkerRuntime({
   crawler = null,
   collection = null,
   extraction = null,
+  content = null,
   tracking = null,
   audit = {},
   now = () => new Date(),
@@ -82,6 +84,7 @@ export function createWorkerRuntime({
     ...setupHandlers,
     ...trackingHandlers,
     ...actionHandlers,
+    ...contentHandlers,
     ...extraHandlers,
   };
 
@@ -122,6 +125,7 @@ export function createWorkerRuntime({
     crawler,
     collection,
     extraction,
+    content,
     tracking,
     audit: { ...audit, budget: auditBudget },
     now,

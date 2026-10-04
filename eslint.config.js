@@ -8,6 +8,7 @@ const browserGlobals = {
   setTimeout: 'readonly',
   CustomEvent: 'readonly',
   HTMLDialogElement: 'readonly',
+  Event: 'readonly',
 };
 
 export default [
@@ -58,7 +59,7 @@ export default [
   },
   {
     // Browser-side code: our own scripts, and the callbacks Playwright runs inside the page.
-    files: ['src/web/public/js/**/*.js', 'tests/e2e/**/*.js'],
+    files: ['src/web/public/js/**/*.js', 'src/web/editor/**/*.js', 'tests/e2e/**/*.js'],
     languageOptions: { globals: browserGlobals },
   },
   {

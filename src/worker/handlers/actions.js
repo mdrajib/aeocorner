@@ -14,9 +14,11 @@ import {
   EDITABLE_STATUSES,
   MAX_VERIFY_ATTEMPTS,
 } from '../../core/recommendation-lifecycle.js';
+import { judgeLivePage } from '../../core/live-check.js';
 import { evaluateRules, scoreCandidates } from '../../core/recommendations.js';
 import { fromMicros } from '../../core/spend.js';
 import { RUBRIC_VERSION } from '../../crawler/readiness/index.js';
+import { extractPage } from '../../crawler/html.js';
 import { ProviderError } from '../../engines/contract.js';
 import { fixVerifyJobId, narrateJobId, outcomeJobId } from '../../lib/job-ids.js';
 import { costMicros, modelProfile } from '../../llm/models.js';
@@ -258,6 +260,23 @@ export function judgeCheck(scanStatus, check) {
   return { status: 'failed', couldntCheck: false, checkStatus: check.status };
 }
 
+/** One look at a published page: the address from the re-check attempt, fetched with the safe fetcher, read as a crawler reads it. */
+async function checkLivePage(ctx, attempt) {
+  const fetcher = ctx.crawler?.fetcher;
+  if (!attempt.targetUrl || !fetcher)
+    throw new UnrecoverableError('A live-page check needs an address and the crawler');
+  let res;
+  try {
+    res = await fetcher.fetch(attempt.targetUrl, { bodyTypes: [/html/i, /xml/i] });
+  } catch {
+    return judgeLivePage({ status: null, facts: null, expect: {} });
+  }
+  const facts = res.body?.length
+    ? extractPage(res.body.toString('utf8'), res.url, { headers: res.headers })
+    : null;
+  return judgeLivePage({ status: res.status, facts, expect: attempt.details?.expect ?? {} });
+}
+
 async function fixVerify(ctx, data, job) {
   const orgId = BigInt(data.orgId);
   const recId = BigInt(data.recommendationId);
@@ -268,7 +287,6 @@ async function fixVerify(ctx, data, job) {
   if (rec.status !== 'done') return { skipped: rec.status, repeated: true };
   const projectId = rec.projectId;
   const code = checkCodeOf(rec.ruleCode);
-  if (!code) throw new UnrecoverableError(`${rec.ruleCode} has no automatic check`);
 
   const now = ctx.now();
   let attempts = await scoped.recommendations.verificationsOf(projectId, recId);
@@ -281,34 +299,59 @@ async function fixVerify(ctx, data, job) {
         'not time for the re-check yet',
       );
     }
-    let scanId = next.scanId;
-    if (!scanId) {
-      const scan = await scoped.scans.create({
-        projectId,
-        trigger: 'verification',
-        rubricVersion: RUBRIC_VERSION,
+    if (next.method === 'url_live') {
+      // A published page: fetch it as a crawler would and see that it is there with what we sent.
+      const judged = await checkLivePage(ctx, next);
+      await scoped.recommendations.recordVerification(projectId, recId, {
+        attempt: next.attempt,
+        status: judged.status,
+        details: {
+          method: 'url_live',
+          reasons: judged.reasons,
+          couldntCheck: judged.couldntCheck,
+          expect: next.details?.expect ?? null,
+        },
+        now: ctx.now(),
       });
-      scanId = scan.id;
-      await scoped.recommendations.attachScan(projectId, recId, { attempt: next.attempt, scanId });
+      attempts = await scoped.recommendations.verificationsOf(projectId, recId);
+    } else {
+      if (!code) throw new UnrecoverableError(`${rec.ruleCode} has no automatic check`);
+      let scanId = next.scanId;
+      if (!scanId) {
+        const scan = await scoped.scans.create({
+          projectId,
+          trigger: 'verification',
+          rubricVersion: RUBRIC_VERSION,
+        });
+        scanId = scan.id;
+        await scoped.recommendations.attachScan(projectId, recId, {
+          attempt: next.attempt,
+          scanId,
+        });
+      }
+      const scanned = await executeScan(
+        ctx,
+        { orgId: data.orgId, projectId: String(projectId), scanId: String(scanId) },
+        job,
+      );
+      const checks = await scoped.scans.checks(scanId);
+      const judged = judgeCheck(
+        scanned.status,
+        checks.find((c) => c.check_code === code),
+      );
+      await scoped.recommendations.recordVerification(projectId, recId, {
+        attempt: next.attempt,
+        status: judged.status,
+        scanId,
+        details: {
+          check: code,
+          checkStatus: judged.checkStatus,
+          couldntCheck: judged.couldntCheck,
+        },
+        now: ctx.now(),
+      });
+      attempts = await scoped.recommendations.verificationsOf(projectId, recId);
     }
-    const scanned = await executeScan(
-      ctx,
-      { orgId: data.orgId, projectId: String(projectId), scanId: String(scanId) },
-      job,
-    );
-    const checks = await scoped.scans.checks(scanId);
-    const judged = judgeCheck(
-      scanned.status,
-      checks.find((c) => c.check_code === code),
-    );
-    await scoped.recommendations.recordVerification(projectId, recId, {
-      attempt: next.attempt,
-      status: judged.status,
-      scanId,
-      details: { check: code, checkStatus: judged.checkStatus, couldntCheck: judged.couldntCheck },
-      now: ctx.now(),
-    });
-    attempts = await scoped.recommendations.verificationsOf(projectId, recId);
   }
 
   const decision = decideVerification(

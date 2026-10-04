@@ -124,6 +124,33 @@ document.addEventListener('htmx:responseError', (event) => {
   });
 })();
 
+// The Content Studio's draft as it is written (UI_DESIGN D5). The page is complete without this script (it reloads by
+// itself while a stage runs); with it, the text so far appears as it is written (server-sent events,
+// /content/:id/events) and the page reloads when the item moves to its next stage. The HTML is our own server's output,
+// sanitized there to a short list of tags.
+(function () {
+  const root = document.querySelector('[data-content-live]');
+  if (!root || typeof window.EventSource === 'undefined') return;
+  const target = root.querySelector('[data-content-live-draft]');
+  const source = new window.EventSource(root.dataset.events);
+  source.addEventListener('draft', (event) => {
+    if (!target) return;
+    try {
+      const html = JSON.parse(event.data).html;
+      if (html) target.innerHTML = html;
+    } catch {
+      // A garbled update is skipped: the next one replaces it.
+    }
+  });
+  source.addEventListener('status', () => {
+    source.close();
+    window.location.reload();
+  });
+  source.addEventListener('error', () => {
+    if (source.readyState === window.EventSource.CLOSED) source.close();
+  });
+})();
+
 // Pages that wait for a job (a project being read, a first check running) set `refreshSeconds`, and the app layout
 // writes a [data-auto-refresh] bar. The page reloads itself every few seconds, with three guards: the visitor can stop
 // it (WCAG 2.2.1: a timed refresh must be switchable), it waits while the tab is in the background, and it never

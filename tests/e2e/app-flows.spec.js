@@ -281,3 +281,59 @@ test('an editor opens the Action Center, reads a recommendation and starts it', 
 
   expect(problems, 'no console errors, including CSP violations').toEqual([]);
 });
+
+test('an editor reads a page in the Content Studio, edits it in the rich editor and saves a new version', async ({
+  page,
+  request,
+}) => {
+  const problems = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') problems.push(message.text());
+  });
+  page.on('pageerror', (error) => problems.push(error.message));
+
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const base = `/app/o/${f.orgId}/projects/${f.dashboardProjectId}`;
+  const query = new globalThis.URLSearchParams({ as: 'editor', next: `${base}/content` });
+  await page.goto(`/__e2e/login?${query}`);
+  await expect(page.getByRole('heading', { level: 2, name: 'Content Studio' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /In review/ })).toBeVisible();
+
+  await page.goto(`${base}/content/${f.contentReadyId}`);
+  await expect(
+    page.getByRole('heading', { level: 2, name: /How much does a crown cost in Austin/ }),
+  ).toBeVisible();
+  await expect(page.getByText('86 / 100')).toBeVisible();
+  await expect(page.getByText('No source for:').first()).toBeVisible();
+
+  // TipTap upgrades the textarea. Mounting without a CSP violation is the check of task 7.08 (ADR-0011).
+  const editor = page.locator('.editor-content');
+  await expect(editor).toBeVisible();
+  await expect(page.getByRole('toolbar', { name: 'Formatting' })).toBeVisible();
+  await expect(page.locator('#draft-html')).toBeHidden();
+  await editor.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type(' We answer questions by phone too.');
+  await page.getByRole('button', { name: 'Bold' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved as a new version. We are checking it again.')).toBeVisible();
+  await expect(page.getByText('Checking the page.').first()).toBeVisible();
+  const jobs = await (await request.get('/__e2e/content/jobs')).json();
+  expect(jobs.at(-1).name).toBe('content.qc');
+  expect(jobs.at(-1).data).not.toHaveProperty('html');
+
+  expect(problems, 'no console errors, including CSP violations').toEqual([]);
+});
+
+test('the WordPress screen shows a connection and never a password', async ({ page, request }) => {
+  const f = await (await request.get('/__e2e/fixtures')).json();
+  const query = new globalThis.URLSearchParams({
+    as: 'admin',
+    next: `/app/o/${f.orgId}/projects/${f.projectId}/integrations/wordpress`,
+  });
+  await page.goto(`/__e2e/login?${query}`);
+  await expect(page.getByRole('heading', { level: 3, name: 'Sample Dental Blog' })).toBeVisible();
+  await expect(page.getByText('Connected', { exact: true }).first()).toBeVisible();
+  await expect(page.getByLabel('Application password')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'download the plugin' })).toBeVisible();
+});

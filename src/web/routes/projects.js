@@ -17,6 +17,7 @@ import { normalizeWebsite } from '../../lib/url.js';
 import { clearAuditClaim, readAuditClaim } from '../auth/audit-claim.js';
 import { notFound } from '../middleware/errors.js';
 import { actionRoutes } from './project-actions.js';
+import { contentRoutes } from './project-content.js';
 import { brandRoutes } from './project-brand.js';
 import { dashboardRoutes } from './project-dashboard.js';
 import { dateLabel, idFrom, returnPath, withNotice } from './project-helpers.js';
@@ -38,7 +39,15 @@ const options = (table) => Object.entries(table).map(([value, label]) => ({ valu
 export const COUNTRY_OPTIONS = options(COUNTRIES);
 export const LANGUAGE_OPTIONS = options(LANGUAGES);
 
-export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null }) {
+export function projectRoutes({
+  db,
+  jobs,
+  auth,
+  logger,
+  appPage,
+  verifier = null,
+  content = null,
+}) {
   const router = Router({ mergeParams: true });
   const create = auth.requirePermission('project.create');
 
@@ -256,6 +265,9 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   const edit = auth.requirePermission('strategy.edit');
   // Marking a fix done, like writing content, is an editor's job (permissions.js).
   const act = auth.requirePermission('content.create');
+  // Approving a draft and publishing it to the customer's site, and connecting their WordPress, are bigger moves.
+  const approve = auth.requirePermission('site.approve');
+  const manage = auth.requirePermission('integrations.manage');
 
   async function renderProject(req, res, { verifyResult = null, status } = {}) {
     const [entities, engines, proof, kit, active, runs, usage] = await Promise.all([
@@ -466,6 +478,7 @@ export function projectRoutes({ db, jobs, auth, logger, appPage, verifier = null
   trackingRoutes(router, { jobs, logger, edit });
   dashboardRoutes(router, { appPage, edit, logger });
   actionRoutes(router, { appPage, act, jobs, logger });
+  contentRoutes(router, { appPage, act, approve, manage, jobs, logger, content });
 
   return { router, visibleIds };
 }

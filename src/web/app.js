@@ -55,6 +55,7 @@ export function createApp({
   queues = null,
   audit = null,
   jobs = null,
+  content = null,
   domainVerifier = db ? createDomainVerifier({ fetcher: createSafeFetcher() }) : null,
   cloudflareKeys,
   extraRoutes,
@@ -120,6 +121,7 @@ export function createApp({
         mailer,
         logger,
         verifier: domainVerifier,
+        content,
         jobs: jobs ?? (queues ? createJobClient(queues) : null),
       }),
     );

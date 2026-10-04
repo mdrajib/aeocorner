@@ -1,9 +1,10 @@
-<%# The tabs of one project. Props: projectBase, current ('overview' | 'dashboard' | 'actions' | 'answers' | 'compare' | 'citations' | 'brand' | 'questions'). %>
+<%# The tabs of one project. Props: projectBase, current ('overview' | 'dashboard' | 'actions' | 'content' | 'answers' | 'compare' | 'citations' | 'brand' | 'questions'). %>
 <%
 const items = [
   { id: 'overview', label: 'Overview', href: projectBase },
   { id: 'dashboard', label: 'Dashboard', href: projectBase + '/dashboard' },
   { id: 'actions', label: 'Actions', href: projectBase + '/actions' },
+  { id: 'content', label: 'Content', href: projectBase + '/content' },
   { id: 'answers', label: 'Answers', href: projectBase + '/answers' },
   { id: 'compare', label: 'Competitors', href: projectBase + '/compare' },
   { id: 'citations', label: 'Sources', href: projectBase + '/citations' },

@@ -324,3 +324,82 @@ describe('politeness', () => {
     assert.ok(spread >= 500, `the four arrived within ${spread} ms`);
   });
 });
+
+describe('requests that change a site or carry a credential (the WordPress connector)', () => {
+  test('a POST sends its body and headers, and the answer comes back', async () => {
+    let received;
+    const site = await serve((req, res) => {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        received = Buffer.concat(chunks).toString();
+        res.writeHead(201, { 'content-type': 'application/json' });
+        res.end('{"id":7}');
+      });
+    });
+    const fetcher = testFetcher({ ports: [site.port] });
+    const res = await fetcher.fetch(`${site.origin()}/wp-json/wp/v2/posts`, {
+      method: 'POST',
+      body: '{"title":"Hi ✓"}',
+      headers: { 'content-type': 'application/json', authorization: 'Basic abc' },
+      accept: ['application/json'],
+    });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.toString(), '{"id":7}');
+    assert.equal(received, '{"title":"Hi ✓"}');
+    assert.equal(site.requests[0].method, 'POST');
+    assert.equal(site.requests[0].headers.authorization, 'Basic abc');
+    assert.equal(
+      site.requests[0].headers['content-length'],
+      String(Buffer.byteLength('{"title":"Hi ✓"}')),
+    );
+  });
+
+  test('a request with a credential is never redirected, so the credential cannot follow', async () => {
+    const elsewhere = await serve((req, res) => html(res, 'should not be fetched'));
+    const site = await serve((req, res) => {
+      res.writeHead(302, { location: `${elsewhere.origin('other.test')}/steal` });
+      res.end();
+    });
+    const fetcher = testFetcher({ ports: [site.port, elsewhere.port] });
+    const authed = await fetcher.fetch(`${site.origin()}/x`, {
+      headers: { authorization: 'Basic abc' },
+    });
+    assert.equal(authed.status, 302);
+    assert.equal(elsewhere.requests.length, 0, 'the other host was never contacted');
+    const signed = await fetcher.fetch(`${site.origin()}/x`, {
+      headers: { 'X-AEO-Signature': 'x' },
+    });
+    assert.equal(signed.status, 302);
+    const write = await fetcher.fetch(`${site.origin()}/x`, { method: 'PUT', body: '{}' });
+    assert.equal(write.status, 302);
+    assert.equal(elsewhere.requests.length, 0);
+    const plain = await fetcher.fetch(`${site.origin()}/x`);
+    assert.equal(plain.status, 200, 'a plain read still follows redirects as before');
+    assert.equal(elsewhere.requests.length, 1);
+  });
+
+  test('the guard still applies to writes: a private address is refused before anything is sent', async () => {
+    const fetcher = testFetcher({ dns: { 'wp.test': ['10.0.0.5'] } });
+    await refused(
+      fetcher.fetch('http://wp.test/wp-json', {
+        method: 'POST',
+        body: 'x',
+        headers: { authorization: 'Basic abc' },
+      }),
+      'blocked_address',
+    );
+  });
+
+  test('a method that is not a read or a write is treated as a read, and a body on a read is ignored', async () => {
+    const site = await serve((req, res) => html(res, 'ok'));
+    const fetcher = testFetcher({ ports: [site.port] });
+    await fetcher.fetch(`${site.origin()}/a`, { method: 'TRACE', body: 'x' });
+    await fetcher.fetch(`${site.origin()}/b`, { body: 'x' });
+    assert.deepEqual(
+      site.requests.map((r) => r.method),
+      ['GET', 'GET'],
+    );
+    assert.equal(site.requests[1].headers['content-length'], undefined);
+  });
+});

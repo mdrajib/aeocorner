@@ -590,4 +590,133 @@
   .chart-data[open] .chart-data-toggle {
     @apply mb-3;
   }
+
+  /* ---------- Content Studio: the page preview, a code block, and the editor (TipTap, ADR-0011) ---------- */
+  .draft-preview {
+    @apply text-ink-900 border-ink-200 rounded-md border bg-white p-4 [overflow-wrap:anywhere];
+  }
+
+  .draft-preview h2 {
+    @apply mt-6 mb-2 text-xl font-semibold first:mt-0;
+  }
+
+  .draft-preview h3 {
+    @apply mt-4 mb-2 text-lg font-semibold;
+  }
+
+  .draft-preview h4 {
+    @apply mt-3 mb-1 text-base font-semibold;
+  }
+
+  .draft-preview p,
+  .draft-preview ul,
+  .draft-preview ol,
+  .draft-preview blockquote {
+    @apply my-3;
+  }
+
+  .draft-preview ul {
+    @apply list-disc pl-6;
+  }
+
+  .draft-preview ol {
+    @apply list-decimal pl-6;
+  }
+
+  .draft-preview blockquote {
+    @apply border-ink-300 text-ink-700 border-l-4 pl-4;
+  }
+
+  .draft-preview a {
+    @apply text-brand-700 underline;
+  }
+
+  .draft-preview table {
+    @apply my-3 w-full border-collapse text-sm;
+  }
+
+  .draft-preview th,
+  .draft-preview td {
+    @apply border-ink-300 border px-2 py-1 text-left align-top;
+  }
+
+  .draft-preview th {
+    @apply bg-ink-50 font-semibold;
+  }
+
+  .draft-code {
+    @apply bg-ink-50 border-ink-200 max-h-96 overflow-auto rounded-md border p-3 text-xs;
+  }
+
+  .editor-toolbar {
+    @apply border-ink-300 bg-ink-50 flex flex-wrap gap-1 rounded-t-md border border-b-0 p-1;
+  }
+
+  .editor-tool {
+    @apply text-ink-800 hover:bg-ink-200 focus-visible:outline-brand-600 min-h-9 min-w-9 rounded px-2 text-sm font-medium focus-visible:outline-2;
+  }
+
+  .editor-tool[aria-pressed='true'] {
+    @apply bg-brand-600 text-white;
+  }
+
+  .editor-surface {
+    @apply border-ink-300 rounded-b-md border bg-white;
+  }
+
+  .editor-content {
+    @apply text-ink-900 min-h-80 max-w-none p-4 outline-none [overflow-wrap:anywhere];
+  }
+
+  .editor-surface:focus-within {
+    @apply border-brand-600 ring-brand-600 ring-2;
+  }
+
+  .editor-content h2 {
+    @apply mt-6 mb-2 text-xl font-semibold first:mt-0;
+  }
+
+  .editor-content h3 {
+    @apply mt-4 mb-2 text-lg font-semibold;
+  }
+
+  .editor-content h4 {
+    @apply mt-3 mb-1 text-base font-semibold;
+  }
+
+  .editor-content p,
+  .editor-content ul,
+  .editor-content ol,
+  .editor-content blockquote {
+    @apply my-3;
+  }
+
+  .editor-content ul {
+    @apply list-disc pl-6;
+  }
+
+  .editor-content ol {
+    @apply list-decimal pl-6;
+  }
+
+  .editor-content blockquote {
+    @apply border-ink-300 text-ink-700 border-l-4 pl-4;
+  }
+
+  .editor-content a {
+    @apply text-brand-700 underline;
+  }
+
+  .editor-content table {
+    @apply my-3 w-full border-collapse text-sm;
+  }
+
+  .editor-content th,
+  .editor-content td {
+    @apply border-ink-300 border px-2 py-1 text-left align-top;
+  }
+
+  .editor-content th {
+    @apply bg-ink-50 font-semibold;
+  }
 }

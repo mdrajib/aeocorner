@@ -18,7 +18,10 @@ import { blockedHostname, classifyIp, isIpLiteral, unbracket } from './ip-guard.
  *   4. Cap the time (15 s for the whole fetch), the size (5 MB AFTER decompression, so a zip bomb can't fill
  *      memory) and the number of redirects.
  *
- * The crawler never uses the environment's proxy settings and never sends cookies or credentials.
+ * The crawler never uses the environment's proxy settings and never sends cookies or credentials of its own. The one
+ * exception is the WordPress connector, which passes an `authorization` or `x-aeo-*` header and (for writes) a body
+ * to the customer's own site: a request that carries either is never redirected, so a credential can't follow a
+ * redirect to another host, and writes go only to the address the customer gave (src/integrations/wordpress.js).
  */
 
 export const CRAWLER_USER_AGENT = 'AEOCornerBot/1.0 (+https://aeocorner.com/bot)';
@@ -33,6 +36,7 @@ export const FETCH_LIMITS = Object.freeze({
 
 const ALLOWED_PORTS = new Set([80, 443]);
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /** `code` says what went wrong in a way code can branch on; `message` is for logs. */
 export class FetchError extends Error {
@@ -101,6 +105,7 @@ export function nodeTransport({
   family,
   method,
   headers,
+  body = null,
   signal,
   maxBytes,
   bodyTypes,
@@ -122,7 +127,11 @@ export function nodeTransport({
         port: Number(url.port) || (secure ? 443 : 80),
         method,
         path: `${url.pathname}${url.search}`,
-        headers: { ...headers, host: url.host },
+        headers: {
+          ...headers,
+          host: url.host,
+          ...(body ? { 'content-length': String(Buffer.byteLength(body)) } : {}),
+        },
         agent: false,
         signal,
         ...(secure
@@ -204,7 +213,7 @@ export function nodeTransport({
       },
     );
     request.on('error', (err) => settle(reject, describeNetworkError(err, signal)));
-    request.end();
+    request.end(body ?? undefined);
   });
 }
 
@@ -305,8 +314,17 @@ export function createSafeFetcher({
   async function fetchUrl(input, opts = {}) {
     const maxBytes = opts.maxBytes ?? policy.maxBytes;
     const timeoutMs = opts.timeoutMs ?? policy.timeoutMs;
-    const followRedirects = opts.followRedirects ?? true;
-    const method = opts.method === 'HEAD' ? 'HEAD' : 'GET';
+    const method = WRITE_METHODS.has(opts.method)
+      ? opts.method
+      : opts.method === 'HEAD'
+        ? 'HEAD'
+        : 'GET';
+    const body = WRITE_METHODS.has(method) && opts.body != null ? opts.body : null;
+    // A request that carries a credential, or changes something on the site, is never sent on to another address.
+    const sensitive =
+      WRITE_METHODS.has(method) ||
+      Object.keys(opts.headers ?? {}).some((h) => /^(authorization|cookie|x-aeo-)/i.test(h));
+    const followRedirects = sensitive ? false : (opts.followRedirects ?? true);
     const started = now();
     const redirects = [];
     const connections = [];
@@ -331,6 +349,7 @@ export function createSafeFetcher({
               family,
               method,
               headers: requestHeaders(userAgent, opts),
+              body,
               signal,
               maxBytes,
               bodyTypes: opts.bodyTypes,

@@ -38,6 +38,17 @@ export function createClaude({
     /** One request, answered now (the free audit, a batch item that has to be redone, the eval). */
     extract: (params) => call('messages.create', () => anthropic.messages.create(params)),
 
+    /**
+     * One request whose text arrives in pieces: `onText(piece, soFar)` is called as it comes, and the whole message is
+     * returned at the end (the Content Studio's draft appears on the customer's screen while it is written).
+     */
+    stream: (params, { onText } = {}) =>
+      call('messages.stream', async () => {
+        const stream = anthropic.messages.stream(params);
+        if (onText) stream.on('text', (piece, soFar) => onText(piece, soFar));
+        return stream.finalMessage();
+      }),
+
     batches: {
       /** `requests` are `{ custom_id, params }`; returns the batch (its `id` is what to poll). */
       create: (requests) =>

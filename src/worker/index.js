@@ -4,6 +4,7 @@ import { createSafeFetcher } from '../crawler/safe-fetch.js';
 import { createDb } from '../db/index.js';
 import { createAdapters } from '../engines/index.js';
 import { createClaude } from '../llm/claude.js';
+import { createSecretBox } from '../lib/secrets.js';
 import { createObjectStore } from '../integrations/spaces.js';
 import { createAlerter } from '../lib/alerts.js';
 import { createAuditMail } from '../lib/audit-mail.js';
@@ -68,6 +69,17 @@ const extraction = config.anthropic
   : null;
 if (!extraction) logger.warn('ANTHROPIC_API_KEY is not set: extract.* jobs will fail.');
 
+// The Content Studio (Milestone 7): its own Claude client (research reads the web and takes longer than an extraction),
+// and the key that opens customers' WordPress credentials. Without either, the matching jobs fail with a plain reason.
+const content = {
+  claude: config.anthropic
+    ? createClaude({ apiKey: config.anthropic.apiKey, timeoutMs: 300_000 })
+    : null,
+  model: config.content.model,
+  secrets: config.secrets ? createSecretBox(config.secrets) : null,
+};
+if (!config.secrets) logger.warn('SECRETS_MASTER_KEY is not set: WordPress publishing will fail.');
+
 const runtime = createWorkerRuntime({
   redis,
   prefix: config.redis.prefix,
@@ -77,6 +89,7 @@ const runtime = createWorkerRuntime({
   crawler: { fetcher, renderer, store },
   collection: { adapters, store },
   extraction,
+  content,
   // The free audit: its own daily budget, and the "report ready" email (logged, not sent, without RESEND_API_KEY).
   audit: {
     dailyBudgetUsd: config.auditDailyBudgetUsd,
