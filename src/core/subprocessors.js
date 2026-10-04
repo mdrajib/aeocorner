@@ -76,6 +76,16 @@ export const SUBPROCESSORS = Object.freeze([
     },
   },
   {
+    key: 'wikidata',
+    name: 'Wikimedia Foundation (Wikidata)',
+    status: 'in_use',
+    purpose:
+      'Looks up whether a public Wikidata item exists for your business (read-only, no account)',
+    data: 'Your brand name and aliases, and the item number if you give one: public information only',
+    location: 'United States',
+    evidence: { hosts: ['www.wikidata.org'] },
+  },
+  {
     key: 'digitalocean',
     name: 'DigitalOcean',
     status: 'in_use',

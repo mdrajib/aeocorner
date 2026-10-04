@@ -173,6 +173,39 @@ export function evidenceRows(
       text: 'The latest answers',
       href: `${projectBase}/answers`,
     });
+  } else if (e.type === 'entity_fact') {
+    rows.push({ label: 'What you told us', text: `${e.label}: ${e.expected}` });
+    rows.push({
+      label: 'What engines said',
+      text: `${plural(e.wrong, 'statement', 'statements')} disagreed with you${e.right ? `, ${plural(e.right, 'statement', 'statements')} agreed` : ''}, in ${plural(e.answersRead, 'answer', 'answers')}`,
+      href: `${projectBase}/entity`,
+    });
+    for (const x of e.examples ?? []) {
+      rows.push({ label: engineLabel(x.engine), text: `“${x.said}”` });
+    }
+  } else if (e.type === 'entity_profile') {
+    rows.push({ label: 'The profile', text: `${e.platformLabel}: ${e.url}`, href: e.url });
+    rows.push({
+      label: 'What we saw',
+      text:
+        e.finding === 'not_found'
+          ? 'The page answered “not found”'
+          : `The page loads but does not name ${brandName}${e.linksBack === false ? ' and does not link to your site' : ''}`,
+      href: `${projectBase}/entity`,
+    });
+    if (e.checkedAt) rows.push({ label: 'Checked', text: longDate(e.checkedAt) });
+  } else if (e.type === 'entity_wikidata') {
+    rows.push({
+      label: 'What we found',
+      text:
+        e.finding === 'not_in_wikidata'
+          ? 'Wikidata has no item for your business'
+          : e.finding === 'ambiguous'
+            ? `${plural(e.candidates, 'item', 'items')} with your name, none we can tie to ${domain}`
+            : `The item ${e.givenId ?? ''} in your Brand Kit does not look like ${brandName}`,
+      href: `${projectBase}/entity`,
+    });
+    if (e.checkedAt) rows.push({ label: 'Checked', text: longDate(e.checkedAt) });
   }
   return rows;
 }

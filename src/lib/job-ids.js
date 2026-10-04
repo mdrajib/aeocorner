@@ -72,6 +72,12 @@ export const questionsJobId = (projectId, active, slot) =>
  */
 export const recsRefreshJobId = (projectId, cause) => jobId('recs', projectId, cause);
 
+/**
+ * Looking at a project's entity (its profiles and Wikidata). `tag` says why (`kit<version>` after a Brand Kit save, a day for
+ * the sweep), so a save and the sweep are separate jobs and the same save twice is one.
+ */
+export const entityCheckJobId = (projectId, tag) => jobId('entity', projectId, tag);
+
 /** Writing one recommendation's words with the model, for this evidence (the hash is of the stored evidence). */
 export const narrateJobId = (recommendationId, evidenceHash) =>
   jobId('narrate', recommendationId, evidenceHash);

@@ -10,6 +10,7 @@ const tabs = [
   { id: 'offerings', label: 'Offerings', html: ui.fragment('partials/brand-offerings', form('offerings')) },
   { id: 'facts', label: 'Facts', html: ui.fragment('partials/brand-facts', form('facts')) },
   { id: 'voice', label: 'Voice', html: ui.fragment('partials/brand-voice', form('voice')) },
+  { id: 'entity', label: 'Entity', html: ui.fragment('partials/brand-entity', form('entity')) },
   { id: 'competitors', label: 'Competitors', html: ui.fragment('partials/competitor-list', { competitors, suggested, projectBase, csrfToken, canEdit, next: 'brand' }) },
 ];
 -%>

@@ -1,0 +1,11 @@
+<%# Brand Kit: entity (the facts that tell this business from a namesake). Props: kit, errors, projectBase, csrfToken, version, next, canEdit, submitLabel. %>
+<% const en = kit.entity ?? { foundingYear: '', headquarters: '', profiles: [], wikidataId: '' }; const ro = !canEdit; %>
+<%- ui.fragment('partials/brand-form-open', { section: 'entity', projectBase, csrfToken, version, next: locals.next, errors, canEdit }) %>
+  <p class="text-ink-700 text-sm">These are facts only you can state. We check your profile links, look for a Wikidata item, and compare what AI engines say about you with them. We never fill one in for you, and we never write to Google’s Knowledge Graph.</p>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <%- ui.field({ id: 'entity-foundingYear', name: 'foundingYear', label: 'Year founded', value: en.foundingYear, error: errors['entity.foundingYear'], disabled: ro, hint: 'Four digits, like 2014. Leave it empty if you would rather not say.' }) %>
+    <%- ui.field({ id: 'entity-headquarters', name: 'headquarters', label: 'Where you are based', value: en.headquarters, error: errors['entity.headquarters'], disabled: ro, hint: 'City and region, like “Austin, Texas”.' }) %>
+  </div>
+  <%- ui.field({ id: 'entity-profiles', name: 'profiles', label: 'Profile links', type: 'textarea', rows: 5, value: en.profiles.map((p) => p.url).join('\n'), error: errors['entity.profiles'], disabled: ro, hint: 'One full https:// address per line: your LinkedIn page, Google Business Profile, Crunchbase, a directory you are listed in. We look at each page and tell you whether it names you.' }) %>
+  <%- ui.field({ id: 'entity-wikidataId', name: 'wikidataId', label: 'Wikidata item', value: en.wikidataId, error: errors['entity.wikidataId'], disabled: ro, hint: 'Only if you already have one, like Q12345. We look one up for you if you leave it empty.' }) %>
+<%- ui.fragment('partials/brand-form-close', { canEdit, label: locals.submitLabel }) %>

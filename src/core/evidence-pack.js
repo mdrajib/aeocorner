@@ -16,6 +16,7 @@ export const FORMATS = Object.freeze([
   'glossary',
   'facts_page',
   'other',
+  'about_page',
 ]);
 
 export const FORMAT_LABELS = Object.freeze({
@@ -26,6 +27,7 @@ export const FORMAT_LABELS = Object.freeze({
   glossary: 'Glossary entry',
   facts_page: 'Facts page',
   other: 'Article',
+  about_page: 'About page',
 });
 
 /** The JSON-LD type a format is published with. */
@@ -37,6 +39,7 @@ export const SCHEMA_FOR_FORMAT = Object.freeze({
   glossary: 'Article',
   facts_page: 'Article',
   other: 'Article',
+  about_page: 'Article',
 });
 
 const PAGE_FORMATS = [
@@ -214,7 +217,13 @@ export function buildEvidencePack({
  */
 export function buildCheckPack({ ruleCode, title, evidence, targetUrls = [], brandName }) {
   const format =
-    ruleCode === 'readiness.E4' ? 'faq' : ruleCode === 'readiness.E3' ? 'comparison' : 'other';
+    ruleCode === 'readiness.E4'
+      ? 'faq'
+      : ruleCode === 'readiness.E3'
+        ? 'comparison'
+        : ruleCode === 'readiness.D2'
+          ? 'about_page'
+          : 'other';
   return {
     question: null,
     brandName,

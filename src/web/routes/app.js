@@ -68,6 +68,10 @@ const NOTICES = {
     'warning',
     'We couldn’t start that just now. Nothing was lost: try again in a minute.',
   ],
+  'entity-checking': [
+    'success',
+    'We’re looking at your profiles and Wikidata now. Refresh this page in a minute.',
+  ],
   'question-added': ['success', 'Question added.'],
   'question-added-similar': [
     'warning',

@@ -403,3 +403,68 @@ describe('autofix.undo', () => {
     await assert.rejects(() => ask(bare), { code: 'PLUGIN_NOT_CONNECTED' });
   });
 });
+
+describe('the profile-links fix (readiness.D3, Milestone 12)', () => {
+  const PASSED = 'https://www.linkedin.com/company/data-dental';
+
+  test('adds the checked profiles and the founding year to the Organization node, keeps its logo, and undo puts the earlier node back', async () => {
+    const w = await world();
+    await apply(ctxFor(), w.data(), job());
+    const before = await w.scoped.autofix.appliedNodes(w.project.id, w.built.targetUrl);
+    assert.equal(before[0].logo, 'https://dd.example/logo.png');
+    assert.ok(!('sameAs' in before[0]));
+
+    const rec2 = await fx.recommendation(w.project, {
+      rule_code: 'readiness.D3',
+      category: 'entity',
+      fix_path: 'auto_fix',
+      title: 'Link your profiles',
+    });
+    const built = buildAutofix({
+      ruleCode: 'readiness.D3',
+      brand: { name: 'Data Dental', definition: 'A family dental practice in Austin.' },
+      homeUrl: stub.siteUrl,
+      entity: { sameAs: [PASSED], foundingYear: '2014' },
+      existingNodes: before,
+    });
+    assert.equal(built.ok, true);
+    const approved = await w.scoped.autofix.approve(w.project.id, rec2.id, {
+      userId: w.o.owner.id,
+      targetUrl: built.targetUrl,
+      jsonld: built.jsonld,
+      hash: built.hash,
+      ruleCode: 'readiness.D3',
+    });
+    const result = await apply(ctxFor(), w.data(approved), job());
+    assert.equal(result.applied, true);
+
+    const org = stub.state.schemas
+      .get(built.targetUrl)
+      ['@graph'].find((n) => n['@type'] === 'Organization');
+    assert.deepEqual(org.sameAs, [PASSED]);
+    assert.equal(org.foundingDate, '2014');
+    assert.equal(org.logo, 'https://dd.example/logo.png', 'what the earlier fix wrote is kept');
+
+    await w.scoped.autofix.requestUndo(w.project.id, approved.siteChangeId, {
+      userId: w.o.owner.id,
+    });
+    await undo(ctxFor(), w.data(approved), job());
+    const restored = stub.state.schemas
+      .get(built.targetUrl)
+      ['@graph'].find((n) => n['@type'] === 'Organization');
+    assert.deepEqual(restored, before[0], 'the earlier node, exactly');
+    const rec = (await w.scoped.recommendations.get(w.project.id, rec2.id)).recommendation;
+    assert.equal(rec.status, 'in_progress');
+  });
+
+  test('with no profile that passed there is nothing to write, and the reason is plain', () => {
+    const r = buildAutofix({
+      ruleCode: 'readiness.D3',
+      brand: { name: 'Data Dental' },
+      homeUrl: stub.siteUrl,
+      entity: { sameAs: [], foundingYear: '2014' },
+    });
+    assert.equal(r.ok, false);
+    assert.match(r.reason, /None of your profiles has passed our check/);
+  });
+});

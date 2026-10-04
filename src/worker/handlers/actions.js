@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { UnrecoverableError } from 'bullmq';
 import { canonicalJson } from '../../core/canonical-json.js';
 import { citationRows } from '../../core/dashboard.js';
+import { checkFacts } from '../../core/entity-accuracy.js';
 import {
   adviceTextFor,
   DEFAULT_ENGINE_LABELS,
@@ -70,6 +71,22 @@ export async function refreshProject(
   const cited = await scoped.dashboard.citations(projectId, { from, to: now, limit: 100 });
   const { gaps } = citationRows({ domains: cited.domains, total: cited.total });
 
+  // Entity (Milestone 12): the latest profile and Wikidata checks, and what the engines said about the brand's facts.
+  const kit = await scoped.brandKits.current(projectId);
+  let entity = null;
+  if (kit) {
+    const [checks, said] = await Promise.all([
+      scoped.entityChecks.checks(projectId),
+      scoped.entityChecks.accuracyInputs(projectId, { from, to: now }),
+    ]);
+    entity = {
+      checks,
+      accuracy: checkFacts({ kit: kit.data, claims: said.claims, answersRead: said.answersRead }),
+      wikidataId: kit.data.entity?.wikidataId ?? '',
+      profilesListed: kit.data.entity?.profiles?.length ?? 0,
+    };
+  }
+
   const found = evaluateRules({
     brandName: signals.brandName,
     scan: signals.scan,
@@ -80,6 +97,7 @@ export async function refreshProject(
     citationGaps: gaps,
     answersTotal: signals.answersTotal,
     windowRange: signals.window,
+    entity,
   });
   const outcomes = await db.system.outcomes.ruleStats();
   const scored = scoreCandidates(found.candidates, {

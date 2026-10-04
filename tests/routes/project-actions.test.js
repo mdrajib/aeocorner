@@ -1043,3 +1043,129 @@ describe('auto-fix: take it off the site (D3)', () => {
     );
   });
 });
+
+describe('auto-fix: profile links in the Organization schema (readiness.D3, Milestone 12)', () => {
+  const secret = {
+    ciphertext: Buffer.alloc(40, 1),
+    wrappedDek: Buffer.alloc(60, 2),
+    keyVersion: 1,
+  };
+  const PASSED = 'https://www.linkedin.com/company/action-dental';
+  const FAILED = 'https://www.crunchbase.com/organization/action-dental';
+  const BLOCKED = 'https://www.facebook.com/actiondental';
+  const hashOf = (html) => html.match(/name="hash" value="([0-9a-f]{64})"/)?.[1];
+
+  async function withProfiles({ checks = [], year = '2014' } = {}) {
+    const ctx = await withActions();
+    await ctx.scoped.integrations.saveWordpress(ctx.project.id, {
+      config: {
+        siteUrl: 'https://www.act-site.example.test',
+        username: 'editor',
+        pluginConnected: true,
+      },
+      secret,
+      userId: ctx.owner.user.id,
+    });
+    const { emptyBrandKit } = await import('../../src/core/brand-kit.js');
+    const current = await ctx.scoped.brandKits.current(ctx.project.id);
+    const kit = structuredClone(
+      current?.data ?? emptyBrandKit({ name: 'Action Dental', domain: ctx.project.domain }),
+    );
+    kit.entity = {
+      foundingYear: year,
+      headquarters: '',
+      profiles: [PASSED, FAILED, BLOCKED].map((url) => ({
+        platform: url.includes('linkedin')
+          ? 'linkedin'
+          : url.includes('crunchbase')
+            ? 'crunchbase'
+            : 'facebook',
+        url,
+      })),
+      wikidataId: '',
+    };
+    await ctx.scoped.brandKits.save(ctx.project.id, {
+      kit,
+      source: 'edited',
+      expectedVersion: current?.version ?? null,
+    });
+    for (const [subject, status, finding] of checks) {
+      await ctx.scoped.entityChecks.saveCheck(ctx.project.id, {
+        kind: 'profile',
+        subject,
+        platform: 'other',
+        status,
+        finding,
+      });
+    }
+    const d3 = await h.fx.recommendation(ctx.project, {
+      rule_code: 'readiness.D3',
+      category: 'entity',
+      fix_path: 'auto_fix',
+      title: 'Link your profiles from your schema',
+    });
+    ctx.d3 = d3;
+    ctx.page = `${ctx.base}/actions/${d3.id}/autofix`;
+    return ctx;
+  }
+
+  test('with no profile that passed, the page says why and offers no approval', async () => {
+    const ctx = await withProfiles({ checks: [[BLOCKED, 'error', 'blocked']] });
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /None of your profiles has passed our check yet/);
+    assert.doesNotMatch(page.text, /Approve and apply/);
+  });
+
+  test('only a profile that passed goes into sameAs, with the founding year the customer typed', async () => {
+    const ctx = await withProfiles({
+      checks: [
+        [PASSED, 'passed', 'names_brand'],
+        [FAILED, 'failed', 'brand_not_named'],
+        [BLOCKED, 'error', 'blocked'],
+      ],
+    });
+    const page = await ctx.owner.get(ctx.page).expect(200);
+    assert.match(page.text, /action-dental/);
+    assert.ok(page.text.includes('linkedin.com/company/action-dental'));
+    assert.ok(!page.text.includes('crunchbase.com'), 'a profile that failed is not offered');
+    assert.ok(!page.text.includes('facebook.com'), 'a profile we could not check is not offered');
+    assert.match(page.text, /&#34;foundingDate&#34;: &#34;2014&#34;/);
+    assert.match(page.text, /that passed our check/);
+    // Its links are not typed here: the profile-links field is not on this screen.
+    assert.doesNotMatch(page.text, /id="af-same"/);
+
+    const before = added.length;
+    const hash = hashOf(page.text);
+    await ctx.owner.post(`${ctx.page}/approve`, { hash }).expect(303);
+    const change = await ctx.scoped.autofix.current(ctx.project.id, ctx.d3.id);
+    const org = change.payload.jsonld['@graph'].find((n) => n['@type'] === 'Organization');
+    assert.deepEqual(org.sameAs, [PASSED]);
+    assert.equal(org.foundingDate, '2014');
+    assert.ok(added.slice(before).some((j) => j.name === 'autofix.apply'));
+  });
+
+  test('a link typed in the address is ignored for this fix: the checked ones are all it writes', async () => {
+    const ctx = await withProfiles({ checks: [[PASSED, 'passed', 'names_brand']] });
+    const typed = encodeURIComponent('https://www.evil.example.test/profile');
+    const page = await ctx.owner.get(`${ctx.page}?sameAs=${typed}`).expect(200);
+    assert.ok(
+      !page.text.includes('evil.example.test/profile&#34;') &&
+        !/&#34;https:\/\/www\.evil/.test(page.text),
+    );
+  });
+
+  test('a profile that stops passing changes what would be written, so a stale approval is refused', async () => {
+    const ctx = await withProfiles({ checks: [[PASSED, 'passed', 'names_brand']] });
+    const hash = hashOf((await ctx.owner.get(ctx.page)).text);
+    await ctx.scoped.entityChecks.saveCheck(ctx.project.id, {
+      kind: 'profile',
+      subject: PASSED,
+      platform: 'linkedin',
+      status: 'failed',
+      finding: 'not_found',
+    });
+    const res = await ctx.owner.post(`${ctx.page}/approve`, { hash }).expect(303);
+    assert.match(res.headers.location, /autofix-invalid|autofix-changed/);
+    assert.equal(await ctx.scoped.autofix.current(ctx.project.id, ctx.d3.id), null);
+  });
+});

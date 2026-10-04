@@ -196,6 +196,21 @@ export const appPages = [
   { name: 'notifications', as: 'owner', path: (f) => `/app/o/${f.orgId}/notifications` },
   { name: 'notifications-viewer', as: 'viewer', path: (f) => `/app/o/${f.orgId}/notifications` },
   {
+    name: 'entity',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.entityProjectId}/entity`,
+  },
+  {
+    name: 'entity-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.entityProjectId}/entity`,
+  },
+  {
+    name: 'entity-empty',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/entity`,
+  },
+  {
     name: 'traffic',
     as: 'owner',
     path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/traffic`,

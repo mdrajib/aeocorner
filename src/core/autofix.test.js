@@ -139,3 +139,66 @@ describe('buildAutofix', () => {
     assert.ok(Object.keys(AUTOFIX_RULES).every((k) => k.startsWith('readiness.')));
   });
 });
+
+describe('buildAutofix for the profile links (readiness.D3, Milestone 12)', () => {
+  const PASSED = 'https://www.linkedin.com/company/data-dental';
+  const build = (over = {}) =>
+    buildAutofix({
+      ruleCode: 'readiness.D3',
+      brand,
+      domain: 'datadental.example',
+      entity: { sameAs: [PASSED], foundingYear: '2014' },
+      ...over,
+    });
+
+  test('writes the Organization node with the checked profiles and the founding year, and says so', () => {
+    const r = build();
+    assert.equal(r.ok, true);
+    const org = r.jsonld['@graph'][0];
+    assert.deepEqual(org.sameAs, [PASSED]);
+    assert.equal(org.foundingDate, '2014');
+    assert.equal(org.legalName, 'Data Dental LLC');
+    assert.ok(r.includes.some((line) => /1 profile link that passed our check/.test(line)));
+    assert.equal(validateJsonLd(r.jsonld).ok, true);
+  });
+
+  test('a link typed in the extras is never used: only the checked ones are', () => {
+    const r = build({ extras: { sameAs: ['https://evil.example/profile'] } });
+    assert.deepEqual(r.jsonld['@graph'][0].sameAs, [PASSED]);
+  });
+
+  test('with no checked profile there is nothing to write, and the reason says where to add them', () => {
+    const r = build({ entity: { sameAs: [], foundingYear: '2014' } });
+    assert.equal(r.ok, false);
+    assert.match(r.reason, /Entity tab of your Brand Kit/);
+  });
+
+  test('a missing or malformed founding year is left out and said to be left out, never guessed', () => {
+    for (const foundingYear of ['', 'about 2014', '14']) {
+      const r = build({ entity: { sameAs: [PASSED], foundingYear } });
+      assert.ok(!('foundingDate' in r.jsonld['@graph'][0]), foundingYear);
+      assert.ok(r.notIncluded.some((line) => /founding year/.test(line)));
+    }
+  });
+
+  test('keeps the logo and links an earlier fix wrote, which the whole-node replacement would otherwise drop', () => {
+    const first = buildAutofix({
+      ruleCode: 'readiness.C1',
+      brand,
+      domain: 'datadental.example',
+      extras: { logoUrl: 'https://datadental.example/logo.png', sameAs: [] },
+    });
+    const withLinks = build({ existingNodes: first.jsonld['@graph'] });
+    assert.equal(withLinks.jsonld['@graph'][0].logo, 'https://datadental.example/logo.png');
+    // A later Organization fix with nothing new to say keeps the profile links and year the node already had.
+    const later = buildAutofix({
+      ruleCode: 'readiness.C1',
+      brand,
+      domain: 'datadental.example',
+      existingNodes: withLinks.jsonld['@graph'],
+    });
+    const org = later.jsonld['@graph'][0];
+    assert.deepEqual(org.sameAs, [PASSED]);
+    assert.equal(org.foundingDate, '2014');
+  });
+});

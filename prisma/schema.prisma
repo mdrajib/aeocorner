@@ -484,6 +484,30 @@ model data_requests {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model entity_checks {
+  id          BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id      BigInt               @db.UnsignedBigInt
+  project_id  BigInt               @db.UnsignedBigInt
+  kind        entity_checks_kind
+  /// the profile address, or "wikidata"
+  subject     String               @db.VarChar(500)
+  /// for a profile: linkedin, google_business, ...
+  platform    String?              @db.VarChar(32)
+  status      entity_checks_status
+  finding     String               @db.VarChar(32)
+  http_status Int?                 @db.UnsignedSmallInt
+  /// reachable, names the brand, links back; for Wikidata the item found
+  details     Json?
+  checked_at  DateTime
+  created_at  DateTime             @default(now())
+  updated_at  DateTime             @default(now())
+  projects    projects             @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_entity_checks_project")
+
+  @@unique([project_id, kind, subject], map: "uq_entity_checks_subject")
+  @@index([project_id, org_id], map: "ix_entity_checks_project")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model email_suppressions {
   id         BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
   email      String                    @unique(map: "uq_email_suppressions_email") @db.VarChar(320)
@@ -981,6 +1005,7 @@ model projects {
   tracked_entities                        tracked_entities[]
   traffic_daily                           traffic_daily[]
   proof_shares                            proof_shares[]
+  entity_checks                           entity_checks[]
 
   @@unique([id, org_id], map: "uq_projects_id_org")
   @@unique([org_id, active_domain], map: "uq_projects_org_domain")
@@ -2045,6 +2070,17 @@ enum brand_profiles_source {
   reanalyzed
 }
 
+enum entity_checks_kind {
+  profile
+  wikidata
+}
+
+enum entity_checks_status {
+  passed
+  failed
+  error
+}
+
 enum content_items_format {
   comparison
   best_of
@@ -2053,6 +2089,7 @@ enum content_items_format {
   glossary
   facts_page
   other
+  about_page
 }
 
 enum content_revisions_source {

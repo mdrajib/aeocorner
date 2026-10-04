@@ -3,7 +3,8 @@
   inFlight (a write or a removal is under way: nothing more can be approved), restoreText, place ('home page' | 'pages' | 'robots.txt'),
   change ({ tone, text, status, when, canUndo } | null), built ({ targetUrl, hash, includes, notIncluded } | null), builtError, pluginOutdated,
   preview ({ type: 'home' | 'pages' | 'meta' | 'robots', where, code?, codes?, rows? }: the exact data, in the shape of its kind),
-  isHomeGraph, offersExtras (the logo and profile links form is for the Organization fix only),
+  isHomeGraph, offersExtras (the logo and profile links form is for the Organization fix only), entityFix (the profile-links
+  fix: its links come from the Entity checks, so only the logo is typed here), entityHref,
   extrasErrors ({ logoUrl, sameAs }), logoUrl, sameAs, actionBase; locals: orgBase, projectBase, projectName, domain, csrfToken.
   What is shown is exactly what is sent: the approval form carries a fingerprint of this data, and a change underneath it
   (the Brand Kit, what is already on the page) is refused and shown again.
@@ -78,9 +79,9 @@
 <% if (offersExtras) { %>
 <form method="get" action="<%= actionBase %>/autofix" class="mt-8 flex max-w-xl flex-col gap-3">
   <h3 class="text-base font-semibold">Add more to it</h3>
-  <p class="text-ink-700 text-sm">We only write what we know. If you add these, the preview above changes, and the check can earn those points.</p>
+  <p class="text-ink-700 text-sm">We only write what we know. If you add these, the preview above changes, and the check can earn those points.<% if (entityFix) { %> The profile links are not typed here: we write only the ones our check confirmed, and you manage them on the <a href="<%= entityHref %>">Entity page</a>.<% } %></p>
   <%- ui.field({ id: 'af-logo', name: 'logoUrl', label: 'Logo address', type: 'url', value: logoUrl, error: extrasErrors.logoUrl, placeholder: 'https://www.example.com/logo.png', hint: 'The full address of your logo image.' }) %>
-  <%- ui.field({ id: 'af-same', name: 'sameAs', label: 'Profile links', type: 'textarea', rows: 3, value: sameAs, error: extrasErrors.sameAs, hint: 'One full address per line: your LinkedIn page, Crunchbase, Google Business Profile, Wikipedia…' }) %>
+  <% if (!entityFix) { %><%- ui.field({ id: 'af-same', name: 'sameAs', label: 'Profile links', type: 'textarea', rows: 3, value: sameAs, error: extrasErrors.sameAs, hint: 'One full address per line: your LinkedIn page, Crunchbase, Google Business Profile, Wikipedia…' }) %><% } %>
   <div><%- ui.button({ label: 'Update the preview', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
 </form>
 <% } %>

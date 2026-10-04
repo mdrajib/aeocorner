@@ -104,6 +104,74 @@ describe('names and history', () => {
     b.voice.tone = ['warm'];
     b.facts = [{ label: 'Founded', value: '1999' }];
     assert.deepEqual(changedSections(a, b), ['facts', 'voice']);
-    assert.deepEqual(changedSections(null, a), ['identity', 'offerings', 'facts', 'voice']);
+    assert.deepEqual(changedSections(null, a), [
+      'identity',
+      'offerings',
+      'facts',
+      'voice',
+      'entity',
+    ]);
+  });
+
+  test('a version-1 kit has no entity change just because it predates the section', () => {
+    const v1 = structuredClone(emptyBrandKit({ name: 'Acme', domain: 'a.test' }));
+    delete v1.entity;
+    const v2 = parseBrandKit(v1).kit;
+    assert.deepEqual(changedSections(v1, v2), []);
+    v2.entity.foundingYear = '2014';
+    assert.deepEqual(changedSections(v1, v2), ['entity']);
+  });
+});
+
+describe('the entity section (schema version 2)', () => {
+  const kit = (entity) => parseBrandKit({ identity: { brandName: 'Acme' }, entity });
+
+  test('is empty by default, so an older kit still parses', () => {
+    const r = parseBrandKit({ identity: { brandName: 'Acme' } });
+    assert.deepEqual(r.kit.entity, {
+      foundingYear: '',
+      headquarters: '',
+      profiles: [],
+      wikidataId: '',
+    });
+  });
+
+  test('keeps the year, the place, tidy profile addresses once each, and a normal item number', () => {
+    const r = kit({
+      foundingYear: ' 2014 ',
+      headquarters: '  Austin,   Texas ',
+      profiles: [
+        { platform: 'linkedin', url: 'https://www.linkedin.com/company/acme/?utm_source=x#top' },
+        { platform: 'linkedin', url: 'https://www.linkedin.com/company/acme' },
+      ],
+      wikidataId: 'q42',
+    });
+    assert.equal(r.ok, true);
+    assert.equal(r.kit.entity.foundingYear, '2014');
+    assert.equal(r.kit.entity.headquarters, 'Austin, Texas');
+    assert.deepEqual(r.kit.entity.profiles, [
+      { platform: 'linkedin', url: 'https://www.linkedin.com/company/acme' },
+    ]);
+    assert.equal(r.kit.entity.wikidataId, 'Q42');
+  });
+
+  test('says what is wrong, by field', () => {
+    const r = kit({
+      foundingYear: '19x4',
+      profiles: [{ platform: 'other', url: 'http://x.test' }],
+      wikidataId: 'Z9',
+    });
+    assert.equal(r.ok, false);
+    assert.ok(r.errors['entity.foundingYear']);
+    assert.ok(r.errors['entity.profiles.0.url']);
+    assert.ok(r.errors['entity.wikidataId']);
+  });
+
+  test('refuses more profiles than the limit instead of dropping some', () => {
+    const profiles = Array.from({ length: 13 }, (_, i) => ({
+      platform: 'other',
+      url: `https://p${i}.example.com/a`,
+    }));
+    assert.equal(kit({ profiles }).ok, false);
   });
 });

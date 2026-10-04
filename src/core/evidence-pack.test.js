@@ -199,6 +199,12 @@ test('a check pack carries the evidence as stored and picks a format from the ru
   assert.equal(
     buildCheckPack({ ruleCode: 'readiness.D2', title: 't', evidence: null, brandName: 'B' }).format
       .recommended,
+    'about_page',
+    'the About page check asks for an About page',
+  );
+  assert.equal(
+    buildCheckPack({ ruleCode: 'readiness.E1', title: 't', evidence: null, brandName: 'B' }).format
+      .recommended,
     'other',
   );
 });

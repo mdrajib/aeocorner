@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import { CHECKS } from '../crawler/readiness/rubric.js';
+import { platformLabel } from './entity-profiles.js';
 import { READINESS_GUIDANCE } from './fix-list.js';
 import { calibratedConfidence, iceScore, impactScore } from './ice.js';
 
@@ -21,6 +23,13 @@ import { calibratedConfidence, iceScore, impactScore } from './ice.js';
  *                (it needs complete cells: a half-collected one might have named the brand), an outside site cited in
  *                answers that left the brand out, and answers that name the brand coldly.
  *
+ * Entity (Milestone 12) is a third family, `entity.<what>`:
+ *   entity.wrong_fact   an engine states a fact about the brand that the Brand Kit contradicts (src/core/entity-accuracy.js)
+ *   entity.profile      a profile the customer listed that we could read and that does not name the business, or is gone
+ *   entity.wikidata     Wikidata has no item for the brand, cannot tell which is theirs, or the item they gave is not theirs
+ * None of them is raised for a check that could not run: an `error` check opens nothing, and keeps an issue already open
+ * from being cleared.
+ *
  * `evaluated` says which families had something to read. The caller clears only those: a project with no scan yet has
  * not "fixed" its readiness issues, and one with no readable answers has not "won back" its questions.
  */
@@ -40,7 +49,7 @@ export const RULES = Object.freeze({
   'readiness.C4': { category: 'structured_data', fixPath: 'auto_fix', effort: 1, prior: 0.3 },
   'readiness.D1': { category: 'entity', fixPath: 'guidance', effort: 2, prior: 0.4 },
   'readiness.D2': { category: 'entity', fixPath: 'content', effort: 3, prior: 0.5 },
-  'readiness.D3': { category: 'entity', fixPath: 'guidance', effort: 3, prior: 0.5 },
+  'readiness.D3': { category: 'entity', fixPath: 'auto_fix', effort: 2, prior: 0.5 },
   'readiness.D4': { category: 'entity', fixPath: 'guidance', effort: 2, prior: 0.3 },
   'readiness.E1': { category: 'content_refresh', fixPath: 'content', effort: 3, prior: 0.4 },
   'readiness.E2': { category: 'content_refresh', fixPath: 'content', effort: 3, prior: 0.5 },
@@ -59,6 +68,11 @@ export const RULES = Object.freeze({
     prior: 0.3,
   },
   'visibility.hedged': { category: 'reputation', fixPath: 'content', effort: 3, prior: 0.3 },
+  // Entity (Milestone 12). All guidance: we do not write to other people's profiles or to Google's Knowledge Graph.
+  'entity.wrong_fact': { category: 'entity', fixPath: 'guidance', effort: 2, prior: 0.4 },
+  'entity.profile': { category: 'entity', fixPath: 'guidance', effort: 2, prior: 0.35 },
+  // Wikidata only keeps items about things with outside references, so a small or new business may not qualify.
+  'entity.wikidata': { category: 'entity', fixPath: 'guidance', effort: 4, prior: 0.2 },
 });
 
 export const RULE_CODES = Object.freeze(Object.keys(RULES));
@@ -75,6 +89,8 @@ export const LIMITS = Object.freeze({
   /** A cited site must appear in this many answers that left the brand out. */
   minCitingAnswers: 2,
   affectedUrls: 20,
+  /** An engine must state a fact wrongly this many times in the window before it is worth a task: one answer can be noise. */
+  minWrongClaims: 2,
 });
 
 export const stableKeyOf = (ruleCode, subject) => `${ruleCode}:${String(subject).toLowerCase()}`;
@@ -153,6 +169,146 @@ function readinessCandidates({ scan, universeAll }) {
     });
   }
   return out;
+}
+
+const FACT_TITLES = Object.freeze({
+  founded: (brand) => `Correct the year AI engines say ${brand} was founded`,
+  headquarters: (brand) => `Correct where AI engines say ${brand} is based`,
+  price: (brand) => `Correct the prices AI engines quote for ${brand}`,
+});
+
+function wrongFactCandidates({ entity, brandName, windowRange }) {
+  const accuracy = entity?.accuracy;
+  if (!accuracy || accuracy.answersRead === 0) return [];
+  const out = [];
+  for (const fact of accuracy.facts) {
+    if (fact.wrong < LIMITS.minWrongClaims) continue;
+    const ruleCode = 'entity.wrong_fact';
+    out.push({
+      ruleCode,
+      subject: fact.key,
+      stableKey: stableKeyOf(ruleCode, fact.key),
+      ...RULES[ruleCode],
+      title: FACT_TITLES[fact.key]?.(brandName) ?? `Correct what AI engines say about ${brandName}`,
+      // A wrong fact is wrong for everyone who reads it: severity is full, and reach is how often the answers said it.
+      severity: 1,
+      reach: { share: Math.min(1, fact.wrong / accuracy.answersRead) },
+      promptIds: [],
+      sortKey: fact.wrong,
+      evidence: {
+        type: 'entity_fact',
+        fact: fact.key,
+        label: fact.label,
+        expected: fact.expected,
+        wrong: fact.wrong,
+        right: fact.right,
+        answersRead: accuracy.answersRead,
+        examples: fact.examples,
+        window: windowRange,
+      },
+      affectedUrls: [],
+    });
+  }
+  return out.sort((a, b) => b.sortKey - a.sortKey || a.subject.localeCompare(b.subject));
+}
+
+/** A short, stable name for one profile address in a recommendation key (the key column is only 191 characters). */
+export const profileSubject = (platform, url) =>
+  `${platform}-${createHash('sha256').update(String(url)).digest('hex').slice(0, 8)}`;
+
+const hostOfUrl = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return String(url).slice(0, 60);
+  }
+};
+
+/**
+ * A profile we could read that does not name the business, or that is gone, is an issue. One we could not look at is not:
+ * its key goes in `couldNotLook`, which keeps an issue already open from being cleared by a week of blocked requests.
+ */
+function profileCandidates({ entity, brandName, universeAll }) {
+  const out = [];
+  const couldNotLook = [];
+  for (const check of entity?.checks ?? []) {
+    if (check.kind !== 'profile') continue;
+    const subject = profileSubject(check.platform ?? 'other', check.subject);
+    if (check.status === 'error') {
+      couldNotLook.push(stableKeyOf('entity.profile', subject));
+      continue;
+    }
+    if (check.status !== 'failed') continue;
+    const ruleCode = 'entity.profile';
+    const label = platformLabel(check.platform ?? 'other');
+    out.push({
+      ruleCode,
+      subject,
+      stableKey: stableKeyOf(ruleCode, subject),
+      ...RULES[ruleCode],
+      title:
+        check.platform && check.platform !== 'other'
+          ? `Fix your ${label} profile so it names ${brandName}`
+          : `Fix your listing at ${hostOfUrl(check.subject)} so it names ${brandName}`,
+      severity: check.finding === 'not_found' ? 0.6 : 0.4,
+      reach: { affected: universeAll },
+      promptIds: universeAll.map((u) => u.promptId),
+      evidence: {
+        type: 'entity_profile',
+        platform: check.platform ?? 'other',
+        platformLabel: label,
+        url: check.subject,
+        finding: check.finding,
+        reachable: check.details?.reachable ?? null,
+        namesBrand: check.details?.namesBrand ?? null,
+        linksBack: check.details?.linksBack ?? null,
+        checkedAt: check.checkedAt ? new Date(check.checkedAt).toISOString() : null,
+      },
+      affectedUrls: [check.subject],
+    });
+  }
+  return { out, couldNotLook };
+}
+
+const WIKIDATA_TITLES = Object.freeze({
+  not_in_wikidata: (brand) => `Get ${brand} a Wikidata item`,
+  ambiguous: (brand) => `Tell AI engines which Wikidata item is ${brand}`,
+  mismatch: () => 'Fix the Wikidata item number in your Brand Kit',
+});
+
+function wikidataCandidates({ entity, brandName, universeAll }) {
+  const check = (entity?.checks ?? []).find((c) => c.kind === 'wikidata');
+  if (!check) return { out: [], couldNotLook: [] };
+  const ruleCode = 'entity.wikidata';
+  const key = stableKeyOf(ruleCode, 'item');
+  if (check.status === 'error') return { out: [], couldNotLook: [key] };
+  if (check.status !== 'failed' || !WIKIDATA_TITLES[check.finding]) {
+    return { out: [], couldNotLook: [] };
+  }
+  return {
+    couldNotLook: [],
+    out: [
+      {
+        ruleCode,
+        subject: 'item',
+        stableKey: key,
+        ...RULES[ruleCode],
+        title: WIKIDATA_TITLES[check.finding](brandName),
+        severity: check.finding === 'mismatch' ? 0.5 : 0.3,
+        reach: { affected: universeAll },
+        promptIds: universeAll.map((u) => u.promptId),
+        evidence: {
+          type: 'entity_wikidata',
+          finding: check.finding,
+          candidates: Number(check.details?.candidates ?? 0),
+          givenId: entity?.wikidataId || null,
+          item: check.details?.item ?? null,
+          checkedAt: check.checkedAt ? new Date(check.checkedAt).toISOString() : null,
+        },
+        affectedUrls: [],
+      },
+    ],
+  };
 }
 
 const complete = (cell) => cell.status === 'complete';
@@ -289,7 +445,10 @@ function hedgedCandidates({ sentiment, grid, brandName, windowRange }) {
  * @param sentiment     the brand's `{ n, sum }` over the window (answers with a sentiment, and their total), or null
  * @param citationGaps  rows from `citationRows().gaps`
  * @param answersTotal  readable answers in the window (the denominator for a cited site's reach)
- * @returns `{ candidates, detectedKeys, evaluated: { readiness, visibility } }`; `candidates` are what to raise (capped);
+ * @param entity        what Milestone 12 knows, or null: `{ checks, accuracy, wikidataId, profilesListed }`: the latest
+ *                      entity checks, the accuracy comparison (`checkFacts`), the Wikidata item the customer named, and how
+ *                      many profiles the Brand Kit lists
+ * @returns `{ candidates, detectedKeys, evaluated }` (`evaluated` has `readiness`, `visibility` and one entry per entity rule); `candidates` are what to raise (capped);
  *          `detectedKeys` is every issue found, capped or not, so one the cap left out is not mistaken for a fixed one;
  *          candidates have no impact or ice yet: see `scoreCandidates`
  */
@@ -303,6 +462,7 @@ export function evaluateRules({
   citationGaps = [],
   answersTotal = 0,
   windowRange = null,
+  entity = null,
 }) {
   const universeAll = prompts.map((p) => ({
     promptId: p.id,
@@ -317,13 +477,27 @@ export function evaluateRules({
     ? citedSourceCandidates({ citationGaps, answersTotal, windowRange })
     : [];
   const cool = hasAnswers ? hedgedCandidates({ sentiment, grid, brandName, windowRange }) : [];
+  const facts = wrongFactCandidates({ entity, brandName, windowRange });
+  const profiles = profileCandidates({ entity, brandName, universeAll });
+  const wiki = wikidataCandidates({ entity, brandName, universeAll });
   // Everything found, before the caps below: an issue the cap leaves out is still there, so it must not look "fixed".
-  const everything = [...readiness, ...lost, ...sites, ...cool].filter((c) => hasEvidence(c));
+  const everything = [
+    ...readiness,
+    ...lost,
+    ...sites,
+    ...cool,
+    ...facts,
+    ...profiles.out,
+    ...wiki.out,
+  ].filter((c) => hasEvidence(c));
   const shown = new Set([
     ...readiness.map((c) => c.stableKey),
     ...lost.slice(0, LIMITS.lostQuestions).map((c) => c.stableKey),
     ...sites.slice(0, LIMITS.citedSites).map((c) => c.stableKey),
     ...cool.map((c) => c.stableKey),
+    ...facts.map((c) => c.stableKey),
+    ...profiles.out.map((c) => c.stableKey),
+    ...wiki.out.map((c) => c.stableKey),
   ]);
   // The sort fields are for ordering the caps above; a candidate does not carry them on.
   const strip = (c) => {
@@ -335,8 +509,25 @@ export function evaluateRules({
   };
   return {
     candidates: everything.filter((c) => shown.has(c.stableKey)).map(strip),
-    detectedKeys: everything.map((c) => c.stableKey),
-    evaluated: { readiness: Boolean(scan?.checks?.length), visibility: hasAnswers },
+    // An entity check that could not look is not "fixed": its key stays detected, so an issue already open is not cleared.
+    detectedKeys: [
+      ...everything.map((c) => c.stableKey),
+      ...profiles.couldNotLook,
+      ...wiki.couldNotLook,
+    ],
+    evaluated: {
+      readiness: Boolean(scan?.checks?.length),
+      visibility: hasAnswers,
+      // The entity rules are judged one by one (`reconcile` looks for a rule's own code before its family): each needs
+      // its own evidence, and a week of readable answers says nothing about a profile.
+      'entity.wrong_fact': Boolean(entity?.accuracy && entity.accuracy.answersRead > 0),
+      'entity.profile': Boolean(
+        entity && (entity.checks.some((c) => c.kind === 'profile') || entity.profilesListed === 0),
+      ),
+      'entity.wikidata': Boolean(
+        entity?.checks.some((c) => c.kind === 'wikidata' && c.status !== 'error'),
+      ),
+    },
   };
 }
 

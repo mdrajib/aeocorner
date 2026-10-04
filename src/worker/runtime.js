@@ -18,6 +18,7 @@ import { autofixHandlers } from './handlers/autofix.js';
 import { contentHandlers } from './handlers/content.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { digestHandlers } from './handlers/digest.js';
+import { entityHandlers } from './handlers/entity.js';
 import { extractHandlers } from './handlers/extract.js';
 import { setupHandlers } from './handlers/setup.js';
 import { systemHandlers } from './handlers/system.js';
@@ -42,6 +43,8 @@ export const SCHEDULES = Object.freeze([
   { name: 'digest.tick', repeat: { pattern: '5 * * * *', tz: 'UTC' } },
   // Google Analytics and Search Console, once a day for every connected project (Milestone 8).
   { name: 'sync.google.sweep', repeat: { pattern: '40 3 * * *', tz: 'UTC' } },
+  // Each project's profiles and Wikidata, weekly: the sweep queues the ones whose last check is a week old (Milestone 12).
+  { name: 'entity.sweep', repeat: { pattern: '50 3 * * *', tz: 'UTC' } },
 ]);
 
 /**
@@ -66,6 +69,9 @@ export const SCHEDULES = Object.freeze([
  * @param {object} [deps.billing]    { enforced, stripe } for the billing jobs: whether plans are enforced (the scheduler skips
  *                                   organizations that may not collect) and the Stripe client (src/integrations/stripe.js)
  * @param {object} [deps.google]     the Google client (src/integrations/google.js) for the traffic sync; without it that job does nothing
+ * @param {object} [deps.entity]    { wikidata, profiles? } for entity.check (Milestone 12): the Wikidata client
+ *                                   (src/integrations/wikidata.js) and, for tests, a stand-in for the profile checker; without
+ *                                   a Wikidata client the profiles are still checked and the Wikidata lookup is skipped
  * @param {object} [deps.mail]       the notifier (src/lib/notify.js): every email the worker sends on its own (retention and
  *                                   trial notices, the weekly digest, alerts) goes through it
  * @param {object} [deps.tracking]   { timing } overrides for how often a run looks again and when it gives up (src/worker/handlers/tracking.js); tests use tiny values
@@ -88,6 +94,7 @@ export function createWorkerRuntime({
   tracking = null,
   billing = null,
   google = null,
+  entity = null,
   mail = null,
   audit = {},
   now = () => new Date(),
@@ -110,6 +117,7 @@ export function createWorkerRuntime({
     ...billingHandlers,
     ...digestHandlers,
     ...trafficHandlers,
+    ...entityHandlers,
     ...extraHandlers,
   };
 
@@ -154,6 +162,7 @@ export function createWorkerRuntime({
     tracking,
     billing,
     google,
+    entity,
     mail,
     audit: { ...audit, budget: auditBudget },
     now,

@@ -65,7 +65,8 @@ document.addEventListener('click', (event) => {
     const field = document.getElementById(copier.dataset.copyFrom);
     if (field) {
       field.select();
-      const done = () => showToast({ message: 'Link copied.', tone: 'success' });
+      const done = () =>
+        showToast({ message: copier.dataset.copiedText || 'Link copied.', tone: 'success' });
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(field.value).then(done, () => {});
       } else if (document.execCommand && document.execCommand('copy')) {

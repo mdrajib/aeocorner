@@ -39,6 +39,18 @@ export const AUTOFIX_RULES = Object.freeze({
     intro:
       'Preview the exact code we would add to your home page through the WordPress plugin. Nothing changes until you approve it.',
   },
+  // Milestone 12: the same Organization node, with the profile links that passed our check and the founding year the
+  // customer gave. Nothing is typed on the approval screen for this one: the links come from the Entity checks.
+  'readiness.D3': {
+    kind: 'jsonld',
+    scope: 'home',
+    type: 'Organization',
+    entity: true,
+    label: 'Profile links in your Organization schema',
+    action: 'Link your verified profiles from your home page',
+    intro:
+      'Preview the exact code we would add to your home page through the WordPress plugin. It lists only profiles that our check confirmed name your business. Nothing changes until you approve it.',
+  },
   'readiness.C2': {
     kind: 'jsonld',
     scope: 'pages',
@@ -135,6 +147,8 @@ export const fingerprint = (jsonld) =>
  * @param {string} [p.homeUrl]     the home page as the plugin knows it (the connected WordPress site)
  * @param {string} [p.domain]      the project's domain, used when there is no `homeUrl`
  * @param {{logoUrl?: string|null, sameAs?: string[]}} [p.extras]  from `parseExtras`
+ * @param {{sameAs?: string[], foundingYear?: string}} [p.entity]  for `readiness.D3`: the profile addresses whose check
+ *        passed, and the founding year the customer typed. Nothing else is ever put in `sameAs` for that rule
  * @param {object[]} [p.existingNodes]  the nodes already applied to the home page
  * @returns {{ ok: true, targetUrl, jsonld, node, hash, includes, notIncluded } | { ok: false, reason }}
  */
@@ -144,6 +158,7 @@ export function buildAutofix({
   homeUrl = null,
   domain = null,
   extras = {},
+  entity = {},
   existingNodes = [],
 }) {
   const rule = AUTOFIX_RULES[ruleCode];
@@ -175,19 +190,44 @@ export function buildAutofix({
       node.description = about;
       includes.push('The description from your Brand Kit');
     }
-    if (extras.logoUrl) {
-      node.logo = extras.logoUrl;
+    // What an earlier fix put in the same node stays unless this one says something else: the node is replaced whole.
+    const prior = existingNodes.find((n) => n?.['@type'] === 'Organization') ?? {};
+    const logo = extras.logoUrl || prior.logo || null;
+    if (logo) {
+      node.logo = logo;
       includes.push('Your logo');
     } else {
       notIncluded.push('A logo: add its address below to earn that part of the check.');
     }
-    if (extras.sameAs?.length) {
-      node.sameAs = extras.sameAs;
-      includes.push(`${extras.sameAs.length} profile link${extras.sameAs.length === 1 ? '' : 's'}`);
+    // `readiness.D3` writes only the profiles that passed our check; the other Organization fixes write what was typed.
+    const profiles = rule.entity ? (entity.sameAs ?? []) : (extras.sameAs ?? []);
+    const sameAs = profiles.length ? profiles : (prior.sameAs ?? []);
+    if (sameAs.length) {
+      node.sameAs = sameAs;
+      includes.push(
+        profiles.length
+          ? `${profiles.length} profile link${profiles.length === 1 ? '' : 's'}${rule.entity ? ' that passed our check' : ''}`
+          : `${sameAs.length} profile link${sameAs.length === 1 ? '' : 's'} already on your site`,
+      );
+    } else if (rule.entity) {
+      return {
+        ok: false,
+        reason:
+          'None of your profiles has passed our check yet. Add your profile links on the Entity tab of your Brand Kit. Once we confirm a profile page names your business, it appears here.',
+      };
     } else {
       notIncluded.push(
         'Profile links (LinkedIn, Crunchbase…): add them below to earn that part of the check.',
       );
+    }
+    const year = /^\d{4}$/.test(entity.foundingYear ?? '')
+      ? entity.foundingYear
+      : prior.foundingDate;
+    if (year) {
+      node.foundingDate = year;
+      includes.push(`The year you founded the business, ${year}`);
+    } else if (rule.entity) {
+      notIncluded.push('A founding year: add it on the Entity tab of your Brand Kit.');
     }
   }
 

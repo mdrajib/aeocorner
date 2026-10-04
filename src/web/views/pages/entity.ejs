@@ -1,0 +1,124 @@
+<%#
+  D7: Entity. Props: view (entityView: hasKit, profiles, wikidata, facts, answersRead, missing, checklists, tiles), canEdit, domain;
+  locals: project, projectBase, orgBase, csrfToken.
+  A check that could not look is "Couldn’t check", never a failure. "Not mentioned" is neutral. Nothing is posted anywhere:
+  the checklists are text for the customer to use themselves.
+%>
+<%
+const t = view.tiles;
+%>
+<nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <a href="<%= projectBase %>"><%= project.name %></a> <span aria-hidden="true">/</span> <span>Entity</span></nav>
+<h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= project.name %></h1>
+<%- ui.fragment('partials/project-nav', { projectBase, current: 'entity' }) %>
+
+<h2 class="mt-6 text-2xl">Can AI tell who you are?</h2>
+<p class="text-ink-700 mt-1 max-w-2xl text-sm">Engines name businesses they can identify with confidence. Here is where your business shows up, whether it is described correctly, and what to put on the profiles we cannot change for you. We never write to other sites or to Google’s Knowledge Graph.</p>
+
+<% if (!view.hasKit) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'Fill in your Brand Kit first.', text: 'The Entity checks start from the facts and profile links you give us.', actionHtml: ui.button({ label: 'Open the Brand Kit', href: projectBase + '/brand?tab=entity', variant: 'primary' }) }) %></div>
+<% } else { %>
+
+<div class="mt-6 grid gap-4 sm:grid-cols-3">
+  <%- ui.stat({ label: 'Profiles confirmed', value: t.profiles ? t.profiles.value : '—', state: t.profiles ? 'ok' : 'unknown', note: t.profiles ? t.profiles.note : 'No profile has been read yet' }) %>
+  <%- ui.stat({ label: 'Wikidata', value: t.wikidata ? t.wikidata.value : '—', state: t.wikidata ? 'ok' : 'unknown', note: t.wikidata ? 'Public item for your business' : 'Not looked up yet' }) %>
+  <%- ui.stat({ label: 'What engines say', value: t.facts ? t.facts.value : '—', state: t.facts ? 'ok' : 'unknown', note: t.facts ? t.facts.note : 'No answer about you has been read yet' }) %>
+</div>
+
+<div class="mt-6 flex flex-wrap items-center gap-3">
+  <% if (canEdit) { %>
+  <form method="post" action="<%= projectBase %>/entity/check">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.button({ label: 'Check now', type: 'submit', variant: 'secondary', size: 'sm' }) %>
+  </form>
+  <% } %>
+  <%- ui.button({ label: 'Edit profile links and facts', href: projectBase + '/brand?tab=entity', variant: 'ghost', size: 'sm' }) %>
+</div>
+
+<section class="mt-8" aria-labelledby="profiles-h">
+  <h3 id="profiles-h" class="text-xl">Your profiles</h3>
+  <% if (!view.profiles.length) { %>
+  <p class="text-ink-700 mt-2 text-sm">You haven’t listed any profiles yet. Add the addresses of the pages that describe your business on the <a href="<%= projectBase %>/brand?tab=entity">Entity tab of your Brand Kit</a>, and we will look at each one. The checklists below say what to put on the ones you do not have.</p>
+  <% } else { %>
+  <div class="mt-3"><%- ui.table({ caption: 'Profiles you listed and what our check found', captionHidden: true, stack: true,
+    columns: [{ key: 'platform', label: 'Profile' }, { key: 'status', label: 'Result' }, { key: 'detail', label: 'What we found' }],
+    rows: view.profiles.map((p) => ({
+      platform: { html: '<a href="' + ui.esc(p.url) + '" rel="noopener noreferrer nofollow">' + ui.esc(p.platform) + '</a><br><span class="text-ink-600 text-xs [overflow-wrap:anywhere]">' + ui.esc(p.url) + '</span>' },
+      status: { html: ui.badge({ text: p.status, tone: p.tone }) + (p.checkedOn ? '<br><span class="text-ink-600 text-xs">Checked ' + ui.esc(p.checkedOn) + '</span>' : '') },
+      detail: { html: ui.esc(p.detail) + (p.note ? '<br><span class="text-ink-600 text-xs">' + ui.esc(p.note) + '</span>' : '') },
+    })) }) %></div>
+  <p class="text-ink-600 mt-2 text-xs">Some sites, LinkedIn most often, show our checker a sign-in page. That is “Couldn’t check”, not a problem with your profile. Only confirmed profiles are written into your site’s structured data.</p>
+  <% } %>
+</section>
+
+<section class="mt-8" aria-labelledby="wikidata-h">
+  <h3 id="wikidata-h" class="text-xl">Wikidata</h3>
+  <%
+  const w = view.wikidata;
+  const wbody = '<p class="flex flex-wrap items-center gap-2">' + ui.badge({ text: w.status, tone: w.tone })
+    + '<span class="text-sm">' + ui.esc(w.detail) + '</span></p>'
+    + (w.item ? '<p class="mt-2 text-sm">' + (w.itemUrl ? '<a href="' + ui.esc(w.itemUrl) + '" rel="noopener noreferrer">' + ui.esc(w.item) + '</a>' : ui.esc(w.item)) + '</p>' : '')
+    + (w.note ? '<p class="text-ink-600 mt-2 text-xs">' + ui.esc(w.note) + '</p>' : '')
+    + (w.checkedOn ? '<p class="text-ink-600 mt-2 text-xs">Checked ' + ui.esc(w.checkedOn) + '</p>' : '');
+  %>
+  <div class="mt-3"><%- ui.card({ html: wbody, headingLevel: 4 }) %></div>
+</section>
+
+<section class="mt-8" aria-labelledby="facts-h">
+  <h3 id="facts-h" class="text-xl">What AI engines say about you</h3>
+  <p class="text-ink-700 mt-1 max-w-2xl text-sm">We compare what engines state in their answers to questions about you with the facts in your Brand Kit. Only a statement that says something different counts as wrong.</p>
+  <% if (!view.facts.length) { %>
+  <p class="text-ink-700 mt-3 text-sm">Add <%= view.missing.join(', ') %> in your <a href="<%= projectBase %>/brand?tab=entity">Brand Kit</a> and we will compare it with the answers we read.</p>
+  <% } else { %>
+  <div class="mt-3"><%- ui.table({ caption: 'Your facts and what engines say', captionHidden: true, stack: true,
+    columns: [{ key: 'label', label: 'Fact' }, { key: 'expected', label: 'You said' }, { key: 'status', label: 'Engines' }, { key: 'detail', label: 'Detail' }],
+    rows: view.facts.map((f) => ({
+      label: f.label,
+      expected: f.expected,
+      status: { html: ui.badge({ text: f.status, tone: f.tone }) },
+      detail: { html: ui.esc(f.detail)
+        + (f.engines.length ? '<br><span class="text-ink-600 text-xs">' + ui.esc(f.engines.join(' · ')) + '</span>' : '')
+        + f.examples.map((e) => '<br><span class="text-xs">' + ui.esc(e.engine) + ' said: “' + ui.esc(e.said) + '”</span>').join('') },
+    })) }) %></div>
+  <% if (view.missing.length) { %><p class="text-ink-600 mt-2 text-xs">To compare more, add <%= view.missing.join(', ') %> in your <a href="<%= projectBase %>/brand?tab=entity">Brand Kit</a>.</p><% } %>
+  <p class="text-ink-600 mt-1 text-xs">Based on <%= view.answersRead %> answer<%= view.answersRead === 1 ? '' : 's' %> to questions about you, over the last four weeks.</p>
+  <% } %>
+</section>
+
+<section class="mt-8" aria-labelledby="steps-h">
+  <h3 id="steps-h" class="text-xl">What to put on each profile</h3>
+  <p class="text-ink-700 mt-1 max-w-2xl text-sm">We cannot sign in or post for you, and we do not make accounts. Each list below gives the steps and the exact text, filled in from your Brand Kit. Platforms change their screens: follow theirs where it differs.</p>
+  <div class="mt-3 flex flex-col gap-3">
+    <% for (const c of view.checklists) { %>
+    <details class="card">
+      <summary class="card-body cursor-pointer text-base font-semibold"><%= c.label %> <% if (c.listed) { %><%- ui.badge({ text: 'You listed one', tone: 'success' }) %><% } %></summary>
+      <div class="card-body flex flex-col gap-3 border-ink-200 border-t">
+        <p class="text-ink-700 text-sm"><%= c.intro %></p>
+        <% if (c.start) { %><p class="text-sm"><a href="<%= c.start %>" rel="noopener noreferrer">Where to start</a></p><% } %>
+        <ol class="list-decimal pl-5 text-sm">
+          <% for (const step of c.steps) { %><li class="mt-1"><%= step %></li><% } %>
+        </ol>
+        <% if (c.fields.length) { %>
+        <div class="flex flex-col gap-3">
+          <% c.fields.forEach((f, i) => { const fid = 'ck-' + c.platform + '-' + i; %>
+          <div class="field">
+            <label class="label" for="<%= fid %>"><%= f.label %></label>
+            <% if (f.hint) { %><p class="hint"><%= f.hint %></p><% } %>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="<%= fid %>" class="input min-w-0 flex-1" type="text" readonly value="<%= f.value %>">
+              <%- ui.button({ label: 'Copy', variant: 'secondary', size: 'sm', attrs: { 'data-copy-from': fid, 'data-copied-text': 'Copied.', 'aria-label': 'Copy ' + f.label } }) %>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+        <% if (c.missing.length) { %>
+        <p class="text-ink-700 text-sm">Not filled in yet: <% c.missing.forEach((m, i) => { %><%= m.what %> (<a href="<%= projectBase %>/brand?tab=<%= m.where.toLowerCase() %>"><%= m.where %> tab</a>)<%= i < c.missing.length - 1 ? ', ' : '.' %><% }) %> We never make these up.</p>
+        <% } %>
+        <% for (const note of c.notes) { %><p class="text-ink-600 text-xs"><%= note %></p><% } %>
+        <p class="text-ink-600 text-xs">Limits and steps checked <%= c.checkedOn %>.</p>
+      </div>
+    </details>
+    <% } %>
+  </div>
+</section>
+<% } %>

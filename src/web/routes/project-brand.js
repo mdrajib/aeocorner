@@ -1,6 +1,7 @@
 import { SECTIONS, changedSections, emptyBrandKit, parseBrandKit } from '../../core/brand-kit.js';
+import { parseProfileLines, platformOfUrl } from '../../core/entity-profiles.js';
 import { DomainError } from '../../db/index.js';
-import { brandKitJobId, slotOf } from '../../lib/job-ids.js';
+import { brandKitJobId, entityCheckJobId, slotOf } from '../../lib/job-ids.js';
 import { notFound } from '../middleware/errors.js';
 import { dateLabel, lines, rowsOf, text, withNotice } from './project-helpers.js';
 
@@ -63,6 +64,20 @@ export function sectionFromBody(section, body) {
           credentials: ['persona_credentials', 200],
         }),
       };
+    case 'entity': {
+      const raw = lines(body.profiles, 500);
+      const parsed = parseProfileLines(raw);
+      const typedId = text(body.wikidataId, 200);
+      return {
+        foundingYear: text(body.foundingYear, 8),
+        headquarters: text(body.headquarters, 160),
+        // A line that is not an address is kept as written so the form can show it again beside its own message.
+        profiles: parsed.ok
+          ? parsed.profiles
+          : raw.map((url) => ({ platform: platformOfUrl(url) ?? 'other', url })),
+        wikidataId: typedId || (parsed.ok ? parsed.wikidataId : '') || '',
+      };
+    }
     default:
       return null;
   }
@@ -72,13 +87,20 @@ export function sectionFromBody(section, body) {
 export function readableErrors(errors) {
   const out = {};
   for (const [path, message] of Object.entries(errors)) {
-    const row = path.match(/^(offerings\.items|facts|voice\.personas)\.(\d+)\.(\w+)$/);
+    const row = path.match(
+      /^(offerings\.items|facts|voice\.personas|entity\.profiles)\.(\d+)\.(\w+)$/,
+    );
     if (row) {
       const n = Number(row[2]) + 1;
+      const key = `${row[1]}.${row[2]}`;
+      if (row[1] === 'entity.profiles') {
+        out['entity.profiles'] ??=
+          `Link ${n} is not a full https:// address, like https://www.linkedin.com/company/acme.`;
+        continue;
+      }
       const what = { 'offerings.items': 'Offering', facts: 'Fact', 'voice.personas': 'Author' }[
         row[1]
       ];
-      const key = `${row[1]}.${row[2]}`;
       out[key] ??= `${what} ${n}: fill in both the name and the details, or clear the row.`;
     } else out[path] = message;
   }
@@ -167,8 +189,9 @@ export function brandRoutes(router, { jobs, logger, appPage, edit }) {
       const expected = /^\d{1,9}$/.test(String(req.body.expectedVersion))
         ? Number(req.body.expectedVersion)
         : null;
+      let saved;
       try {
-        await req.orgDb.brandKits.save(req.project.id, {
+        saved = await req.orgDb.brandKits.save(req.project.id, {
           kit: parsed.kit,
           source: 'edited',
           expectedVersion: expected,
@@ -179,6 +202,19 @@ export function brandRoutes(router, { jobs, logger, appPage, edit }) {
           return renderBrand(req, res, { tab: section, conflict: true, status: 409 });
         }
         throw err;
+      }
+      // New profile links or a new Wikidata number are looked at straight away, not at next week's sweep.
+      if (section === 'entity' && jobs) {
+        try {
+          await jobs.add(
+            'entity.check',
+            { orgId: String(req.org.id), projectId: String(req.project.id) },
+            { jobId: entityCheckJobId(req.project.id, `kit${saved.version}`) },
+          );
+        } catch (err) {
+          // The kit is saved; the weekly sweep will look at it.
+          logger.warn({ err: err.message }, 'Could not queue the entity check after a save');
+        }
       }
       return res.redirect(
         303,

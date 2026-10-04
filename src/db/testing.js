@@ -339,7 +339,10 @@ export function fixtures(db) {
      * A tracked prompt in a project (the Prompt Manager arrives in Phase 8). `searchQuery` is the keyword form
      * AI Overviews use.
      */
-    async prompt(project, { text, searchQuery = null, country = 'US', language = 'en' } = {}) {
+    async prompt(
+      project,
+      { text, searchQuery = null, country = 'US', language = 'en', intent = 'discovery' } = {},
+    ) {
       const wording = text ?? `What is the best dental software? ${unique()}`;
       return prisma.prompts.create({
         data: {
@@ -348,7 +351,7 @@ export function fixtures(db) {
           text: wording,
           text_hash: createHash('sha256').update(wording).digest(),
           search_query: searchQuery,
-          intent: 'discovery',
+          intent,
           country,
           language,
           source: 'manual',
@@ -905,6 +908,7 @@ export function fixtures(db) {
         excerpt = 'An answer',
         mentions = [],
         citations = [],
+        claims = [],
       } = {},
     ) {
       const snapshot = await this.collectedAnswer(run, prompt, { engine, sampleIdx });
@@ -941,6 +945,26 @@ export function fixtures(db) {
             sentiment: m.sentiment ?? 0,
             excerpt: m.excerpt ?? null,
             detected_by: 'both',
+          })),
+        });
+      }
+      if (claims.length) {
+        // A claim belongs to the mention of the entity it is about (the first mention, if the test named none for it).
+        const rows = await prisma.mentions.findMany({
+          where: { snapshot_id: snapshot.id, run_date: snapshot.run_date },
+          select: { id: true, entity_id: true },
+        });
+        await prisma.claims.createMany({
+          data: claims.map((c) => ({
+            run_date: snapshot.run_date,
+            org_id: run.org_id,
+            project_id: run.project_id,
+            snapshot_id: snapshot.id,
+            mention_id: (rows.find((r) => r.entity_id === c.entity.id) ?? rows[0]).id,
+            entity_id: c.entity.id,
+            attribute: c.attribute ?? 'company_fact',
+            claim_value: c.value,
+            polarity: c.polarity ?? 'neutral',
           })),
         });
       }
@@ -1061,6 +1085,7 @@ export function fixtures(db) {
         await prisma.content_revisions.deleteMany({ where });
         await prisma.content_items.deleteMany({ where });
         await prisma.integrations.deleteMany({ where });
+        await prisma.entity_checks.deleteMany({ where });
         await prisma.traffic_daily.deleteMany({ where });
         await prisma.search_console_daily.deleteMany({ where });
         await prisma.action_outcomes.deleteMany({ where });

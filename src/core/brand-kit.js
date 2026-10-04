@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  MAX_PROFILES,
+  PLATFORM_CODES,
+  normalizeProfileUrl,
+  parseWikidataId,
+} from './entity-profiles.js';
 import { normalizeEntityName } from './project-rules.js';
 
 /**
@@ -12,7 +18,11 @@ import { normalizeEntityName } from './project-rules.js';
  * what a version changed.
  */
 
-export const BRAND_KIT_SCHEMA_VERSION = 1;
+/**
+ * 1: identity, offerings, facts, voice. 2 (Milestone 12): adds `entity`. A version-1 kit reads as a version-2 kit with an
+ * empty entity section, so nothing stored has to be rewritten.
+ */
+export const BRAND_KIT_SCHEMA_VERSION = 2;
 
 /** Text from a form or a model: trimmed, whitespace collapsed, and cut rather than rejected when too long. */
 const text = (max) =>
@@ -46,6 +56,45 @@ const persona = z.object({
   credentials: text(200),
 });
 
+const profile = z.object({
+  platform: z.enum(PLATFORM_CODES),
+  url: z
+    .string()
+    .transform((s) => normalizeProfileUrl(s))
+    .pipe(z.string({ error: 'Use a full https:// address.' })),
+});
+
+/**
+ * What an engine needs to tell this business from a namesake, typed by the customer: the year it began, where it is
+ * based, its public profiles and its Wikidata item. Every one of these is a statement of fact by the customer: we check
+ * the profiles and the item, and we compare what the engines say against the year and the place, but we never fill
+ * one in ourselves.
+ */
+const entity = z
+  .object({
+    foundingYear: z
+      .string()
+      .transform((s) => s.trim())
+      .refine(
+        (s) => s === '' || (/^\d{4}$/.test(s) && Number(s) >= 1800 && Number(s) <= 2100),
+        'Use a four-digit year, like 2014.',
+      )
+      .default(''),
+    headquarters: text(160),
+    profiles: z
+      .array(profile)
+      .max(MAX_PROFILES)
+      .transform((items) => [...new Map(items.map((p) => [p.url, p])).values()])
+      .default([]),
+    wikidataId: z
+      .string()
+      .transform((s) => s.trim())
+      .refine((s) => parseWikidataId(s) !== null, 'Use an item number like Q12345.')
+      .transform((s) => parseWikidataId(s))
+      .default(''),
+  })
+  .default({ foundingYear: '', headquarters: '', profiles: [], wikidataId: '' });
+
 export const brandKitSchema = z.object({
   identity: z.object({
     brandName: text(120).pipe(z.string().min(1, 'The brand needs a name.')),
@@ -73,6 +122,7 @@ export const brandKitSchema = z.object({
       personas: z.array(persona).max(5).default([]),
     })
     .default({ tone: [], readingLevel: '', use: [], avoid: [], personas: [] }),
+  entity,
 });
 
 /**
@@ -139,11 +189,17 @@ export const SECTIONS = Object.freeze({
   offerings: 'Offerings',
   facts: 'Facts',
   voice: 'Voice',
+  entity: 'Entity',
 });
+
+/** A stored kit as the current schema reads it, so a version-1 kit has the empty sections a newer one has. */
+const asCurrent = (kit) => (kit ? (parseBrandKit(kit).kit ?? kit) : null);
 
 /** Which sections differ between two kits, as section keys in screen order. `before` may be null (a first version). */
 export function changedSections(before, after) {
+  const a = asCurrent(before);
+  const b = asCurrent(after);
   return Object.keys(SECTIONS).filter(
-    (key) => JSON.stringify(before?.[key] ?? null) !== JSON.stringify(after?.[key] ?? null),
+    (key) => JSON.stringify(a?.[key] ?? null) !== JSON.stringify(b?.[key] ?? null),
   );
 }

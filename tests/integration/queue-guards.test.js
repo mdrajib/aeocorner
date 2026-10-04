@@ -589,6 +589,7 @@ describe('recurring jobs and shutdown', () => {
       'billing.reconcile',
       'billing.report_usage',
       'digest.tick',
+      'entity.sweep',
       'guard.provider_health',
       'guard.spend',
       'outcomes.sweep',

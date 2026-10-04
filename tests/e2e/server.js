@@ -292,6 +292,93 @@ const dashRival = await fx.entity(dashProject, {
   );
 }
 
+// The Entity screen (Milestone 12): a project whose Brand Kit lists profiles and facts, with a profile that passed, one that
+// does not name the business, one that blocked our checker, a Wikidata lookup that could not tell which item is theirs, and
+// an engine that states the founding year wrongly. Its own project, so no other screen's numbers move.
+const entityProject = await scoped.projects.create({
+  name: 'Entity Dental',
+  domain: `entity-dental-${unique()}.example.test`,
+  country: 'US',
+  language: 'en',
+  createdByUserId: people.owner.id,
+});
+{
+  const current = await scoped.brandKits.current(entityProject.id);
+  const kit = current
+    ? structuredClone(current.data)
+    : { identity: { brandName: 'Entity Dental', domains: [entityProject.domain] } };
+  kit.identity.definition = 'A family dental practice in Austin.';
+  kit.identity.category = 'family dental practice';
+  kit.entity = {
+    foundingYear: '2014',
+    headquarters: 'Austin, Texas',
+    profiles: [
+      { platform: 'linkedin', url: 'https://www.linkedin.com/company/entity-dental' },
+      { platform: 'crunchbase', url: 'https://www.crunchbase.com/organization/entity-dental' },
+      { platform: 'facebook', url: 'https://www.facebook.com/entitydental' },
+    ],
+    wikidataId: '',
+  };
+  await scoped.brandKits.save(entityProject.id, {
+    kit,
+    source: 'edited',
+    expectedVersion: current?.version ?? null,
+  });
+  const check = (subject, platform, status, finding, details = {}) =>
+    scoped.entityChecks.saveCheck(entityProject.id, {
+      kind: 'profile',
+      subject,
+      platform,
+      status,
+      finding,
+      details,
+    });
+  await check(
+    'https://www.linkedin.com/company/entity-dental',
+    'linkedin',
+    'passed',
+    'names_brand',
+    {
+      reachable: true,
+      namesBrand: true,
+      linksBack: true,
+    },
+  );
+  await check(
+    'https://www.crunchbase.com/organization/entity-dental',
+    'crunchbase',
+    'failed',
+    'brand_not_named',
+    {
+      reachable: true,
+      namesBrand: false,
+      linksBack: false,
+    },
+  );
+  await check('https://www.facebook.com/entitydental', 'facebook', 'error', 'needs_login');
+  await scoped.entityChecks.saveCheck(entityProject.id, {
+    kind: 'wikidata',
+    subject: 'wikidata',
+    status: 'failed',
+    finding: 'ambiguous',
+    details: { candidates: 2, item: null },
+  });
+  const brand = (await scoped.entities.list(entityProject.id, { kind: 'brand' }))[0];
+  const q = await fx.prompt(entityProject, {
+    text: 'Tell me about Entity Dental',
+    intent: 'brand',
+  });
+  const run = await fx.run(entityProject, { status: 'complete' });
+  for (const [i, year] of ['2011', '2012', '2014'].entries()) {
+    await fx.readAnswer(run, q, {
+      engine: i % 2 ? 'gemini' : 'perplexity',
+      sampleIdx: i,
+      mentions: [{ entity: brand }],
+      claims: [{ entity: brand, value: `Entity Dental was founded in ${year}.` }],
+    });
+  }
+}
+
 // The Action Center: a scan that found two things, raised as recommendations. One fix is marked done and has a result.
 const actionIds = {};
 {
@@ -714,6 +801,7 @@ const fixtureInfo = {
   incompleteProjectId: incompleteProject.public_id,
   runningProjectId: runningProject.public_id,
   dashboardProjectId: dashProject.public_id,
+  entityProjectId: entityProject.public_id,
   dashboardPromptId: String(dashQ1.id),
   actionOpenId: actionIds.open,
   actionWinId: actionIds.win,

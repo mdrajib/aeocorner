@@ -34,6 +34,10 @@ export function brandFacts(kit) {
   }
   for (const d of kit?.offerings?.differentiators ?? []) out.push(clip(d, 300));
   for (const f of kit?.facts ?? []) out.push(clip(`${f.label}: ${f.value}`, 400));
+  // The entity facts come last so the numbering of everything above does not move for a project that adds them later.
+  const en = kit?.entity ?? {};
+  if (en.foundingYear) out.push(`${id.brandName} was founded in ${en.foundingYear}.`);
+  if (en.headquarters) out.push(`${id.brandName} is based in ${clip(en.headquarters, 160)}.`);
   return out.filter(Boolean);
 }
 

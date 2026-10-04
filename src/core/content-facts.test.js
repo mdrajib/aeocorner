@@ -71,3 +71,17 @@ test('an unverified flag must be exactly true; anything else is not usable', () 
   });
   assert.equal(usableFacts(registry).length, 0);
 });
+
+test('the entity facts the customer typed are facts a draft may state, and come last', () => {
+  const kit = {
+    identity: { brandName: 'Data Dental', definition: 'a family dental practice' },
+    entity: { foundingYear: '2014', headquarters: 'Austin, Texas' },
+  };
+  const texts = buildRegistry({ kit }).map((f) => f.text);
+  assert.deepEqual(texts.slice(-2), [
+    'Data Dental was founded in 2014.',
+    'Data Dental is based in Austin, Texas.',
+  ]);
+  const none = buildRegistry({ kit: { identity: { brandName: 'Data Dental' }, entity: {} } });
+  assert.ok(!none.some((f) => /founded|based in/.test(f.text)), 'nothing is made up');
+});

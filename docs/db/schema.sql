@@ -1117,7 +1117,7 @@ CREATE TABLE content_items (
   project_id            BIGINT UNSIGNED NOT NULL,
   recommendation_id     BIGINT UNSIGNED NULL,
   kind                  ENUM('new','refresh') NOT NULL,
-  format                ENUM('comparison','best_of','how_to','faq','glossary','facts_page','other') NOT NULL,
+  format                ENUM('comparison','best_of','how_to','faq','glossary','facts_page','other','about_page') NOT NULL,
   title                 VARCHAR(255)  NOT NULL,
   target_url            VARCHAR(2048) NULL COMMENT 'page being refreshed',
   status                ENUM('researching','briefing','drafting','qc','ready','approved','publishing',
@@ -1635,4 +1635,25 @@ CREATE TABLE proof_shares (
   CONSTRAINT fk_proof_shares_user    FOREIGN KEY (created_by_user_id) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='A proven win shared as a public read-only page (D4)';
 
--- End of schema v1 (66 tables).
+-- Milestone 12 (migration 0007): entity checks. (The About page format, `about_page`, is in content_items above.)
+CREATE TABLE entity_checks (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  org_id      BIGINT UNSIGNED NOT NULL,
+  project_id  BIGINT UNSIGNED NOT NULL,
+  kind        ENUM('profile','wikidata') NOT NULL,
+  subject     VARCHAR(500)    NOT NULL COMMENT 'the profile address, or "wikidata"',
+  platform    VARCHAR(32)     NULL COMMENT 'for a profile: linkedin, google_business, ...',
+  status      ENUM('passed','failed','error') NOT NULL,
+  finding     VARCHAR(32)     NOT NULL,
+  http_status SMALLINT UNSIGNED NULL,
+  details     JSON            NULL COMMENT 'reachable, names the brand, links back; for Wikidata the item found',
+  checked_at  DATETIME(3)     NOT NULL,
+  created_at  DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at  DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_entity_checks_subject (project_id, kind, subject),
+  KEY ix_entity_checks_project (project_id, org_id),
+  CONSTRAINT fk_entity_checks_project FOREIGN KEY (project_id, org_id) REFERENCES projects (id, org_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Latest entity check per profile address and for Wikidata (Milestone 12)';
+
+-- End of schema (68 tables: the 66 of v1, plus proof_shares (0006) and entity_checks (0007)).

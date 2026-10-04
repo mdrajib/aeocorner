@@ -14,6 +14,9 @@ describe('the narrative eval', () => {
     assert.ok(CORPUS.length >= 50);
     assert.deepEqual([...new Set(CORPUS.map((c) => c.evidence.type))].sort(), [
       'cited_source',
+      'entity_fact',
+      'entity_profile',
+      'entity_wikidata',
       'lost_prompt',
       'readiness',
       'sentiment',

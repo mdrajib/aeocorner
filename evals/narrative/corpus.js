@@ -106,6 +106,100 @@ const SENTIMENT = [
   { tag: 'cold', evidence: { type: 'sentiment', average: -1.75, answers: 31 } },
 ];
 
+const FACTS = [
+  {
+    tag: 'founded',
+    evidence: {
+      type: 'entity_fact',
+      fact: 'founded',
+      label: 'Year founded',
+      expected: '2014',
+      wrong: 3,
+      right: 1,
+      answersRead: 8,
+      examples: [
+        { engine: 'chatgpt', said: 'The company was founded in 2011.' },
+        { engine: 'gemini', said: 'Established in 2012.' },
+      ],
+    },
+  },
+  {
+    tag: 'price',
+    evidence: {
+      type: 'entity_fact',
+      fact: 'price',
+      label: 'Price',
+      expected: '$199, $1,299',
+      wrong: 2,
+      right: 0,
+      answersRead: 5,
+      examples: [{ engine: 'perplexity', said: 'Plans start at $349/month.' }],
+    },
+  },
+];
+
+const PROFILES = [
+  {
+    tag: 'not named',
+    evidence: {
+      type: 'entity_profile',
+      platform: 'linkedin',
+      platformLabel: 'LinkedIn',
+      url: 'https://www.linkedin.com/company/example-co',
+      finding: 'brand_not_named',
+      reachable: true,
+      namesBrand: false,
+      linksBack: false,
+    },
+  },
+  {
+    tag: 'gone',
+    evidence: {
+      type: 'entity_profile',
+      platform: 'crunchbase',
+      platformLabel: 'Crunchbase',
+      url: 'https://www.crunchbase.com/organization/example-co',
+      finding: 'not_found',
+      reachable: false,
+      namesBrand: null,
+      linksBack: null,
+    },
+  },
+];
+
+const WIKIDATA = [
+  {
+    tag: 'no item',
+    evidence: {
+      type: 'entity_wikidata',
+      finding: 'not_in_wikidata',
+      candidates: 0,
+      givenId: null,
+      item: null,
+    },
+  },
+  {
+    tag: 'ambiguous',
+    evidence: {
+      type: 'entity_wikidata',
+      finding: 'ambiguous',
+      candidates: 3,
+      givenId: null,
+      item: null,
+    },
+  },
+  {
+    tag: 'mismatch',
+    evidence: {
+      type: 'entity_wikidata',
+      finding: 'mismatch',
+      candidates: 1,
+      givenId: 'Q42',
+      item: { id: 'Q42', label: 'Unrelated Bank' },
+    },
+  },
+];
+
 const withPeople = (ruleCode, cases) =>
   cases.flatMap((c, i) => {
     const who = PEOPLE[i % PEOPLE.length];
@@ -132,6 +226,9 @@ export const CORPUS = [
   ...everyone('visibility.lost_prompt', LOST),
   ...withPeople('visibility.cited_source', CITED),
   ...withPeople('visibility.hedged', SENTIMENT),
+  ...everyone('entity.wrong_fact', FACTS),
+  ...everyone('entity.profile', PROFILES),
+  ...everyone('entity.wikidata', WIKIDATA),
 ].map((c) => ({ ...c, category: RULES[c.ruleCode].category }));
 
 const base = CORPUS.find((c) =>

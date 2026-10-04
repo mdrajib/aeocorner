@@ -52,6 +52,33 @@ const cited = {
   answersWithoutBrand: 4,
 };
 const cool = { type: 'sentiment', average: -1, answers: 10 };
+const wrongFact = {
+  type: 'entity_fact',
+  fact: 'founded',
+  label: 'Year founded',
+  expected: '2014',
+  wrong: 3,
+  right: 1,
+  answersRead: 8,
+  examples: [{ engine: 'chatgpt', said: 'The company was founded in 2011.' }],
+};
+const badProfile = {
+  type: 'entity_profile',
+  platform: 'linkedin',
+  platformLabel: 'LinkedIn',
+  url: 'https://www.linkedin.com/company/data-dental',
+  finding: 'brand_not_named',
+  reachable: true,
+  namesBrand: false,
+  linksBack: false,
+};
+const noItem = {
+  type: 'entity_wikidata',
+  finding: 'not_in_wikidata',
+  candidates: 0,
+  givenId: null,
+  item: null,
+};
 
 const narrativeFor = (ruleCode, evidence) => {
   const rule = RULES[ruleCode];
@@ -108,6 +135,9 @@ describe('the template narrative', () => {
       ['visibility.lost_prompt', lost],
       ['visibility.cited_source', cited],
       ['visibility.hedged', cool],
+      ['entity.wrong_fact', wrongFact],
+      ['entity.profile', badProfile],
+      ['entity.wikidata', noItem],
     ];
     assert.equal(cases.length, Object.keys(RULES).length);
     for (const [ruleCode, evidence] of cases) {

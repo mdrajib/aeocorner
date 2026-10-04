@@ -140,6 +140,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | D4 | **Proof card** (before/after) and share | 8 Proof | `…/actions/:rid` (the card); `/p/:publicId` (the shared page, public) | app + public | **Milestone 6 ✅ 2026-10-04** (the card); **✅ 2026-10-04** (share: a public read-only link for a proven win, stoppable at any time; no question, answer or competitor is shown) | D |
 | D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content`, `…/content/:id` | app | **Milestone 7 ✅ 2026-10-04** | D |
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |
+| D7 | **Entity**: profiles checked, Wikidata, what engines say about the brand's facts, and the text to put on each profile we cannot touch | 7 | `…/entity` | app | **Milestone 12 ✅ 2026-10-04** (built to the wireframe in §5.4, which is a proposal until the founder signs it off; the facts and profile links are edited on the Brand Kit's new Entity tab) | D |
 | E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | **Milestone 8 ✅ 2026-10-04** | E |
 | E2 | Weekly digest email, alert emails, trial-ending email (and: retention warning, "reconnect Google") | 7, 9 | n/a | email | **Milestone 8 ✅ 2026-10-04** | E |
 | E3 | Plan, billing and usage (Stripe Checkout and Portal hand-offs) | 4, 9 | `/app/o/:org/billing` | app | **Milestone 8 ✅ 2026-10-04** | E |
@@ -350,6 +351,15 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
                      quality score + checklist │ evidence used │ [ Approve ] [ Publish to WordPress / Copy ]
  D6 WordPress setup  Site URL · application password (never shown again) · [ Test connection ] · plugin download
                      (built at `…/integrations/wordpress` in Milestone 7: connect, "Check again", disconnect, plugin zip)
+
+ D7 Entity           3 tiles: Profiles confirmed (1 of 3) │ Wikidata (Found / No item / Can't tell which is yours) │ What engines say (1 to fix)
+                     [ Check now ]  [ Edit profile links and facts ] → Brand Kit, Entity tab
+                     Your profiles: one row per link: profile + address │ result badge │ what we found
+                       Confirmed · Doesn't name you · Page not found · Couldn't check (a sign-in page, a firewall, robots.txt)
+                     Wikidata: one card with the result and, if found, the item
+                     What AI engines say about you: Fact │ You said │ Engines agree / disagree / not mentioned yet │ their words
+                     What to put on each profile: Google Business Profile · LinkedIn · Crunchbase · Wikidata · a trade directory
+                       each folds open: the steps, then every field with [ Copy ]; fields we lack are listed, never invented
 ```
 
 ### 5.5 Group E — traffic, billing and settings (sign off before Phase 13)

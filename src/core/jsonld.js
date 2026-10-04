@@ -193,7 +193,7 @@ const VOCAB = {
       telephone: 'Text',
       address: 'PostalAddress Text',
       contactPoint: 'ContactPoint',
-      foundingDate: 'Date',
+      foundingDate: 'Date Year',
       founder: 'Person',
       areaServed: 'Text',
       slogan: 'Text',
@@ -375,11 +375,18 @@ export function validateJsonLd(input) {
         k === 'Text' ||
         (k === 'URL' && isHttpUrl(value)) ||
         (k === 'Date' && isDate(value)) ||
+        (k === 'Year' && /^(?:1[89]|20)\d{2}$/.test(value)) ||
         (k === 'Number' && /^-?\d+(\.\d+)?$/.test(value) && kinds.includes('Text'));
       if (kinds.includes('Text')) return;
       if (kinds.some(accepts)) return;
-      if (kinds.includes('Date'))
-        return err(path, `${prop} must be an ISO 8601 date such as 2026-10-04.`);
+      if (kinds.includes('Date')) {
+        return err(
+          path,
+          kinds.includes('Year')
+            ? `${prop} must be an ISO 8601 date such as 2014-05-01, or a year such as 2014.`
+            : `${prop} must be an ISO 8601 date such as 2026-10-04.`,
+        );
+      }
       if (kinds.includes('URL'))
         return err(path, `${prop} must be a full web address starting with https://.`);
       return err(path, `${prop} must be ${describeKinds(kinds)}, not text.`);
@@ -399,7 +406,13 @@ export function validateJsonLd(input) {
   const describeKinds = (kinds) => {
     const words = kinds.map(
       (k) =>
-        ({ Text: 'text', URL: 'a web address', Date: 'a date', Number: 'a number' })[k] ?? `a ${k}`,
+        ({
+          Text: 'text',
+          URL: 'a web address',
+          Date: 'a date',
+          Year: 'a year',
+          Number: 'a number',
+        })[k] ?? `a ${k}`,
     );
     return words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} or ${words.at(-1)}`;
   };

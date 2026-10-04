@@ -100,6 +100,42 @@ export function factsFor(evidence, { brandName, domain, engineLabel = (c) => c }
       );
       break;
     }
+    case 'entity_fact': {
+      add(`You told us your ${String(evidence.label).toLowerCase()} is ${evidence.expected}.`);
+      add(
+        `In ${plural(evidence.answersRead, 'answer', 'answers')} to questions about ${brandName}, ${plural(evidence.wrong, 'statement', 'statements')} said something different${evidence.right ? `, and ${plural(evidence.right, 'statement', 'statements')} agreed with you` : ''}.`,
+      );
+      for (const example of evidence.examples ?? []) {
+        add(`${engineLabel(example.engine)} said: “${example.said}”.`);
+      }
+      break;
+    }
+    case 'entity_profile': {
+      add(`You listed ${evidence.url} as your ${evidence.platformLabel} profile.`);
+      add(
+        evidence.finding === 'not_found'
+          ? 'When we looked, the page answered “not found”.'
+          : `We could read the page, and it does not mention ${brandName}.`,
+      );
+      if (evidence.finding !== 'not_found' && evidence.linksBack === false) {
+        add(`It does not link to ${domain}.`);
+      }
+      break;
+    }
+    case 'entity_wikidata': {
+      if (evidence.finding === 'not_in_wikidata') {
+        add(`We searched Wikidata for ${brandName} and found no item for your business.`);
+      } else if (evidence.finding === 'ambiguous') {
+        add(
+          `We searched Wikidata for ${brandName} and found ${plural(evidence.candidates, 'item', 'items')} with your name, but none we can tie to ${domain}.`,
+        );
+      } else if (evidence.finding === 'mismatch') {
+        add(
+          `The Wikidata item ${evidence.givenId ?? ''} in your Brand Kit does not look like ${brandName}${evidence.item?.label ? `: it is called “${evidence.item.label}”` : ''}.`,
+        );
+      }
+      break;
+    }
     default:
       break;
   }
@@ -134,6 +170,36 @@ export function adviceSteps(ruleCode, evidence = {}) {
       'Fix it where it comes from: your own pages, and the profiles and listings that describe you.',
       'Publish a clear, factual page that addresses it. Then press “Mark as done” and we measure whether the tone changes.',
     ];
+  } else if (rule === 'wrong_fact') {
+    steps = [
+      'State the correct fact plainly on your own site: on your About page and in your structured data.',
+      'Correct it wherever engines read it from: your profiles and listings. The Entity page has the text to use on each.',
+      'Press “Mark as done”. We keep reading the answers each week and show on the Entity page whether engines now get it right.',
+    ];
+  } else if (rule === 'profile') {
+    steps = [
+      'Open the profile and make sure it names your business exactly as your website does, and links to your website.',
+      'If the address is wrong or the page is gone, correct the link in your Brand Kit.',
+      'Press “Mark as done”, then use “Check again” on the Entity page. We look at the page again and show the result there.',
+    ];
+  } else if (rule === 'wikidata') {
+    steps =
+      evidence.finding === 'mismatch'
+        ? [
+            'Open the Wikidata item you gave us and check it is your business.',
+            'If it is the wrong one, correct the item number in your Brand Kit, or clear it and we will look again.',
+          ]
+        : evidence.finding === 'ambiguous'
+          ? [
+              'Search Wikidata for your business. If one of the items is yours, add its number (like Q12345) to your Brand Kit.',
+              'If none is yours, see the next step before making one.',
+              'Wikidata keeps an item only if independent sources (news, books, official records) describe the business. If you cannot cite such sources, skip this and dismiss the task: a new or local business may not qualify.',
+            ]
+          : [
+              'Wikidata keeps an item only if independent sources (news, books, official records) describe the business. If you cannot cite such sources, skip this and dismiss the task: a new or local business may not qualify.',
+              'If you can, create the item yourself on Wikidata with those sources, and add its number (like Q12345) to your Brand Kit.',
+              'We never write to Wikidata or to Google’s Knowledge Graph for you.',
+            ];
   } else {
     steps = ['Fix the issue, then press “Mark as done”.'];
   }

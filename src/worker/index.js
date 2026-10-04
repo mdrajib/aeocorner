@@ -6,6 +6,7 @@ import { createAdapters } from '../engines/index.js';
 import { createClaude } from '../llm/claude.js';
 import { createSecretBox } from '../lib/secrets.js';
 import { createGoogle } from '../integrations/google.js';
+import { createWikidata } from '../integrations/wikidata.js';
 import { createStripe } from '../integrations/stripe.js';
 import { createObjectStore } from '../integrations/spaces.js';
 import { createAlerter } from '../lib/alerts.js';
@@ -103,6 +104,8 @@ const runtime = createWorkerRuntime({
   content,
   billing,
   google: config.google ? createGoogle(config.google) : null,
+  // Entity checks (Milestone 12): the public Wikidata API needs no key.
+  entity: { wikidata: createWikidata() },
   mail: createNotifier({
     db,
     mailer: createMailer({ config, logger }),

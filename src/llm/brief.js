@@ -15,7 +15,7 @@ import { fenced, readJsonReply } from './reply.js';
  * (`checkBrief`). Bump BRIEF_VERSION when the prompt or schema changes.
  */
 
-export const BRIEF_VERSION = 'b1';
+export const BRIEF_VERSION = 'b2';
 export const SCHEMA_TYPES = Object.freeze(['Article', 'FAQPage', 'HowTo']);
 export const OUTLINE_MIN = 3;
 export const OUTLINE_MAX = 9;
@@ -33,6 +33,8 @@ Plan:
 - entities: names of places, products, standards and organisations the page should mention, taken from the facts and evidence.
 - internalLinks: pages on the business's own site to link to, each with the exact address from the list you were given and short anchor text. Use none if the list is empty. Never invent an address.
 - schemaType: FAQPage when the page is mostly questions and answers, HowTo for step-by-step instructions, otherwise Article.
+
+If the recommended format is about_page, this is the business's About page. Its headings are the questions a stranger or an answer engine asks about the business: who it is, what it does, who it is for, where it is based, when it began, and why to trust it. Open with a direct answer that names the business, what it does and for whom. Plan a section only if the facts support it: with no fact for the founding year or the place, leave that section out. Never invent a person, a credential, an award or a number.
 
 Write plain English at about an eighth-grade reading level. Use the business's voice if one is given. Never claim the business is the best, first or only unless a fact says so.`;
 

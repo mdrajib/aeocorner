@@ -307,12 +307,35 @@ export function systemRepos(prisma) {
     },
   };
 
+  const entity = {
+    /**
+     * Active projects whose entity checks (their profiles and Wikidata) were last made more than `days` ago, or never:
+     * the daily sweep queues one `entity.check` for each. IDs only; nothing about the checks or the brand is read here.
+     */
+    async due({ now = new Date(), days = 7, limit = 200 } = {}) {
+      const before = new Date(now.getTime() - days * 86_400_000);
+      const rows = await prisma.projects.findMany({
+        where: {
+          status: 'active',
+          deleted_at: null,
+          organizations: { deleted_at: null },
+          entity_checks: { none: { checked_at: { gte: before } } },
+        },
+        select: { id: true, org_id: true },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      return rows.map((r) => ({ orgId: r.org_id, projectId: r.id }));
+    },
+  };
+
   return {
     scheduling,
     spendMonitor,
     providerHealth,
     outcomes,
     verifications,
+    entity,
     traffic,
     digest,
     billing: systemBilling(prisma),

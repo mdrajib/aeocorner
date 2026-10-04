@@ -465,8 +465,9 @@ export function actionRepos(prisma, orgId) {
 
       const found = new Set(items.map((i) => i.stableKey));
       for (const rec of live) {
+        // A rule may be judged on its own (the entity rules each need their own evidence); otherwise its family decides.
         const family = rec.rule_code.split('.')[0];
-        if (!evaluated?.[family]) continue;
+        if (!(evaluated?.[rec.rule_code] ?? evaluated?.[family])) continue;
         if (found.has(rec.stable_key) || detected.has(rec.stable_key)) continue;
         if (rec.signal_cleared_at) continue;
         const result = await prisma.recommendations.updateMany({

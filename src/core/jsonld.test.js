@@ -337,3 +337,24 @@ test('an AboutPage and a ContactPage are valid; an unknown page kind is not', ()
   assert.equal(validateJsonLd(page('ContactPage')).ok, true);
   assert.equal(validateJsonLd(page('CheckoutPage')).ok, false);
 });
+
+const orgWithFounding = (foundingDate) => ({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Acme',
+  url: 'https://acme.test/',
+  foundingDate,
+});
+
+test('a founding date may be a four-digit year or a full date (Milestone 12)', () => {
+  assert.equal(validateJsonLd(orgWithFounding('2014')).ok, true);
+  assert.equal(validateJsonLd(orgWithFounding('2014-05-01')).ok, true);
+});
+
+test('any other founding date is refused, with a message that names both forms', () => {
+  for (const bad of ['14', '1066', '2014-13', 'last year', '2014 ']) {
+    const r = validateJsonLd(orgWithFounding(bad));
+    assert.equal(r.ok, false, bad);
+    assert.match(r.errors[0].message, /year such as 2014/);
+  }
+});

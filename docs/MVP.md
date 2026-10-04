@@ -9,7 +9,7 @@
 | **Reference product analyzed** | [aeoengine.ai](https://aeoengine.ai) (homepage, platform, pricing guide, free AEO report, module pages) |
 | **Status** | Draft. Open decisions are listed in [§17](#17-decisions-needed-from-the-founder) |
 | **Code status** | No code yet. This document is the source of truth for the MVP build |
-| **Companion docs** | [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md): customer experience, stage-by-stage data flow, messages, and 6 proposed changes to this spec · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md): internal admin console, staff roles, admin flows, recurring tasks, background jobs, alerts · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md): MySQL schema v1 (66 tables; Clerk + Prisma; DDL in [db/schema.sql](db/schema.sql)), tenancy rules, query patterns, retention, grants |
+| **Companion docs** | [CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md): customer experience, stage-by-stage data flow, messages, and 6 proposed changes to this spec · [ADMIN_OPERATIONS.md](ADMIN_OPERATIONS.md): internal admin console, staff roles, admin flows, recurring tasks, background jobs, alerts · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md): MySQL schema v1 (68 tables; Clerk + Prisma; DDL in [db/schema.sql](db/schema.sql)), tenancy rules, query patterns, retention, grants |
 
 ---
 

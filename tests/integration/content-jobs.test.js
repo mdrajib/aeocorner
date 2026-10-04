@@ -409,7 +409,7 @@ describe('brief and draft', () => {
       [got.status, got.format, got.title],
       ['drafting', 'faq', 'How much does a dental crown cost in Austin?'],
     );
-    assert.equal(got.brief.version, 'b1');
+    assert.equal(got.brief.version, 'b2');
     assert.deepEqual(
       ctx.jobs.added.map((a) => a.name),
       ['content.draft'],

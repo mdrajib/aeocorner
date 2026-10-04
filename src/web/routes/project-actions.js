@@ -20,6 +20,7 @@ import {
 } from '../../core/autofix.js';
 import { buildFix, payloadOf, PLUGIN_WITH_FIXES, pluginAtLeast } from '../../core/autofix-fixes.js';
 import { STATUS_LABELS } from '../../core/content-lifecycle.js';
+import { verifiedProfileUrls } from '../../core/entity-checks.js';
 import { DEFAULT_ENGINE_LABELS } from '../../core/narrative.js';
 import { effortLabel } from '../../core/ice.js';
 import { canShare, NEVER_SHARED, SHARED_FIELDS } from '../../core/proof-share.js';
@@ -294,12 +295,19 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
         definition: identity.definition,
       };
       if (rule.scope === 'home') {
+        // The profile links that passed our check and the founding year the customer typed: what an Organization fix may add
+        // beyond what is typed on this screen (Milestone 12).
+        const entityChecks = await req.orgDb.entityChecks.checks(req.project.id);
         built = buildAutofix({
           ruleCode: rec.ruleCode,
           brand: brandInfo,
           homeUrl,
           domain: req.project.domain,
           extras: extras.ok ? extras : {},
+          entity: {
+            sameAs: verifiedProfileUrls(entityChecks),
+            foundingYear: kit?.data?.entity?.foundingYear ?? '',
+          },
           existingNodes: await req.orgDb.autofix.appliedNodes(
             req.project.id,
             homeUrl.endsWith('/') ? homeUrl : `${homeUrl}/`,
@@ -435,6 +443,8 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
         place: placeOf(p.rule),
         isHomeGraph: p.rule.scope === 'home',
         offersExtras: p.rule.type === 'Organization',
+        entityFix: Boolean(p.rule.entity),
+        entityHref: `${base}/entity`,
         built: p.built?.ok ? p.built : null,
         builtError: p.built && !p.built.ok ? p.built.reason : null,
         pluginOutdated: Boolean(p.built?.outdated),

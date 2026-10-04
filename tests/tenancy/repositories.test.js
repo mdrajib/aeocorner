@@ -1607,6 +1607,56 @@ describe('shared proof cards (D4)', () => {
   });
 });
 
+describe('entity checks (Milestone 12)', () => {
+  let aProject;
+  let bProject;
+  const subject = 'https://www.linkedin.com/company/leak-test';
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Entity A');
+    bProject = await fx.project(B.org.id, 'Entity B');
+    await B.scoped.entityChecks.saveCheck(bProject.id, {
+      kind: 'profile',
+      subject,
+      platform: 'linkedin',
+      status: 'passed',
+      finding: 'names_brand',
+    });
+  });
+
+  test('every call: B’s project is not found from A', async () => {
+    const f = A.scoped.entityChecks;
+    const window = { from: new Date(), to: new Date() };
+    await refuses(f.checks(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      f.saveCheck(bProject.id, {
+        kind: 'profile',
+        subject,
+        status: 'failed',
+        finding: 'not_found',
+      }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(f.forgetProfilesExcept(bProject.id, []), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.accuracyInputs(bProject.id, window), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('the same address checked in A’s project does not touch B’s row', async () => {
+    await A.scoped.entityChecks.saveCheck(aProject.id, {
+      kind: 'profile',
+      subject,
+      platform: 'linkedin',
+      status: 'error',
+      finding: 'blocked',
+    });
+    const [a] = await A.scoped.entityChecks.checks(aProject.id);
+    const [b] = await B.scoped.entityChecks.checks(bProject.id);
+    assert.deepEqual([a.status, b.status], ['error', 'passed']);
+    // Forgetting A’s profiles removes only A’s.
+    assert.equal(await A.scoped.entityChecks.forgetProfilesExcept(aProject.id, []), 1);
+    assert.equal((await B.scoped.entityChecks.checks(bProject.id)).length, 1);
+  });
+});
+
 describe('billing, alerts, notification choices and Google traffic (Milestone 8)', () => {
   let aProject;
   let bProject;
@@ -1825,6 +1875,9 @@ describe('what the worker and the staff console may look up across organizations
 
 describe('what the worker may look up across organizations about the Action Center', () => {
   test('due(), overdue() and ruleStats() return IDs and counts, never tenant content', async () => {
+    for (const row of await db.system.entity.due({ now: new Date('2099-01-01') })) {
+      assert.deepEqual(Object.keys(row).sort(), ['orgId', 'projectId']);
+    }
     for (const row of await db.system.outcomes.due({ now: new Date('2099-01-01') })) {
       assert.deepEqual(Object.keys(row).sort(), ['orgId', 'projectId', 'recommendationId']);
     }
@@ -1832,7 +1885,7 @@ describe('what the worker may look up across organizations about the Action Cent
       assert.deepEqual(Object.keys(row).sort(), ['attempt', 'orgId', 'recommendationId']);
     }
     for (const [rule, counts] of Object.entries(await db.system.outcomes.ruleStats())) {
-      assert.match(rule, /^(readiness|visibility)\./);
+      assert.match(rule, /^(readiness|visibility|entity)\./);
       assert.deepEqual(Object.keys(counts).sort(), ['decided', 'wins']);
     }
   });
@@ -1873,6 +1926,7 @@ describe('coverage: no repository function without a leak test', () => {
       'savePrevious',
     ],
     proofShares: ['forRecommendation', 'revoke', 'share'],
+    entityChecks: ['accuracyInputs', 'checks', 'forgetProfilesExcept', 'saveCheck'],
     alerts: ['digestFacts', 'markAlerted', 'pending', 'recipients'],
     notifyPrefs: ['get', 'set'],
     google: ['choose', 'disconnect', 'saveGrant', 'secret', 'status', 'syncResult'],
@@ -1998,6 +2052,7 @@ describe('coverage: no repository function without a leak test', () => {
     providerHealth: ['knownProviders', 'recent', 'upsertBucket'],
     outcomes: ['due', 'ruleStats'],
     verifications: ['overdue'],
+    entity: ['due'],
     proofShares: ['byPublicId'],
     traffic: ['connections'],
     digest: ['projectsInTimezones', 'timezones'],
@@ -2069,6 +2124,7 @@ describe('coverage: no repository function without a leak test', () => {
       'dashboard',
       'draftQuota',
       'entities',
+      'entityChecks',
       'extractions',
       'google',
       'integrations',

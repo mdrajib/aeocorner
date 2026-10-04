@@ -126,6 +126,11 @@ export const JOBS = Object.freeze({
     queue: 'content',
     schema: z.object({ orgId: id, projectId: id, siteChangeId: id }),
   },
+  // Look at a project's entity (Milestone 12): each profile in its Brand Kit, and Wikidata. Reads the Brand Kit; the
+  // payload carries only IDs. Daily, `entity.sweep` queues one for every project whose checks are a week old.
+  'entity.check': { queue: 'crawl', schema: z.object({ orgId: id, projectId: id }) },
+  'entity.sweep': { queue: 'system', schema: z.object({}) },
+
   // Check a project's WordPress connection: does the site answer, is the login still good, is the plugin there.
   'wordpress.test': { queue: 'content', schema: z.object({ orgId: id, projectId: id }) },
 
