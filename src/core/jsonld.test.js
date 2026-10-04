@@ -324,3 +324,16 @@ test('WebSite needs a name and an address', () => {
   assert.ok(errorsOf({ ...site, name: undefined }).some((e) => /name/.test(e)));
   assert.ok(errorsOf({ ...site, url: 'not a url' }).length > 0);
 });
+
+test('an AboutPage and a ContactPage are valid; an unknown page kind is not', () => {
+  const page = (type) => ({
+    ...ctx,
+    '@type': type,
+    name: 'About Data Dental',
+    url: 'https://example.com/about',
+    description: 'Who we are.',
+  });
+  assert.equal(validateJsonLd(page('AboutPage')).ok, true);
+  assert.equal(validateJsonLd(page('ContactPage')).ok, true);
+  assert.equal(validateJsonLd(page('CheckoutPage')).ok, false);
+});

@@ -3,7 +3,7 @@
  * Plugin Name:       AEO Corner Connector
  * Plugin URI:        https://aeocorner.com/wordpress
  * Description:       Lets your AEO Corner account add structured data (JSON-LD) and page titles and descriptions to your pages on the server, and tells search and AI engines about new pages (IndexNow).
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            AEO Corner
@@ -20,6 +20,7 @@
  *   - prints the JSON-LD the app saved for a page in that page's <head> on the server, so crawlers that do not run
  *     JavaScript see it, and changes a page's title and description (through Yoast SEO or Rank Math when one is
  *     active);
+ *   - adds Allow lines for answer crawlers to the end of the robots.txt WordPress builds, when the app saved some;
  *   - serves the IndexNow key file and tells IndexNow's servers about a changed page when the app asks.
  * It makes no request of its own except to IndexNow, and only for addresses on this site.
  *
@@ -30,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AEO_CORNER_VERSION', '1.0.0' );
+define( 'AEO_CORNER_VERSION', '1.1.0' );
 define( 'AEO_CORNER_NAMESPACE', 'aeocorner/v1' );
 define( 'AEO_CORNER_DIR', plugin_dir_path( __FILE__ ) );
 

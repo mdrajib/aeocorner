@@ -269,7 +269,8 @@ describe('the plugin routes', () => {
     const s = await stub();
     const admin = clientFor(s);
     const status = await admin.plugin.connect({ secret: SECRET, indexNowKey: 'k'.repeat(32) });
-    assert.equal(status.pluginVersion, '1.0.0');
+    assert.equal(status.pluginVersion, '1.1.0');
+    assert.deepEqual(status.features, ['schema', 'meta', 'state', 'robots']);
     assert.equal(status.seoPlugin, 'yoast');
     assert.equal(status.indexNow, true);
     assert.equal(s.state.secret, SECRET);
@@ -388,5 +389,93 @@ describe('the plugin routes', () => {
       assert.ok(!JSON.stringify(call.headers).includes(SECRET), 'not in headers');
       assert.ok(!call.body.includes(SECRET), 'not in a body');
     }
+  });
+});
+
+describe('the plugin routes added in 1.1.0', () => {
+  const GROUP = 'User-agent: OAI-SearchBot\nAllow: /';
+  const connected = async (options) => {
+    const s = await stub(options);
+    await clientFor(s).plugin.connect({ secret: SECRET });
+    return { s, c: clientFor(s, { hmacSecret: SECRET }) };
+  };
+
+  test('state reads what the plugin holds for a page and for robots.txt', async () => {
+    const { s, c } = await connected();
+    const url = `${s.siteUrl}/about`;
+    assert.deepEqual(await c.plugin.state({ url }), {
+      schema: null,
+      title: null,
+      description: null,
+      robots: { lines: null, virtual: true },
+    });
+    const jsonld = { '@context': 'https://schema.org', '@type': 'AboutPage', name: 'About' };
+    await c.plugin.setSchema({ url, jsonld });
+    await c.plugin.setMeta({ url, title: 'About us', description: null });
+    await c.plugin.setRobots({ lines: GROUP });
+    assert.deepEqual(await c.plugin.state({ url }), {
+      schema: jsonld,
+      title: 'About us',
+      description: null,
+      robots: { lines: GROUP, virtual: true },
+    });
+    assert.equal((await c.plugin.state()).schema, null, 'no address, no page state');
+  });
+
+  test('a title and description both emptied go back to the site’s own', async () => {
+    const { s, c } = await connected();
+    const url = `${s.siteUrl}/about`;
+    await c.plugin.setMeta({ url, title: 'About us', description: 'Who we are.' });
+    assert.equal(s.state.meta.has(url), true);
+    await c.plugin.setMeta({ url, title: null, description: null });
+    assert.equal(s.state.meta.has(url), false);
+  });
+
+  test('robots.txt lines: saved, shown by the site, removed; only plain Allow groups are accepted', async () => {
+    const { s, c } = await connected();
+    await c.plugin.setRobots({ lines: GROUP });
+    const res = await testFetcher({ ports: [s.port] }).fetch(`${s.siteUrl}/robots.txt`, {
+      accept: ['text/plain'],
+      bodyTypes: [/text/i],
+    });
+    assert.match(
+      res.body.toString(),
+      /Disallow: \/wp-admin\/\n\nUser-agent: OAI-SearchBot\nAllow: \//,
+    );
+    assert.deepEqual(await c.plugin.removeRobots(), { removed: true });
+    assert.deepEqual(await c.plugin.removeRobots(), { removed: false });
+    for (const lines of [
+      'User-agent: *\nDisallow: /',
+      'User-agent: GPTBot\nAllow: /\nSitemap: https://x.example/s.xml',
+      '',
+    ]) {
+      await rejectsWith(c.plugin.setRobots({ lines }), 'bad_response');
+    }
+  });
+
+  test('a real robots.txt file on the site is robots_file, in plain words', async () => {
+    const { c } = await connected({ robotsFile: true });
+    assert.equal((await c.plugin.state()).robots.virtual, false);
+    await assert.rejects(c.plugin.setRobots({ lines: GROUP }), (e) => {
+      assert.equal(e.code, 'robots_file');
+      assert.match(e.message, /real robots\.txt file/);
+      return true;
+    });
+  });
+
+  test('a plugin from before these routes is plugin_outdated, not plugin_missing', async () => {
+    const { c } = await connected({ pluginVersion: '1.0.0' });
+    await rejectsWith(c.plugin.state({ url: 'x' }), 'plugin_outdated');
+    await rejectsWith(c.plugin.setRobots({ lines: GROUP }), 'plugin_outdated');
+    await rejectsWith(c.plugin.removeRobots(), 'plugin_outdated');
+    assert.deepEqual((await c.plugin.status()).features, [], 'and the status says what it can do');
+  });
+
+  test('a page on another site is refused for its state too', async () => {
+    const { c } = await connected();
+    await assert.rejects(
+      c.plugin.state({ url: 'https://evil.example/page' }),
+      (e) => e.code === 'bad_response',
+    );
   });
 });

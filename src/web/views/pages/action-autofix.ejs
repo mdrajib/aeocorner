@@ -1,6 +1,9 @@
 <%#
   D3: preview and approve an auto-fix. Props: rec ({ id, title, status }), fixLabel, pluginReady, connected, wordpressHref, canApprove, open,
-  inFlight (a write or a removal is under way: nothing more can be approved), restoreText, change ({ tone, text, status, when, canUndo } | null), built ({ targetUrl, hash, includes, notIncluded } | null), builtError, code (the exact JSON-LD),
+  inFlight (a write or a removal is under way: nothing more can be approved), restoreText, place ('home page' | 'pages' | 'robots.txt'),
+  change ({ tone, text, status, when, canUndo } | null), built ({ targetUrl, hash, includes, notIncluded } | null), builtError, pluginOutdated,
+  preview ({ type: 'home' | 'pages' | 'meta' | 'robots', where, code?, codes?, rows? }: the exact data, in the shape of its kind),
+  isHomeGraph, offersExtras (the logo and profile links form is for the Organization fix only),
   extrasErrors ({ logoUrl, sameAs }), logoUrl, sameAs, actionBase; locals: orgBase, projectBase, projectName, domain, csrfToken.
   What is shown is exactly what is sent: the approval form carries a fingerprint of this data, and a change underneath it
   (the Brand Kit, what is already on the page) is refused and shown again.
@@ -12,14 +15,14 @@
 <p class="text-ink-700 mt-2 max-w-3xl text-sm">Fixes: <%= rec.title %>. Read exactly what we would add, then approve it. Nothing changes on your site until you do.</p>
 
 <% if (change) { %>
-<div class="mt-6"><%- ui.banner({ tone: change.tone, title: change.text, text: change.status === 'rolled_back' ? 'Your home page is back to how it was before this fix, and the recommendation is back in progress. You can preview and approve the fix again below.' : (change.status === 'applied' && change.tone === 'danger') ? 'The fix is still on your site. You can try removing it again.' : change.status === 'applied' ? 'Written ' + change.when + '. We are now fetching your page the way an AI crawler does, and checking it is there. You will see the result on the recommendation.' : change.status === 'failed' ? 'Nothing on your site was left half-changed. You can try again below.' : 'This page updates by itself.' }) %></div>
+<div class="mt-6"><%- ui.banner({ tone: change.tone, title: change.text, text: change.status === 'rolled_back' ? 'Your ' + place + ' ' + (place === 'pages' ? 'are' : 'is') + ' back to how ' + (place === 'pages' ? 'they were' : 'it was') + ' before this fix, and the recommendation is back in progress. You can preview and approve the fix again below.' : (change.status === 'applied' && change.tone === 'danger') ? 'The fix is still on your site. You can try removing it again.' : change.status === 'applied' ? 'Written ' + change.when + '. We are now fetching your page the way an AI crawler does, and checking it is there. You will see the result on the recommendation.' : change.status === 'failed' ? 'Nothing on your site was left half-changed. You can try again below.' : 'This page updates by itself.' }) %></div>
 <% } %>
 
 <% if (change && change.canUndo && canApprove) { %>
 <section class="card mt-6" aria-labelledby="undo-h">
   <div class="card-body flex flex-col gap-3">
     <h3 id="undo-h" class="text-base font-semibold">Take it off your site</h3>
-    <p class="text-ink-700 text-sm">We put back exactly what your home page had before this fix: <%= restoreText %>. Nothing else on your site changes. The recommendation goes back to in progress, and the before and after measurement for this fix is cleared, because the fix is no longer there.</p>
+    <p class="text-ink-700 text-sm">We put back exactly what the plugin held before this fix: <%= restoreText %>. Nothing else on your site changes. The recommendation goes back to in progress, and the before and after measurement for this fix is cleared, because the fix is no longer there.</p>
     <form method="post" action="<%= actionBase %>/autofix/undo" class="flex flex-wrap items-center gap-3">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <%- ui.button({ label: 'Remove it from my site', type: 'submit', variant: 'danger' }) %>
@@ -32,22 +35,47 @@
 <div class="mt-6"><%- ui.banner({ tone: 'warning', title: connected ? 'The AEO Corner plugin is not connected.' : 'WordPress is not connected.', text: 'Auto-fix writes through our WordPress plugin, so it needs the plugin on your site. Everything else on this page waits until it is connected.' }) %></div>
 <div class="mt-4"><%- ui.button({ label: 'Connect WordPress and the plugin', href: wordpressHref, variant: 'primary' }) %></div>
 <% } else if (builtError) { %>
-<div class="mt-6"><%- ui.banner({ tone: 'danger', title: 'We cannot prepare this fix yet.', text: builtError }) %></div>
+<div class="mt-6"><%- ui.banner(pluginOutdated ? { tone: 'warning', title: 'Update the AEO Corner plugin first.', text: builtError } : { tone: 'danger', title: 'We cannot prepare this fix yet.', text: builtError }) %></div>
+<% if (pluginOutdated) { %><div class="mt-4"><%- ui.button({ label: 'Open the WordPress screen', href: wordpressHref, variant: 'primary' }) %></div><% } %>
 <% } else if (built) { %>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-2">
   <%- ui.card({ title: 'Where it goes', headingLevel: 3, html:
-    '<p class="text-ink-800">Your home page, <strong class="[overflow-wrap:anywhere]">' + ui.esc(built.targetUrl) + '</strong>, as a block of structured data in the page’s head. The AEO Corner plugin adds it. Nothing else on your site changes, and nothing is shown to visitors.</p>' }) %>
+    '<p class="text-ink-800">' + ui.esc(preview.where) + ' Nothing else on your site changes.</p>' }) %>
   <%- ui.card({ title: 'What it says', headingLevel: 3, html:
     '<ul class="flex list-disc flex-col gap-1 pl-5 text-ink-800">' + built.includes.map((t) => '<li>' + ui.esc(t) + '</li>').join('') + '</ul>'
     + (built.notIncluded.length ? '<h4 class="mt-4 text-sm font-semibold">Not included</h4><ul class="text-ink-700 mt-1 list-disc pl-5 text-sm">' + built.notIncluded.map((t) => '<li>' + ui.esc(t) + '</li>').join('') + '</ul>' : '') }) %>
 </div>
 
+<% if (preview.type === 'home') { %>
 <h3 class="mt-8 text-xl">The exact code</h3>
 <p class="text-ink-700 mt-1 text-sm">This is what is written, word for word.</p>
-<pre class="draft-code mt-3" tabindex="0" aria-label="The structured data that would be added"><code><%= code %></code></pre>
+<pre class="draft-code mt-3" tabindex="0" aria-label="The structured data that would be added"><code><%= preview.code %></code></pre>
+<% } else if (preview.type === 'pages') { %>
+<h3 class="mt-8 text-xl">The exact code, page by page</h3>
+<p class="text-ink-700 mt-1 text-sm">Each block is written to its own page, word for word.</p>
+<% preview.codes.forEach((c, i) => { %>
+<h4 class="mt-5 text-base font-semibold [overflow-wrap:anywhere]"><%= c.type %> on <%= c.url %></h4>
+<pre class="draft-code mt-2" tabindex="0" aria-label="The structured data for <%= c.url %>"><code><%= c.code %></code></pre>
+<% }) %>
+<% } else if (preview.type === 'meta') { %>
+<h3 class="mt-8 text-xl">What each page says now, and what it would say</h3>
+<p class="text-ink-700 mt-1 text-sm">Written from the page’s own headline and opening paragraph. A part left as “—” is not changed.</p>
+<div class="mt-3">
+<%- ui.table({ caption: 'Titles and descriptions, before and after', captionHidden: true, columns: [{ key: 'page', label: 'Page' }, { key: 'now', label: 'Now' }, { key: 'next', label: 'Would be' }], rows: preview.rows.map((r) => ({
+  page: r.url,
+  now: { html: '<p><strong>Title:</strong> ' + ui.esc(r.title === null ? '—' : (r.titleWas || 'none')) + '</p><p class="mt-1"><strong>Description:</strong> ' + ui.esc(r.description === null ? '—' : (r.descriptionWas || 'none')) + '</p>' },
+  next: { html: '<p><strong>Title:</strong> ' + ui.esc(r.title === null ? '—' : r.title) + '</p><p class="mt-1"><strong>Description:</strong> ' + ui.esc(r.description === null ? '—' : r.description) + '</p>' },
+})) }) %>
+</div>
+<% } else { %>
+<h3 class="mt-8 text-xl">The exact lines</h3>
+<p class="text-ink-700 mt-1 text-sm">These are added at the end of your robots.txt, word for word. They open your whole site to the crawlers named, and to no others.</p>
+<pre class="draft-code mt-3" tabindex="0" aria-label="The robots.txt lines that would be added"><code><%= preview.code %></code></pre>
+<% } %>
 
 <% if (open && !inFlight) { %>
+<% if (offersExtras) { %>
 <form method="get" action="<%= actionBase %>/autofix" class="mt-8 flex max-w-xl flex-col gap-3">
   <h3 class="text-base font-semibold">Add more to it</h3>
   <p class="text-ink-700 text-sm">We only write what we know. If you add these, the preview above changes, and the check can earn those points.</p>
@@ -55,12 +83,13 @@
   <%- ui.field({ id: 'af-same', name: 'sameAs', label: 'Profile links', type: 'textarea', rows: 3, value: sameAs, error: extrasErrors.sameAs, hint: 'One full address per line: your LinkedIn page, Crunchbase, Google Business Profile, Wikipedia…' }) %>
   <div><%- ui.button({ label: 'Update the preview', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
 </form>
+<% } %>
 
 <% if (canApprove) { %>
 <section class="card mt-8" aria-labelledby="approve-h">
   <div class="card-body flex flex-col gap-3">
     <h3 id="approve-h" class="text-base font-semibold">Approve this</h3>
-    <p class="text-ink-700 text-sm">We write exactly the code above to your home page, then fetch the page as an AI crawler would and confirm it is there. Marking it done and measuring the effect start by themselves.</p>
+    <p class="text-ink-700 text-sm">We write exactly what is shown above to your <%= place %>, then fetch the site as an AI crawler would and confirm it is there. Marking it done and measuring the effect start by themselves. You can take it off again from this page.</p>
     <form method="post" action="<%= actionBase %>/autofix/approve" class="flex flex-wrap items-center gap-3">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="hash" value="<%= built.hash %>">

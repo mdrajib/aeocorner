@@ -1522,6 +1522,7 @@ describe('auto-fix approvals', () => {
       () => f.finish(bProject.id, 1n, { ok: true }),
       () => f.requestUndo(bProject.id, 1n, { userId: A.owner.id }),
       () => f.finishUndo(bProject.id, 1n, { ok: true }),
+      () => f.savePrevious(bProject.id, 1n, { pages: [] }),
       () => A.scoped.recommendations.fixRemoved(bProject.id, bRec.id),
     ];
     for (const call of asA) await refuses(call(), 'PROJECT_NOT_IN_ORG');
@@ -1542,6 +1543,7 @@ describe('auto-fix approvals', () => {
     );
     assert.equal(await f.forApply(aProject.id, 999999n), null);
     await refuses(f.requestUndo(aProject.id, 999999n, { userId: A.owner.id }), 'CHANGE_NOT_FOUND');
+    assert.equal(await f.savePrevious(aProject.id, 999999n, { pages: [] }), false);
     await refuses(
       A.scoped.recommendations.fixRemoved(aProject.id, bRec.id),
       'RECOMMENDATION_NOT_FOUND',
@@ -1868,6 +1870,7 @@ describe('coverage: no repository function without a leak test', () => {
       'forApply',
       'markApplying',
       'requestUndo',
+      'savePrevious',
     ],
     proofShares: ['forRecommendation', 'revoke', 'share'],
     alerts: ['digestFacts', 'markAlerted', 'pending', 'recipients'],

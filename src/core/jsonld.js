@@ -73,6 +73,9 @@ const VOCAB = {
       primaryImageOfPage: 'ImageObject',
     },
   },
+  // Page kinds the readiness check C2 asks for on an about or a contact page (Auto-fix writes them).
+  AboutPage: { parent: 'WebPage' },
+  ContactPage: { parent: 'WebPage' },
   // The site's own WebSite block (src/web/meta.js). The customer templates never write it; the marketing site's
   // validation test (tests/routes/marketing-pages.test.js) does.
   WebSite: {

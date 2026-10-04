@@ -304,6 +304,14 @@ const actionIds = {};
         points: 0,
         possible: 8,
         summary: 'robots.txt blocks OAI-SearchBot',
+        // What the auto-fix screens (D3) are built from: which crawlers are blocked, which pages lack a title, which lack schema.
+        evidence: {
+          robotsFile: true,
+          bots: [
+            { agent: 'OAI-SearchBot', verdict: 'blocked' },
+            { agent: 'Googlebot', verdict: 'partly', rule: 'Disallow: /private/' },
+          ],
+        },
       },
       {
         code: 'C1',
@@ -312,7 +320,52 @@ const actionIds = {};
         possible: 6,
         summary: 'Organization schema has no logo',
       },
-      { code: 'F3', status: 'partial', points: 1, possible: 3, summary: 'Two pages share a title' },
+      {
+        code: 'F3',
+        status: 'partial',
+        points: 1,
+        possible: 3,
+        summary: 'Two pages share a title',
+        evidence: {
+          pages: [
+            {
+              url: 'https://www.dashboard-dental.example.test/whitening',
+              pageType: 'service',
+              title: '',
+              description: '',
+              name: 'Teeth whitening',
+              lead: 'Our in-office whitening takes about an hour and lightens teeth several shades in one visit.',
+              problems: ['no_title', 'no_description'],
+            },
+          ],
+        },
+      },
+      {
+        code: 'C2',
+        status: 'fail',
+        points: 0,
+        possible: 8,
+        summary: '1 of 1 key pages lacks its schema type.',
+        evidence: {
+          pages: [
+            {
+              url: 'https://www.dashboard-dental.example.test/about',
+              pageType: 'about',
+              expected: ['AboutPage'],
+              found: [],
+              ok: false,
+              onlyAfterJavaScript: false,
+              basics: {
+                url: 'https://www.dashboard-dental.example.test/about',
+                pageType: 'about',
+                name: 'About Data Dental',
+                description: 'Who we are and where we practice.',
+                lead: '',
+              },
+            },
+          ],
+        },
+      },
       {
         code: 'C4',
         status: 'fail',
@@ -327,6 +380,9 @@ const actionIds = {};
   const byRule = (code) => recs.find((r) => r.ruleCode === code);
   actionIds.open = String(byRule('readiness.A1').id);
   actionIds.autofix = String(byRule('readiness.C4').id);
+  actionIds.robots = String(byRule('readiness.A1').id);
+  actionIds.titles = String(byRule('readiness.F3').id);
+  actionIds.pageSchema = String(byRule('readiness.C2').id);
   // The plugin is connected on this project, so the auto-fix screen (D3) shows a real preview.
   await scoped.integrations.saveWordpress(dashProject.id, {
     config: {
@@ -334,6 +390,7 @@ const actionIds = {};
       username: 'editor',
       pluginInstalled: true,
       pluginConnected: true,
+      pluginVersion: '1.1.0',
       canPublish: true,
     },
     secret: { ciphertext: Buffer.alloc(40, 1), wrappedDek: Buffer.alloc(60, 2), keyVersion: 1 },
@@ -663,6 +720,9 @@ const fixtureInfo = {
   proofShareId: actionIds.shareAddress,
   actionAutofixId: actionIds.autofix,
   actionUndoId: actionIds.undo,
+  actionRobotsId: actionIds.robots,
+  actionTitlesId: actionIds.titles,
+  actionPageSchemaId: actionIds.pageSchema,
   contentReadyId: contentIds.ready,
   contentApprovedId: contentIds.approved,
   contentPublishedId: contentIds.published,

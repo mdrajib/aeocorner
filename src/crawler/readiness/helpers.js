@@ -148,3 +148,24 @@ export function sameAddress(a, b) {
 }
 
 export { sameSite };
+
+/**
+ * What an Auto-fix needs to know about a page, taken from its facts (nothing is invented): its own headline, its
+ * description, the first real paragraph and any dates it states. Kept in a check's evidence for the pages a fix would touch.
+ */
+export function pageBasics(page) {
+  const facts = page.facts ?? {};
+  const h1 = (facts.headings ?? []).find((h) => h.level === 1)?.text ?? '';
+  const lead = (facts.blocks ?? []).find((b) => b.type === 'p' && (b.words ?? 0) >= 8)?.text ?? '';
+  const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+  return {
+    url: page.url,
+    pageType: page.pageType,
+    title: clip(facts.title ?? '', 200),
+    description: clip(facts.metaDescription ?? '', 400),
+    name: clip(h1 || facts.title || '', 200),
+    lead: clip(lead, 300),
+    published: facts.dates?.jsonLdPublished || facts.dates?.metaPublished || '',
+    modified: facts.dates?.jsonLdModified || facts.dates?.metaModified || '',
+  };
+}

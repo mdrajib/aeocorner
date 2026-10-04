@@ -411,6 +411,30 @@ describe('C2 page-type schema on key pages', () => {
     assert.equal(r.status, 'pass');
   });
 
+  test('a page that lacks its schema carries what Auto-fix may build it from, and a passing page does not', () => {
+    const lacking = page({
+      url: 'https://acme.com/blog/widgets',
+      type: 'article',
+      html: html({
+        head: '<title>Widgets | Acme</title><meta name="description" content="All about widgets.">',
+        body: `<main><h1>All about widgets</h1><p>${words(12)}</p></main>`,
+      }),
+    });
+    const passing = page({
+      url: 'https://acme.com/products/widget-pro',
+      type: 'product',
+      html: productHtml(true),
+    });
+    const r = run('C2', context({ pages: [lacking, passing] }));
+    const [bad, good] = r.evidence.pages;
+    assert.equal(bad.ok, false);
+    assert.equal(bad.basics.name, 'All about widgets');
+    assert.equal(bad.basics.description, 'All about widgets.');
+    assert.match(bad.basics.lead, /^word0 word1/);
+    assert.equal(good.ok, true);
+    assert.ok(!('basics' in good), 'a passing page needs no fix, so nothing extra is kept');
+  });
+
   test('FAIL: a product page without it', () => {
     const r = run(
       'C2',

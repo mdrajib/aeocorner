@@ -6,7 +6,10 @@
  *   GET    /status      version information
  *   PUT    /schema      save JSON-LD for one page of this site
  *   DELETE /schema      remove it
- *   PUT    /meta        save a title and description for one page
+ *   PUT    /meta        save a title and description for one page (both empty: forget them)
+ *   POST   /state       what is saved for one page and for robots.txt (so a change can be taken back exactly)
+ *   PUT    /robots      save Allow lines for answer crawlers, added to the robots.txt WordPress builds
+ *   DELETE /robots      remove them
  *   POST   /resolve     which post is at an address
  *   POST   /indexnow    tell IndexNow about changed addresses
  *   POST   /disconnect  forget the secret and everything saved
@@ -39,6 +42,9 @@ class AEO_Rest {
 			array( '/schema', 'PUT', 'put_schema' ),
 			array( '/schema', 'DELETE', 'delete_schema' ),
 			array( '/meta', 'PUT', 'put_meta' ),
+			array( '/state', 'POST', 'state' ),
+			array( '/robots', 'PUT', 'put_robots' ),
+			array( '/robots', 'DELETE', 'delete_robots' ),
 			array( '/resolve', 'POST', 'resolve' ),
 			array( '/indexnow', 'POST', 'indexnow' ),
 			array( '/disconnect', 'POST', 'disconnect' ),
@@ -92,6 +98,7 @@ class AEO_Rest {
 			'php'        => PHP_VERSION,
 			'seo_plugin' => $seo,
 			'indexnow'   => '' !== (string) get_option( 'aeo_corner_indexnow', '' ),
+			'features'   => array( 'schema', 'meta', 'state', 'robots' ),
 		);
 	}
 
@@ -165,10 +172,64 @@ class AEO_Rest {
 		if ( strlen( $title ) > 300 || strlen( $description ) > 500 ) {
 			return new WP_Error( 'aeo_too_long', 'The title or description is too long.', array( 'status' => 400 ) );
 		}
+		if ( '' === $title && '' === $description ) {
+			AEO_Store::remove_meta( $url );
+			return rest_ensure_response( array( 'saved' => true, 'removed' => true ) );
+		}
 		if ( ! AEO_Store::set_meta( $url, $title, $description ) ) {
 			return new WP_Error( 'aeo_full', 'Too many pages have their own title.', array( 'status' => 400 ) );
 		}
 		return rest_ensure_response( array( 'saved' => true ) );
+	}
+
+	/** What the plugin holds for a page and for robots.txt: the app saves it before a change, so an undo puts back exactly this. */
+	public static function state( $request ) {
+		$params = $request->get_json_params();
+		$out    = array(
+			'schema'      => null,
+			'title'       => null,
+			'description' => null,
+			'robots'      => array(
+				'lines'   => AEO_Store::get_robots(),
+				'virtual' => ! AEO_Store::robots_file_exists(),
+			),
+		);
+		if ( is_array( $params ) && isset( $params['url'] ) ) {
+			$url = self::url_param( $request );
+			if ( is_wp_error( $url ) ) {
+				return $url;
+			}
+			$schema = AEO_Store::get_schema( $url );
+			if ( is_string( $schema ) && '' !== $schema ) {
+				$decoded = json_decode( $schema, true );
+				$out['schema'] = is_array( $decoded ) ? $decoded : null;
+			}
+			$meta = AEO_Store::get_meta( $url );
+			if ( is_array( $meta ) ) {
+				$out['title']       = isset( $meta['title'] ) && '' !== $meta['title'] ? $meta['title'] : null;
+				$out['description'] = isset( $meta['description'] ) && '' !== $meta['description'] ? $meta['description'] : null;
+			}
+		}
+		return rest_ensure_response( $out );
+	}
+
+	public static function put_robots( $request ) {
+		$params = $request->get_json_params();
+		$lines  = is_array( $params ) && isset( $params['lines'] ) && is_string( $params['lines'] ) ? $params['lines'] : '';
+		// Only plain "User-agent: name / Allow: /" groups: nothing that could block or redirect a crawler.
+		$group = 'User-agent: [A-Za-z0-9._-]{1,60}\nAllow: /';
+		if ( strlen( $lines ) > AEO_Store::MAX_ROBOTS || ! preg_match( '#^' . $group . '(?:\n\n' . $group . ')*$#', $lines ) ) {
+			return new WP_Error( 'aeo_bad_robots', 'Only Allow lines for named crawlers are accepted.', array( 'status' => 400 ) );
+		}
+		if ( AEO_Store::robots_file_exists() ) {
+			return new WP_Error( 'aeo_robots_file', 'This site has a real robots.txt file, so WordPress does not build one. Edit that file instead.', array( 'status' => 409 ) );
+		}
+		AEO_Store::set_robots( $lines );
+		return rest_ensure_response( array( 'saved' => true ) );
+	}
+
+	public static function delete_robots() {
+		return rest_ensure_response( array( 'removed' => AEO_Store::remove_robots() ) );
 	}
 
 	public static function resolve( $request ) {

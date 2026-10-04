@@ -499,14 +499,21 @@ describe('auto-fix: preview and approve (D3)', () => {
 
   test('only a fix the plugin can write has a preview; a viewer can read it but not approve', async () => {
     const ctx = await withSite();
-    await ctx.owner.get(`${ctx.base}/actions/${ctx.rec('readiness.A1').id}/autofix`).expect(404);
+    // The sitemap keeps its steps: WordPress already serves its own, so there is nothing for the plugin to write.
+    const sitemap = await h.fx.recommendation(ctx.project, {
+      rule_code: 'readiness.A4',
+      category: 'technical',
+      fix_path: 'guidance',
+      title: 'Add a sitemap',
+    });
+    await ctx.owner.get(`${ctx.base}/actions/${sitemap.id}/autofix`).expect(404);
     const asViewer = await ctx.viewer.get(ctx.page).expect(200);
     assert.match(asViewer.text, /owners, admins and editors/);
     assert.doesNotMatch(asViewer.text, /Approve and apply/);
     const detail = await ctx.owner.get(`${ctx.base}/actions/${ctx.c1.id}`).expect(200);
     assert.match(detail.text, /We can do this for you/);
-    const a1 = await ctx.owner.get(`${ctx.base}/actions/${ctx.rec('readiness.A1').id}`).expect(200);
-    assert.doesNotMatch(a1.text, /We can do this for you/);
+    const a4 = await ctx.owner.get(`${ctx.base}/actions/${sitemap.id}`).expect(200);
+    assert.doesNotMatch(a4.text, /We can do this for you/);
   });
 
   test('without the plugin the page says so and offers no approval', async () => {
@@ -591,6 +598,186 @@ describe('auto-fix: preview and approve (D3)', () => {
     const page = await ctx.owner.get(ctx.page).expect(200);
     assert.match(page.text, /Nothing was changed on your site/);
     assert.match(page.text, /Approve and apply/, 'and it can be tried again');
+  });
+});
+
+describe('auto-fix: pages, titles and robots.txt (D3)', () => {
+  const secret = {
+    ciphertext: Buffer.alloc(40, 1),
+    wrappedDek: Buffer.alloc(60, 2),
+    keyVersion: 1,
+  };
+  const site = 'https://www.act-site.example.test';
+
+  /** A project with its site connected, the plugin at `pluginVersion`, and a newer scan that carries the evidence a fix is built from. */
+  async function withEvidence({ pluginVersion = '1.1.0', evidence = {} } = {}) {
+    const ctx = await withActions();
+    await ctx.scoped.integrations.saveWordpress(ctx.project.id, {
+      config: { siteUrl: site, username: 'editor', pluginConnected: true, pluginVersion },
+      secret,
+      userId: ctx.owner.user.id,
+    });
+    const checks = Object.entries(evidence).map(([code, e]) => ({
+      code,
+      status: 'fail',
+      points: 0,
+      possible: 4,
+      evidence: e,
+    }));
+    if (checks.length)
+      await h.fx.scan(ctx.project, { checks, finishedAt: new Date(Date.now() + 1000) });
+    const make = (rule, category, title) =>
+      h.fx.recommendation(ctx.project, {
+        rule_code: rule,
+        category,
+        fix_path: 'auto_fix',
+        title,
+      });
+    ctx.a1 = ctx.rec('readiness.A1');
+    ctx.f3 = await make('readiness.F3', 'technical', 'Write titles and descriptions');
+    ctx.c2 = await make('readiness.C2', 'structured_data', 'Add page-type schema');
+    ctx.page = (rec) => `${ctx.base}/actions/${rec.id}/autofix`;
+    return ctx;
+  }
+  const hashOf = (html) => html.match(/name="hash" value="([0-9a-f]{64})"/)?.[1];
+
+  const robotsEvidence = {
+    robotsFile: true,
+    bots: [
+      { agent: 'OAI-SearchBot', verdict: 'blocked' },
+      { agent: 'Googlebot', verdict: 'partly', rule: 'Disallow: /private/' },
+    ],
+  };
+  const metaEvidence = {
+    pages: [
+      {
+        url: `${site}/whitening`,
+        pageType: 'service',
+        title: '',
+        description: '',
+        name: 'Teeth whitening',
+        lead: 'Our in-office whitening takes about an hour and lightens teeth several shades in one visit.',
+        problems: ['no_title', 'no_description'],
+      },
+    ],
+  };
+  const schemaEvidence = {
+    pages: [
+      {
+        url: `${site}/about`,
+        pageType: 'about',
+        expected: ['AboutPage'],
+        found: [],
+        ok: false,
+        onlyAfterJavaScript: false,
+        basics: {
+          url: `${site}/about`,
+          pageType: 'about',
+          name: 'About Action Dental',
+          description: '',
+          lead: '',
+        },
+      },
+    ],
+  };
+
+  test('robots.txt: shows the exact lines, what is left to the customer, and offers no logo or profile form', async () => {
+    const ctx = await withEvidence({ evidence: { A1: robotsEvidence } });
+    const page = await ctx.owner.get(ctx.page(ctx.a1)).expect(200);
+    assert.match(page.text, /The exact lines/);
+    assert.match(page.text, /User-agent: OAI-SearchBot\nAllow: \//);
+    assert.match(page.text, /Googlebot is blocked from only part of the site/);
+    assert.doesNotMatch(page.text, /Add more to it/);
+    assert.ok(hashOf(page.text));
+  });
+
+  test('titles and descriptions: a table of what each page says now and what it would say', async () => {
+    const ctx = await withEvidence({ evidence: { F3: metaEvidence } });
+    const page = await ctx.owner.get(ctx.page(ctx.f3)).expect(200);
+    assert.match(page.text, /What each page says now, and what it would say/);
+    assert.match(page.text, /Teeth whitening \| Action Dental/);
+    assert.match(page.text, /whitening takes about an hour/);
+  });
+
+  test('page schema: one block per page, with its type', async () => {
+    const ctx = await withEvidence({ evidence: { C2: schemaEvidence } });
+    const page = await ctx.owner.get(ctx.page(ctx.c2)).expect(200);
+    assert.match(page.text, /The exact code, page by page/);
+    assert.match(page.text, /AboutPage on https:\/\/www\.act-site\.example\.test\/about/);
+  });
+
+  test('approving a title fix stores exactly what was shown, as a meta change, and queues the write', async () => {
+    const ctx = await withEvidence({ evidence: { F3: metaEvidence } });
+    const hash = hashOf((await ctx.owner.get(ctx.page(ctx.f3))).text);
+    const before = added.length;
+    const res = await ctx.owner.post(`${ctx.page(ctx.f3)}/approve`, { hash }).expect(303);
+    assert.match(res.headers.location, /autofix-applying/);
+    assert.ok(added.slice(before).find((j) => j.name === 'autofix.apply'));
+    const change = await ctx.scoped.autofix.current(ctx.project.id, ctx.f3.id);
+    assert.equal(change.kind, 'meta');
+    assert.equal(change.targetUrl, null);
+    assert.equal(change.payload.hash, hash);
+    assert.deepEqual(Object.keys(change.payload.items[0]).sort(), ['description', 'title', 'url']);
+    assert.equal(change.payload.items[0].title, 'Teeth whitening | Action Dental');
+  });
+
+  test('a scan that changed since the preview is refused, not quietly sent', async () => {
+    const ctx = await withEvidence({ evidence: { A1: robotsEvidence } });
+    const hash = hashOf((await ctx.owner.get(ctx.page(ctx.a1))).text);
+    await h.fx.scan(ctx.project, {
+      checks: [
+        {
+          code: 'A1',
+          status: 'fail',
+          points: 0,
+          possible: 8,
+          evidence: {
+            robotsFile: true,
+            bots: [
+              { agent: 'OAI-SearchBot', verdict: 'blocked' },
+              { agent: 'PerplexityBot', verdict: 'blocked' },
+            ],
+          },
+        },
+      ],
+      finishedAt: new Date(Date.now() + 5000),
+    });
+    const before = added.length;
+    const res = await ctx.owner.post(`${ctx.page(ctx.a1)}/approve`, { hash }).expect(303);
+    assert.match(res.headers.location, /autofix-changed/);
+    assert.equal(added.length, before);
+    assert.equal(await ctx.scoped.autofix.current(ctx.project.id, ctx.a1.id), null);
+  });
+
+  test('a plugin from before these routes is asked to be updated, and nothing can be approved', async () => {
+    const ctx = await withEvidence({ pluginVersion: '1.0.0', evidence: { A1: robotsEvidence } });
+    const page = await ctx.owner.get(ctx.page(ctx.a1)).expect(200);
+    assert.match(page.text, /Update the AEO Corner plugin first/);
+    assert.match(page.text, /needs 1\.1\.0 or newer/);
+    assert.doesNotMatch(page.text, /Approve and apply/);
+    const res = await ctx.owner
+      .post(`${ctx.page(ctx.a1)}/approve`, { hash: 'a'.repeat(64) })
+      .expect(303);
+    assert.match(res.headers.location, /autofix-invalid/);
+    assert.equal(await ctx.scoped.autofix.current(ctx.project.id, ctx.a1.id), null);
+  });
+
+  test('with no finished scan carrying this check, it says so', async () => {
+    const ctx = await withEvidence({ evidence: {} });
+    const page = await ctx.owner.get(ctx.page(ctx.f3)).expect(200);
+    assert.match(page.text, /finished scan of your site/);
+    assert.doesNotMatch(page.text, /Approve and apply/);
+  });
+
+  test('the recommendation page offers the fix, and a viewer can read the preview but not approve', async () => {
+    const ctx = await withEvidence({ evidence: { A1: robotsEvidence } });
+    const detail = await ctx.owner.get(`${ctx.base}/actions/${ctx.a1.id}`).expect(200);
+    assert.match(detail.text, /We can do this for you/);
+    assert.match(detail.text, /Preview the exact lines we would add to your robots.txt/);
+    const asViewer = await ctx.viewer.get(ctx.page(ctx.a1)).expect(200);
+    assert.doesNotMatch(asViewer.text, /Approve and apply/);
+    const denied = await ctx.viewer.post(`${ctx.page(ctx.a1)}/approve`, { hash: 'x' });
+    assert.notEqual(denied.status, 303);
   });
 });
 

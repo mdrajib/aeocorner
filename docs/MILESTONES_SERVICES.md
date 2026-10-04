@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | Plan for the five services on [aeoengine.ai/services](https://aeoengine.ai/services) that AEO Corner covers only in part: LLM visibility (#5, "mostly"), agentic SEO (#6), entity optimization (#7), AI citation optimization (#9) and AI visibility recovery (#11) |
 | **Date** | 2026-10-04 |
-| **Status** | **Planned. Nothing is started.** Work begins only when the founder asks for a milestone. Milestones 0–10 in [MILESTONES.md](MILESTONES.md) come first for launch; this plan is the roadmap after them |
+| **Status** | **Milestone 11 (wider Auto-fix) is built and tested on stand-ins and on a real WordPress (2026-10-04); open on it: a first real fix on a customer's site and submitting plugin 1.1.0 to WordPress.org. Milestones 12–16 are planned and not started.** Work on a milestone begins only when the founder asks for it. Milestones 0–10 in [MILESTONES.md](MILESTONES.md) come first for launch; this plan is the roadmap after them |
 | **Companion docs** | [MILESTONES.md](MILESTONES.md) (conventions, Milestones 0–10) · [MVP.md](MVP.md) · [UI_DESIGN.md](UI_DESIGN.md) · [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) · [adr/0006-engine-adapters.md](adr/0006-engine-adapters.md) · [adr/0010-recommendations-and-proof.md](adr/0010-recommendations-and-proof.md) · [adr/0011-content-studio-and-wordpress.md](adr/0011-content-studio-and-wordpress.md) · [CLAUDE.md](../CLAUDE.md) |
 
 ## 1. What this plan is for
@@ -80,25 +80,25 @@ They add no new rules. They are the existing ones in [CLAUDE.md](../CLAUDE.md), 
 
 | # | Task | Needs |
 |---|---|---|
-| 11.01 | 🔒 Read the plugin and decide the new set, with an addendum to ADR-0011: what the plugin can change today (titles and descriptions already exist), what needs a new route (`robots.txt` lines, schema on pages other than home), and what stays guidance (the sitemap: WordPress already serves one, so we report, we don't write) | — |
-| 11.02 | Generalise `site_changes` to carry a kind (`jsonld`, `meta`, `robots`) and a `previous_value` that fits each kind, so undo knows what to put back. Migration `0007`, SQL-first, applied to dev and test | 11.01 |
-| 11.03 | Key-page schema for `readiness.C2`: choose key pages from the latest scan, build WebPage, Article, FAQPage or Product JSON-LD from what the page itself says (`content-schema.js`), validate with `jsonld.js`. Nothing invented. One block per address, as the plugin already does | 11.01 |
-| 11.04 | Titles and descriptions for `readiness.F3`: propose a unique title and description for each page missing one, built in code from the page's own headline and first paragraph. Show before and after; the plugin stores the old values for undo | 11.02 |
-| 11.05 | `robots.txt` lines for `readiness.A1`: add the Allow lines for the answer crawlers through WordPress's virtual `robots.txt`. If the site has a real file on disk, show the exact lines as guidance instead. Show the exact result; undo removes only our lines | 11.02 |
-| 11.06 | Plugin version bump: the new signed routes in PHP and `signRequest` mirrored; the wrong-site refusal still applies to every address; `npm run test:wordpress` on the oldest supported WordPress and the latest | 11.01 |
-| 11.07 | Make the approve, apply and undo jobs and the repository functions handle each kind, with the fingerprint covering exactly what was shown | 11.02, 11.06 |
-| 11.08 | The D3 screen shows a kind-specific preview (code, a before/after table, or the exact lines) and what was left out | 11.03–11.05 |
-| 11.09 | Re-check mapping: each kind gets the readiness check that proves it (`C2`, `F3`, `A1`) through the existing `fix.verify`; a scan that could not look is "couldn't check" | 11.07 |
-| 11.10 | Docs and copy: CLAUDE.md Auto-fix bullet, UI_DESIGN D3 row, the product pages' wording | 11.08 |
+| 11.01 | ✅ 2026-10-04 🔒 Read the plugin and decide the new set, with an addendum to ADR-0011: what the plugin can change today (titles and descriptions already exist), what needs a new route (`robots.txt` lines, schema on pages other than home), and what stays guidance (the sitemap: WordPress already serves one, so we report, we don't write) (Read the plugin and decide the new set. Decided in [ADR-0011](adr/0011-content-studio-and-wordpress.md)'s 2026-10-04 addendum: the plugin already had schema for any address and titles; it gained `state` and `robots` routes (1.1.0)) | — |
+| 11.02 | ✅ 2026-10-04 Generalise `site_changes` to carry a kind (`jsonld`, `meta`, `robots`) and a `previous_value` that fits each kind, so undo knows what to put back. Migration `0007`, SQL-first, applied to dev and test (No migration was needed: `site_changes.kind` already has `meta` and `robots_txt`, and `previous_value` is JSON. The job saves what the plugin held (`savePrevious`) once, before it writes) | 11.01 |
+| 11.03 | ✅ 2026-10-04 Key-page schema for `readiness.C2`: choose key pages from the latest scan, build WebPage, Article, FAQPage or Product JSON-LD from what the page itself says (`content-schema.js`), validate with `jsonld.js`. Nothing invented. One block per address, as the plugin already does (Key-page schema: Article, Service, Product, AboutPage and ContactPage from the page's own headline, description or first paragraph and stated dates (`buildPageSchemaFix`); a FAQ and a price page are left out and say why. A page's other structured data is kept) | 11.01 |
+| 11.04 | ✅ 2026-10-04 Titles and descriptions for `readiness.F3`: propose a unique title and description for each page missing one, built in code from the page's own headline and first paragraph. Show before and after; the plugin stores the old values for undo (Titles (at most 60 characters) and descriptions (at most 155) in code, never replacing a good title (`buildMetaFix`); a before and after table) | 11.02 |
+| 11.05 | ✅ 2026-10-04 `robots.txt` lines for `readiness.A1`: add the Allow lines for the answer crawlers through WordPress's virtual `robots.txt`. If the site has a real file on disk, show the exact lines as guidance instead. Show the exact result; undo removes only our lines (Allow lines for crawlers blocked from the whole site (`buildRobotsFix`), added through the robots.txt WordPress builds. **Differs from the plan:** a site with a real robots.txt file is refused by the job in plain words, because only the plugin can tell; the preview still shows the exact lines to add by hand) | 11.02 |
+| 11.06 | ✅ 2026-10-04 Plugin version bump: the new signed routes in PHP and `signRequest` mirrored; the wrong-site refusal still applies to every address; `npm run test:wordpress` on the oldest supported WordPress and the latest (Plugin 1.1.0: `POST /state`, `PUT`/`DELETE /robots`, meta emptied = forgotten, `features` in `/status`; an older plugin is `plugin_outdated`. `npm run test:wordpress` passes on the latest WordPress and on 6.2 with PHP 7.4) | 11.01 |
+| 11.07 | ✅ 2026-10-04 Make the approve, apply and undo jobs and the repository functions handle each kind, with the fingerprint covering exactly what was shown (`approve`, `autofix.apply`, `autofix.undo`, `isLatestApplied` handle each kind; a write that fails part-way puts back what it wrote) | 11.02, 11.06 |
+| 11.08 | ✅ 2026-10-04 The D3 screen shows a kind-specific preview (code, a before/after table, or the exact lines) and what was left out (The D3 page shows the code per page, a before and after table, or the exact lines, and what was left out; three new e2e pages with axe and 375/768/1280 sweeps) | 11.03–11.05 |
+| 11.09 | ✅ 2026-10-04 Re-check mapping: each kind gets the readiness check that proves it (`C2`, `F3`, `A1`) through the existing `fix.verify`; a scan that could not look is "couldn't check" (Re-check: each kind goes through the existing `fix.verify` with its own readiness check (`C2`, `F3`, `A1`); no new code was needed) | 11.07 |
+| 11.10 | ✅ 2026-10-04 Docs and copy: CLAUDE.md Auto-fix bullet, UI_DESIGN D3 row, the product pages' wording (CLAUDE.md, UI_DESIGN D3 and the ADR addendum are updated. The marketing pages do not promise auto-fix, so no copy changed) | 11.08 |
 
 **Parallel:** 11.03, 11.04 and 11.05 once 11.02 lands. 11.06 can start right after 11.01.
 
 **Definition of Done:**
-- [ ] Unit: each kind's proposal is deterministic and passes `jsonld.js` or its own validator; nothing is invented (a field the customer did not give is left out).
-- [ ] Integration: approve → apply → re-check → undo for each kind against the WordPress stand-in; undo restores the earlier value exactly.
-- [ ] Contract: the plugin changes the real page on WordPress 6.2 / PHP 7.4 and the latest (`npm run test:wordpress`), and refuses a wrong-site address.
-- [ ] A changed fingerprint refuses the approval for every kind.
-- [ ] Axe sweep and leak tests pass for the changed screens and new queries.
+- [x] Unit: each kind's proposal is deterministic and passes `jsonld.js` or its own validator; nothing is invented (a field the customer did not give is left out). (`src/core/autofix-fixes.test.js`; the robots lines are also run through our own robots.txt reader)
+- [x] Integration: approve → apply → re-check → undo for each kind against the WordPress stand-in; undo restores the earlier value exactly. (`tests/integration/autofix-kinds.test.js`, beside `autofix-jobs.test.js`)
+- [x] Contract: the plugin changes the real page on WordPress 6.2 / PHP 7.4 and the latest (`npm run test:wordpress`), and refuses a wrong-site address. (both runs pass, 16 tests each)
+- [x] A changed fingerprint refuses the approval for every kind. (a scan that changed since the preview: `autofix-changed`, tested for robots.txt; the worker checks `payloadProblems` for all three)
+- [x] Axe sweep and leak tests pass for the changed screens and new queries. (`tests/e2e/pages.js`, `tests/tenancy/repositories.test.js`)
 
 ## Milestone 12 — Entity checks and guidance (#7)
 

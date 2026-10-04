@@ -549,6 +549,29 @@ describe('F3 titles and descriptions', () => {
       }),
     });
 
+  test('the pages with a problem are listed with what each says now, for Auto-fix', () => {
+    const r = run(
+      'F3',
+      context({
+        pages: [
+          titled('/', 'Home', 'The home page'),
+          page({
+            url: 'https://acme.com/widgets',
+            html: html({
+              body: `<main><h1>Our widgets</h1><p>${words(15)}</p></main>`,
+            }),
+          }),
+        ],
+      }),
+    );
+    assert.deepEqual(
+      r.evidence.pages.map((p) => [p.url, p.problems]),
+      [['https://acme.com/widgets', ['no_title', 'no_description']]],
+    );
+    assert.equal(r.evidence.pages[0].name, 'Our widgets');
+    assert.match(r.evidence.pages[0].lead, /^word0 word1/);
+  });
+
   test('PASS: every page has its own', () => {
     assert.equal(
       status(

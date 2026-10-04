@@ -820,7 +820,7 @@ describe('the connection test and the reasons given', () => {
     const seen = await w.scoped.integrations.wordpress(w.project.id);
     assert.deepEqual(
       [seen.status, seen.config.siteName, seen.config.pluginVersion, seen.config.seoPlugin],
-      ['connected', 'Stub Site', '1.0.0', 'yoast'],
+      ['connected', 'Stub Site', '1.1.0', 'yoast'],
     );
     await w.scoped.integrations.saveWordpress(w.project.id, {
       config: { siteUrl: stub.siteUrl, username: stub.username },
@@ -850,7 +850,7 @@ describe('the connection test and the reasons given', () => {
     );
     assert.deepEqual([result.ok, result.handshake, result.pluginConnected], [true, true, true]);
     const seen = await w.scoped.integrations.wordpress(w.project.id);
-    assert.deepEqual([seen.config.pluginConnected, seen.config.pluginVersion], [true, '1.0.0']);
+    assert.deepEqual([seen.config.pluginConnected, seen.config.pluginVersion], [true, '1.1.0']);
     const stored = await w.scoped.integrations.wordpressSecret(w.project.id);
     const creds = box.decryptJson(stored.secret, context);
     assert.equal(creds.appPassword, stub.appPassword, 'the login is kept');

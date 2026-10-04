@@ -1,3 +1,5 @@
+import { AUTOFIX_RULES } from '../../core/autofix.js';
+import { touchedBy } from '../../core/autofix-fixes.js';
 import { DomainError } from '../errors.js';
 import { transaction } from '../transaction.js';
 
@@ -6,7 +8,7 @@ import { transaction } from '../transaction.js';
  * site by the plugin. Merged into `forOrg(orgId)` as `autofix`. The organization is bound once and no function takes an
  * `org_id` from its arguments.
  *
- * A fix is a `site_changes` row: `approved` the moment a person approves the exact data they saw, then `applying`,
+ * A fix is a `site_changes` row of one kind (`jsonld`, `meta` or `robots_txt`; see `core/autofix.js`): `approved` the moment a person approves the exact data they saw, then `applying`,
  * then `applied` or `failed`. The recommendation's own moves (start, done, the re-check) stay in `recommendations`:
  * this file never changes a recommendation's status, so the lifecycle table is the only thing that does.
  */
@@ -26,7 +28,9 @@ const toChange = (s) => ({
   lastError: s.last_error,
   attempts: s.attempts,
   createdAt: s.created_at,
-  /** The nodes the plugin held for this address before this change: what an undo puts back. */
+  /** What the plugin held before this change, as the job saved it: what an undo puts back (its shape depends on the kind). */
+  previous: s.previous_value ?? null,
+  /** The nodes the plugin held for the home page before this change (the home-page graph only). */
   previousNodes: Array.isArray(s.previous_value?.nodes) ? s.previous_value.nodes : [],
   /** An undo was asked for (by whom); it is under way until `rolledBackAt` is set. */
   undoRequestedByUserId: s.rolled_back_by_user_id,
@@ -48,7 +52,7 @@ export function autofixRepos(prisma, orgId) {
 
   /** The nodes the plugin holds for an address: those of the latest change that was applied there. */
   async function appliedNodes(db, projectId, targetUrl) {
-    const row = await db.site_changes.findFirst({
+    const rows = await db.site_changes.findMany({
       where: {
         org_id: orgId,
         project_id: projectId,
@@ -57,26 +61,38 @@ export function autofixRepos(prisma, orgId) {
         status: 'applied',
       },
       orderBy: { id: 'desc' },
+      take: 20,
     });
-    const nodes = row?.payload?.jsonld?.['@graph'];
-    return Array.isArray(nodes) ? nodes : [];
+    // Only a home-page graph (not a key-page change) says what the plugin holds for this address.
+    const nodes = rows.map((r) => r.payload?.jsonld?.['@graph']).find(Array.isArray);
+    return nodes ?? [];
   }
 
-  /** Is this the latest applied change for its address? Only that one can be taken back without dropping a later fix. */
+  /**
+   * Is this the latest applied change for every address it touches? Only then can it be taken back without dropping a later
+   * fix: a later change of the same family (structured data, titles, robots.txt) on the same address has overwritten it.
+   */
   async function isLatestApplied(db, projectId, row) {
     if (row.status !== 'applied' || row.rolled_back_at) return false;
-    const latest = await db.site_changes.findFirst({
+    const mine = touchedBy({ kind: row.kind, targetUrl: row.target_url, payload: row.payload });
+    const later = await db.site_changes.findMany({
       where: {
         org_id: orgId,
         project_id: projectId,
-        kind: 'jsonld',
-        target_url: row.target_url,
         status: 'applied',
+        id: { gt: row.id },
+        kind: row.kind,
       },
-      orderBy: { id: 'desc' },
-      select: { id: true },
+      select: { kind: true, target_url: true, payload: true },
     });
-    return latest?.id === row.id;
+    return !later.some((other) => {
+      const theirs = touchedBy({
+        kind: other.kind,
+        targetUrl: other.target_url,
+        payload: other.payload,
+      });
+      return theirs.family === mine.family && theirs.keys.some((k) => mine.keys.includes(k));
+    });
   }
 
   const autofix = {
@@ -88,7 +104,6 @@ export function autofixRepos(prisma, orgId) {
           org_id: orgId,
           project_id: projectId,
           recommendation_id: recommendationId,
-          kind: 'jsonld',
         },
         orderBy: { id: 'desc' },
       });
@@ -109,10 +124,27 @@ export function autofixRepos(prisma, orgId) {
     async approve(
       projectId,
       recommendationId,
-      { userId, targetUrl, jsonld, hash, ruleCode, now = new Date() },
+      {
+        userId,
+        ruleCode,
+        kind = 'jsonld',
+        targetUrl = null,
+        payload: given = null,
+        jsonld = null,
+        hash = null,
+        now = new Date(),
+      },
     ) {
       await ownProject(projectId);
+      // The home page's graph can be given as `jsonld` and `hash`; every other kind comes as a ready `payload`.
+      const payload = given ?? (jsonld ? { ruleCode, jsonld, hash } : null);
       if (!userId) throw new DomainError('APPROVAL_NEEDS_A_PERSON');
+      const rule = AUTOFIX_RULES[ruleCode];
+      if (!rule || rule.kind !== kind || !payload || payload.ruleCode !== ruleCode) {
+        throw new DomainError('STALE_STATUS');
+      }
+      const home = rule.scope === 'home';
+      if (home && !targetUrl) throw new DomainError('STALE_STATUS');
       return transaction(prisma, async (tx) => {
         const rec = await tx.recommendations.findFirst({
           where: { id: recommendationId, org_id: orgId, project_id: projectId },
@@ -136,17 +168,19 @@ export function autofixRepos(prisma, orgId) {
           },
         });
         if (active > 0) throw new DomainError('ALREADY_APPROVED');
-        const before = await appliedNodes(tx, projectId, targetUrl);
+        // The home page's graph is merged here, so what it replaces is known now. Every other kind is read from the plugin
+        // by the job just before it writes (`savePrevious`), because only the plugin knows what it holds.
+        const before = home ? await appliedNodes(tx, projectId, targetUrl) : null;
         const change = await tx.site_changes.create({
           data: {
             org_id: orgId,
             project_id: projectId,
             integration_id: integration.id,
             recommendation_id: recommendationId,
-            kind: 'jsonld',
-            target_url: targetUrl,
-            payload: toJson({ ruleCode, jsonld, hash }),
-            previous_value: toJson({ nodes: before }),
+            kind,
+            target_url: home ? targetUrl : null,
+            payload: toJson(payload),
+            previous_value: home ? toJson({ nodes: before }) : null,
             status: 'approved',
             approved_by_user_id: userId,
             approved_at: now,
@@ -161,9 +195,29 @@ export function autofixRepos(prisma, orgId) {
     async forApply(projectId, siteChangeId) {
       await ownProject(projectId);
       const row = await prisma.site_changes.findFirst({
-        where: { id: siteChangeId, org_id: orgId, project_id: projectId, kind: 'jsonld' },
+        where: { id: siteChangeId, org_id: orgId, project_id: projectId },
       });
       return row ? toChange(row) : null;
+    },
+
+    /**
+     * What the plugin held before this change, saved by the job BEFORE it writes. Saved once: after the write, a retry would
+     * otherwise read our own change back as "before". Returns false when it was already saved (or the change is finished).
+     */
+    async savePrevious(projectId, siteChangeId, previous) {
+      await ownProject(projectId);
+      return transaction(prisma, async (tx) => {
+        const row = await tx.site_changes.findFirst({
+          where: { id: siteChangeId, org_id: orgId, project_id: projectId, status: { in: ACTIVE } },
+          select: { id: true, previous_value: true },
+        });
+        if (!row || row.previous_value?.captured) return false;
+        const r = await tx.site_changes.updateMany({
+          where: { id: row.id, org_id: orgId, project_id: projectId, status: { in: ACTIVE } },
+          data: { previous_value: toJson({ ...previous, captured: true }) },
+        });
+        return r.count === 1;
+      });
     },
 
     async markApplying(projectId, siteChangeId) {
@@ -214,7 +268,7 @@ export function autofixRepos(prisma, orgId) {
       if (!userId) throw new DomainError('APPROVAL_NEEDS_A_PERSON');
       return transaction(prisma, async (tx) => {
         const row = await tx.site_changes.findFirst({
-          where: { id: siteChangeId, org_id: orgId, project_id: projectId, kind: 'jsonld' },
+          where: { id: siteChangeId, org_id: orgId, project_id: projectId },
         });
         if (!row) throw new DomainError('CHANGE_NOT_FOUND');
         if (row.status !== 'applied' || row.rolled_back_at) throw new DomainError('NOT_UNDOABLE');

@@ -19,6 +19,16 @@ class AEO_Frontend {
 		add_filter( 'rank_math/frontend/title', array( __CLASS__, 'document_title' ), 20 );
 		add_filter( 'rank_math/frontend/description', array( __CLASS__, 'description' ), 20 );
 		add_action( 'template_redirect', array( __CLASS__, 'serve_indexnow_key' ), 0 );
+		add_filter( 'robots_txt', array( __CLASS__, 'robots' ), 99, 2 );
+	}
+
+	/** The Allow lines the app saved, after everything else in the robots.txt WordPress builds. */
+	public static function robots( $output ) {
+		$lines = AEO_Store::connected() ? AEO_Store::get_robots() : null;
+		if ( null === $lines ) {
+			return $output;
+		}
+		return rtrim( (string) $output ) . "\n\n" . $lines . "\n";
 	}
 
 	/** The address of the page being shown. */

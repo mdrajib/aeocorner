@@ -4,7 +4,7 @@ Tags: schema, json-ld, structured data, seo, indexnow
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,6 +18,7 @@ What it does:
 
 * Prints the JSON-LD that you approved in AEO Corner in the head of the page it belongs to.
 * Changes a page's title and description (through Yoast SEO or Rank Math when one of them is active).
+* Adds Allow lines for the AI answer crawlers to the end of the robots.txt that WordPress builds, when you approved them. If your site has a real robots.txt file, nothing is added.
 * Hosts your IndexNow key and tells IndexNow about a page you published or changed.
 * Lets you disconnect with one click (Settings, AEO Corner). Disconnecting erases everything AEO Corner saved on your site.
 
@@ -35,6 +36,11 @@ External service: when AEO Corner asks, the plugin sends the addresses of pages 
 2. In AEO Corner, open your project, choose WordPress and follow the steps.
 
 == Changelog ==
+
+= 1.1.0 =
+* New: Allow lines for answer crawlers in the robots.txt WordPress builds (only plain "User-agent / Allow: /" groups are accepted).
+* New: the app can read what is saved for a page, so a change it made can be taken back exactly.
+* A page whose saved title and description are both emptied goes back to the site's own.
 
 = 1.0.0 =
 * First release.

@@ -6,6 +6,7 @@
  *   aeo_corner_indexnow    the IndexNow key
  *   aeo_corner_schema      page address key => JSON-LD, as text
  *   aeo_corner_meta        page address key => title and description
+ *   aeo_corner_robots      Allow lines added to the end of the robots.txt WordPress builds
  *
  * @package AEOCornerConnector
  */
@@ -17,7 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AEO_Store {
 	const MAX_ENTRIES  = 500;
 	const MAX_JSON     = 204800; // 200 KB of JSON-LD for one page.
-	const OPTION_NAMES = array( 'aeo_corner_secret', 'aeo_corner_indexnow', 'aeo_corner_schema', 'aeo_corner_meta' );
+	const MAX_ROBOTS   = 2000;
+	const OPTION_NAMES = array( 'aeo_corner_secret', 'aeo_corner_indexnow', 'aeo_corner_schema', 'aeo_corner_meta', 'aeo_corner_robots' );
 
 	public static function secret() {
 		$secret = get_option( 'aeo_corner_secret', '' );
@@ -102,6 +104,40 @@ class AEO_Store {
 		);
 		update_option( 'aeo_corner_meta', $table, false );
 		return true;
+	}
+
+	/** Forget the title and description saved for a page, so the site's own come back. */
+	public static function remove_meta( $url ) {
+		$table = self::table( 'aeo_corner_meta' );
+		$key   = self::key_for( $url );
+		if ( ! isset( $table[ $key ] ) ) {
+			return false;
+		}
+		unset( $table[ $key ] );
+		update_option( 'aeo_corner_meta', $table, false );
+		return true;
+	}
+
+	/** The Allow lines saved for robots.txt, or null. */
+	public static function get_robots() {
+		$lines = get_option( 'aeo_corner_robots', '' );
+		return is_string( $lines ) && '' !== $lines ? $lines : null;
+	}
+
+	public static function set_robots( $lines ) {
+		update_option( 'aeo_corner_robots', (string) $lines, false );
+		return true;
+	}
+
+	public static function remove_robots() {
+		$had = null !== self::get_robots();
+		delete_option( 'aeo_corner_robots' );
+		return $had;
+	}
+
+	/** Does the site have a real robots.txt file? Then WordPress never builds one, and nothing we add would be read. */
+	public static function robots_file_exists() {
+		return file_exists( ABSPATH . 'robots.txt' );
 	}
 
 	/** Erase everything the app gave us. */

@@ -1,6 +1,7 @@
 import {
   homePage,
   NO_PAGES,
+  pageBasics,
   pct,
   readablePages,
   sameAddress,
@@ -143,6 +144,19 @@ export function f3(ctx) {
       descriptions: pct(withDescription.length / pages.length),
       duplicateTitles: dupTitles.map((p) => p.url).slice(0, 10),
       duplicateDescriptions: dupDescriptions.map((p) => p.url).slice(0, 10),
+      // The pages Auto-fix may give a title or description, with what each says now.
+      pages: pages
+        .map((p) => ({
+          ...pageBasics(p),
+          problems: [
+            !p.facts.title && 'no_title',
+            !p.facts.metaDescription && 'no_description',
+            dupTitles.includes(p) && 'duplicate_title',
+            dupDescriptions.includes(p) && 'duplicate_description',
+          ].filter(Boolean),
+        }))
+        .filter((p) => p.problems.length)
+        .slice(0, 20),
     },
   };
 }

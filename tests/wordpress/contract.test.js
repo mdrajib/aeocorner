@@ -191,7 +191,8 @@ describe('the plugin', () => {
       (e) => e.status === 400 || e.code === 'bad_response',
     );
     const status = await client().plugin.connect({ secret: SECRET, indexNowKey: INDEXNOW_KEY });
-    assert.equal(status.pluginVersion, '1.0.0');
+    assert.equal(status.pluginVersion, '1.1.0');
+    assert.deepEqual(status.features, ['schema', 'meta', 'state', 'robots']);
     assert.ok(status.wpVersion && status.phpVersion);
     assert.equal(status.indexNow, true);
     // What really ran: the versions the plugin itself reports (so a run for an old PHP or WordPress proves it).
@@ -202,7 +203,7 @@ describe('the plugin', () => {
   });
 
   test('a signature made here is accepted by PHP; a wrong secret, an old clock and a replay are not', async () => {
-    assert.equal((await signed().plugin.status()).pluginVersion, '1.0.0');
+    assert.equal((await signed().plugin.status()).pluginVersion, '1.1.0');
     await rejectsWith(client({ hmacSecret: 'd'.repeat(64) }).plugin.status(), 'bad_signature');
     await rejectsWith(
       client({
@@ -368,6 +369,48 @@ describe('the plugin', () => {
     );
     assert.equal(updated.status, 'publish', 'a live page stays live');
     assert.match((await fetcher.fetch(page.link)).body.toString(), /New text./);
+  });
+
+  test('state shows what the plugin holds, so a change can be taken back exactly', async () => {
+    const before = await signed().plugin.state({ url: post.link });
+    assert.equal(before.title, 'Contract title');
+    assert.equal(before.description, 'A "described" page');
+    assert.equal(before.schema?.['@type'], 'Article');
+    assert.deepEqual(before.robots, { lines: null, virtual: true });
+    await rejectsWith(signed().plugin.state({ url: 'https://evil.example/x' }), 'bad_response');
+  });
+
+  test('a title and description emptied together give the page back its own', async () => {
+    assert.deepEqual(
+      await signed().plugin.setMeta({ url: post.link, title: null, description: null }),
+      {
+        saved: true,
+        removed: true,
+      },
+    );
+    const html = (await fetcher.fetch(post.link)).body.toString();
+    assert.ok(!/<title>Contract title/.test(html), 'the saved title is gone');
+    assert.ok(!html.includes('A &quot;described&quot; page'), 'and so is the description');
+  });
+
+  test('robots.txt lines are added to the file WordPress builds, only plain Allow groups are accepted, and removing them restores it', async () => {
+    const lines = 'User-agent: OAI-SearchBot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /';
+    const robots = async () => (await fetcher.fetch(`${siteUrl}/?robots=1`)).body.toString();
+    assert.ok(!(await robots()).includes('OAI-SearchBot'));
+    assert.deepEqual(await signed().plugin.setRobots({ lines }), { saved: true });
+    const after = await robots();
+    assert.ok(after.includes(lines), 'our groups are in the file');
+    assert.match(after, /User-agent: \*/, 'and what WordPress wrote is still there');
+    assert.equal((await signed().plugin.state()).robots.lines, lines);
+    for (const bad of [
+      'User-agent: *\nDisallow: /',
+      'User-agent: GPTBot\nAllow: /\nSitemap: https://x.example/s.xml',
+      '',
+    ]) {
+      await rejectsWith(signed().plugin.setRobots({ lines: bad }), 'bad_response');
+    }
+    assert.deepEqual(await signed().plugin.removeRobots(), { removed: true });
+    assert.ok(!(await robots()).includes('OAI-SearchBot'));
   });
 
   test('removing the structured data takes it out of the page', async () => {

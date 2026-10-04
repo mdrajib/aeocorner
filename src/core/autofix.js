@@ -7,8 +7,13 @@ import { validateJsonLd } from './jsonld.js';
  * the AEO Corner plugin can put on the customer's home page. Pure: what a fix would write, how it is shown, and the
  * fingerprint that ties "what you previewed" to "what is sent".
  *
- * Only what the plugin can really do is offered: a JSON-LD block for one address. A recommendation whose rule is not
- * in `AUTOFIX_RULES` (robots.txt, sitemaps, page titles) keeps its steps and "Mark as done"; nothing here pretends otherwise.
+ * Only what the plugin can really do is offered, in four kinds (each is a `site_changes.kind`):
+ *   - `jsonld`, home page: the Organization and WebSite blocks (`readiness.C1`, `C4`), one graph that is replaced as a whole
+ *   - `jsonld`, key pages: the schema type that fits a page that has none (`readiness.C2`)
+ *   - `meta`: a title or description for a page that has none, or shares one (`readiness.F3`)
+ *   - `robots_txt`: Allow lines for the answer crawlers that robots.txt blocks from the whole site (`readiness.A1`)
+ * A recommendation whose rule is not in `AUTOFIX_RULES` (the sitemap, for one: WordPress already serves its own) keeps its
+ * steps and "Mark as done"; nothing here pretends otherwise.
  * Nothing is invented: a field we do not know (a logo, a profile link) is left out and said to be left out, never guessed.
  *
  * The plugin keeps ONE block per address, and writing it replaces the one before. So every home-page fix writes the
@@ -17,23 +22,61 @@ import { validateJsonLd } from './jsonld.js';
 
 export const AUTOFIX_RULES = Object.freeze({
   'readiness.C1': {
+    kind: 'jsonld',
+    scope: 'home',
     type: 'Organization',
     label: 'Organization schema',
     action: 'Add Organization schema to your home page',
+    intro:
+      'Preview the exact code we would add to your home page through the WordPress plugin. Nothing changes until you approve it.',
   },
   'readiness.C4': {
+    kind: 'jsonld',
+    scope: 'home',
     type: 'WebSite',
     label: 'WebSite schema',
     action: 'Add WebSite schema to your home page',
+    intro:
+      'Preview the exact code we would add to your home page through the WordPress plugin. Nothing changes until you approve it.',
+  },
+  'readiness.C2': {
+    kind: 'jsonld',
+    scope: 'pages',
+    check: 'C2',
+    label: 'Page-type schema',
+    action: 'Add the missing schema to your key pages',
+    intro:
+      'Preview the exact structured data we would add to each key page through the WordPress plugin. Nothing changes until you approve it.',
+  },
+  'readiness.F3': {
+    kind: 'meta',
+    scope: 'pages',
+    check: 'F3',
+    label: 'Titles and descriptions',
+    action: 'Write the missing titles and descriptions',
+    intro:
+      'Preview the title and description we would write for each page through the WordPress plugin. Nothing changes until you approve it.',
+  },
+  'readiness.A1': {
+    kind: 'robots_txt',
+    scope: 'site',
+    check: 'A1',
+    label: 'Crawler access in robots.txt',
+    action: 'Let the answer crawlers read your whole site',
+    intro:
+      'Preview the exact lines we would add to your robots.txt through the WordPress plugin. Nothing changes until you approve it.',
   },
 });
+
+/** The check whose evidence a page-level or site-level fix is built from, or null for the home-page graph. */
+export const sourceCheckOf = (ruleCode) => AUTOFIX_RULES[ruleCode]?.check ?? null;
 
 export const isAutofixable = (ruleCode) => Object.hasOwn(AUTOFIX_RULES, ruleCode);
 
 export const homeUrlOf = (domain) =>
   `https://${String(domain).trim().toLowerCase().replace(/\/+$/, '')}/`;
 
-const withSlash = (url) => (String(url).endsWith('/') ? String(url) : `${url}/`);
+export const withSlash = (url) => (String(url).endsWith('/') ? String(url) : `${url}/`);
 
 const MAX_PROFILES = 10;
 
@@ -104,7 +147,9 @@ export function buildAutofix({
   existingNodes = [],
 }) {
   const rule = AUTOFIX_RULES[ruleCode];
-  if (!rule) return { ok: false, reason: 'This recommendation cannot be fixed automatically.' };
+  if (rule?.scope !== 'home') {
+    return { ok: false, reason: 'This recommendation cannot be fixed automatically.' };
+  }
   const name = String(brand?.name ?? '').trim();
   if (!name || !(homeUrl || domain)) {
     return { ok: false, reason: 'We need the brand name and the website address first.' };
@@ -155,5 +200,15 @@ export function buildAutofix({
       reason: `The structured data did not pass its check: ${valid.errors[0].message}`,
     };
   }
-  return { ok: true, targetUrl, jsonld, node, hash: fingerprint(jsonld), includes, notIncluded };
+  return {
+    ok: true,
+    kind: 'jsonld',
+    scope: 'home',
+    targetUrl,
+    jsonld,
+    node,
+    hash: fingerprint(jsonld),
+    includes,
+    notIncluded,
+  };
 }

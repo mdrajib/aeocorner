@@ -133,7 +133,8 @@ describe('buildAutofix', () => {
       false,
     );
     assert.equal(isAutofixable('readiness.C1'), true);
-    assert.equal(isAutofixable('readiness.A1'), false);
+    assert.equal(isAutofixable('readiness.A1'), true, 'robots.txt lines have their own builder');
+    assert.equal(isAutofixable('readiness.A4'), false, 'the sitemap stays guidance');
     assert.equal(homeUrlOf(' Example.COM/ '), 'https://example.com/');
     assert.ok(Object.keys(AUTOFIX_RULES).every((k) => k.startsWith('readiness.')));
   });

@@ -1,3 +1,4 @@
+import { isRobotsLines } from '../../src/core/autofix-fixes.js';
 import { scriptTag } from '../../src/core/jsonld.js';
 import { verifySignature, PLUGIN_NAMESPACE } from '../../src/integrations/wordpress.js';
 import { startServer } from './http-fixture.js';
@@ -17,6 +18,10 @@ export async function startWordPressStub({
   capabilities = { edit_posts: true, publish_posts: true, manage_options: true },
   pluginInstalled = true,
   restPlain = false,
+  /** '1.0.0' has no /state or /robots routes, as the first release did. */
+  pluginVersion = '1.1.0',
+  /** The site has a real robots.txt file, so WordPress builds none. */
+  robotsFile = false,
   now = () => Math.floor(Date.now() / 1000),
 } = {}) {
   const state = {
@@ -26,6 +31,8 @@ export async function startWordPressStub({
     seen: new Set(),
     schemas: new Map(),
     meta: new Map(),
+    robots: null,
+    rejectSchemaFor: new Set(),
     indexNowPings: [],
     failNext: null,
     calls: [],
@@ -87,6 +94,13 @@ export async function startWordPressStub({
       return json(res, status, failBody ?? { code: 'fail' });
     }
 
+    if (route === null && url.pathname === '/robots.txt') {
+      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
+      const base = robotsFile
+        ? 'User-agent: *\nDisallow: /\n'
+        : 'User-agent: *\nDisallow: /wp-admin/\n';
+      return res.end(!robotsFile && state.robots ? `${base.trimEnd()}\n\n${state.robots}\n` : base);
+    }
     if (route === null) {
       // The public site: a post by its slug, with the JSON-LD the plugin would put in the head.
       const slug = url.pathname.replace(/^\/|\/$/g, '');
@@ -155,11 +169,12 @@ export async function startWordPressStub({
       if (!pluginInstalled) return json(res, 404, { code: 'rest_no_route' });
       const sub = route.slice(PLUGIN_NAMESPACE.length + 1);
       const status = () => ({
-        version: '1.0.0',
+        version: pluginVersion,
         wp: '6.8',
         php: '8.3',
         seo_plugin: 'yoast',
         indexnow: Boolean(state.indexNowKey),
+        ...(pluginVersion === '1.0.0' ? {} : { features: ['schema', 'meta', 'state', 'robots'] }),
       });
       if (sub === '/connect' && req.method === 'POST') {
         if (!basicOk(req)) return json(res, 401, { code: 'rest_forbidden' });
@@ -186,6 +201,8 @@ export async function startWordPressStub({
       if (sub === '/status' && req.method === 'GET') return json(res, 200, status());
       if (sub === '/schema' && req.method === 'PUT') {
         if (!sameSite(body?.url)) return json(res, 400, { code: 'aeo_wrong_site' });
+        // A test can make the plugin refuse one page's structured data (a write that fails part-way through).
+        if (state.rejectSchemaFor.has(body.url)) return json(res, 400, { code: 'aeo_bad_jsonld' });
         state.schemas.set(body.url, body.jsonld);
         return json(res, 200, { saved: true });
       }
@@ -194,8 +211,35 @@ export async function startWordPressStub({
       }
       if (sub === '/meta' && req.method === 'PUT') {
         if (!sameSite(body?.url)) return json(res, 400, { code: 'aeo_wrong_site' });
-        state.meta.set(body.url, { title: body.title, description: body.description });
+        // Both empty means "forget them", as the plugin does.
+        if (!body.title && !body.description) {
+          state.meta.delete(body.url);
+          return json(res, 200, { saved: true, removed: true });
+        }
+        state.meta.set(body.url, { title: body.title ?? '', description: body.description ?? '' });
         return json(res, 200, { saved: true });
+      }
+      if (pluginVersion !== '1.0.0' && sub === '/state' && req.method === 'POST') {
+        if (body?.url !== undefined && !sameSite(body.url))
+          return json(res, 400, { code: 'aeo_wrong_site' });
+        const meta = body?.url ? state.meta.get(body.url) : null;
+        return json(res, 200, {
+          schema: body?.url ? (state.schemas.get(body.url) ?? null) : null,
+          title: meta?.title || null,
+          description: meta?.description || null,
+          robots: { lines: state.robots, virtual: !robotsFile },
+        });
+      }
+      if (pluginVersion !== '1.0.0' && sub === '/robots' && req.method === 'PUT') {
+        if (!isRobotsLines(body?.lines)) return json(res, 400, { code: 'aeo_bad_robots' });
+        if (robotsFile) return json(res, 409, { code: 'aeo_robots_file' });
+        state.robots = body.lines;
+        return json(res, 200, { saved: true });
+      }
+      if (pluginVersion !== '1.0.0' && sub === '/robots' && req.method === 'DELETE') {
+        const had = state.robots !== null;
+        state.robots = null;
+        return json(res, 200, { removed: had });
       }
       if (sub === '/resolve' && req.method === 'POST') {
         const hit = [...state.posts.values()].find(
@@ -217,6 +261,7 @@ export async function startWordPressStub({
         state.secret = null;
         state.schemas.clear();
         state.meta.clear();
+        state.robots = null;
         return json(res, 200, { disconnected: true });
       }
       return json(res, 404, { code: 'rest_no_route' });

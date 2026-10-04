@@ -3,6 +3,7 @@ import {
   isOrganizationNode,
   NO_PAGES,
   organizationNodes,
+  pageBasics,
   pct,
   readablePages,
   schemaTypes,
@@ -186,6 +187,8 @@ export function c2(ctx) {
       found: has,
       ok: has.length > 0,
       onlyAfterJavaScript: has.length === 0 && renderedHas.length > 0,
+      // What Auto-fix may build the missing block from: only what the page itself says.
+      ...(has.length === 0 && renderedHas.length === 0 ? { basics: pageBasics(p) } : {}),
     };
   });
   const ok = results.filter((r) => r.ok);

@@ -11,7 +11,14 @@ import {
   stepsOf,
   CATEGORY_LABELS,
 } from '../../core/action-center.js';
-import { AUTOFIX_RULES, buildAutofix, isAutofixable, parseExtras } from '../../core/autofix.js';
+import {
+  AUTOFIX_RULES,
+  buildAutofix,
+  isAutofixable,
+  parseExtras,
+  sourceCheckOf,
+} from '../../core/autofix.js';
+import { buildFix, payloadOf, PLUGIN_WITH_FIXES, pluginAtLeast } from '../../core/autofix-fixes.js';
 import { STATUS_LABELS } from '../../core/content-lifecycle.js';
 import { DEFAULT_ENGINE_LABELS } from '../../core/narrative.js';
 import { effortLabel } from '../../core/ice.js';
@@ -207,6 +214,7 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
           ? {
               href: `${base}/actions/${rec.id}/autofix`,
               label: AUTOFIX_RULES[rec.ruleCode].action,
+              intro: AUTOFIX_RULES[rec.ruleCode].intro,
               canStart: ['open', 'in_progress'].includes(rec.status),
               change: autofixChange(await req.orgDb.autofix.current(req.project.id, rec.id)),
             }
@@ -275,28 +283,130 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
     const connected = integration?.status === 'connected';
     const pluginReady = connected && Boolean(integration.config?.pluginConnected);
     const extras = parseExtras({ logoUrl: input.logoUrl, sameAs: input.sameAs });
+    const rule = AUTOFIX_RULES[rec.ruleCode];
     let built = null;
     if (pluginReady) {
       const homeUrl = integration.config.siteUrl;
       const identity = kit?.data?.identity ?? {};
-      built = buildAutofix({
-        ruleCode: rec.ruleCode,
-        brand: {
-          name: identity.brandName || brand?.name || req.project.name,
-          legalName: identity.legalName,
-          definition: identity.definition,
-        },
-        homeUrl,
-        domain: req.project.domain,
-        extras: extras.ok ? extras : {},
-        existingNodes: await req.orgDb.autofix.appliedNodes(
-          req.project.id,
-          homeUrl.endsWith('/') ? homeUrl : `${homeUrl}/`,
-        ),
-      });
+      const brandInfo = {
+        name: identity.brandName || brand?.name || req.project.name,
+        legalName: identity.legalName,
+        definition: identity.definition,
+      };
+      if (rule.scope === 'home') {
+        built = buildAutofix({
+          ruleCode: rec.ruleCode,
+          brand: brandInfo,
+          homeUrl,
+          domain: req.project.domain,
+          extras: extras.ok ? extras : {},
+          existingNodes: await req.orgDb.autofix.appliedNodes(
+            req.project.id,
+            homeUrl.endsWith('/') ? homeUrl : `${homeUrl}/`,
+          ),
+        });
+      } else if (!pluginAtLeast(integration.config.pluginVersion)) {
+        // The page, title and robots.txt fixes use routes that arrived in plugin 1.1.0.
+        built = {
+          ok: false,
+          outdated: true,
+          reason: `The AEO Corner plugin on your site is version ${integration.config.pluginVersion ?? 'unknown'}; this fix needs ${PLUGIN_WITH_FIXES} or newer. Download the new plugin from the WordPress screen and update it, press “Check again” on that screen, then come back.`,
+        };
+      } else {
+        const evidence = await latestEvidence(req, sourceCheckOf(rec.ruleCode));
+        built = evidence
+          ? buildFix({ ruleCode: rec.ruleCode, evidence, brand: brandInfo, homeUrl })
+          : {
+              ok: false,
+              reason:
+                'We need a finished scan of your site to build this from. Run a scan from the Setup or Readiness screen, then come back.',
+            };
+      }
     }
-    return { detail, rec, integration, connected, pluginReady, extras, built, change, brand };
+    return {
+      detail,
+      rec,
+      rule,
+      integration,
+      connected,
+      pluginReady,
+      extras,
+      built,
+      change,
+      brand,
+    };
   }
+
+  /** The evidence of one readiness check from the most recent scan that has it: what a page-level fix is built from. */
+  async function latestEvidence(req, checkCode) {
+    const scans = await req.orgDb.scans.recent({ projectId: req.project.id, limit: 5 });
+    for (const scan of scans) {
+      if (!['complete', 'partial'].includes(scan.status)) continue;
+      const checks = await req.orgDb.scans.checks(scan.id);
+      const found = checks.find((c) => c.check_code === checkCode);
+      if (found && found.status !== 'error') return found.evidence ?? {};
+    }
+    return null;
+  }
+
+  /** What the preview shows for a fix: where it goes and the exact data, in the shape of its kind. */
+  function previewOf(built) {
+    if (!built?.ok) return null;
+    if (built.scope === 'home') {
+      return {
+        type: 'home',
+        where: `Your home page, ${built.targetUrl}, as a block of structured data in the page’s head. The AEO Corner plugin adds it. Nothing else on your site changes, and nothing is shown to visitors.`,
+        code: JSON.stringify(built.jsonld, null, 2),
+      };
+    }
+    if (built.kind === 'jsonld') {
+      return {
+        type: 'pages',
+        where: `${built.items.length} page${built.items.length === 1 ? '' : 's'} of your site, each as a block of structured data in the page’s head. A page that already has structured data of another kind keeps it. Nothing is shown to visitors.`,
+        codes: built.items.map((i) => ({
+          url: i.url,
+          type: i.type,
+          code: JSON.stringify({ '@context': 'https://schema.org', '@graph': [i.node] }, null, 2),
+        })),
+      };
+    }
+    if (built.kind === 'meta') {
+      return {
+        type: 'meta',
+        where: `${built.items.length} page${built.items.length === 1 ? '' : 's'} of your site. The plugin sets the page’s title and meta description (through Yoast SEO or Rank Math if you use one). A part we do not write is left as it is. Visitors see the title in their browser tab.`,
+        rows: built.items.map((i) => ({
+          url: i.url,
+          title: i.title,
+          titleWas: i.was.title,
+          description: i.description,
+          descriptionWas: i.was.description,
+        })),
+      };
+    }
+    return {
+      type: 'robots',
+      where: `Your robots.txt, ${built.targetUrl ? `${built.targetUrl}robots.txt` : 'the file at the root of your site'}. The plugin adds these lines after the rules WordPress already writes. It works when WordPress builds your robots.txt itself; if your site has a real file on disk, we stop and tell you, and you add the lines yourself.`,
+      code: built.lines,
+    };
+  }
+
+  /** What an undo puts back, in words, for the card on the screen. */
+  function restoreTextOf(change, rule) {
+    if (rule.kind === 'meta') {
+      return 'the title and description each page had before (the site’s own come back where the plugin held none)';
+    }
+    if (rule.kind === 'robots_txt')
+      return 'the robots.txt lines the plugin held before this fix (none, if it held none)';
+    if (rule.scope === 'pages')
+      return 'the structured data each of those pages held before this fix (none, where it held none)';
+    return change?.previousNodes?.length
+      ? `the ${change.previousNodes.map((n) => n['@type']).join(' and ')} structured data it already had`
+      : 'no structured data of ours at all';
+  }
+
+  /** Where a fix lands, for sentences like "Your home page is back to how it was". */
+  const placeOf = (rule) =>
+    rule.scope === 'home' ? 'home page' : rule.kind === 'robots_txt' ? 'robots.txt' : 'pages';
 
   router.get('/projects/:pid/actions/:rid/autofix', async (req, res, next) => {
     try {
@@ -321,12 +431,14 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
         open: ['open', 'in_progress'].includes(p.rec.status),
         inFlight: Boolean(change && ['approved', 'applying', 'undoing'].includes(change.status)),
         change,
-        restoreText: p.change?.previousNodes?.length
-          ? `the ${p.change.previousNodes.map((n) => n['@type']).join(' and ')} structured data it already had`
-          : 'no structured data of ours at all',
+        restoreText: restoreTextOf(p.change, p.rule),
+        place: placeOf(p.rule),
+        isHomeGraph: p.rule.scope === 'home',
+        offersExtras: p.rule.type === 'Organization',
         built: p.built?.ok ? p.built : null,
         builtError: p.built && !p.built.ok ? p.built.reason : null,
-        code: p.built?.ok ? JSON.stringify(p.built.jsonld, null, 2) : '',
+        pluginOutdated: Boolean(p.built?.outdated),
+        preview: previewOf(p.built),
         extrasErrors: p.extras.ok ? {} : p.extras.errors,
         logoUrl: text(req.query.logoUrl, 2000),
         sameAs: text(req.query.sameAs, 4000),
@@ -365,10 +477,10 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
         }
         begun = await req.orgDb.autofix.approve(req.project.id, rid, {
           userId: req.user.id,
-          targetUrl: p.built.targetUrl,
-          jsonld: p.built.jsonld,
-          hash: p.built.hash,
           ruleCode: p.rec.ruleCode,
+          kind: p.built.kind,
+          targetUrl: p.built.scope === 'home' ? p.built.targetUrl : null,
+          payload: payloadOf(p.rec.ruleCode, p.built),
         });
       } catch (err) {
         if (err instanceof DomainError) {

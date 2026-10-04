@@ -264,7 +264,7 @@ export function createWordPressClient({
     });
   };
 
-  const pluginCall = async (method, route, payload, what) => {
+  const pluginCall = async (method, route, payload, what, { since = null } = {}) => {
     const body = payload === undefined ? '' : JSON.stringify(payload);
     const headers = signed(method, route, body);
     const res = await send(restUrl(`/${PLUGIN_NAMESPACE}${route}`), {
@@ -286,11 +286,26 @@ export function createWordPressClient({
         { status: 401 },
       );
     }
+    if (res.status === 404 && res.json?.code === 'rest_no_route' && since) {
+      // The plugin answers, but has no such route: an older version. Say so, instead of "not installed".
+      throw new WordPressError(
+        'plugin_outdated',
+        `The AEO Corner plugin on your site is out of date (this needs version ${since}). Download the new plugin from the WordPress screen and update it.`,
+        { status: 404 },
+      );
+    }
     if (res.status === 404 && res.json?.code === 'rest_no_route') {
       throw new WordPressError(
         'plugin_missing',
         'The AEO Corner plugin is not installed or not active.',
         { status: 404 },
+      );
+    }
+    if (res.status === 409 && res.json?.code === 'aeo_robots_file') {
+      throw new WordPressError(
+        'robots_file',
+        'Your site has a real robots.txt file, so WordPress does not build one and the plugin cannot add to it. Add the lines to that file yourself.',
+        { status: 409 },
       );
     }
     if (res.status >= 400 || res.status < 200) throw failFor(res, what);
@@ -441,6 +456,35 @@ export function createWordPressClient({
           'save the title and description',
         );
       },
+      /**
+       * What the plugin holds for a page and for robots.txt, so a change can be taken back exactly:
+       * `{ schema: object|null, title, description, robots: { lines: string|null, virtual: boolean } }`.
+       */
+      async state({ url = null } = {}) {
+        const json = await pluginCall('POST', '/state', url ? { url } : {}, 'read what is saved', {
+          since: '1.1.0',
+        });
+        return {
+          schema: json?.schema && typeof json.schema === 'object' ? json.schema : null,
+          title: typeof json?.title === 'string' ? json.title : null,
+          description: typeof json?.description === 'string' ? json.description : null,
+          robots: {
+            lines: typeof json?.robots?.lines === 'string' ? json.robots.lines : null,
+            virtual: json?.robots?.virtual !== false,
+          },
+        };
+      },
+      /** Allow lines added to the robots.txt WordPress builds. Refused (`robots_file`) when the site has a real file. */
+      async setRobots({ lines }) {
+        return pluginCall('PUT', '/robots', { lines }, 'save the robots.txt lines', {
+          since: '1.1.0',
+        });
+      },
+      async removeRobots() {
+        return pluginCall('DELETE', '/robots', {}, 'remove the robots.txt lines', {
+          since: '1.1.0',
+        });
+      },
       /** The post behind an address: `{ found, id?, type?, link? }`. */
       async resolve(url) {
         return pluginCall('POST', '/resolve', { url }, 'look the page up');
@@ -481,6 +525,9 @@ function statusOf(json) {
     wpVersion: text(json.wp, 20),
     seoPlugin: json.seo_plugin ? text(json.seo_plugin, 30) : null,
     indexNow: Boolean(json.indexnow),
+    features: Array.isArray(json.features)
+      ? json.features.map((f) => text(f, 20)).slice(0, 20)
+      : [],
     phpVersion: text(json.php, 20),
   };
 }

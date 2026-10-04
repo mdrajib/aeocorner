@@ -249,6 +249,24 @@ export const appPages = [
       `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionUndoId}/autofix`,
   },
   {
+    name: 'project-action-autofix-robots',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionRobotsId}/autofix`,
+  },
+  {
+    name: 'project-action-autofix-titles',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionTitlesId}/autofix`,
+  },
+  {
+    name: 'project-action-autofix-page-schema',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionPageSchemaId}/autofix`,
+  },
+  {
     name: 'project-action-proven-win',
     as: 'owner',
     path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/actions/${f.actionWinId}`,
