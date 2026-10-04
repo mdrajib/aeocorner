@@ -450,7 +450,7 @@ Assumptions: 100 projects × 100 questions, weekly runs (4.33 per month), 10 ans
 | Cancelled accounts | Everything for the org | 90 days read-only *(proposed, CUSTOMER_JOURNEY §7 change 6)*, then purged | `organizations.retain_until` |
 | Deleted accounts | Everything for the org | 24-hour undo, then purged within 30 days | `data_requests` + `organizations.purge_after` |
 
-**Org purge order** (safe with the foreign keys):
+**Org purge order** (safe with the foreign keys; built 2026-10-04 as `retention.purge`, which works the order out from the schema's foreign keys rather than from this list, and keeps `admin_audit_log`, `data_requests`, `org_activity_log` and `usage_ledger`; steps 8 (Spaces) and 9 (users, Clerk) are not done):
 1. Facts and cell rollups by `org_id`, in batches (no foreign keys).
 2. `action_outcomes`, `fix_verifications`, then `site_changes`.
 3. Content tables, then recommendation tables.

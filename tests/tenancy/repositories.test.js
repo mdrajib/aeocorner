@@ -1892,7 +1892,7 @@ describe('coverage: no repository function without a leak test', () => {
   const SYSTEM_BILLING = {
     plans: ['get', 'list', 'priceMap', 'setStripePrice'],
     subscriptions: ['apply', 'reconcilable'],
-    retention: ['close', 'due', 'warnable'],
+    retention: ['close', 'due', 'purge', 'purgeDue', 'warnable'],
     trials: ['ending'],
     meters: ['draftsToReport', 'markDraftsReported'],
   };

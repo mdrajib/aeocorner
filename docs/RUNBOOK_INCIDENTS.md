@@ -164,6 +164,6 @@ A follow-up that changes a rule updates the affected doc in the same pass (the C
 | No per-provider kill switch | Stop the worker to stop spending | Before launch if a provider shows price drift |
 | No status page, announcement banner UI or customer-detail screen (the `announcements` table exists) | Use the maintenance page and email the owners from the team's address | When the first S2 reaches customers |
 | No loop that re-wraps stored secrets after a master-key change | The old master key must be kept | Before the first rotation |
-| The purge that deletes closed accounts' rows does not exist | "Deleted within 30 days" in the DPA is not yet true | **Before launch**: the DPA must not be published as written without it |
+| The purge deletes a closed account's rows, but not the raw files in Spaces, the users' Clerk accounts or old `webhook_events` payloads | Raw answer and page files are content-addressed and shared between organizations, so they expire by the 13-month Spaces lifecycle rule instead; Clerk accounts stay until deleted in Clerk | The DPA wording must say so, or the three leftovers must be built; counsel to decide before launch |
 | A database restore has not been drilled | Unknown restore time | Before launch, on a throwaway cluster |
 | Redis loss leaves free audits `queued` | A person re-queues them | If it ever happens |

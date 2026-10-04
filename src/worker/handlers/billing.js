@@ -7,8 +7,9 @@ import { StripeError } from '../../integrations/stripe.js';
  *   billing.reconcile     daily: ask Stripe about every subscription we think is live and store what it says. The
  *                         webhook does this in real time; this is the safety net, and a difference is an alert.
  *   billing.report_usage  hourly: tell Stripe's "extra drafts" meter about drafts taken beyond a plan's allowance.
- *   retention.sweep       daily: warn owners of cancelled accounts before their read-only period ends, then close the
- *                         accounts whose period is over (src/db/repos/system-billing.js `retention`).
+ *   retention.sweep       daily: warn owners of cancelled accounts before their read-only period ends, close the
+ *                         accounts whose period is over, then purge the rows of accounts closed 30 days ago
+ *                         (src/db/repos/system-billing.js and system-purge.js, `retention`).
  *
  * None of them runs without Stripe configured (`ctx.billing.stripe`), except the retention sweep, which needs no Stripe.
  */
@@ -129,6 +130,27 @@ export async function retentionSweep(ctx) {
       ctx.logger.info(
         { orgId: String(orgId) },
         'Closed a cancelled organization at the end of its read-only period',
+      );
+    }
+  }
+
+  // Then delete what was closed 30 days ago or more. A few organizations a night; the rest wait for tomorrow.
+  out.purged = 0;
+  for (const orgId of await ctx.db.system.billing.retention.purgeDue({ now, limit: 5 })) {
+    try {
+      const removed = await ctx.db.system.billing.retention.purge(orgId, { now });
+      if (removed) {
+        out.purged += 1;
+        ctx.logger.info(
+          { orgId: String(orgId), tables: Object.keys(removed).length },
+          'Purged a closed organization’s data',
+        );
+      }
+    } catch (error) {
+      // One stuck organization must not stop the others; it stays purgeable and is tried again tomorrow.
+      ctx.logger.error(
+        { orgId: String(orgId), err: error },
+        'Purging a closed organization failed',
       );
     }
   }

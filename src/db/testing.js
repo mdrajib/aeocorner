@@ -650,6 +650,33 @@ export function fixtures(db) {
       return prisma.organizations.update({ where: { id: orgId }, data });
     },
 
+    /** Rows an organization still owns, per table: every table with an `org_id` except those named in `skip`. */
+    async tenantRows(orgId, { skip = [] } = {}) {
+      const out = {};
+      for (const table of await tablesWithOrgId(db)) {
+        if (skip.includes(table)) continue;
+        const [row] = await prisma.$queryRawUnsafe(
+          `SELECT COUNT(*) AS n FROM \`${table}\` WHERE org_id = ?`,
+          orgId,
+        );
+        if (Number(row.n) > 0) out[table] = Number(row.n);
+      }
+      return out;
+    },
+
+    /** How many rows a table has that match `where` (a Prisma filter). For checking what a purge left. */
+    count(table, where) {
+      return prisma[table].count({ where });
+    },
+
+    /** Give an audit to an organization, and add a scan of it that carries no org_id (as the free audit's scan does). */
+    async claimAuditWithScan(auditId, orgId) {
+      await prisma.audits.update({ where: { id: auditId }, data: { org_id: orgId } });
+      return prisma.site_scans.create({
+        data: { audit_id: auditId, trigger_type: 'audit', rubric_version: 'v0.1' },
+      });
+    },
+
     /** Set columns on a user directly (their timezone, say). */
     setUser(id, data) {
       return prisma.users.update({ where: { id }, data });

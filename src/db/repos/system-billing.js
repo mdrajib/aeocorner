@@ -3,6 +3,7 @@ import { ADDONS } from '../../core/addons.js';
 import { addDays } from '../../core/entitlements.js';
 import { transaction } from '../transaction.js';
 import { entitledLimit } from './org-billing.js';
+import { systemPurge } from './system-purge.js';
 
 /**
  * The billing lookups Stripe's webhooks and the worker make ACROSS organizations (Milestone 8). A webhook arrives
@@ -406,5 +407,12 @@ export function systemBilling(prisma) {
     },
   };
 
-  return { plans, subscriptions, retention, trials, meters };
+  // The purge is the last step of the same lifecycle: warn, close (above), then delete (system-purge.js).
+  return {
+    plans,
+    subscriptions,
+    retention: { ...retention, ...systemPurge(prisma) },
+    trials,
+    meters,
+  };
 }
