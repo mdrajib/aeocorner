@@ -18,6 +18,7 @@ A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perpl
 | `docs/MVP.md` | Product and architecture spec: scope, features F1–F12, methodology, stack (§7.4), repo layout (§7.9), unit economics, timeline, founder decisions (§17) |
 | `docs/BUILD_PLAN.md` | The actual build order: 16 phases (0–15) breaking MVP §13.2's weekly timeline into checkable work items and a required-tests checklist per phase. Work through it in order |
 | `docs/MILESTONES.md` | Execution order for Phases 7–15: Milestones 0–10, single-action tasks with dependencies, parallel lanes and a Definition of Done each. Tick tasks here from Phase 7 on |
+| `docs/MILESTONES_SERVICES.md` | Planned, not started (2026-10-04): Milestones 11–16 that finish the partly covered services (wider Auto-fix, entity, citations, recovery cases, Autopilot, Claude as an engine), with founder decisions F1–F5. Work a milestone only when the user asks |
 | `docs/CUSTOMER_JOURNEY.md` | Customer experience stage by stage, system data flow, messages. §7 proposes 6 spec changes: the schema models them, but the MVP feature sections haven't been updated yet |
 | `docs/ADMIN_OPERATIONS.md` | Internal admin console, staff roles, runbooks, background jobs, alerts |
 | `docs/UI_DESIGN.md` | UI rules, brand basics (a proposal until the founder approves it), the component kit, screen inventory, wireframes by sign-off group, key flows, and what every empty/loading/error/partial-data state says |
