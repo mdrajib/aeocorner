@@ -1,4 +1,9 @@
-import { alertsJobId, recoveryEvaluateJobId, recsRefreshJobId } from '../lib/job-ids.js';
+import {
+  alertsJobId,
+  autopilotTickJobId,
+  recoveryEvaluateJobId,
+  recsRefreshJobId,
+} from '../lib/job-ids.js';
 
 /**
  * Ask for a project's recommendations to be brought up to date (`recommendations.refresh`), after a run or a scan
@@ -63,6 +68,30 @@ export async function queueRecovery(ctx, { orgId, projectId, runId }) {
     ctx.logger.warn(
       { err: err.message, projectId: String(projectId) },
       'Could not queue the recovery evaluation',
+    );
+    return false;
+  }
+}
+
+/**
+ * Ask for what Autopilot should prepare for a project (`autopilot.tick`) after its recommendations were brought up to date.
+ * Only when the project has Autopilot on and not paused: a project that has not asked for it costs no job. Like the others, a
+ * failure to queue is logged and swallowed: the next refresh asks again.
+ */
+export async function queueAutopilot(ctx, { orgId, projectId, tag }) {
+  try {
+    const settings = await ctx.db.forOrg(orgId).autopilot.settings(projectId);
+    if (!settings.enabled || settings.pausedAt) return false;
+    await ctx.jobs.add(
+      'autopilot.tick',
+      { orgId: String(orgId), projectId: String(projectId) },
+      { jobId: autopilotTickJobId(projectId, tag) },
+    );
+    return true;
+  } catch (err) {
+    ctx.logger.warn(
+      { err: err.message, projectId: String(projectId) },
+      'Could not queue the Autopilot tick',
     );
     return false;
   }

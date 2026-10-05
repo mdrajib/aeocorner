@@ -14,7 +14,7 @@
 
 ## 0. Summary
 
-**70 tables in 16 areas, with 113 foreign keys and 20 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
+**72 tables in 16 areas, with 120 foreign keys and 25 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
 
 The ten decisions that shape it:
 
@@ -164,6 +164,8 @@ Filtering by cluster, intent or locale reads the cell tables joined to `prompts`
 | `entity_checks` | The latest check of each profile address in the Brand Kit and of Wikidata (D7): `status` passed / failed / error ("couldn't check"), a `finding` word, and details. One row per project, kind and subject, replaced by the next attempt; a real result is kept for 30 days over a later "couldn't check". Added by migration `0007` (which also adds the `about_page` content format) | 12 |
 | `recovery_cases` | A decline that has lasted (Milestone 14): the metric and engine scope, the counts it was opened on (before, the fall, the latest 14 days), the re-check and diagnosis the code made, the repairs it points at, and how it ended (`diagnosing` → `repairing` → `recovered` / `closed_noise` / `closed_unknown`). `open_key` (`metric:engine`) is set only while open and is unique per project, so a decline opens exactly one case; a CHECK keeps it in step with `status`. Added by migration `0009` | 14 |
 | `recovery_events` | The timeline of a case, appended and never edited: opened, re-checked, diagnosed, repairs linked, ended, alerted | 14 |
+| `autopilot_settings` | Autopilot's switches for one project (Milestone 15), one row per project: on or off (off by default), which kinds it may prepare (fixes for the site, draft pages), the weekly draft budget, the project-level pause, and what the last tick did. Written by an owner or admin. Added by migration `0010` | 15 |
+| `autopilot_items` | What Autopilot prepared for a person to approve: a fix (with the fingerprint of the change) or a draft page (a pointer to its Content Studio item). `ready` → `approved` or `rejected` (a person, with a reason) or `withdrawn` (the system). Unique on (project, recommendation, `basis_hash`), so a second tick prepares nothing and a rejected item returns only with new evidence; four CHECKs tie each status to its fields. Nothing here is a change to a site. Added by migration `0010`, which also adds the plan feature `autopilot` (Growth and Agency) | 15 |
 
 ### 2.12 Integrations, Content Studio and site changes
 

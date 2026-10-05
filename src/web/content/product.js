@@ -199,8 +199,31 @@ export const stages = [
           ],
         ],
       },
+      {
+        heading: 'Autopilot',
+        intro:
+          'On the plans that include it, you can ask us to get the next fixes and drafts ready every week. It prepares; you approve.',
+        items: [
+          [
+            'Prepared after each weekly check',
+            'We work out the exact change for the best open fixes, or start a draft, and put each one in a list for you.',
+          ],
+          [
+            'You approve every one',
+            'Nothing is sent to your site and nothing is published until a person approves the exact change or the exact text. You can reject an item with a reason, pause Autopilot, or turn it off.',
+          ],
+          [
+            'Inside your limits',
+            'It uses your monthly draft allowance, stops at your spend cap, and prepares only a few items a week.',
+          ],
+        ],
+      },
     ],
     faq: [
+      {
+        q: 'Does Autopilot publish or change my site by itself?',
+        a: 'No. Autopilot only prepares: the exact change for your site, or a draft page. A person approves it first, and the approval covers exactly what was shown. It is off until you turn it on.',
+      },
       {
         q: 'Will you change my website without asking?',
         a: 'Never. You see the exact change first, and nothing is published until a person with the right role approves it.',

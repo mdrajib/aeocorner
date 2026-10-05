@@ -1792,6 +1792,131 @@ describe('recovery cases (Milestone 14)', () => {
   });
 });
 
+describe('Autopilot (Milestone 15)', () => {
+  let aProject;
+  let bProject;
+  let bRec;
+  let bItem;
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Autopilot A');
+    bProject = await fx.project(B.org.id, 'Autopilot B');
+    bRec = await fx.recommendation(bProject, { title: 'B fix', rule_code: 'readiness.C1' });
+    await B.scoped.autopilot.saveSettings(
+      bProject.id,
+      { enabled: true, allowAutoFix: true, allowContent: true, weeklyDrafts: 2 },
+      { userId: B.owner.id },
+    );
+    ({ item: bItem } = await B.scoped.autopilot.prepare(bProject.id, {
+      recommendationId: bRec.id,
+      kind: 'auto_fix',
+      basisHash: 'a'.repeat(64),
+      weekKey: '2026-W41',
+      title: 'Add Organization schema to your home page',
+      preparedHash: 'b'.repeat(64),
+      prepared: { kind: 'jsonld', scope: 'home' },
+    }));
+  });
+
+  test('every call: B’s project is not found from A', async () => {
+    const f = A.scoped.autopilot;
+    await refuses(f.settings(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      f.saveSettings(
+        bProject.id,
+        { enabled: true, allowAutoFix: true, allowContent: true, weeklyDrafts: 2 },
+        { userId: A.owner.id },
+      ),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(f.setPaused(bProject.id, true, { userId: A.owner.id }), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.recordTick(bProject.id, { prepared: 0 }), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.forPlanning(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.list(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.get(bProject.id, bItem.publicId), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.readyFor(bProject.id, bRec.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.readyCount(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.inbox(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.decisionCounts(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.settle(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.withdraw(bProject.id, bItem.id, 'x'), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      f.reject(bProject.id, bItem.publicId, { userId: A.owner.id, reason: 'not_now' }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(
+      f.prepare(bProject.id, {
+        recommendationId: bRec.id,
+        kind: 'auto_fix',
+        basisHash: 'c'.repeat(64),
+        weekKey: '2026-W41',
+        title: 'x',
+        preparedHash: 'd'.repeat(64),
+      }),
+      'PROJECT_NOT_IN_ORG',
+    );
+  });
+
+  test('B’s recommendation and item used inside A’s own project find nothing and change nothing', async () => {
+    const f = A.scoped.autopilot;
+    await refuses(
+      f.prepare(aProject.id, {
+        recommendationId: bRec.id,
+        kind: 'auto_fix',
+        basisHash: 'e'.repeat(64),
+        weekKey: '2026-W41',
+        title: 'x',
+        preparedHash: 'f'.repeat(64),
+      }),
+      'RECOMMENDATION_NOT_FOUND',
+    );
+    assert.equal(await f.get(aProject.id, bItem.publicId), null);
+    assert.equal(await f.readyFor(aProject.id, bRec.id), null);
+    await refuses(
+      f.reject(aProject.id, bItem.publicId, { userId: A.owner.id, reason: 'not_now' }),
+      'ITEM_NOT_FOUND',
+    );
+    await refuses(f.withdraw(aProject.id, bItem.id, 'x'), 'ITEM_NOT_FOUND');
+    assert.deepEqual(await f.settle(aProject.id), { approved: 0 });
+    const still = await B.scoped.autopilot.get(bProject.id, bItem.publicId);
+    assert.equal(still.status, 'ready');
+    assert.equal((await B.scoped.autopilot.settings(bProject.id)).pausedAt, null);
+  });
+
+  test('A sees none of B’s items, settings or decisions; a project has the defaults until it chooses', async () => {
+    const f = A.scoped.autopilot;
+    assert.deepEqual(await f.list(aProject.id), []);
+    assert.deepEqual(await f.inbox(aProject.id), []);
+    assert.deepEqual(await f.forPlanning(aProject.id), []);
+    assert.deepEqual(await f.decisionCounts(aProject.id), {});
+    assert.equal(await f.readyCount(aProject.id), 0);
+    const settings = await f.settings(aProject.id);
+    assert.equal(settings.enabled, false);
+    assert.equal(settings.exists, false);
+    assert.equal((await B.scoped.autopilot.settings(bProject.id)).enabled, true);
+    assert.equal(await B.scoped.autopilot.readyCount(bProject.id), 1);
+  });
+
+  test('the staff overview lists names and counts, never what was prepared', async () => {
+    const { rows } = await db.system.autopilot.overview();
+    const row = rows.find((r) => r.projectDomain === bProject.domain);
+    assert.ok(row, 'B’s project is on the list');
+    assert.deepEqual(Object.keys(row).sort(), [
+      'enabled',
+      'lastTick',
+      'lastTickAt',
+      'orgName',
+      'orgPublicId',
+      'pausedAt',
+      'planCode',
+      'preparedWeek',
+      'projectDomain',
+      'projectName',
+      'ready',
+    ]);
+    assert.equal(row.ready, 1);
+  });
+});
+
 describe('billing, alerts, notification choices and Google traffic (Milestone 8)', () => {
   let aProject;
   let bProject;
@@ -2079,6 +2204,23 @@ describe('coverage: no repository function without a leak test', () => {
       'saveRecheck',
       'triggerEvent',
     ],
+    autopilot: [
+      'decisionCounts',
+      'forPlanning',
+      'get',
+      'inbox',
+      'list',
+      'prepare',
+      'readyCount',
+      'readyFor',
+      'recordTick',
+      'reject',
+      'saveSettings',
+      'setPaused',
+      'settings',
+      'settle',
+      'withdraw',
+    ],
     alerts: ['digestFacts', 'markAlerted', 'pending', 'recipients'],
     notifyPrefs: ['get', 'set'],
     google: ['choose', 'disconnect', 'saveGrant', 'secret', 'status', 'syncResult'],
@@ -2233,6 +2375,8 @@ describe('coverage: no repository function without a leak test', () => {
     flags: ['clearOverride', 'ensureKnown', 'isEnabled', 'list', 'set', 'setOverride'],
     // Spend caps: names and money per customer, for staff only; the one write is audited by the route.
     spend: ['list', 'setCap'],
+    // Where Autopilot is on: names and counts, never what was prepared. The kill switch is the `autopilot` flag.
+    autopilot: ['overview'],
   };
 
   // Billing is a group of groups: what a Stripe webhook and the billing jobs need to find an organization by Stripe's IDs.
@@ -2276,6 +2420,7 @@ describe('coverage: no repository function without a leak test', () => {
       'activity',
       'alerts',
       'autofix',
+      'autopilot',
       'billing',
       'brandKits',
       'changes',

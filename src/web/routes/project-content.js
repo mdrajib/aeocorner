@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { buildRegistry, usableFacts } from '../../core/content-facts.js';
 import { analyzeBody, sanitizeBody } from '../../core/content-html.js';
+import { contentStartFor } from '../../core/content-start.js';
 import {
   pipelineSteps,
   RUNNING,
@@ -247,28 +248,12 @@ export function contentRoutes(
         if (rec.fixPath !== 'content' || !['open', 'in_progress'].includes(rec.status)) {
           return res.redirect(303, withNotice(`${base(res)}/actions/${rid}`, 'action-stale'));
         }
-        // A citation gap is a NEW page in the format the cited pages have (the addresses it names are somebody else's);
-        // an uncited page of the brand's own is refreshed in place.
-        const isGap = rec.ruleCode === 'citation.gap';
-        const targetUrl =
-          rec.ruleCode === 'visibility.lost_prompt' || isGap
-            ? null
-            : rec.ruleCode === 'citation.own_page_uncited'
-              ? (rec.evidence?.url ?? null)
-              : (rec.affectedUrls[0] ?? null);
-        const promptIds = isGap
-          ? (rec.evidence?.questions ?? []).map((q) => BigInt(q.promptId))
-          : rec.evidence?.promptId
-            ? [BigInt(rec.evidence.promptId)]
-            : [];
+        // The same draft Autopilot would start for this recommendation (src/core/content-start.js).
+        const start = contentStartFor(rec);
         try {
           const result = await startItem(req, res, {
             recommendationId: rid,
-            title: rec.title,
-            kind: targetUrl ? 'refresh' : 'new',
-            targetUrl,
-            format: isGap ? (rec.evidence?.contentFormat ?? 'other') : undefined,
-            promptIds,
+            ...start,
           });
           return res.redirect(303, result.redirect);
         } catch (err) {

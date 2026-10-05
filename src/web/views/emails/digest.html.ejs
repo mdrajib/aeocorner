@@ -1,5 +1,5 @@
 <%#
-  The weekly digest. Data: digest (src/core/digest.js), dashboardUrl, actionsUrl, settingsUrl.
+  The weekly digest. Data: digest (src/core/digest.js), dashboardUrl, autopilotUrl (only when Autopilot has something waiting), settingsUrl.
   A figure we could not read shows a dash and "Couldn’t check", never 0. Only a significant change is coloured.
 %>
 <%
@@ -12,6 +12,10 @@ const tone = { success: t['brand-700'], danger: t['ink-950'], warning: t['ink-95
 <% digest.notices.forEach((n) => { %>
 <p style="margin:0 0 16px 0;padding:12px;background-color:<%= t['ink-50'] %>;border-radius:8px;"><strong><%= n.title %></strong> <%= n.text %></p>
 <% }) %>
+
+<% if (digest.autopilotReady > 0 && locals.autopilotUrl) { %>
+<p style="margin:0 0 20px 0;"><a href="<%= autopilotUrl %>" style="color:<%= t['brand-700'] %>;font-weight:700;">Review in Autopilot</a> <span style="color:<%= t['ink-700'] %>;">(you will be asked to sign in)</span></p>
+<% } %>
 
 <% if (digest.figures.length) { %>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">

@@ -1726,4 +1726,68 @@ CREATE TABLE recovery_events (
   CONSTRAINT fk_recovery_events_project FOREIGN KEY (project_id, org_id) REFERENCES projects (id, org_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='The timeline of a recovery case (Milestone 14)';
 
--- End of schema (70 tables: the 66 of v1, plus proof_shares (0006), entity_checks (0007), recovery_cases and recovery_events (0009)).
+-- Milestone 15 (migration 0010): Autopilot (ADR-0016). It PREPARES fixes and drafts and a person approves; nothing is written to a site.
+-- autopilot_settings is one row per project (off by default); autopilot_items is what was prepared, one per (project, recommendation, basis).
+CREATE TABLE autopilot_settings (
+  id                 BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  org_id             BIGINT UNSIGNED  NOT NULL,
+  project_id         BIGINT UNSIGNED  NOT NULL,
+  enabled            TINYINT(1)       NOT NULL DEFAULT 0,
+  allow_auto_fix     TINYINT(1)       NOT NULL DEFAULT 1 COMMENT 'may prepare fixes the plugin can write',
+  allow_content      TINYINT(1)       NOT NULL DEFAULT 1 COMMENT 'may start content drafts',
+  weekly_drafts      TINYINT UNSIGNED NOT NULL DEFAULT 2 COMMENT 'most content drafts started in one week',
+  paused_at          DATETIME(3)      NULL COMMENT 'project-level pause: nothing is prepared while set',
+  paused_by_user_id  BIGINT UNSIGNED  NULL,
+  updated_by_user_id BIGINT UNSIGNED  NULL,
+  last_tick_at       DATETIME(3)      NULL,
+  last_tick          JSON             NULL COMMENT 'what the latest tick prepared or why it did not',
+  created_at         DATETIME(3)      NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at         DATETIME(3)      NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_autopilot_settings_project (project_id, org_id),
+  KEY ix_autopilot_settings_org (org_id, enabled),
+  CONSTRAINT fk_autopilot_settings_project   FOREIGN KEY (project_id, org_id) REFERENCES projects (id, org_id),
+  CONSTRAINT fk_autopilot_settings_paused_by FOREIGN KEY (paused_by_user_id)  REFERENCES users (id) ON DELETE SET NULL,
+  CONSTRAINT fk_autopilot_settings_updated_by FOREIGN KEY (updated_by_user_id) REFERENCES users (id) ON DELETE SET NULL,
+  CONSTRAINT ck_autopilot_settings_drafts CHECK (weekly_drafts <= 10)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Autopilot switches for one project (Milestone 15)';
+
+CREATE TABLE autopilot_items (
+  id                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id          CHAR(26)        NOT NULL,
+  org_id             BIGINT UNSIGNED NOT NULL,
+  project_id         BIGINT UNSIGNED NOT NULL,
+  recommendation_id  BIGINT UNSIGNED NOT NULL,
+  kind               ENUM('auto_fix','content') NOT NULL,
+  status             ENUM('ready','approved','rejected','withdrawn') NOT NULL DEFAULT 'ready',
+  week_key           VARCHAR(10)     NOT NULL COMMENT 'the ISO week it was prepared in, e.g. 2026-W41',
+  basis_hash         CHAR(64)        NOT NULL COMMENT 'what the recommendation rested on; new evidence is a new hash',
+  title              VARCHAR(255)    NOT NULL,
+  summary            VARCHAR(500)    NULL,
+  prepared_hash      CHAR(64)        NULL COMMENT 'auto_fix: the fingerprint of the change that was prepared',
+  prepared           JSON            NULL COMMENT 'auto_fix: the kind, the place and how many pages; never the secret',
+  content_item_id    BIGINT UNSIGNED NULL,
+  reject_reason      ENUM('not_useful','wrong_content','not_now','other') NULL,
+  reject_note        VARCHAR(500)    NULL,
+  withdrawn_reason   VARCHAR(100)    NULL,
+  decided_by_user_id BIGINT UNSIGNED NULL,
+  decided_at         DATETIME(3)     NULL,
+  created_at         DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at         DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_autopilot_items_public (public_id),
+  UNIQUE KEY uq_autopilot_items_basis (project_id, recommendation_id, basis_hash),
+  KEY ix_autopilot_items_project (project_id, org_id, status),
+  KEY ix_autopilot_items_rec (recommendation_id),
+  KEY ix_autopilot_items_content (content_item_id),
+  CONSTRAINT fk_autopilot_items_project    FOREIGN KEY (project_id, org_id)  REFERENCES projects (id, org_id),
+  CONSTRAINT fk_autopilot_items_rec        FOREIGN KEY (recommendation_id)   REFERENCES recommendations (id),
+  CONSTRAINT fk_autopilot_items_content    FOREIGN KEY (content_item_id)     REFERENCES content_items (id) ON DELETE SET NULL,
+  CONSTRAINT fk_autopilot_items_decided_by FOREIGN KEY (decided_by_user_id)  REFERENCES users (id) ON DELETE SET NULL,
+  CONSTRAINT ck_autopilot_items_decided   CHECK ((status IN ('approved','rejected')) = (decided_at IS NOT NULL)),
+  CONSTRAINT ck_autopilot_items_rejected  CHECK ((status = 'rejected') = (reject_reason IS NOT NULL)),
+  CONSTRAINT ck_autopilot_items_withdrawn CHECK ((status = 'withdrawn') = (withdrawn_reason IS NOT NULL)),
+  CONSTRAINT ck_autopilot_items_fix       CHECK ((kind = 'auto_fix') = (prepared_hash IS NOT NULL))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='What Autopilot prepared for a person to approve (Milestone 15)';
+
+-- End of schema (72 tables: the 66 of v1, plus proof_shares (0006), entity_checks (0007), recovery_cases and recovery_events (0009), autopilot_settings and autopilot_items (0010)).

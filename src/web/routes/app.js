@@ -139,6 +139,26 @@ const NOTICES = {
   'action-redo': ['info', 'Back in progress. Mark it done again when the change is live.'],
   'action-dismissed': ['info', 'Dismissed. We will not suggest it again for a while.'],
   'action-reason': ['danger', 'Choose why you are dismissing it.'],
+  'autopilot-saved': [
+    'success',
+    'Saved. Autopilot prepares what it may after your next check, and you approve each item.',
+  ],
+  'autopilot-invalid': [
+    'danger',
+    'Choose a whole number of drafts from 0 to 10. Nothing was saved.',
+  ],
+  'autopilot-plan': ['warning', 'Autopilot is not part of your plan. Nothing was changed.'],
+  'autopilot-paused': [
+    'info',
+    'Paused. Nothing new is prepared until you resume it. What is already waiting for you stays.',
+  ],
+  'autopilot-resumed': ['success', 'Resumed. Autopilot looks again after your next check.'],
+  'autopilot-rejected': [
+    'info',
+    'Rejected. It will not be prepared again unless the evidence changes.',
+  ],
+  'autopilot-reason': ['danger', 'Choose why you are rejecting it.'],
+  'autopilot-stale': ['info', 'That item has already been decided or taken off the list.'],
   'autofix-applying': [
     'success',
     'Approved. We are writing it to your site now; this page updates when it is done, and then we check your site the way an AI crawler sees it.',

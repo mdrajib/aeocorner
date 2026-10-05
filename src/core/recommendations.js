@@ -4,6 +4,7 @@ import { CITATION_LIMITS } from './citation-opportunities.js';
 import { FORMAT_LABELS } from './evidence-pack.js';
 import { platformLabel } from './entity-profiles.js';
 import { READINESS_GUIDANCE } from './fix-list.js';
+import { rejectionAdjustedConfidence } from './autopilot.js';
 import { calibratedConfidence, iceScore, impactScore } from './ice.js';
 
 /**
@@ -694,8 +695,12 @@ export const hasEvidence = (candidate) =>
  * @param candidates  from `evaluateRules`
  * @param prompts     the active questions `[{ id, priority }]`, and `enginesCount`
  * @param outcomes    closed-loop results by rule code, `{ [ruleCode]: { wins, decided } }`, to recalibrate the priors
+ * @param rejections  this project's answers to what Autopilot prepared, `{ [ruleCode]: { rejected, accepted } }`
  */
-export function scoreCandidates(candidates, { prompts, enginesCount, outcomes = {} }) {
+export function scoreCandidates(
+  candidates,
+  { prompts, enginesCount, outcomes = {}, rejections = {} },
+) {
   const universe = prompts.map((p) => ({ priority: p.priority ?? 1, engines: enginesCount }));
   return candidates
     .map((c) => {
@@ -707,7 +712,12 @@ export function scoreCandidates(candidates, { prompts, enginesCount, outcomes = 
               universe,
               severity: c.severity,
             });
-      const confidence = calibratedConfidence(c.prior, outcomes[c.ruleCode]);
+      // The rule's prior, pulled towards how its fixes turned out everywhere, then towards what this project's people said of it
+      // when Autopilot prepared it (Milestone 15).
+      const confidence = rejectionAdjustedConfidence(
+        calibratedConfidence(c.prior, outcomes[c.ruleCode]),
+        rejections[c.ruleCode],
+      );
       return { ...c, impact, confidence, ice: iceScore({ impact, confidence, effort: c.effort }) };
     })
     .sort((a, b) => b.ice - a.ice || a.stableKey.localeCompare(b.stableKey));

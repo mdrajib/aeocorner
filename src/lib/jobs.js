@@ -187,6 +187,13 @@ export const JOBS = Object.freeze({
     schema: z.object({ orgId: id, projectId: id, caseId: id }),
   },
 
+  // Autopilot (Milestone 15). `autopilot.tick` follows a refresh of the recommendations: prepare the next fixes and drafts for a
+  // person to approve. It never writes to a site and never publishes. Content drafts it starts run on the content queue.
+  'autopilot.tick': {
+    queue: 'content',
+    schema: z.object({ orgId: id, projectId: id }),
+  },
+
   // A job that goes through the whole path (queue, retries, rate limit, spend cap, ledger) and does nothing
   // else. It is the Phase 3 exit test, and the way to prove the plumbing on a new machine.
   'system.noop': {

@@ -136,5 +136,8 @@ export const recoveryAlertSlot = (caseId) => `case${caseId}`;
 export const recoveryAlertsJobId = (projectId, caseId, day) =>
   jobId('alerts', projectId, recoveryAlertSlot(caseId), day);
 
+/** One look at what Autopilot should prepare for a project, after a refresh. `tag` is what asked (a run, or a day). */
+export const autopilotTickJobId = (projectId, tag) => jobId('autopilot', projectId, tag);
+
 /** The ten-minute slot a time falls in. */
 export const slotOf = (date) => Math.floor(date.getTime() / 600_000);

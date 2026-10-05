@@ -100,6 +100,7 @@ describe('the wall around every module', () => {
     ['get', '/spend', ['finance', 'ops'], '/spend'],
     ['post', '/spend/cap', ['finance', 'ops'], '/spend/cap'],
     ['get', '/providers', ['ops'], '/providers'],
+    ['get', '/autopilot', ['ops'], '/autopilot'],
     ['get', '/jobs', ['ops'], '/jobs'],
     ['post', '/jobs/retry', ['ops'], '/jobs/retry'],
     ['get', '/review', ['reviewer'], '/review'],
@@ -280,6 +281,43 @@ describe('provider health', () => {
     assert.match(page.text, /Breaker open/);
     assert.match(page.text, /A circuit breaker is open/);
     assert.match(page.text, /1200 ms/);
+  });
+});
+
+describe('Autopilot (Milestone 15)', () => {
+  test('ops see where it is on and what is waiting, names and counts only, and there is nothing to change here', async () => {
+    const owner = await h.fx.org({ name: 'Autopilot Staff Co' });
+    const project = await h.fx.project(owner.org.id, 'Staff Dental', { status: 'active' });
+    const scoped = h.db.forOrg(owner.org.id);
+    await scoped.autopilot.saveSettings(
+      project.id,
+      { enabled: true, allowAutoFix: true, allowContent: true, weeklyDrafts: 2 },
+      { userId: owner.owner.id },
+    );
+    const rec = await h.fx.recommendation(project, {
+      title: 'A secret title the staff page must not show',
+      fix_path: 'auto_fix',
+      rule_code: 'readiness.C1',
+    });
+    await scoped.autopilot.prepare(project.id, {
+      recommendationId: rec.id,
+      kind: 'auto_fix',
+      basisHash: 'a'.repeat(64),
+      weekKey: '2026-W41',
+      title: 'Add Organization schema to your home page',
+      summary: 'A private summary the staff page must not show',
+      preparedHash: 'b'.repeat(64),
+    });
+    const ops = await staffer(['ops']);
+    const page = await ops.get('/autopilot');
+    assert.equal(page.status, 200);
+    assert.match(page.text, /Autopilot Staff Co/);
+    assert.ok(page.text.includes(project.domain), 'the project’s domain is listed');
+    assert.match(page.text, /switch the <code>autopilot<\/code> flag off/);
+    assert.doesNotMatch(page.text, /secret title|private summary|Add Organization schema/);
+    assert.doesNotMatch(page.text, /action="\/autopilot/);
+    const reviewer = await staffer(['reviewer']);
+    assert.equal((await reviewer.get('/autopilot')).status, 403);
   });
 });
 

@@ -142,6 +142,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |
 | D7 | **Entity**: profiles checked, Wikidata, what engines say about the brand's facts, and the text to put on each profile we cannot touch | 7 | `…/entity` | app | **Milestone 12 ✅ 2026-10-04** (built to the wireframe in §5.4, which is a proposal until the founder signs it off; the facts and profile links are edited on the Brand Kit's new Entity tab) | D |
 | D8 | **Recovery**: when visibility drops and stays down, a list of cases and one page per case with the numbers, the likely cause and the facts behind it, the repairs and the timeline | 7 Loop | `…/recovery`, `…/recovery/:cid` | app | **Milestone 14 ✅ 2026-10-05** (built to the wireframe in §5.4, which is a proposal until the founder signs it off; read-only: only the system opens, diagnoses and closes a case) | D |
+| D9 | **Autopilot**: what was prepared this week for a person to approve (a fix for the site, a draft page), what it may do, the pause and the switches. No approve button here: each item links to the screen that shows the exact code or the draft | 7 Loop | `…/autopilot` | app | **Milestone 15 ✅ 2026-10-05** (built to the wireframe in §5.4, which is a proposal until the founder signs it off; prepares only: a person approves on the screen the item links to) | D |
 | E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | **Milestone 8 ✅ 2026-10-04** | E |
 | E2 | Weekly digest email, alert emails, trial-ending email (and: retention warning, "reconnect Google") | 7, 9 | n/a | email | **Milestone 8 ✅ 2026-10-04** | E |
 | E3 | Plan, billing and usage (Stripe Checkout and Portal hand-offs) | 4, 9 | `/app/o/:org/billing` | app | **Milestone 8 ✅ 2026-10-04** | E |
@@ -376,6 +377,15 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
                        Your earlier fixes, checked now: Still in place · No longer on your site · Couldn't check
                        Repairs: pointers into the Actions list (nothing to press here) and the SEO-safe promise
                        What happened, and when: the timeline. No button closes or reopens a case.
+
+ D9 Autopilot        "Fixes and drafts, prepared for you": it prepares, you approve; it never changes your site or publishes by itself
+                     status badge (On · Off · Paused · Not in your plan · Switched off) + a sentence, and what the last tick did
+                     Ready for you: one card per item: title + kind (Fix for your site · Draft page) + where a draft stands (Writing ·
+                       Ready to review…) · one sentence of what it is · "Prepared <date>. Nothing has been sent to your site." ·
+                       [ Review the code and approve ] / [ Read the draft and approve ] (links to D3 / D5) · Reject ▸ reason + note
+                     What it may do: the limits in numbers; owner/admin: on · fixes · drafts · drafts a week · [ Save ] · [ Pause ]
+                     Earlier: what / how it ended (Approved · Rejected · No longer needed) / why / when
+                     No approve button on this page. The preview screen (D3) says "Autopilot prepared this on…" and warns if it moved.
 ```
 
 ### 5.5 Group E — traffic, billing and settings (sign off before Phase 13)

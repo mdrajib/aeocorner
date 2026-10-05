@@ -22,6 +22,7 @@ const MATRIX = {
   'content.create': { owner: true, admin: true, editor: true, viewer: false },
   'site.approve': { owner: true, admin: true, editor: true, viewer: false },
   'integrations.manage': { owner: true, admin: true, editor: false, viewer: false },
+  'autopilot.manage': { owner: true, admin: true, editor: false, viewer: false },
   'members.manage': { owner: true, admin: true, editor: false, viewer: false },
   'billing.manage': { owner: true, admin: false, editor: false, viewer: false },
   'plan.manage': { owner: true, admin: false, editor: false, viewer: false },

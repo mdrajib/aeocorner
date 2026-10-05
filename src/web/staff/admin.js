@@ -24,6 +24,7 @@ import { listFailedJobs, retryFailedJob } from './jobs.js';
  *   /costs       cost and margin (finance, ops)
  *   /spend       daily spend caps: who is near theirs, and change one (finance, ops)
  *   /providers   provider health (ops)
+ *   /autopilot   where Autopilot is on and what it prepared (ops; read-only: the kill switch is the `autopilot` flag)
  *   /jobs        failed jobs, with retry (ops)
  *   /review      the extraction review queue (reviewer)
  *   /flags       feature flags (super admin only)
@@ -58,6 +59,14 @@ export const MODULES = Object.freeze([
     icon: 'bolt',
     roles: ['ops'],
     text: 'Error rates, speed and circuit breakers for every data provider.',
+  },
+  {
+    id: 'autopilot',
+    href: '/autopilot',
+    label: 'Autopilot',
+    icon: 'bolt',
+    roles: ['ops'],
+    text: 'Where Autopilot is on, how much it prepared this week and what is waiting for a person. The kill switch is the autopilot flag.',
   },
   {
     id: 'jobs',
@@ -369,6 +378,44 @@ export function adminModules({ config, db, staffAuth, queues = null, logger }) {
           lastSeenText: r.lastSeen.toISOString().slice(0, 16).replace('T', ' ') + ' UTC',
         })),
         redisReady: Boolean(queues),
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // --- Autopilot (Milestone 15) ---------------------------------------------------------------------------
+  router.get('/autopilot', staffAuth.requireRole('ops'), async (req, res, next) => {
+    try {
+      const now = new Date();
+      const [overview, flags] = await Promise.all([
+        db.system.autopilot.overview({ now }),
+        db.system.flags.list(),
+      ]);
+      const flag = flags.find((f) => f.key === 'autopilot');
+      page(req, res, 'staff-autopilot', {
+        title: 'Autopilot',
+        totals: overview.totals,
+        // A flag that has no row yet is on: the application reads it as on until a person turns it off.
+        switchedOff: flag ? flag.enabledDefault === false : false,
+        overrides: flag ? flag.overrides.filter((o) => o.enabled === false) : [],
+        rows: overview.rows.map((r) => ({
+          id: r.orgPublicId,
+          name: r.orgName,
+          plan: r.planCode ?? 'no plan',
+          project: r.projectDomain,
+          state: r.pausedAt ? 'Paused' : r.enabled ? 'On' : 'Off',
+          ready: r.ready,
+          week: r.preparedWeek,
+          last: r.lastTickAt
+            ? r.lastTickAt.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+            : 'Not yet',
+          lastText: r.lastTick?.skipped
+            ? String(r.lastTick.skipped).replace(/_/g, ' ')
+            : r.lastTick
+              ? `prepared ${r.lastTick.prepared ?? 0}`
+              : '',
+        })),
       });
     } catch (err) {
       next(err);

@@ -20,6 +20,7 @@ import { actionRoutes } from './project-actions.js';
 import { contentRoutes } from './project-content.js';
 import { brandRoutes } from './project-brand.js';
 import { entityRoutes } from './project-entity.js';
+import { autopilotRoutes } from './project-autopilot.js';
 import { recoveryRoutes } from './project-recovery.js';
 import { dashboardRoutes } from './project-dashboard.js';
 import { dateLabel, idFrom, returnPath, withNotice } from './project-helpers.js';
@@ -278,6 +279,8 @@ export function projectRoutes({
   // Approving a draft and publishing it to the customer's site, and connecting their WordPress, are bigger moves.
   const approve = auth.requirePermission('site.approve');
   const manage = auth.requirePermission('integrations.manage');
+  // Turning Autopilot on and choosing what it may prepare is for owners and admins (permissions.js).
+  const manageAutopilot = auth.requirePermission('autopilot.manage');
 
   async function renderProject(req, res, { verifyResult = null, status } = {}) {
     const [entities, engines, proof, kit, active, runs, usage] = await Promise.all([
@@ -485,6 +488,7 @@ export function projectRoutes({
   brandRoutes(router, { jobs, logger, appPage, edit });
   entityRoutes(router, { jobs, logger, appPage, edit });
   recoveryRoutes(router, { appPage });
+  autopilotRoutes(router, { db, appPage, approve, manage: manageAutopilot });
   questionRoutes(router, { jobs, logger, appPage, edit });
   setupRoutes(router, { jobs, logger, appPage, edit });
   trackingRoutes(router, { jobs, logger, edit });

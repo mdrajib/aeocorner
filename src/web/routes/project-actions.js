@@ -11,23 +11,17 @@ import {
   stepsOf,
   CATEGORY_LABELS,
 } from '../../core/action-center.js';
-import {
-  AUTOFIX_RULES,
-  buildAutofix,
-  isAutofixable,
-  parseExtras,
-  sourceCheckOf,
-} from '../../core/autofix.js';
-import { buildFix, payloadOf, PLUGIN_WITH_FIXES, pluginAtLeast } from '../../core/autofix-fixes.js';
+import { AUTOFIX_RULES, isAutofixable } from '../../core/autofix.js';
+import { payloadOf } from '../../core/autofix-fixes.js';
 import { buildOutreachNote } from '../../core/citation-opportunities.js';
 import { STATUS_LABELS } from '../../core/content-lifecycle.js';
-import { verifiedProfileUrls } from '../../core/entity-checks.js';
 import { DEFAULT_ENGINE_LABELS } from '../../core/narrative.js';
 import { effortLabel } from '../../core/ice.js';
 import { canShare, NEVER_SHARED, SHARED_FIELDS } from '../../core/proof-share.js';
 import { DISMISS_REASONS, timelineFor } from '../../core/recommendation-lifecycle.js';
 import { describeRun, isRunning } from '../../core/run-status.js';
 import { DomainError } from '../../db/index.js';
+import { proposeAutofix } from '../../lib/autofix-proposal.js';
 import { autofixJobId, autofixUndoJobId, fixVerifyJobId } from '../../lib/job-ids.js';
 import { notFound } from '../middleware/errors.js';
 import { dateLabel, idFrom, text, withNotice } from './project-helpers.js';
@@ -292,86 +286,15 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
     const detail = await req.orgDb.recommendations.get(req.project.id, rid);
     if (!detail || !isAutofixable(detail.recommendation.ruleCode)) return { detail: null };
     const rec = detail.recommendation;
-    const [integration, kit, brand, change] = await Promise.all([
-      req.orgDb.integrations.wordpress(req.project.id),
-      req.orgDb.brandKits.current(req.project.id),
-      brandOf(req),
-      req.orgDb.autofix.current(req.project.id, rec.id),
-    ]);
-    const connected = integration?.status === 'connected';
-    const pluginReady = connected && Boolean(integration.config?.pluginConnected);
-    const extras = parseExtras({ logoUrl: input.logoUrl, sameAs: input.sameAs });
-    const rule = AUTOFIX_RULES[rec.ruleCode];
-    let built = null;
-    if (pluginReady) {
-      const homeUrl = integration.config.siteUrl;
-      const identity = kit?.data?.identity ?? {};
-      const brandInfo = {
-        name: identity.brandName || brand?.name || req.project.name,
-        legalName: identity.legalName,
-        definition: identity.definition,
-      };
-      if (rule.scope === 'home') {
-        // The profile links that passed our check and the founding year the customer typed: what an Organization fix may add
-        // beyond what is typed on this screen (Milestone 12).
-        const entityChecks = await req.orgDb.entityChecks.checks(req.project.id);
-        built = buildAutofix({
-          ruleCode: rec.ruleCode,
-          brand: brandInfo,
-          homeUrl,
-          domain: req.project.domain,
-          extras: extras.ok ? extras : {},
-          entity: {
-            sameAs: verifiedProfileUrls(entityChecks),
-            foundingYear: kit?.data?.entity?.foundingYear ?? '',
-          },
-          existingNodes: await req.orgDb.autofix.appliedNodes(
-            req.project.id,
-            homeUrl.endsWith('/') ? homeUrl : `${homeUrl}/`,
-          ),
-        });
-      } else if (!pluginAtLeast(integration.config.pluginVersion)) {
-        // The page, title and robots.txt fixes use routes that arrived in plugin 1.1.0.
-        built = {
-          ok: false,
-          outdated: true,
-          reason: `The AEO Corner plugin on your site is version ${integration.config.pluginVersion ?? 'unknown'}; this fix needs ${PLUGIN_WITH_FIXES} or newer. Download the new plugin from the WordPress screen and update it, press “Check again” on that screen, then come back.`,
-        };
-      } else {
-        const evidence = await latestEvidence(req, sourceCheckOf(rec.ruleCode));
-        built = evidence
-          ? buildFix({ ruleCode: rec.ruleCode, evidence, brand: brandInfo, homeUrl })
-          : {
-              ok: false,
-              reason:
-                'We need a finished scan of your site to build this from. Run a scan from the Setup or Readiness screen, then come back.',
-            };
-      }
-    }
-    return {
-      detail,
+    // The same function Autopilot prepares with (src/lib/autofix-proposal.js), so a prepared fix and the one shown here
+    // carry the same fingerprint when nothing has moved.
+    const proposal = await proposeAutofix({
+      scoped: req.orgDb,
+      project: req.project,
       rec,
-      rule,
-      integration,
-      connected,
-      pluginReady,
-      extras,
-      built,
-      change,
-      brand,
-    };
-  }
-
-  /** The evidence of one readiness check from the most recent scan that has it: what a page-level fix is built from. */
-  async function latestEvidence(req, checkCode) {
-    const scans = await req.orgDb.scans.recent({ projectId: req.project.id, limit: 5 });
-    for (const scan of scans) {
-      if (!['complete', 'partial'].includes(scan.status)) continue;
-      const checks = await req.orgDb.scans.checks(scan.id);
-      const found = checks.find((c) => c.check_code === checkCode);
-      if (found && found.status !== 'error') return found.evidence ?? {};
-    }
-    return null;
+      input,
+    });
+    return { detail, rec, ...proposal };
   }
 
   /** What the preview shows for a fix: where it goes and the exact data, in the shape of its kind. */
@@ -440,6 +363,8 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
       if (!p.detail) return notFound(req, res);
       const base = res.locals.projectBase;
       const change = autofixChange(p.change);
+      // Autopilot may have prepared this fix (Milestone 15). Say so, and say if what we would write now is not what it prepared.
+      const prepared = await req.orgDb.autopilot.readyFor(req.project.id, p.rec.id);
       // The page looks again by itself while the write is under way.
       if (change && ['approved', 'applying', 'undoing'].includes(change.status))
         res.locals.refreshSeconds = 5;
@@ -465,6 +390,12 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
         built: p.built?.ok ? p.built : null,
         builtError: p.built && !p.built.ok ? p.built.reason : null,
         pluginOutdated: Boolean(p.built?.outdated),
+        autopilot: prepared
+          ? {
+              preparedOn: dateLabel(prepared.createdAt),
+              changed: Boolean(p.built?.ok && p.built.hash !== prepared.preparedHash),
+            }
+          : null,
         preview: previewOf(p.built),
         extrasErrors: p.extras.ok ? {} : p.extras.errors,
         logoUrl: text(req.query.logoUrl, 2000),

@@ -33,6 +33,7 @@ import {
   outcomeJobId,
 } from '../../lib/job-ids.js';
 import { costMicros, modelProfile } from '../../llm/models.js';
+import { queueAutopilot } from '../refresh-queue.js';
 import {
   buildNarrativeRequest,
   NARRATIVE_VERSION,
@@ -130,10 +131,13 @@ export async function refreshProject(
     entity,
   });
   const outcomes = await db.system.outcomes.ruleStats();
+  // What this project's people said when Autopilot prepared a fix (Milestone 15): a rule they keep turning down ranks lower.
+  const rejections = await scoped.autopilot.decisionCounts(projectId);
   const scored = scoreCandidates(found.candidates, {
     prompts: signals.prompts,
     enginesCount: signals.enginesCount,
     outcomes,
+    rejections,
   });
   const words = { brandName: signals.brandName, domain: signals.project.domain, engineLabel };
   const items = scored.map((c) => {
@@ -199,6 +203,12 @@ async function recommendationsRefresh(ctx, data) {
       { jobId: citationFormatsJobId(projectId, ctx.now().toISOString().slice(0, 10)) },
     );
   }
+  // Then let Autopilot prepare the next things, if the project has asked it to.
+  await queueAutopilot(ctx, {
+    orgId,
+    projectId,
+    tag: data.runId ? `r${data.runId}` : `d${ctx.now().toISOString().slice(0, 10)}`,
+  });
   return {
     projectId: data.projectId,
     candidates: summary.candidates,

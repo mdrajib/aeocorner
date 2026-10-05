@@ -41,6 +41,7 @@ function figure(label, tile) {
  * @param {object[]} [input.actions]    the best open recommendations: `{ title, why? }`
  * @param {object[]} [input.wins]       before/after proofs that were won this week: `{ sentence }`
  * @param {object[]} [input.cases]      recovery cases (core/recovery.js): the open ones, and any closed in the last seven days
+ * @param {number} [input.autopilotReady]  items Autopilot prepared that wait for a person (0 says nothing)
  * @param {Date|string|null} [input.lastFinishedAt]  when the newest finished check ended
  * @param {object} [input.engineNames]
  * @param {object} [input.entityNames]
@@ -54,6 +55,7 @@ export function buildDigest({
   actions = [],
   wins = [],
   cases = [],
+  autopilotReady = 0,
   lastFinishedAt = null,
   engineNames = {},
   entityNames = {},
@@ -84,6 +86,15 @@ export function buildDigest({
         text: `${title}: the figure is back inside its earlier range.`,
       });
     }
+  }
+
+  // What Autopilot prepared is waiting for a person; the email only points at the sign-in screen where it is approved.
+  if (autopilotReady > 0) {
+    notices.push({
+      tone: 'info',
+      title: `${autopilotReady} ${autopilotReady === 1 ? 'change is' : 'changes are'} ready for your approval.`,
+      text: 'Sign in and open Autopilot to read each one. Nothing changes on your site until you approve it.',
+    });
   }
 
   const figures = hasData ? FIGURES.map(([key, label]) => figure(label, tiles[key])) : [];
@@ -137,6 +148,7 @@ export function buildDigest({
     actions: topActions,
     proofs,
     notices,
+    autopilotReady,
     hasNews,
   };
 }

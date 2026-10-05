@@ -1104,6 +1104,8 @@ export function fixtures(db) {
         // Scans reference projects, and take their pages and check results with them.
         // An audit handed to an organization is removed with its own fixtures, not with the organization.
         await prisma.audits.updateMany({ where, data: { org_id: null, project_id: null } });
+        await prisma.autopilot_items.deleteMany({ where });
+        await prisma.autopilot_settings.deleteMany({ where });
         await prisma.fix_verifications.deleteMany({ where });
         await prisma.site_changes.deleteMany({ where });
         await prisma.content_target_prompts.deleteMany({ where });

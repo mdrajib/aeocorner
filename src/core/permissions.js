@@ -22,6 +22,7 @@ const ALLOWED = {
   'content.create': ['owner', 'admin', 'editor'], // also: mark a fix as done
   'site.approve': ['owner', 'admin', 'editor'], // auto-fix, publish
   'integrations.manage': ['owner', 'admin'], // WordPress, Google
+  'autopilot.manage': ['owner', 'admin'], // turn Autopilot on, choose what it may prepare, pause it
   'members.manage': ['owner', 'admin'], // invite, change roles, remove (limits below)
   'billing.manage': ['owner'],
   'plan.manage': ['owner'],

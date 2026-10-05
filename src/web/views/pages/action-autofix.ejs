@@ -3,6 +3,7 @@
   inFlight (a write or a removal is under way: nothing more can be approved), restoreText, place ('home page' | 'pages' | 'robots.txt'),
   change ({ tone, text, status, when, canUndo } | null), built ({ targetUrl, hash, includes, notIncluded } | null), builtError, pluginOutdated,
   preview ({ type: 'home' | 'pages' | 'meta' | 'robots', where, code?, codes?, rows? }: the exact data, in the shape of its kind),
+  autopilot ({ preparedOn, changed } | null: Autopilot prepared this fix),
   isHomeGraph, offersExtras (the logo and profile links form is for the Organization fix only), entityFix (the profile-links
   fix: its links come from the Entity checks, so only the logo is typed here), entityHref,
   extrasErrors ({ logoUrl, sameAs }), logoUrl, sameAs, actionBase; locals: orgBase, projectBase, projectName, domain, csrfToken.
@@ -14,6 +15,10 @@
 <p class="mt-4 text-sm"><a href="<%= actionBase %>">Back to the recommendation</a></p>
 <h2 class="mt-2 max-w-3xl text-2xl [overflow-wrap:anywhere]"><%= fixLabel %> on <%= domain || projectName %></h2>
 <p class="text-ink-700 mt-2 max-w-3xl text-sm">Fixes: <%= rec.title %>. Read exactly what we would add, then approve it. Nothing changes on your site until you do.</p>
+
+<% if (autopilot) { %>
+<div class="mt-6"><%- ui.banner({ tone: autopilot.changed ? 'warning' : 'info', title: 'Autopilot prepared this on ' + autopilot.preparedOn + '.', text: autopilot.changed ? 'What we would write now is not what it prepared (your Brand Kit or your site moved). Read the preview below: that is what you would approve.' : 'This is exactly what it prepared. Nothing has been sent to your site: it waits for you.' }) %></div>
+<% } %>
 
 <% if (change) { %>
 <div class="mt-6"><%- ui.banner({ tone: change.tone, title: change.text, text: change.status === 'rolled_back' ? 'Your ' + place + ' ' + (place === 'pages' ? 'are' : 'is') + ' back to how ' + (place === 'pages' ? 'they were' : 'it was') + ' before this fix, and the recommendation is back in progress. You can preview and approve the fix again below.' : (change.status === 'applied' && change.tone === 'danger') ? 'The fix is still on your site. You can try removing it again.' : change.status === 'applied' ? 'Written ' + change.when + '. We are now fetching your page the way an AI crawler does, and checking it is there. You will see the result on the recommendation.' : change.status === 'failed' ? 'Nothing on your site was left half-changed. You can try again below.' : 'This page updates by itself.' }) %></div>

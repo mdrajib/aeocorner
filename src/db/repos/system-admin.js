@@ -550,5 +550,68 @@ export function systemAdmin(prisma) {
     },
   };
 
-  return { costs, providers, review, flags, spend };
+  const autopilot = {
+    /**
+     * Where Autopilot is switched on across organizations, for the staff console (read-only; the kill switch is the `autopilot`
+     * feature flag). Names and counts, never what was prepared: no recommendation, draft or code is read here.
+     */
+    async overview({ now = new Date(), limit = 200 } = {}) {
+      const since = new Date(now.getTime() - 7 * 86_400_000);
+      const settings = await prisma.autopilot_settings.findMany({
+        where: { OR: [{ enabled: true }, { paused_at: { not: null } }] },
+        include: { projects: { select: { name: true, domain: true, deleted_at: true } } },
+        orderBy: { id: 'asc' },
+        take: Math.min(limit, 500),
+      });
+      const live = settings.filter((s) => !s.projects.deleted_at);
+      const projectIds = live.map((s) => s.project_id);
+      const [orgs, readyRows, weekRows] = projectIds.length
+        ? await Promise.all([
+            prisma.organizations.findMany({
+              where: { id: { in: [...new Set(live.map((s) => s.org_id))] }, deleted_at: null },
+              select: { id: true, public_id: true, name: true, plan_code: true },
+            }),
+            prisma.autopilot_items.groupBy({
+              by: ['project_id'],
+              where: { project_id: { in: projectIds }, status: 'ready' },
+              _count: { _all: true },
+            }),
+            prisma.autopilot_items.groupBy({
+              by: ['project_id'],
+              where: { project_id: { in: projectIds }, created_at: { gte: since } },
+              _count: { _all: true },
+            }),
+          ])
+        : [[], [], []];
+      const orgOf = new Map(orgs.map((o) => [o.id, o]));
+      const ready = new Map(readyRows.map((r) => [r.project_id, r._count._all]));
+      const week = new Map(weekRows.map((r) => [r.project_id, r._count._all]));
+      const rows = live
+        .filter((s) => orgOf.has(s.org_id))
+        .map((s) => ({
+          orgPublicId: orgOf.get(s.org_id).public_id,
+          orgName: orgOf.get(s.org_id).name,
+          planCode: orgOf.get(s.org_id).plan_code,
+          projectName: s.projects.name,
+          projectDomain: s.projects.domain,
+          enabled: s.enabled,
+          pausedAt: s.paused_at,
+          ready: ready.get(s.project_id) ?? 0,
+          preparedWeek: week.get(s.project_id) ?? 0,
+          lastTickAt: s.last_tick_at,
+          lastTick: s.last_tick ?? null,
+        }));
+      return {
+        rows,
+        totals: {
+          on: rows.filter((r) => r.enabled && !r.pausedAt).length,
+          paused: rows.filter((r) => r.pausedAt).length,
+          ready: rows.reduce((n, r) => n + r.ready, 0),
+          preparedWeek: rows.reduce((n, r) => n + r.preparedWeek, 0),
+        },
+      };
+    },
+  };
+
+  return { costs, providers, review, flags, spend, autopilot };
 }

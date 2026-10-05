@@ -45,13 +45,13 @@ INSERT INTO plans
    runs_now_per_month, samples_per_engine, features, is_public, sort_order) VALUES
   ('starter', 'Starter',  79.00,  1,  50, NULL,  4.0, NULL, 3,
      JSON_OBJECT('wordpress', TRUE, 'ga4', TRUE, 'alerts', FALSE, 'csv_export', FALSE,
-                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE), TRUE, 10),
+                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', FALSE), TRUE, 10),
   ('growth',  'Growth',  249.00,  3, 150, NULL, 15.0, NULL, 3,
      JSON_OBJECT('wordpress', TRUE, 'ga4', TRUE, 'alerts', TRUE, 'csv_export', TRUE,
-                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE), TRUE, 20),
+                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', TRUE), TRUE, 20),
   ('agency',  'Agency',  599.00, 10, 500, NULL, 40.0, NULL, 3,
      JSON_OBJECT('wordpress', TRUE, 'ga4', TRUE, 'alerts', TRUE, 'csv_export', TRUE,
-                 'client_seats', TRUE, 'daily_addon', TRUE, 'white_label', FALSE), TRUE, 30)
+                 'client_seats', TRUE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', TRUE), TRUE, 30)
 AS new
 ON DUPLICATE KEY UPDATE
   name = new.name, price_usd_month = new.price_usd_month, max_projects = new.max_projects,

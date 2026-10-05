@@ -245,6 +245,29 @@ export const appPages = [
     path: (f) =>
       `/app/o/${f.orgId}/projects/${f.recoveryProjectId}/recovery/${f.recoveryRecoveredId}`,
   },
+  // Autopilot (Milestone 15): the inbox with items waiting and earlier ones, the same for a viewer, a project that has it off, and the
+  // preview of a fix it prepared (which says where it came from).
+  {
+    name: 'autopilot',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.autopilotProjectId}/autopilot`,
+  },
+  {
+    name: 'autopilot-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.autopilotProjectId}/autopilot`,
+  },
+  {
+    name: 'autopilot-off',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/autopilot`,
+  },
+  {
+    name: 'autopilot-fix',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.autopilotProjectId}/actions/${f.autopilotFixId}/autofix`,
+  },
   {
     name: 'entity-empty',
     as: 'owner',

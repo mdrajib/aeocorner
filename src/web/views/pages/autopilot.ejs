@@ -1,0 +1,93 @@
+<%#
+  D9: Autopilot. Props: standing ({ state, label, tone, text }), lastTick, settings (settingsView), view ({ ready, earlier }), rejectReasons,
+  canManage, canDecide, planAllows; locals: project, projectBase, orgBase, csrfToken.
+  Autopilot PREPARES; a person APPROVES. Nothing on this page approves, applies or publishes. Each item links to the screen that
+  shows the exact code or the draft, and that screen's approval carries the fingerprint or the pinned revision.
+%>
+<nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <a href="<%= projectBase %>"><%= project.name %></a> <span aria-hidden="true">/</span> <span>Autopilot</span></nav>
+<h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= project.name %></h1>
+<%- ui.fragment('partials/project-nav', { projectBase, current: 'autopilot' }) %>
+
+<h2 class="mt-6 text-2xl">Fixes and drafts, prepared for you</h2>
+<p class="text-ink-700 mt-1 max-w-2xl text-sm">After each weekly check, Autopilot looks at what is worth doing next and gets it ready: the exact change for your site, or a draft page. <strong>You review and approve every one.</strong> It never changes your site and never publishes by itself, and it is off until you turn it on.</p>
+
+<p class="mt-4 flex flex-wrap items-center gap-2"><%- ui.badge({ text: standing.label, tone: standing.tone }) %> <span class="text-ink-700 text-sm"><%= standing.text %></span></p>
+<% if (lastTick) { %><p class="text-ink-600 mt-1 text-xs"><%= lastTick %></p><% } %>
+
+<section class="mt-8" aria-labelledby="ready-h">
+  <h3 id="ready-h" class="text-xl">Ready for you</h3>
+  <% if (!view.ready.length) { %>
+  <div class="mt-3"><%- ui.state({ kind: 'empty', title: 'Nothing is waiting for you.', text: standing.state === 'on' ? 'When Autopilot prepares something after your next check, it appears here and in your weekly email.' : 'Turn Autopilot on below and it prepares what is worth doing after your next check.' }) %></div>
+  <% } else { %>
+  <ul class="mt-3 flex flex-col gap-3">
+    <% for (const r of view.ready) { %>
+    <li class="card"><div class="card-body flex flex-col gap-2">
+      <p class="flex flex-wrap items-center gap-2"><span class="font-semibold"><%= r.title %></span> <%- ui.badge({ text: r.kindLabel, tone: 'neutral' }) %><% if (r.progress) { %> <%- ui.badge({ text: r.progress.text, tone: r.progress.tone }) %><% } %></p>
+      <% if (r.summary) { %><p class="text-ink-800 text-sm"><%= r.summary %></p><% } %>
+      <p class="text-ink-600 text-xs">Prepared <%= r.preparedOn %>. <% if (r.kind === 'auto_fix') { %>Nothing has been sent to your site.<% } else { %>Nothing has been published.<% } %></p>
+      <div class="flex flex-wrap items-center gap-3">
+        <%- ui.button({ label: r.waiting ? 'See how it is going' : r.reviewLabel, href: r.reviewHref, variant: 'primary', size: 'sm' }) %>
+        <% if (canDecide) { %>
+        <details class="text-sm">
+          <summary class="text-ink-700 cursor-pointer">Reject</summary>
+          <form method="post" action="<%= projectBase %>/autopilot/<%= r.id %>/reject" class="mt-2 flex max-w-md flex-col gap-3">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <%- ui.field({ id: 'reason-' + r.id, name: 'reason', label: 'Why not?', type: 'select', required: true, options: rejectReasons }) %>
+            <%- ui.field({ id: 'note-' + r.id, name: 'note', label: 'Anything we should know', hint: 'Short. We keep it with your answer.' }) %>
+            <div><%- ui.button({ label: 'Reject it', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
+          </form>
+        </details>
+        <% } %>
+      </div>
+    </div></li>
+    <% } %>
+  </ul>
+  <% } %>
+</section>
+
+<section class="mt-8" aria-labelledby="settings-h">
+  <h3 id="settings-h" class="text-xl">What it may do</h3>
+  <% if (!planAllows) { %>
+  <div class="mt-3"><%- ui.banner({ tone: 'info', title: 'Autopilot is not part of your plan.', text: 'On a plan that includes it, it prepares fixes and drafts for you to approve. Everything else works as it does now.' }) %></div>
+  <% } %>
+  <ul class="text-ink-700 mt-2 list-disc pl-5 text-sm">
+    <% for (const line of settings.limits) { %><li><%= line %></li><% } %>
+    <li>It uses your monthly draft allowance and stops when the allowance, your daily spend cap or your plan says stop.</li>
+  </ul>
+
+  <% if (canManage) { %>
+  <form method="post" action="<%= projectBase %>/autopilot/settings" class="mt-4 flex max-w-xl flex-col gap-3">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- ui.checkbox({ id: 'ap-enabled', name: 'enabled', label: 'Turn Autopilot on for this project', hint: 'It prepares; you approve. You can pause or turn it off at any time.', checked: settings.enabled }) %>
+    <%- ui.checkbox({ id: 'ap-fixes', name: 'allowAutoFix', label: 'It may prepare fixes for my WordPress site', hint: 'Structured data, titles and descriptions, crawler access. It shows the exact change and sends nothing until you approve.', checked: settings.allowAutoFix }) %>
+    <%- ui.checkbox({ id: 'ap-content', name: 'allowContent', label: 'It may start draft pages', hint: 'Each draft takes one from your monthly allowance. You read and approve it before anything is published.', checked: settings.allowContent }) %>
+    <%- ui.field({ id: 'ap-drafts', name: 'weeklyDrafts', label: 'Most drafts to start in a week', type: 'text', inputmode: 'numeric', value: String(settings.weeklyDrafts), required: true, hint: 'A whole number from 0 to 10.' }) %>
+    <div><%- ui.button({ label: 'Save', type: 'submit', variant: 'primary' }) %></div>
+  </form>
+  <div class="mt-4 flex flex-wrap items-center gap-3">
+    <% if (settings.paused) { %>
+    <p class="text-ink-700 text-sm">Paused since <%= settings.pausedOn %>. Nothing new is prepared.</p>
+    <form method="post" action="<%= projectBase %>/autopilot/resume"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Resume', type: 'submit', variant: 'secondary', size: 'sm' }) %></form>
+    <% } else if (settings.enabled) { %>
+    <form method="post" action="<%= projectBase %>/autopilot/pause"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- ui.button({ label: 'Pause Autopilot', type: 'submit', variant: 'secondary', size: 'sm' }) %></form>
+    <p class="text-ink-600 text-xs">Pausing stops anything new. What is already waiting for you stays.</p>
+    <% } %>
+  </div>
+  <% } else { %>
+  <p class="text-ink-700 mt-3 text-sm">Only an owner or admin can change these settings.</p>
+  <% } %>
+</section>
+
+<% if (view.earlier.length) { %>
+<section class="mt-8" aria-labelledby="earlier-h">
+  <h3 id="earlier-h" class="text-xl">Earlier</h3>
+  <div class="mt-3"><%- ui.table({ caption: 'Items Autopilot prepared that were decided or taken off the list', captionHidden: true, stack: true,
+    columns: [{ key: 'title', label: 'What' }, { key: 'status', label: 'What happened' }, { key: 'detail', label: 'Detail' }, { key: 'when', label: 'When' }],
+    rows: view.earlier.map((e) => ({
+      title: e.title + ' (' + e.kindLabel.toLowerCase() + ')',
+      status: { html: ui.badge({ text: e.statusLabel, tone: e.tone }) },
+      detail: e.detail,
+      when: e.when,
+    })) }) %></div>
+</section>
+<% } %>

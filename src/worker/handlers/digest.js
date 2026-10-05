@@ -73,6 +73,7 @@ export async function digestSend(ctx, data) {
     actions: top.map((r) => ({ title: r.title })),
     wins: facts.wins,
     cases: await scoped.recovery.list(projectId, { limit: 10 }),
+    autopilotReady: await scoped.autopilot.readyCount(projectId),
     lastFinishedAt: facts.lastFinishedAt,
     engineNames: facts.engineNames,
     entityNames: facts.entityNames,
@@ -93,6 +94,7 @@ export async function digestSend(ctx, data) {
       data: {
         digest,
         dashboardUrl: `${base}/dashboard`,
+        ...(digest.autopilotReady > 0 ? { autopilotUrl: `${base}/autopilot` } : {}),
         settingsUrl: `${ctx.mail.baseUrl}/app/o/${orgPublicId}/notifications`,
       },
     });

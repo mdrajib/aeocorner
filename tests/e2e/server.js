@@ -488,6 +488,103 @@ const recoveryIds = {};
   });
 }
 
+// Autopilot (Milestone 15): one project with it on, a fix and a draft waiting for a person, one item rejected and one withdrawn,
+// and what the last tick did. Its own project, so no other screen's numbers move.
+const autopilotIds = {};
+{
+  const autopilotProject = await scoped.projects.create({
+    name: 'Autopilot Dental',
+    domain: `autopilot-dental-${unique()}.example.test`,
+    country: 'US',
+    language: 'en',
+    createdByUserId: people.owner.id,
+  });
+  await scoped.autopilot.saveSettings(
+    autopilotProject.id,
+    { enabled: true, allowAutoFix: true, allowContent: true, weeklyDrafts: 2 },
+    { userId: people.owner.id },
+  );
+  const fixRec = await fx.recommendation(autopilotProject, {
+    rule_code: 'readiness.C1',
+    stable_key: 'readiness.c1:ap',
+    title: 'Add Organization schema',
+    category: 'structured_data',
+    fix_path: 'auto_fix',
+  });
+  await scoped.autopilot.prepare(autopilotProject.id, {
+    recommendationId: fixRec.id,
+    kind: 'auto_fix',
+    basisHash: 'a'.repeat(64),
+    weekKey: '2026-W41',
+    title: 'Add Organization schema to your home page',
+    summary: 'The name “Autopilot Dental”; The address https://autopilot-dental.example.test/.',
+    preparedHash: 'b'.repeat(64),
+    prepared: { kind: 'jsonld', scope: 'home' },
+  });
+  const pageRec = await fx.recommendation(autopilotProject, {
+    stable_key: 'visibility.lost:ap',
+    title: 'Answer “best family dentist in Austin”',
+  });
+  const draft = await fx.contentItem(autopilotProject, {
+    status: 'drafting',
+    title: 'Best family dentist in Austin',
+    recommendationId: pageRec.id,
+  });
+  await scoped.autopilot.prepare(autopilotProject.id, {
+    recommendationId: pageRec.id,
+    kind: 'content',
+    basisHash: 'c'.repeat(64),
+    weekKey: '2026-W41',
+    title: 'Answer “best family dentist in Austin”',
+    summary: 'A draft new page, written from your Brand Kit and checked before you see it.',
+    contentItemId: draft.id,
+  });
+  const turnedDown = await fx.recommendation(autopilotProject, {
+    rule_code: 'readiness.C4',
+    stable_key: 'readiness.c4:ap',
+    title: 'Add WebSite schema',
+    category: 'structured_data',
+    fix_path: 'auto_fix',
+  });
+  const { item: rejected } = await scoped.autopilot.prepare(autopilotProject.id, {
+    recommendationId: turnedDown.id,
+    kind: 'auto_fix',
+    basisHash: 'd'.repeat(64),
+    weekKey: '2026-W40',
+    title: 'Add WebSite schema to your home page',
+    preparedHash: 'e'.repeat(64),
+  });
+  await scoped.autopilot.reject(autopilotProject.id, rejected.publicId, {
+    userId: people.owner.id,
+    reason: 'not_useful',
+    note: 'Our theme already adds it',
+  });
+  const stale = await fx.recommendation(autopilotProject, {
+    stable_key: 'visibility.lost:old',
+    title: 'An old question',
+  });
+  const { item: withdrawn } = await scoped.autopilot.prepare(autopilotProject.id, {
+    recommendationId: stale.id,
+    kind: 'content',
+    basisHash: 'f'.repeat(64),
+    weekKey: '2026-W39',
+    title: 'An old question',
+  });
+  await scoped.autopilot.withdraw(
+    autopilotProject.id,
+    withdrawn.id,
+    'You dismissed the recommendation.',
+  );
+  await scoped.autopilot.recordTick(autopilotProject.id, {
+    weekKey: '2026-W41',
+    prepared: 2,
+    withdrawn: 1,
+    settled: 0,
+    skipped: null,
+  });
+  Object.assign(autopilotIds, { project: autopilotProject.public_id, fix: fixRec.id });
+}
+
 // The Action Center: a scan that found two things, raised as recommendations. One fix is marked done and has a result.
 const actionIds = {};
 {
@@ -915,6 +1012,8 @@ const fixtureInfo = {
   recoveryRepairingId: recoveryIds.repairing,
   recoveryLookingId: recoveryIds.looking,
   recoveryRecoveredId: recoveryIds.recovered,
+  autopilotProjectId: autopilotIds.project,
+  autopilotFixId: String(autopilotIds.fix),
   dashboardPromptId: String(dashQ1.id),
   actionOpenId: actionIds.open,
   actionWinId: actionIds.win,

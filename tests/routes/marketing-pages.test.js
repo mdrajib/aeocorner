@@ -97,6 +97,44 @@ describe('product pages: Measure, Diagnose, Fix, Prove', () => {
   });
 });
 
+describe('Autopilot copy (Milestone 15)', () => {
+  test('says what it does, prepares and a person approves, and never that it acts by itself', async () => {
+    const text = decode((await app.get('/product/fix')).text).toLowerCase();
+    assert.match(text, /autopilot/);
+    assert.match(text, /it prepares; you approve/);
+    assert.match(
+      text,
+      /nothing is sent to your site and nothing is published until a person approves/,
+    );
+    for (const bad of [
+      'fixes itself',
+      'fixes your site automatically',
+      'publishes automatically',
+      'automatically publish',
+      'on autopilot',
+      'hands-free',
+      'without you',
+      'agentic',
+    ]) {
+      assert.ok(!text.includes(bad), `"${bad}"`);
+    }
+  });
+
+  test('no other public page promises Autopilot or an agent that acts on its own', async () => {
+    for (const path of [
+      '/',
+      '/product/measure',
+      '/product/diagnose',
+      '/product/prove',
+      '/agencies',
+    ]) {
+      const text = decode((await app.get(path)).text).toLowerCase();
+      assert.ok(!text.includes('agentic'), `${path}: agentic`);
+      assert.ok(!text.includes('on autopilot'), `${path}: on autopilot`);
+    }
+  });
+});
+
 describe('agency page', () => {
   test('has the audit form first, the sections and the FAQ in the HTML', async () => {
     const { text } = await app.get('/agencies').expect(200);

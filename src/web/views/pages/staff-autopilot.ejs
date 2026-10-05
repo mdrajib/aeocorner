@@ -1,0 +1,34 @@
+<%#
+  Autopilot (Milestone 15, ADR-0016). Props: totals ({ on, paused, ready, preparedWeek }), switchedOff (the autopilot flag is off for everyone),
+  overrides (organizations it is switched off for), rows ([{ id, name, plan, project, state, ready, week, last, lastText }]).
+  Read-only. Autopilot only prepares, and a person approves; the kill switch is the `autopilot` feature flag (Feature flags, super admin).
+  No recommendation, draft or code is shown here.
+%>
+<h1 class="text-3xl">Autopilot</h1>
+<p class="text-ink-700 mt-2 max-w-2xl text-sm">Where customers have turned Autopilot on. It prepares fixes and drafts after each weekly check and a person approves every one; it never changes a site or publishes by itself. To stop it for everyone or for one customer, switch the <code>autopilot</code> flag off under <a class="underline" href="/flags">Feature flags</a>.</p>
+
+<% if (switchedOff) { %><div class="mt-4"><%- ui.banner({ tone: 'warning', title: 'Autopilot is switched off for everyone.', text: 'The flag’s default is off, so no tick prepares anything until it is switched on again.' }) %></div><% } %>
+<% if (overrides.length) { %><div class="mt-4"><%- ui.banner({ tone: 'info', title: 'Switched off for ' + overrides.length + ' customer' + (overrides.length === 1 ? '' : 's') + '.', text: overrides.map((o) => o.orgName).join(', ') }) %></div><% } %>
+
+<div class="mt-6 grid gap-4 sm:grid-cols-4">
+  <%- ui.stat({ label: 'Projects with it on', value: String(totals.on), state: 'ok' }) %>
+  <%- ui.stat({ label: 'Paused by the customer', value: String(totals.paused), state: 'ok' }) %>
+  <%- ui.stat({ label: 'Waiting for a person', value: String(totals.ready), state: 'ok' }) %>
+  <%- ui.stat({ label: 'Prepared in 7 days', value: String(totals.preparedWeek), state: 'ok' }) %>
+</div>
+
+<div class="mt-6">
+<%- ui.card({ padded: false, html: ui.table({
+  caption: 'Projects with Autopilot on or paused', captionHidden: true, flush: true, stack: true,
+  columns: [{ key: 'name', label: 'Customer' }, { key: 'project', label: 'Project' }, { key: 'state', label: 'State' }, { key: 'ready', label: 'Waiting', numeric: true }, { key: 'week', label: 'Prepared, 7 days', numeric: true }, { key: 'last', label: 'Last tick' }],
+  rows: rows.map((r) => ({
+    name: r.name + ' (' + r.id + ', ' + r.plan + ')',
+    project: r.project,
+    state: { html: ui.badge({ text: r.state, tone: r.state === 'On' ? 'success' : r.state === 'Paused' ? 'warning' : 'neutral' }) },
+    ready: String(r.ready),
+    week: String(r.week),
+    last: r.last + (r.lastText ? ' (' + r.lastText + ')' : ''),
+  })),
+  emptyText: 'No project has turned Autopilot on.',
+}) }) %>
+</div>

@@ -283,6 +283,41 @@ describe('digest.send', () => {
     assert.match(mail.email.text, /40%/);
   });
 
+  test('what Autopilot prepared is told as a count with a link to sign in; nothing waiting says nothing', async () => {
+    const t = await tracked({ before: 12, after: 12 });
+    mailer.sent.length = 0;
+    await digestSend(ctx, data(t));
+    assert.doesNotMatch(toOwner(t)[0].email.text, /Autopilot|ready for your approval/);
+
+    const rec = await fx.recommendation(t.project, {
+      rule_code: 'readiness.C1',
+      fix_path: 'auto_fix',
+      title: 'Add Organization schema',
+    });
+    await t.scoped.autopilot.prepare(t.project.id, {
+      recommendationId: rec.id,
+      kind: 'auto_fix',
+      basisHash: 'a'.repeat(64),
+      weekKey: '2026-W44',
+      title: 'Add Organization schema to your home page',
+      preparedHash: 'b'.repeat(64),
+    });
+    clock = new Date('2026-11-02T08:10:00Z');
+    mailer.sent.length = 0;
+    await digestSend(ctx, data(t, clock));
+    const [mail] = toOwner(t);
+    assert.match(mail.email.text, /1 change is ready for your approval/);
+    assert.match(mail.email.text, /Nothing changes on your site until you approve it/);
+    assert.match(mail.email.text, /\/projects\/[0-9A-Z]{26}\/autopilot/);
+    assert.match(mail.email.html, /Review in Autopilot/);
+    // The email carries no way to approve: no approve link anywhere in it.
+    assert.doesNotMatch(
+      mail.email.html + mail.email.text,
+      /approve\?|\/approve"|\/approve\b(?!al)/,
+    );
+    clock = MONDAY;
+  });
+
   test('it goes only to members whose local time is Monday 08:00', async () => {
     const t = await tracked();
     const other = await fx.member(t.org, 'editor');

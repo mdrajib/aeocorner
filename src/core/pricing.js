@@ -21,6 +21,7 @@ const FEATURE_ROWS = Object.freeze([
   { key: 'wordpress', label: 'Publish to WordPress from AEO Corner' },
   { key: 'ga4', label: 'AI-traffic reports (Google Analytics and Search Console)' },
   { key: 'alerts', label: 'Alerts on significant drops and negative mentions' },
+  { key: 'autopilot', label: 'Autopilot: fixes and drafts prepared each week for you to approve' },
   { key: 'client_seats', label: 'Read-only client seats' },
 ]);
 

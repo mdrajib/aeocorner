@@ -4,6 +4,9 @@
 <% digest.notices.forEach((n) => { %>
 <%= n.title %> <%= n.text %>
 <% }) -%>
+<% if (digest.autopilotReady > 0 && locals.autopilotUrl) { %>
+Review in Autopilot (you will be asked to sign in): <%- autopilotUrl %>
+<% } %>
 <% if (digest.figures.length) { %>
 <% digest.figures.forEach((f) => { -%>
 <%= f.label %>: <%= f.display %><% if (f.note) { %> (<%= f.note %>)<% } %>
