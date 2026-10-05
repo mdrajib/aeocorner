@@ -323,7 +323,7 @@ export function judgeCheck(scanStatus, check) {
 }
 
 /** One look at a published page: the address from the re-check attempt, fetched with the safe fetcher, read as a crawler reads it. */
-async function checkLivePage(ctx, attempt) {
+export async function checkLivePage(ctx, attempt) {
   const fetcher = ctx.crawler?.fetcher;
   if (!attempt.targetUrl || !fetcher)
     throw new UnrecoverableError('A live-page check needs an address and the crawler');

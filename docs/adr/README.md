@@ -19,5 +19,6 @@ One-way-door technical decisions made while building AEO Corner, and the reasoni
 | [0013](0013-entity-checks-and-guidance.md) | Entity checks and guidance: a profile is confirmed only if we could read it, "couldn't check" is never a failure, and we never write to other people's profiles | Accepted | 2026-10-04 |
 
 | [0014](0014-citation-opportunities.md) | Citation opportunities: the type of a source comes from a reviewed list, a page we could not read has no format, and a citation fix is judged on citation share | Accepted | 2026-10-05 |
+| [0015](0015-visibility-recovery-cases.md) | Visibility recovery cases: a decline is lasting only if it is still down, a cause is named only on two facts, and only the system opens, diagnoses and closes a case | Accepted (the persistence defaults are provisional, decision F4) | 2026-10-05 |
 
 **Format:** Status, Context, Decision, Consequences. Numbered sequentially, never renumbered or deleted — a reversed decision gets a new ADR marking the old one `Superseded by ADR-000N`, per [CLAUDE.md](../../CLAUDE.md)'s consistency rule.

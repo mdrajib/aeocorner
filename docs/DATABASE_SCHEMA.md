@@ -14,7 +14,7 @@
 
 ## 0. Summary
 
-**68 tables in 16 areas, with 105 foreign keys and 19 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
+**70 tables in 16 areas, with 113 foreign keys and 20 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
 
 The ten decisions that shape it:
 
@@ -162,6 +162,8 @@ Filtering by cluster, intent or locale reads the cell tables joined to `prompts`
 | `action_outcomes` | Before/after at +2 and +4 weeks, overall and per engine: k/n before and after, change in percentage points, p-value, verdict. **Proven wins are counted from this table** | 9 |
 | `proof_shares` | A proven win shared as a public read-only page (D4): one row per outcome, a ULID `public_id` as the address, `revoked_at` when stopped (sharing again makes a new address). Added by migration `0006` | 10 |
 | `entity_checks` | The latest check of each profile address in the Brand Kit and of Wikidata (D7): `status` passed / failed / error ("couldn't check"), a `finding` word, and details. One row per project, kind and subject, replaced by the next attempt; a real result is kept for 30 days over a later "couldn't check". Added by migration `0007` (which also adds the `about_page` content format) | 12 |
+| `recovery_cases` | A decline that has lasted (Milestone 14): the metric and engine scope, the counts it was opened on (before, the fall, the latest 14 days), the re-check and diagnosis the code made, the repairs it points at, and how it ended (`diagnosing` → `repairing` → `recovered` / `closed_noise` / `closed_unknown`). `open_key` (`metric:engine`) is set only while open and is unique per project, so a decline opens exactly one case; a CHECK keeps it in step with `status`. Added by migration `0009` | 14 |
+| `recovery_events` | The timeline of a case, appended and never edited: opened, re-checked, diagnosed, repairs linked, ended, alerted | 14 |
 
 ### 2.12 Integrations, Content Studio and site changes
 

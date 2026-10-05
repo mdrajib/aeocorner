@@ -163,7 +163,9 @@ These are the BullMQ queues and scheduled jobs the admin console monitors ([§3]
 | `extract.batch` / `extract.poll` | After collection | Submits the Claude Batch API job; polls and stores mentions and citations | Retry; falls back to synchronous extraction for stuck batches |
 | `metrics.rollup` | After extraction; nightly full pass | Builds `metric_daily`, runs significance tests, creates change events | Retry; dashboards keep the last good rollup |
 | `recs.refresh` | After rollup | Runs the rule engine; adds or updates recommendations | Retry |
-| `alerts.evaluate` | After rollup | Significant drops, competitor surges, negative claims → emails | Retry; never sends duplicates |
+| `alerts.evaluate` | After rollup | Significant drops, competitor surges, negative claims and "a decline has lasted" (a recovery case) → emails | Retry; never sends duplicates |
+| `recovery.evaluate` | After a finished run | Opens a recovery case for a decline that has lasted (once per decline), closes cases that recovered, diagnoses the ones waiting (Milestone 14) | Retry; a repeat opens and closes nothing twice |
+| `recovery.recheck` | When a case opens | A fresh site scan and a look at each earlier fix, then the first diagnosis; free of provider cost | Retry; a repeat is skipped once the re-check is saved |
 | `verify.fix` | Fix marked done or content published; retried at +1 h and +24 h for caches and CDNs | Re-fetches the page as an AI crawler and confirms the change | Marked "unverified" with the reason |
 | `outcome.check` | Delayed +2 and +4 weeks after verification | Before/after comparison → `action_outcomes` | Retry; appears in the next digest |
 | `content.generate` | Customer request | Research → brief → draft → quality check → schema markup | Retry per step; progress is saved |

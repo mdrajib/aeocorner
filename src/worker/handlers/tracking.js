@@ -8,7 +8,7 @@ import {
   trackingAdvanceJobId,
 } from '../../lib/job-ids.js';
 import { Deferral } from '../deferral.js';
-import { queueAlerts, queueRefresh } from '../refresh-queue.js';
+import { queueAlerts, queueRecovery, queueRefresh } from '../refresh-queue.js';
 
 /**
  * Handlers for a project's tracking run (MVP F4, §7.8): the orchestrator.
@@ -216,6 +216,7 @@ async function trackingAdvance(ctx, data) {
       runId,
     });
     await queueAlerts(ctx, { orgId, projectId: run.project_id, runId });
+    await queueRecovery(ctx, { orgId, projectId: run.project_id, runId });
   }
   if (outcome.status === 'failed') {
     await ctx.alerts.alert({

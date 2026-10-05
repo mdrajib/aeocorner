@@ -70,6 +70,7 @@ describe('a fixture week: no drop, no alert; a real drop, an alert', () => {
     assert.deepEqual(selectAlerts({ events, engineNames, entityNames }), {
       items: [],
       eventIds: [],
+      caseIds: [],
     });
   });
 
@@ -277,5 +278,90 @@ describe('the weekly digest', () => {
     );
     assert.equal(d.hasNews, true);
     assert.match(d.headline, /Good news/);
+  });
+});
+
+describe('a decline that has lasted (Milestone 14)', () => {
+  const kase = {
+    id: 7n,
+    metric: 'mention_rate',
+    engineCode: null,
+    baseline: { n: 280, k: 168 },
+    decline: { n: 280, k: 100 },
+    recent: { n: 140, k: 28 },
+  };
+
+  test('is its own alert, told by the case, and stands in for the plain drop alert about the same measure', () => {
+    const rows = weeks({ n: 30, bk: 18 }, { n: 30, bk: 6 });
+    const events = stored(detectChanges({ rows, brandId: BRAND, asOf: AS_OF }));
+    const { items, eventIds, caseIds } = selectAlerts({
+      events,
+      engineNames,
+      entityNames,
+      cases: [kase],
+    });
+    assert.deepEqual(caseIds, [7n]);
+    assert.equal(items[0].kind, 'recovery');
+    assert.equal(items[0].key, 'recovery.7');
+    assert.match(items[0].text, /stayed down for more than two weeks/);
+    assert.equal(
+      items.filter((i) => i.kind === 'drop' && i.measure === 'How often AI answers name you')
+        .length,
+      0,
+    );
+    assert.ok(eventIds.length >= 2, 'the drop events are still marked told');
+  });
+
+  test('a drop in another measure is still told on its own', () => {
+    const rows = weeks({ n: 30, bk: 18 }, { n: 30, bk: 6 });
+    const events = stored(detectChanges({ rows, brandId: BRAND, asOf: AS_OF }));
+    const { items } = selectAlerts({
+      events,
+      engineNames,
+      entityNames,
+      cases: [{ ...kase, metric: 'citation_share' }],
+    });
+    assert.ok(items.some((i) => i.kind === 'drop'));
+    assert.ok(items.some((i) => i.kind === 'recovery'));
+  });
+});
+
+describe('the digest and recovery cases (Milestone 14)', () => {
+  const project = { name: 'Acme Dental', domain: 'acme.example' };
+  const { tiles, hasData } = headline({
+    rows: weeks({ n: 30, bk: 12 }, { n: 30, bk: 12 }),
+    brandId: BRAND,
+    asOf: AS_OF,
+  });
+  const base = {
+    project,
+    tiles,
+    hasData,
+    now: new Date('2026-10-27T00:00:00Z'),
+    lastFinishedAt: '2026-10-26T00:00:00Z',
+  };
+  const open = { metric: 'mention_rate', engineCode: null, status: 'repairing', closedAt: null };
+
+  test('an open case is told in every digest until it ends', () => {
+    const d = buildDigest({ ...base, cases: [open] });
+    assert.ok(
+      d.notices.some((n) => /being looked at/.test(n.title) && /name you less often/.test(n.text)),
+    );
+  });
+
+  test('a recovery is told in the week it happens, and a stale one is not', () => {
+    const recent = { ...open, status: 'recovered', closedAt: new Date('2026-10-24T00:00:00Z') };
+    const old = { ...open, status: 'recovered', closedAt: new Date('2026-09-01T00:00:00Z') };
+    assert.ok(
+      buildDigest({ ...base, cases: [recent] }).notices.some((n) => /has recovered/.test(n.title)),
+    );
+    assert.equal(buildDigest({ ...base, cases: [old] }).notices.length, 0);
+    assert.equal(
+      buildDigest({
+        ...base,
+        cases: [{ ...open, status: 'closed_unknown', closedAt: new Date('2026-10-24T00:00:00Z') }],
+      }).notices.length,
+      0,
+    );
   });
 });

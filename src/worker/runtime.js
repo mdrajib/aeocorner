@@ -18,6 +18,7 @@ import { autofixHandlers } from './handlers/autofix.js';
 import { contentHandlers } from './handlers/content.js';
 import { crawlHandlers } from './handlers/crawl.js';
 import { digestHandlers } from './handlers/digest.js';
+import { recoveryHandlers } from './handlers/recovery.js';
 import { citationHandlers } from './handlers/citations.js';
 import { entityHandlers } from './handlers/entity.js';
 import { extractHandlers } from './handlers/extract.js';
@@ -120,6 +121,7 @@ export function createWorkerRuntime({
     ...trafficHandlers,
     ...entityHandlers,
     ...citationHandlers,
+    ...recoveryHandlers,
     ...extraHandlers,
   };
 

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { describeChange } from './dashboard.js';
+import { alertItem } from './recovery.js';
 
 /**
  * Which things are worth an email (Milestone 8, task 8.14; ADMIN_OPERATIONS §6 `alerts.evaluate`): a significant DROP in
@@ -13,6 +14,12 @@ import { describeChange } from './dashboard.js';
 const DROP_KINDS = new Set(['mention_rate_change', 'sov_change', 'citation_share_change']);
 const MAX_ITEMS = 5;
 const MAX_CLAIM_CHARS = 240;
+
+const METRIC_KINDS = {
+  mention_rate: 'mention_rate_change',
+  share_of_voice: 'sov_change',
+  citation_share: 'citation_share_change',
+};
 
 const MEASURE_LABELS = {
   mention_rate_change: 'How often AI answers name you',
@@ -32,19 +39,32 @@ export function claimKey(claim) {
  * @param {object[]} input.claims   negative claims about the brand: `{ attribute, value, count, engineCodes }`
  * @param {object} [input.engineNames]  engine code → label
  * @param {object} [input.entityNames]  entity id → name (a competitor's surge names it)
+ * @param {object[]} [input.cases]   recovery cases nobody has been told about (a decline that has lasted); each is told once, ever
  * @returns {{ items: object[], eventIds: bigint[] }} `items` are `{ key, kind, tone, title, text }`, worst first;
  *   `eventIds` are the events they cover (to be marked alerted once the emails are sent)
  */
-export function selectAlerts({ events = [], claims = [], engineNames = {}, entityNames = {} }) {
+export function selectAlerts({
+  events = [],
+  claims = [],
+  engineNames = {},
+  entityNames = {},
+  cases = [],
+}) {
   const significant = events.filter((e) => e.is_significant);
   const items = [];
   const covered = [];
+  // A measure with a recovery case is told by the case, which says more than a plain drop does.
+  const caseKinds = new Set(cases.map((c) => METRIC_KINDS[c.metric]));
 
   // Drops: one alert per measure. The all-engines event says it best; per-engine events are only used when no
   // all-engines one exists, and are folded into the same alert's text.
   for (const kind of DROP_KINDS) {
     const drops = significant.filter((e) => e.kind === kind && e.direction === 'down');
     if (drops.length === 0) continue;
+    if (caseKinds.has(kind)) {
+      covered.push(...drops.map((e) => e.id));
+      continue;
+    }
     const overall = drops.find((e) => e.engine_code === null);
     const chosen = overall ? [overall] : drops.slice(0, 3);
     const described = chosen.map((e) => describeChange(e, { engineNames }));
@@ -64,6 +84,17 @@ export function selectAlerts({ events = [], claims = [], engineNames = {}, entit
       measure: MEASURE_LABELS[kind],
     });
     covered.push(...drops.map((e) => e.id));
+  }
+
+  // A decline that has lasted: the recovery case already holds the proof (core/recovery.js). Its alert goes first and stands
+  // in for the plain drop alert about the same measure (skipped above), which would only say it twice.
+  const caseIds = [];
+  for (const c of cases) {
+    items.unshift({
+      ...alertItem(c, engineNames),
+      measure: MEASURE_LABELS[METRIC_KINDS[c.metric]],
+    });
+    caseIds.push(c.id);
   }
 
   // A competitor that is significantly rising.
@@ -105,7 +136,7 @@ export function selectAlerts({ events = [], claims = [], engineNames = {}, entit
     });
   }
 
-  return { items: items.slice(0, MAX_ITEMS), eventIds: [...new Set(covered)] };
+  return { items: items.slice(0, MAX_ITEMS), eventIds: [...new Set(covered)], caseIds };
 }
 
 /** The subject line for a set of alerts about one project. */

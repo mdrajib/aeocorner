@@ -72,6 +72,7 @@ export async function digestSend(ctx, data) {
     events: facts.events,
     actions: top.map((r) => ({ title: r.title })),
     wins: facts.wins,
+    cases: await scoped.recovery.list(projectId, { limit: 10 }),
     lastFinishedAt: facts.lastFinishedAt,
     engineNames: facts.engineNames,
     entityNames: facts.entityNames,
@@ -115,19 +116,26 @@ export async function alertsEvaluate(ctx, data) {
 
   const now = ctx.now();
   const pending = await scoped.alerts.pending(projectId, { now });
-  const { items, eventIds } = selectAlerts({
+  // A recovery case is opened by `recovery.evaluate`; each one is told about once, ever.
+  const cases = await scoped.recovery.pendingAlerts(projectId, { now });
+  const { items, eventIds, caseIds } = selectAlerts({
     events: pending.events,
     claims: pending.claims,
     engineNames: pending.engineNames,
     entityNames: pending.entityNames,
+    cases,
   });
   if (items.length === 0) return { alerts: 0 };
 
   const recipients = await scoped.alerts.recipients(projectId, 'alert');
   const { orgPublicId } = await scoped.billing.summary({ now });
   const base = `${ctx.mail.baseUrl}/app/o/${orgPublicId}`;
-  const slot = data.runId ?? eventIds.join('-') ?? 'x';
+  // A case's slot carries the day: a held-back email is tried again tomorrow under a new key.
+  const slot = data.slot
+    ? `${data.slot}.${now.toISOString().slice(0, 10)}`
+    : (data.runId ?? (eventIds.join('-') || 'x'));
   let sent = 0;
+  let capped = 0;
   for (const r of recipients) {
     const result = await ctx.mail.send({
       to: r.email,
@@ -146,9 +154,15 @@ export async function alertsEvaluate(ctx, data) {
       },
     });
     if (result.status === 'sent') sent += 1;
+    if (result.status === 'capped') capped += 1;
   }
   // The events are told about now, whether or not anyone was sent one (everyone may have switched alerts off).
   await scoped.alerts.markAlerted(projectId, eventIds, { now });
+  // A case is different: it is told once and it matters, so while someone's daily limit held the email back it stays
+  // untold and the next evaluation tries again (it is looked at for two weeks).
+  if (caseIds.length > 0 && (sent > 0 || capped === 0)) {
+    await scoped.recovery.markAlerted(projectId, caseIds, { now });
+  }
   return { alerts: items.length, sent, recipients: recipients.length };
 }
 

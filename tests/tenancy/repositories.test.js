@@ -1714,6 +1714,84 @@ describe('entity checks (Milestone 12)', () => {
   });
 });
 
+describe('recovery cases (Milestone 14)', () => {
+  let aProject;
+  let bProject;
+  let bCase;
+  const decline = {
+    metric: 'mention_rate',
+    engineCode: null,
+    baseline: { window: ['2026-07-08', '2026-08-04'], n: 280, k: 168 },
+    decline: { window: ['2026-08-05', '2026-09-01'], n: 280, k: 100 },
+    recent: { n: 140, k: 40 },
+    deltaPp: -24.29,
+    p: 0.001,
+  };
+  before(async () => {
+    aProject = await fx.project(A.org.id, 'Recovery A');
+    bProject = await fx.project(B.org.id, 'Recovery B');
+    ({ case: bCase } = await B.scoped.recovery.open(bProject.id, decline, { asOf: '2026-09-01' }));
+  });
+
+  test('every call: B’s project is not found from A', async () => {
+    const f = A.scoped.recovery;
+    await refuses(f.open(bProject.id, decline, { asOf: '2026-09-01' }), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.list(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.openCount(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.get(bProject.id, bCase.publicId), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.byId(bProject.id, bCase.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.events(bProject.id, bCase.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.triggerEvent(bProject.id, bCase), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.matchingEvent(bProject.id, decline, '2026-09-01'), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.saveRecheck(bProject.id, bCase.id, {}), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      f.saveDiagnosis(bProject.id, bCase.id, {
+        diagnosis: { outcome: 'cant_tell', causes: [] },
+        repairs: [],
+      }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(
+      f.close(bProject.id, bCase.id, { status: 'closed_unknown', recent: {} }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(f.pendingAlerts(bProject.id), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.markAlerted(bProject.id, [bCase.id]), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.evidence(bProject.id, { onset: '2026-08-10' }), 'PROJECT_NOT_IN_ORG');
+    await refuses(f.repairProgress(bProject.id, bCase), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('B’s case id used inside A’s own project finds nothing and changes nothing', async () => {
+    const f = A.scoped.recovery;
+    assert.equal(await f.get(aProject.id, bCase.publicId), null);
+    assert.equal(await f.byId(aProject.id, bCase.id), null);
+    assert.deepEqual(await f.events(aProject.id, bCase.id), []);
+    assert.equal(await f.saveRecheck(aProject.id, bCase.id, { fixes: [] }), false);
+    assert.equal(
+      await f.saveDiagnosis(aProject.id, bCase.id, {
+        diagnosis: { outcome: 'cant_tell', causes: [] },
+        repairs: [],
+      }),
+      null,
+    );
+    assert.equal(
+      await f.close(aProject.id, bCase.id, { status: 'closed_unknown', recent: {} }),
+      false,
+    );
+    assert.equal(await f.markAlerted(aProject.id, [bCase.id]), 0);
+    const still = await B.scoped.recovery.byId(bProject.id, bCase.id);
+    assert.equal(still.status, 'diagnosing');
+    assert.equal(still.alertedAt, null);
+    assert.equal((await B.scoped.recovery.events(bProject.id, bCase.id)).length, 1);
+  });
+
+  test('A’s list never includes B’s cases, and a case’s own address works only in its project', async () => {
+    assert.deepEqual(await A.scoped.recovery.list(aProject.id), []);
+    assert.equal((await B.scoped.recovery.list(bProject.id)).length, 1);
+    assert.equal((await B.scoped.recovery.get(bProject.id, bCase.publicId)).id, bCase.id);
+  });
+});
+
 describe('billing, alerts, notification choices and Google traffic (Milestone 8)', () => {
   let aProject;
   let bProject;
@@ -1984,6 +2062,23 @@ describe('coverage: no repository function without a leak test', () => {
     ],
     proofShares: ['forRecommendation', 'revoke', 'share'],
     entityChecks: ['accuracyInputs', 'checks', 'forgetProfilesExcept', 'saveCheck'],
+    recovery: [
+      'byId',
+      'close',
+      'events',
+      'evidence',
+      'get',
+      'list',
+      'markAlerted',
+      'matchingEvent',
+      'open',
+      'openCount',
+      'pendingAlerts',
+      'repairProgress',
+      'saveDiagnosis',
+      'saveRecheck',
+      'triggerEvent',
+    ],
     alerts: ['digestFacts', 'markAlerted', 'pending', 'recipients'],
     notifyPrefs: ['get', 'set'],
     google: ['choose', 'disconnect', 'saveGrant', 'secret', 'status', 'syncResult'],
@@ -2205,6 +2300,7 @@ describe('coverage: no repository function without a leak test', () => {
       'proofShares',
       'quota',
       'recommendations',
+      'recovery',
       'runs',
       'scans',
       'snapshots',

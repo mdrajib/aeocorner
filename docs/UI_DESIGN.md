@@ -141,6 +141,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | D5 | Content Studio: list, brief, editor, quality check, approve / publish | 7 | `…/content`, `…/content/:id` | app | **Milestone 7 ✅ 2026-10-04** | D |
 | D6 | WordPress connector setup | 5, 7 | `…/integrations/wordpress` | app | Phase 12 | D |
 | D7 | **Entity**: profiles checked, Wikidata, what engines say about the brand's facts, and the text to put on each profile we cannot touch | 7 | `…/entity` | app | **Milestone 12 ✅ 2026-10-04** (built to the wireframe in §5.4, which is a proposal until the founder signs it off; the facts and profile links are edited on the Brand Kit's new Entity tab) | D |
+| D8 | **Recovery**: when visibility drops and stays down, a list of cases and one page per case with the numbers, the likely cause and the facts behind it, the repairs and the timeline | 7 Loop | `…/recovery`, `…/recovery/:cid` | app | **Milestone 14 ✅ 2026-10-05** (built to the wireframe in §5.4, which is a proposal until the founder signs it off; read-only: only the system opens, diagnoses and closes a case) | D |
 | E1 | AI traffic (Google connections + chart) | 7 | `…/traffic` | app | **Milestone 8 ✅ 2026-10-04** | E |
 | E2 | Weekly digest email, alert emails, trial-ending email (and: retention warning, "reconnect Google") | 7, 9 | n/a | email | **Milestone 8 ✅ 2026-10-04** | E |
 | E3 | Plan, billing and usage (Stripe Checkout and Portal hand-offs) | 4, 9 | `/app/o/:org/billing` | app | **Milestone 8 ✅ 2026-10-04** | E |
@@ -364,6 +365,17 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
                      What AI engines say about you: Fact │ You said │ Engines agree / disagree / not mentioned yet │ their words
                      What to put on each profile: Google Business Profile · LinkedIn · Crunchbase · Wikidata · a trade directory
                        each folds open: the steps, then every field with [ Copy ]; fields we lack are listed, never invented
+
+ D8 Recovery         list: open cases first, then closed. One row per case: what fell │ where it stands (Finding the cause ·
+                       Repairs in progress · Recovered · Recovered by itself · Closed, cause unknown) │ probable cause │ opened
+                     a case: title + status, one sentence with the counts ("was 60% (280 answers), fell to 36% … is 20% over
+                       the last 14 days"), then
+                       How the figure moved: before · the fall · now, each with the answers read
+                       What probably caused it: a card per cause with its band (Strong evidence · Likely) and the facts it stands on,
+                         or "We can't tell what caused this" with the reason
+                       Your earlier fixes, checked now: Still in place · No longer on your site · Couldn't check
+                       Repairs: pointers into the Actions list (nothing to press here) and the SEO-safe promise
+                       What happened, and when: the timeline. No button closes or reopens a case.
 ```
 
 ### 5.5 Group E — traffic, billing and settings (sign off before Phase 13)

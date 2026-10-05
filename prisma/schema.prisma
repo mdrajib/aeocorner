@@ -46,9 +46,9 @@ model action_outcomes {
   delta_pp          Decimal?                @db.Decimal(6, 2)
   p_value           Decimal?                @db.Decimal(9, 8)
   verdict           action_outcomes_verdict
-  metric            action_outcomes_metric  @default(mention_rate)
   computed_at       DateTime                @default(now())
   notified_at       DateTime?
+  metric            action_outcomes_metric  @default(mention_rate)
   projects          projects                @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_action_outcomes_project")
   recommendations   recommendations         @relation(fields: [recommendation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_action_outcomes_rec")
   proof_shares      proof_shares?
@@ -331,6 +331,7 @@ model change_events {
   digested_at    DateTime?
   created_at     DateTime                 @default(now())
   projects       projects                 @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_change_events_project")
+  recovery_cases recovery_cases[]
 
   @@unique([project_id, dedupe_key], map: "uq_change_events_dedupe")
   @@index([project_id, org_id], map: "fk_change_events_project")
@@ -986,6 +987,7 @@ model projects {
   change_events                           change_events[]
   content_items                           content_items[]
   entity_aliases                          entity_aliases[]
+  entity_checks                           entity_checks[]
   fix_verifications                       fix_verifications[]
   integrations                            integrations[]
   membership_projects                     membership_projects[]
@@ -995,7 +997,10 @@ model projects {
   audits_projects_source_audit_idToaudits audits?                        @relation("projects_source_audit_idToaudits", fields: [source_audit_id], references: [id], onUpdate: NoAction, map: "fk_projects_source_audit")
   prompt_clusters                         prompt_clusters[]
   prompts                                 prompts[]
+  proof_shares                            proof_shares[]
   recommendations                         recommendations[]
+  recovery_cases                          recovery_cases[]
+  recovery_events                         recovery_events[]
   reports                                 reports[]
   review_items                            review_items[]
   runs                                    runs[]
@@ -1005,8 +1010,6 @@ model projects {
   site_scans                              site_scans[]
   tracked_entities                        tracked_entities[]
   traffic_daily                           traffic_daily[]
-  proof_shares                            proof_shares[]
-  entity_checks                           entity_checks[]
 
   @@unique([id, org_id], map: "uq_projects_id_org")
   @@unique([org_id, active_domain], map: "uq_projects_org_domain")
@@ -1182,7 +1185,6 @@ model recommendations {
   stable_key               String
   category                 recommendations_category
   fix_path                 recommendations_fix_path
-  metric                   recommendations_metric          @default(mention_rate)
   title                    String                          @db.VarChar(255)
   why_md                   String                          @db.Text
   steps_md                 String?                         @db.Text
@@ -1210,6 +1212,7 @@ model recommendations {
   created_at               DateTime                        @default(now())
   updated_at               DateTime                        @default(now())
   open_key                 String?
+  metric                   recommendations_metric          @default(mention_rate)
   action_outcomes          action_outcomes[]
   content_items            content_items[]
   fix_verifications        fix_verifications[]
@@ -1667,6 +1670,7 @@ model users {
   notifications                                           notifications[]
   projects                                                projects[]
   prompts                                                 prompts[]
+  proof_shares                                            proof_shares[]
   recommendations                                         recommendations[]
   reports                                                 reports[]
   review_items                                            review_items[]
@@ -1674,7 +1678,6 @@ model users {
   site_changes_site_changes_approved_by_user_idTousers    site_changes[]      @relation("site_changes_approved_by_user_idTousers")
   site_changes_site_changes_rolled_back_by_user_idTousers site_changes[]      @relation("site_changes_rolled_back_by_user_idTousers")
   organizations                                           organizations?      @relation(fields: [last_org_id], references: [id], onUpdate: NoAction, map: "fk_users_last_org")
-  proof_shares                                            proof_shares[]
 
   @@index([last_org_id], map: "fk_users_last_org")
   @@index([email], map: "ix_users_email")
@@ -1700,17 +1703,17 @@ model web_domains {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model web_urls {
-  id            BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
-  url_hash      Bytes       @unique(map: "uq_web_urls_hash") @db.Binary(32)
-  url           String      @db.VarChar(2048)
-  domain_id     BigInt      @db.UnsignedBigInt
-  title         String?     @db.VarChar(512)
-  first_seen_at DateTime    @default(now())
+  id                BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  url_hash          Bytes                 @unique(map: "uq_web_urls_hash") @db.Binary(32)
+  url               String                @db.VarChar(2048)
+  domain_id         BigInt                @db.UnsignedBigInt
+  title             String?               @db.VarChar(512)
+  first_seen_at     DateTime              @default(now())
   page_format       web_urls_page_format?
   format_checked_at DateTime?
-  format_finding    String?             @db.VarChar(32)
+  format_finding    String?               @db.VarChar(32)
   citable_signals   Json?
-  web_domains   web_domains @relation(fields: [domain_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_web_urls_domain")
+  web_domains       web_domains           @relation(fields: [domain_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_web_urls_domain")
 
   @@index([domain_id], map: "ix_web_urls_domain")
   @@index([format_checked_at], map: "ix_web_urls_format_check")
@@ -1763,6 +1766,66 @@ model feature_flags {
   staff_users            staff_users?             @relation(fields: [updated_by_staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feature_flags_staff")
 
   @@index([updated_by_staff_id], map: "fk_feature_flags_staff")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recovery_cases {
+  id               BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id        String                @unique(map: "uq_recovery_cases_public") @db.Char(26)
+  org_id           BigInt                @db.UnsignedBigInt
+  project_id       BigInt                @db.UnsignedBigInt
+  metric           recovery_cases_metric
+  engine_code      String?               @db.VarChar(32)
+  status           recovery_cases_status @default(diagnosing)
+  open_key         String?               @db.VarChar(64)
+  trigger_event_id BigInt?               @db.UnsignedBigInt
+  baseline_start   DateTime              @db.Date
+  baseline_end     DateTime              @db.Date
+  baseline_n       Int                   @db.UnsignedInt
+  baseline_k       Int                   @db.UnsignedInt
+  decline_start    DateTime              @db.Date
+  decline_end      DateTime              @db.Date
+  decline_n        Int                   @db.UnsignedInt
+  decline_k        Int                   @db.UnsignedInt
+  recent_n         Int                   @db.UnsignedInt
+  recent_k         Int                   @db.UnsignedInt
+  p_value          Decimal?              @db.Decimal(9, 8)
+  onset_date       DateTime?             @db.Date
+  opened_at        DateTime
+  recheck          Json?
+  recheck_done_at  DateTime?
+  diagnosis        Json?
+  diagnosed_at     DateTime?
+  repairs          Json?
+  closed_at        DateTime?
+  close_details    Json?
+  alerted_at       DateTime?
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @default(now())
+  change_events    change_events?        @relation(fields: [trigger_event_id], references: [id], onUpdate: NoAction, map: "fk_recovery_cases_event")
+  projects         projects              @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_recovery_cases_project")
+  recovery_events  recovery_events[]
+
+  @@unique([project_id, open_key], map: "uq_recovery_cases_open")
+  @@index([project_id, org_id, status], map: "ix_recovery_cases_project")
+  @@index([trigger_event_id], map: "ix_recovery_cases_trigger")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recovery_events {
+  id             BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id         BigInt               @db.UnsignedBigInt
+  project_id     BigInt               @db.UnsignedBigInt
+  case_id        BigInt               @db.UnsignedBigInt
+  kind           recovery_events_kind
+  details        Json?
+  created_at     DateTime             @default(now())
+  recovery_cases recovery_cases       @relation(fields: [case_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_recovery_events_case")
+  projects       projects             @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_recovery_events_project")
+
+  @@index([case_id, id], map: "ix_recovery_events_case")
+  @@index([project_id, org_id], map: "ix_recovery_events_project")
 }
 
 enum abuse_blocks_kind {
@@ -2543,4 +2606,29 @@ enum action_outcomes_metric {
 enum recommendations_metric {
   mention_rate
   citation_share
+}
+
+enum recovery_cases_metric {
+  mention_rate
+  share_of_voice
+  citation_share
+}
+
+enum recovery_events_kind {
+  opened
+  rechecked
+  diagnosed
+  repairs_linked
+  recovered
+  closed_noise
+  closed_unknown
+  alerted
+}
+
+enum recovery_cases_status {
+  diagnosing
+  repairing
+  recovered
+  closed_noise
+  closed_unknown
 }

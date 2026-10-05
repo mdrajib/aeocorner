@@ -211,6 +211,40 @@ export const appPages = [
     as: 'viewer',
     path: (f) => `/app/o/${f.orgId}/projects/${f.entityProjectId}/entity`,
   },
+  // Recovery (Milestone 14): the list, a case being repaired, one still looking (no diagnosis yet), one that recovered.
+  {
+    name: 'recovery',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.recoveryProjectId}/recovery`,
+  },
+  {
+    name: 'recovery-viewer',
+    as: 'viewer',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.recoveryProjectId}/recovery`,
+  },
+  {
+    name: 'recovery-empty',
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/recovery`,
+  },
+  {
+    name: 'recovery-case-repairing',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.recoveryProjectId}/recovery/${f.recoveryRepairingId}`,
+  },
+  {
+    name: 'recovery-case-looking',
+    as: 'owner',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.recoveryProjectId}/recovery/${f.recoveryLookingId}`,
+  },
+  {
+    name: 'recovery-case-recovered',
+    as: 'viewer',
+    path: (f) =>
+      `/app/o/${f.orgId}/projects/${f.recoveryProjectId}/recovery/${f.recoveryRecoveredId}`,
+  },
   {
     name: 'entity-empty',
     as: 'owner',

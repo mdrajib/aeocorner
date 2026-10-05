@@ -167,7 +167,24 @@ export const JOBS = Object.freeze({
   },
   'alerts.evaluate': {
     queue: 'system',
+    schema: z.object({
+      orgId: id,
+      projectId: id,
+      runId: id.optional(),
+      slot: z.string().max(40).optional(),
+    }),
+  },
+
+  // Visibility recovery cases (Milestone 14). `recovery.evaluate` follows a finished run: open a case for a decline that has
+  // lasted, diagnose and close the open ones. `recovery.recheck` runs once when a case opens: a fresh site scan and a look at
+  // each earlier fix, free of provider cost, so it is on the crawl queue like the other re-checks.
+  'recovery.evaluate': {
+    queue: 'system',
     schema: z.object({ orgId: id, projectId: id, runId: id.optional() }),
+  },
+  'recovery.recheck': {
+    queue: 'crawl',
+    schema: z.object({ orgId: id, projectId: id, caseId: id }),
   },
 
   // A job that goes through the whole path (queue, retries, rate limit, spend cap, ledger) and does nothing

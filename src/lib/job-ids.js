@@ -124,5 +124,17 @@ export const digestSendJobId = (projectId, hour) => jobId('digest', projectId, `
 /** The alerts for what one finished run found. */
 export const alertsJobId = (projectId, runId) => jobId('alerts', projectId, `r${runId}`);
 
+/** Looking at one project's declines (Milestone 14). `tag` is the run that asked, so one run asks once. */
+export const recoveryEvaluateJobId = (projectId, tag) => jobId('recovery', projectId, tag);
+
+/** The fresh scan and fix checks taken when a recovery case opens: one per case, one a day if the first never ran. */
+export const recoveryRecheckJobId = (caseId, tag = 'open') => jobId('recheck', caseId, tag);
+
+/** The "a decline has lasted" alert for one case: its own slot, so it never collides with a run's alerts. */
+export const recoveryAlertSlot = (caseId) => `case${caseId}`;
+/** One try a day, so an email held back by someone's daily limit is tried again tomorrow (and a finished job's ID does not block it). */
+export const recoveryAlertsJobId = (projectId, caseId, day) =>
+  jobId('alerts', projectId, recoveryAlertSlot(caseId), day);
+
 /** The ten-minute slot a time falls in. */
 export const slotOf = (date) => Math.floor(date.getTime() / 600_000);

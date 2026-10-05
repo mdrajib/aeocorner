@@ -1,4 +1,4 @@
-import { alertsJobId, recsRefreshJobId } from '../lib/job-ids.js';
+import { alertsJobId, recoveryEvaluateJobId, recsRefreshJobId } from '../lib/job-ids.js';
 
 /**
  * Ask for a project's recommendations to be brought up to date (`recommendations.refresh`), after a run or a scan
@@ -42,6 +42,27 @@ export async function queueAlerts(ctx, { orgId, projectId, runId }) {
     ctx.logger.warn(
       { err: err.message, projectId: String(projectId) },
       'Could not queue the alerts',
+    );
+    return false;
+  }
+}
+
+/**
+ * Ask for a project's decline to be looked at (`recovery.evaluate`) after a finished run: open a case for a decline that has
+ * lasted, and close or diagnose the open ones. Like the refresh, a failure to queue is logged and swallowed: the next run asks again.
+ */
+export async function queueRecovery(ctx, { orgId, projectId, runId }) {
+  try {
+    await ctx.jobs.add(
+      'recovery.evaluate',
+      { orgId: String(orgId), projectId: String(projectId), runId: String(runId) },
+      { jobId: recoveryEvaluateJobId(projectId, `r${runId}`) },
+    );
+    return true;
+  } catch (err) {
+    ctx.logger.warn(
+      { err: err.message, projectId: String(projectId) },
+      'Could not queue the recovery evaluation',
     );
     return false;
   }

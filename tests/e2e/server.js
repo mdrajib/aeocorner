@@ -379,6 +379,115 @@ const entityProject = await scoped.projects.create({
   }
 }
 
+// Recovery (Milestone 14): one project with a case being repaired (a named cause, a repair already on the Actions list and an
+// earlier fix we could not look at), one that recovered, and one still looking. Its own project, so no other screen's numbers move.
+const recoveryIds = {};
+{
+  const recoveryProject = await scoped.projects.create({
+    name: 'Recovery Dental',
+    domain: `recovery-dental-${unique()}.example.test`,
+    country: 'US',
+    language: 'en',
+    createdByUserId: people.owner.id,
+  });
+  const at = new Date('2026-09-30T10:00:00Z');
+  const day = (offset) =>
+    new Date(Date.parse('2026-09-30T00:00:00Z') + offset * 86_400_000).toISOString().slice(0, 10);
+  const decline = (engineCode, recentK) => ({
+    metric: 'mention_rate',
+    engineCode,
+    baseline: { window: [day(-55), day(-28)], n: 280, k: 168 },
+    decline: { window: [day(-27), day(0)], n: 280, k: 100 },
+    recent: { n: 140, k: recentK },
+    deltaPp: -24.29,
+    p: 0.001,
+  });
+  const rec = await fx.recommendation(recoveryProject, {
+    rule_code: 'readiness.A1',
+    stable_key: 'readiness.a1:a1',
+    title: 'Let answer crawlers in',
+    category: 'crawler_access',
+    fix_path: 'auto_fix',
+  });
+  const fixed = await fx.recommendation(recoveryProject, {
+    title: 'Add Organization schema',
+    status: 'done',
+  });
+  const open = (engineCode, recentK) =>
+    scoped.recovery.open(recoveryProject.id, decline(engineCode, recentK), {
+      asOf: day(0),
+      onset: day(-20),
+      now: at,
+    });
+  const repairing = (await open(null, 28)).case;
+  await scoped.recovery.saveRecheck(
+    recoveryProject.id,
+    repairing.id,
+    {
+      scanId: null,
+      scanStatus: 'failed',
+      fixes: [{ recommendationId: String(fixed.id), live: 'unknown', via: null }],
+    },
+    { now: at },
+  );
+  await scoped.recovery.saveDiagnosis(recoveryProject.id, repairing.id, {
+    diagnosis: {
+      outcome: 'named',
+      onset: day(-20),
+      considered: [],
+      causes: [
+        {
+          code: 'readiness_regression',
+          label: 'Your site got harder for engines to read',
+          band: 'strong',
+          facts: [
+            {
+              id: 'readiness.regressed',
+              text: 'A1 (Answer and search crawlers are allowed) passed in the check on Aug 20 and does not now.',
+            },
+            {
+              id: 'readiness.score',
+              text: 'Your site’s readiness score fell 12 points, from 90 to 78.',
+            },
+            {
+              id: 'readiness.reach',
+              text: 'A1 decides whether engines can reach or read your pages at all.',
+            },
+          ],
+          against: [],
+        },
+      ],
+    },
+    repairs: [
+      {
+        cause: 'readiness_regression',
+        kind: 'rules',
+        ruleCodes: ['readiness.A1'],
+        text: 'Fix the checks that stopped passing.',
+      },
+    ],
+    now: at,
+  });
+  const looking = (await open('gemini', 30)).case;
+  const done = await scoped.recovery.open(
+    recoveryProject.id,
+    { ...decline('perplexity', 28), metric: 'citation_share' },
+    { asOf: day(0), onset: day(-20), now: at },
+  );
+  await scoped.recovery.close(recoveryProject.id, done.case.id, {
+    status: 'recovered',
+    recent: { n: 140, k: 84, window: [day(-13), day(0)] },
+    now: new Date('2026-10-14T10:00:00Z'),
+  });
+  Object.assign(recoveryIds, {
+    project: recoveryProject.public_id,
+    repairing: repairing.publicId,
+    looking: looking.publicId,
+    recovered: done.case.publicId,
+    recommendation: rec.id,
+  });
+}
+
 // The Action Center: a scan that found two things, raised as recommendations. One fix is marked done and has a result.
 const actionIds = {};
 {
@@ -802,6 +911,10 @@ const fixtureInfo = {
   runningProjectId: runningProject.public_id,
   dashboardProjectId: dashProject.public_id,
   entityProjectId: entityProject.public_id,
+  recoveryProjectId: recoveryIds.project,
+  recoveryRepairingId: recoveryIds.repairing,
+  recoveryLookingId: recoveryIds.looking,
+  recoveryRecoveredId: recoveryIds.recovered,
   dashboardPromptId: String(dashQ1.id),
   actionOpenId: actionIds.open,
   actionWinId: actionIds.win,

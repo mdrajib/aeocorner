@@ -1110,6 +1110,8 @@ export function fixtures(db) {
         await prisma.content_revisions.deleteMany({ where });
         await prisma.content_items.deleteMany({ where });
         await prisma.integrations.deleteMany({ where });
+        await prisma.recovery_events.deleteMany({ where });
+        await prisma.recovery_cases.deleteMany({ where });
         await prisma.entity_checks.deleteMany({ where });
         await prisma.traffic_daily.deleteMany({ where });
         await prisma.search_console_daily.deleteMany({ where });

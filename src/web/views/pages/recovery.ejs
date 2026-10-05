@@ -1,0 +1,48 @@
+<%#
+  D8: Recovery. Props: view (listView: open, closed, total); locals: project, projectBase, orgBase.
+  A case is opened, diagnosed and closed by the system only: there is nothing to press here. A decline that came back inside
+  two weeks never opens one.
+%>
+<nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <a href="<%= projectBase %>"><%= project.name %></a> <span aria-hidden="true">/</span> <span>Recovery</span></nav>
+<h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= project.name %></h1>
+<%- ui.fragment('partials/project-nav', { projectBase, current: 'recovery' }) %>
+
+<h2 class="mt-6 text-2xl">When visibility drops and stays down</h2>
+<p class="text-ink-700 mt-1 max-w-2xl text-sm">A dip that comes back inside two weeks is ordinary variation and opens nothing. When a significant fall is still there after two weeks, we open a case, look at what changed on your site, say what probably caused it (or that we can’t tell), point you at the repairs and close the case with proof when the figure comes back.</p>
+
+<% if (view.total === 0) { %>
+<div class="mt-6"><%- ui.state({ kind: 'empty', title: 'Nothing has dropped and stayed down.', text: 'We check after every run. If your figures fall and stay low, the case appears here and we email you.' }) %></div>
+<% } else { %>
+
+<section class="mt-8" aria-labelledby="open-h">
+  <h3 id="open-h" class="text-xl">Open cases</h3>
+  <% if (!view.open.length) { %>
+  <p class="text-ink-700 mt-2 text-sm">No open cases.</p>
+  <% } else { %>
+  <div class="mt-3"><%- ui.table({ caption: 'Open recovery cases', captionHidden: true, stack: true,
+    columns: [{ key: 'title', label: 'What fell' }, { key: 'status', label: 'Where it stands' }, { key: 'cause', label: 'Probable cause' }, { key: 'opened', label: 'Opened' }],
+    rows: view.open.map((c) => ({
+      title: { html: '<a href="' + ui.esc(projectBase + '/recovery/' + c.id) + '">' + ui.esc(c.title) + '</a><br><span class="text-ink-600 text-xs">' + ui.esc(c.summary) + '</span>' },
+      status: { html: ui.badge({ text: c.statusLabel, tone: c.tone }) },
+      cause: c.cause,
+      opened: c.opened,
+    })) }) %></div>
+  <% } %>
+</section>
+
+<section class="mt-8" aria-labelledby="closed-h">
+  <h3 id="closed-h" class="text-xl">Closed cases</h3>
+  <% if (!view.closed.length) { %>
+  <p class="text-ink-700 mt-2 text-sm">No closed cases yet.</p>
+  <% } else { %>
+  <div class="mt-3"><%- ui.table({ caption: 'Closed recovery cases', captionHidden: true, stack: true,
+    columns: [{ key: 'title', label: 'What fell' }, { key: 'status', label: 'How it ended' }, { key: 'cause', label: 'Probable cause' }, { key: 'closed', label: 'Closed' }],
+    rows: view.closed.map((c) => ({
+      title: { html: '<a href="' + ui.esc(projectBase + '/recovery/' + c.id) + '">' + ui.esc(c.title) + '</a><br><span class="text-ink-600 text-xs">' + ui.esc(c.summary) + '</span>' },
+      status: { html: ui.badge({ text: c.statusLabel, tone: c.tone }) },
+      cause: c.cause,
+      closed: c.closed,
+    })) }) %></div>
+  <% } %>
+</section>
+<% } %>

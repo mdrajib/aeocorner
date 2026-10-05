@@ -1,0 +1,96 @@
+<%#
+  D8: one recovery case. Props: view (caseView); locals: project, projectBase, orgBase.
+  The diagnosis is the code's: every cause lists the facts it stands on, and "we can't tell" is said in those words. A fix we
+  could not look at is "Couldn’t check", never gone. Nothing is coloured as a recovery until the system closed the case as one.
+%>
+<nav aria-label="Breadcrumb" class="text-ink-700 text-sm"><a href="<%= orgBase %>">Projects</a> <span aria-hidden="true">/</span> <a href="<%= projectBase %>"><%= project.name %></a> <span aria-hidden="true">/</span> <a href="<%= projectBase %>/recovery">Recovery</a> <span aria-hidden="true">/</span> <span>Case</span></nav>
+<h1 class="mt-2 text-3xl [overflow-wrap:anywhere]"><%= view.title %></h1>
+<%- ui.fragment('partials/project-nav', { projectBase, current: 'recovery' }) %>
+
+<p class="mt-4 flex flex-wrap items-center gap-2"><%- ui.badge({ text: view.statusLabel, tone: view.tone }) %> <span class="text-ink-700 text-sm">Opened <%= view.opened %><% if (view.closed) { %>, closed <%= view.closed %><% } %>. <%= view.metric %>.</span></p>
+<p class="text-ink-800 mt-2 max-w-2xl text-sm"><%= view.sentence %></p>
+
+<% if (view.proof) { %>
+<div class="mt-4 max-w-2xl"><%- ui.card({ html: '<p class="font-semibold">' + ui.esc(view.proof.title) + '</p><p class="mt-1 text-sm">' + ui.esc(view.proof.text) + '</p>', headingLevel: 3 }) %></div>
+<% } %>
+
+<section class="mt-8" aria-labelledby="moved-h">
+  <h2 id="moved-h" class="text-xl">How the figure moved</h2>
+  <div class="mt-3"><%- ui.table({ caption: 'The figure before the fall, during it and now', captionHidden: true, stack: true,
+    columns: [{ key: 'label', label: 'Period' }, { key: 'window', label: 'Days' }, { key: 'rate', label: 'Figure' }, { key: 'answers', label: 'Answers read' }],
+    rows: view.movement.map((m) => ({
+      label: m.label,
+      window: m.window,
+      rate: { html: m.state === 'ok' ? ui.esc(m.rate) : ui.badge({ text: 'Couldn’t check', tone: 'unknown' }) },
+      answers: String(m.answers),
+    })) }) %></div>
+  <p class="text-ink-600 mt-2 text-xs">A day on which an engine did not finish its check is left out, so our own outages are never counted as your decline.<% if (view.onset) { %> We estimate the fall began in the week of <%= view.onset %>.<% } %></p>
+</section>
+
+<section class="mt-8" aria-labelledby="diag-h">
+  <h2 id="diag-h" class="text-xl">What probably caused it</h2>
+  <% if (view.diagnosis.state === 'waiting') { %>
+  <div class="mt-3"><%- ui.state({ kind: 'loading', title: 'Looking for the cause.', text: view.diagnosis.text }) %></div>
+  <% } else if (view.diagnosis.state === 'cant_tell') { %>
+  <div class="mt-3"><%- ui.card({ html: '<p class="font-semibold">' + ui.esc(view.diagnosis.text) + '</p><p class="mt-1 text-sm">' + ui.esc(view.diagnosis.reason) + '</p><p class="text-ink-600 mt-2 text-xs">' + ui.esc(view.diagnosis.note) + '</p>', headingLevel: 3 }) %></div>
+  <% } else { %>
+  <p class="text-ink-700 mt-1 max-w-2xl text-sm"><%= view.diagnosis.text %></p>
+  <div class="mt-3 flex flex-col gap-3">
+    <% for (const c of view.diagnosis.causes) { %>
+    <%
+    const body = '<p class="flex flex-wrap items-center gap-2"><span class="font-semibold">' + ui.esc(c.label) + '</span> ' + ui.badge({ text: c.band, tone: c.strong ? 'success' : 'neutral' }) + '</p>'
+      + '<ul class="mt-2 list-disc pl-5 text-sm">' + c.facts.map((f) => '<li class="mt-1">' + ui.esc(f) + '</li>').join('') + '</ul>'
+      + (c.against.length ? '<p class="text-ink-600 mt-2 text-xs">Speaking against it: ' + c.against.map((f) => ui.esc(f)).join(' ') + '</p>' : '');
+    %>
+    <%- ui.card({ html: body, headingLevel: 3 }) %>
+    <% } %>
+  </div>
+  <% } %>
+</section>
+
+<% if (view.recheck) { %>
+<section class="mt-8" aria-labelledby="recheck-h">
+  <h2 id="recheck-h" class="text-xl">Your earlier fixes, checked now</h2>
+  <p class="text-ink-700 mt-1 max-w-2xl text-sm"><% if (view.recheck.scanned) { %>We scanned your site again when the case opened and looked at each fix that should be on it.<% } else { %>We could not scan your site again, so only published pages could be looked at.<% } %> A theme or plugin update can quietly remove what a fix added.</p>
+  <% if (!view.recheck.fixes.length) { %>
+  <p class="text-ink-700 mt-2 text-sm">You have no finished fixes to look at yet.</p>
+  <% } else { %>
+  <div class="mt-3"><%- ui.table({ caption: 'Earlier fixes and whether they are still on your site', captionHidden: true, stack: true,
+    columns: [{ key: 'title', label: 'Fix' }, { key: 'state', label: 'On your site now' }],
+    rows: view.recheck.fixes.map((f) => ({
+      title: { html: '<a href="' + ui.esc(projectBase + '/actions/' + f.recommendationId) + '">' + ui.esc(f.title) + '</a>' },
+      state: { html: ui.badge({ text: f.label, tone: f.tone }) },
+    })) }) %></div>
+  <% } %>
+</section>
+<% } %>
+
+<section class="mt-8" aria-labelledby="repairs-h">
+  <h2 id="repairs-h" class="text-xl">Repairs</h2>
+  <% if (!view.repairs.length) { %>
+  <p class="text-ink-700 mt-2 max-w-2xl text-sm"><% if (view.diagnosis.state === 'named') { %>No repair applies to this cause.<% } else { %>With no cause named there is nothing to repair yet. We keep watching the figure and tell you when it recovers.<% } %></p>
+  <% } else { %>
+  <div class="mt-3 flex flex-col gap-3">
+    <% for (const r of view.repairs) { %>
+    <%
+    const links = r.links.length
+      ? '<ul class="mt-2 list-disc pl-5 text-sm">' + r.links.map((l) =>
+          '<li class="mt-1">' + (l.recommendationId ? '<a href="' + ui.esc(projectBase + '/actions/' + l.recommendationId) + '">' + ui.esc(l.title) + '</a>' : ui.esc(l.title))
+          + ' ' + ui.badge({ text: l.done ? 'Done since this case opened' : (l.statusLabel || l.status), tone: l.done ? 'success' : 'neutral' }) + '</li>').join('') + '</ul>'
+      : (r.kind === 'none' ? '' : '<p class="text-ink-600 mt-2 text-xs">Nothing on your Actions list matches yet. The next site check or run adds it if it still applies.</p>');
+    %>
+    <%- ui.card({ html: '<p class="text-ink-600 text-xs">' + ui.esc(r.cause) + '</p><p class="mt-1 text-sm">' + ui.esc(r.text) + '</p>' + links, headingLevel: 3 }) %>
+    <% } %>
+  </div>
+  <% } %>
+  <p class="text-ink-600 mt-3 max-w-2xl text-xs"><%= view.seoSafe %></p>
+</section>
+
+<section class="mt-8" aria-labelledby="timeline-h">
+  <h2 id="timeline-h" class="text-xl">What happened, and when</h2>
+  <ol class="mt-3 flex flex-col gap-3">
+    <% for (const e of view.timeline) { %>
+    <li class="card"><div class="card-body"><p class="text-ink-600 text-xs"><%= e.at %></p><p class="mt-1 text-sm font-semibold"><%= e.title %></p><p class="text-ink-700 mt-1 text-sm"><%= e.text %></p></div></li>
+    <% } %>
+  </ol>
+</section>

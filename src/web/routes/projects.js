@@ -20,6 +20,7 @@ import { actionRoutes } from './project-actions.js';
 import { contentRoutes } from './project-content.js';
 import { brandRoutes } from './project-brand.js';
 import { entityRoutes } from './project-entity.js';
+import { recoveryRoutes } from './project-recovery.js';
 import { dashboardRoutes } from './project-dashboard.js';
 import { dateLabel, idFrom, returnPath, withNotice } from './project-helpers.js';
 import { questionRoutes } from './project-questions.js';
@@ -483,6 +484,7 @@ export function projectRoutes({
 
   brandRoutes(router, { jobs, logger, appPage, edit });
   entityRoutes(router, { jobs, logger, appPage, edit });
+  recoveryRoutes(router, { appPage });
   questionRoutes(router, { jobs, logger, appPage, edit });
   setupRoutes(router, { jobs, logger, appPage, edit });
   trackingRoutes(router, { jobs, logger, edit });

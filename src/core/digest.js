@@ -1,4 +1,5 @@
 import { describeChange, staleNotice } from './dashboard.js';
+import { caseTitle } from './recovery.js';
 
 /**
  * The weekly digest as data (Milestone 8, task 8.13; UI_DESIGN E2, CUSTOMER_JOURNEY stage 7). Pure: figures, changes and
@@ -39,6 +40,7 @@ function figure(label, tile) {
  * @param {object[]} [input.events]     `change_events` rows from the last seven days, significant ones only
  * @param {object[]} [input.actions]    the best open recommendations: `{ title, why? }`
  * @param {object[]} [input.wins]       before/after proofs that were won this week: `{ sentence }`
+ * @param {object[]} [input.cases]      recovery cases (core/recovery.js): the open ones, and any closed in the last seven days
  * @param {Date|string|null} [input.lastFinishedAt]  when the newest finished check ended
  * @param {object} [input.engineNames]
  * @param {object} [input.entityNames]
@@ -51,6 +53,7 @@ export function buildDigest({
   events = [],
   actions = [],
   wins = [],
+  cases = [],
   lastFinishedAt = null,
   engineNames = {},
   entityNames = {},
@@ -59,6 +62,29 @@ export function buildDigest({
   const notices = [];
   const stale = staleNotice(lastFinishedAt, now);
   if (stale) notices.push({ tone: 'warning', title: stale.title, text: stale.text });
+
+  // A decline we are looking into is told in every digest until it ends; a recovery is told once, the week it happens.
+  const weekAgo = now.getTime() - 7 * 86_400_000;
+  for (const k of cases) {
+    const title = caseTitle(k, engineNames);
+    if (k.status === 'diagnosing' || k.status === 'repairing') {
+      notices.push({
+        tone: 'warning',
+        title: 'A decline is being looked at.',
+        text: `${title}. Open the recovery case to see what we found and what to do.`,
+      });
+    } else if (
+      (k.status === 'recovered' || k.status === 'closed_noise') &&
+      k.closedAt &&
+      new Date(k.closedAt).getTime() >= weekAgo
+    ) {
+      notices.push({
+        tone: 'success',
+        title: 'A decline has recovered.',
+        text: `${title}: the figure is back inside its earlier range.`,
+      });
+    }
+  }
 
   const figures = hasData ? FIGURES.map(([key, label]) => figure(label, tiles[key])) : [];
 
