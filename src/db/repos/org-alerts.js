@@ -200,6 +200,7 @@ export function alertRepos(prisma, orgId) {
             k_before: true,
             n_after: true,
             k_after: true,
+            metric: true,
             recommendations: { select: { title: true } },
           },
           orderBy: { id: 'asc' },
@@ -226,6 +227,7 @@ export function alertRepos(prisma, orgId) {
           kBefore: o.k_before,
           nAfter: o.n_after,
           kAfter: o.k_after,
+          metric: o.metric,
         })),
         lastFinishedAt: lastRun?.finished_at ?? null,
       };

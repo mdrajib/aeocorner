@@ -15,7 +15,7 @@ import { fenced, readJsonReply } from './reply.js';
  * (`checkBrief`). Bump BRIEF_VERSION when the prompt or schema changes.
  */
 
-export const BRIEF_VERSION = 'b2';
+export const BRIEF_VERSION = 'b3';
 export const SCHEMA_TYPES = Object.freeze(['Article', 'FAQPage', 'HowTo']);
 export const OUTLINE_MIN = 3;
 export const OUTLINE_MAX = 9;
@@ -35,6 +35,8 @@ Plan:
 - schemaType: FAQPage when the page is mostly questions and answers, HowTo for step-by-step instructions, otherwise Article.
 
 If the recommended format is about_page, this is the business's About page. Its headings are the questions a stranger or an answer engine asks about the business: who it is, what it does, who it is for, where it is based, when it began, and why to trust it. Open with a direct answer that names the business, what it does and for whom. Plan a section only if the facts support it: with no fact for the founding year or the place, leave that section out. Never invent a person, a credential, an award or a number.
+
+If the evidence lists "Pages to beat", they are the pages engines cite for this question today. Match the kind of page they are, cover what they cover, and plan for what makes them easy to cite: a short direct answer first, and a source for every figure. A named author and an update date come from the business when the page is published, so do not write them into the outline. Never invent a figure, an author or a source to match them.
 
 Write plain English at about an eighth-grade reading level. Use the business's voice if one is given. Never claim the business is the best, first or only unless a fact says so.`;
 
@@ -144,8 +146,21 @@ export function buildBriefRequest({
       (s) =>
         `- ${fenced(s.title ?? s.domain ?? s.url, 120)} (${fenced(s.domain ?? '', 80)}, cited ${s.timesCited}×, ${s.format ?? 'unknown format'})`,
     );
+  // The pages to beat (Milestone 13): what the most cited pages are and what makes them easy to cite, as we counted it.
+  const beat = (pack.modelsToBeat ?? []).map((s) => {
+    const sig = s.signals;
+    const has = sig
+      ? [
+          sig.author ? 'a named author' : null,
+          sig.dated ? 'a date' : null,
+          sig.sourcesLinked > 0 ? `${sig.sourcesLinked} outside sources linked` : null,
+          sig.figures > 0 ? 'figures' : null,
+        ].filter(Boolean)
+      : null;
+    return `- ${fenced(s.title ?? s.domain ?? s.url, 120)} (${fenced(s.domain ?? '', 80)}, ${s.readFormat ?? 'format not read'}${has ? `; has ${has.join(', ') || 'no author, date, sources or figures'}` : ''})`;
+  });
   const evidence = pack.question
-    ? `Question: ${fenced(pack.question, 300)}\nBusiness: ${fenced(pack.brandName, 120)}\nPage kind: ${kind}\nRecommended format: ${pack.format.recommended} (${fenced(pack.format.basis, 120)})\nWhat engines answer today:\n${engines.join('\n') || '- no readable answers'}\nPages engines cite:\n${sources.join('\n') || '- none'}\nCompetitors named: ${pack.competitors.map((c) => fenced(c.name, 60)).join(', ') || 'none'}`
+    ? `Question: ${fenced(pack.question, 300)}\nBusiness: ${fenced(pack.brandName, 120)}\nPage kind: ${kind}\nRecommended format: ${pack.format.recommended} (${fenced(pack.format.basis, 120)})\nWhat engines answer today:\n${engines.join('\n') || '- no readable answers'}\nPages engines cite:\n${sources.join('\n') || '- none'}${beat.length ? `\nPages to beat:\n${beat.join('\n')}` : ''}\nCompetitors named: ${pack.competitors.map((c) => fenced(c.name, 60)).join(', ') || 'none'}`
     : `Business: ${fenced(pack.brandName, 120)}\nPage kind: ${kind}\nTask: ${fenced(pack.title ?? '', 255)}\nCheck: ${fenced(pack.ruleCode ?? '', 40)}\nWhat we found: ${fenced(JSON.stringify(pack.evidence ?? {}), 800)}\nPages to improve: ${(pack.targetUrls ?? []).map((u) => fenced(u, 200)).join(', ') || 'none'}\nRecommended format: ${pack.format.recommended}`;
   const factLines = facts.map((f) => `- [${f.id}] ${fenced(f.text, 400)}`);
   const voiceText = [

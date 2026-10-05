@@ -109,6 +109,27 @@
 </section>
 <% } %>
 
+<% if (outreach) { %>
+<section class="card mt-8" aria-labelledby="outreach-h">
+  <div class="card-body flex flex-col gap-3">
+    <h3 id="outreach-h" class="text-base font-semibold">A note to ask for a place there</h3>
+    <p class="text-ink-700 max-w-2xl text-sm">A starting point, built only from your Brand Kit and what we saw. Read it, change anything that is not right, and send it yourself. <strong>We never send it for you</strong> and we do not contact anyone on your behalf.</p>
+    <div class="field">
+      <label class="label" for="outreach-subject">Subject</label>
+      <div class="flex flex-wrap items-center gap-2">
+        <input id="outreach-subject" class="input min-w-0 flex-1" type="text" readonly value="<%= outreach.subject %>">
+        <%- ui.button({ label: 'Copy', variant: 'secondary', size: 'sm', attrs: { 'data-copy-from': 'outreach-subject', 'data-copied-text': 'Copied.', 'aria-label': 'Copy the subject' } }) %>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label" for="outreach-body">Message</label>
+      <textarea id="outreach-body" class="input" rows="10" readonly><%= outreach.body %></textarea>
+      <div class="mt-2"><%- ui.button({ label: 'Copy the message', variant: 'secondary', size: 'sm', attrs: { 'data-copy-from': 'outreach-body', 'data-copied-text': 'Copied.' } }) %></div>
+    </div>
+  </div>
+</section>
+<% } %>
+
 <% if (autofix && (autofix.canStart || autofix.change)) { %>
 <section class="card mt-8" aria-labelledby="autofix-h">
   <div class="card-body flex flex-wrap items-center justify-between gap-3">

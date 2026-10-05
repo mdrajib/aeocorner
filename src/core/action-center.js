@@ -1,6 +1,6 @@
 import { effortLabel } from './ice.js';
 import { DEFAULT_ENGINE_LABELS } from './narrative.js';
-import { HORIZONS, longDate, proofSentence } from './outcomes.js';
+import { HORIZONS, isCitationShare, longDate, proofSentence } from './outcomes.js';
 import { DISMISS_REASONS, MAX_VERIFY_ATTEMPTS, STATUS_LABELS } from './recommendation-lifecycle.js';
 import { SIGNIFICANCE } from './significance.js';
 
@@ -162,6 +162,38 @@ export function evidenceRows(
       label: `Answers that did not name ${brandName}`,
       text: String(e.answersWithoutBrand),
     });
+  } else if (e.type === 'citation_gap') {
+    rows.push({
+      label: 'The site',
+      text: `${e.domain}${e.siteType ? ` (${String(e.siteType).toLowerCase()})` : ''}`,
+      href: `${projectBase}/citations?tab=opportunities`,
+    });
+    rows.push({
+      label: 'Cited',
+      text: `${plural(e.timesCited, 'time', 'times')}, in ${plural(e.answersCiting, 'answer', 'answers')}`,
+    });
+    rows.push({
+      label: `Answers that did not name ${brandName}`,
+      text: String(e.answersWithoutBrand),
+    });
+    if (e.formatLabel && e.format !== 'other') {
+      rows.push({ label: 'Its most cited pages are', text: e.formatLabel });
+    }
+    for (const q of e.questions ?? []) {
+      rows.push({
+        label: 'Cited for the question',
+        text: `${q.text} (${plural(q.answersWithoutBrand, 'answer', 'answers')})`,
+        href: `${projectBase}/answers/${q.promptId}`,
+      });
+    }
+  } else if (e.type === 'citation_own_page') {
+    rows.push({ label: 'The page', text: e.url, href: e.url });
+    rows.push({
+      label: 'Your site was cited',
+      text: `${plural(e.ownCitations, 'time', 'times')}, on ${plural(e.pagesCited, 'page', 'pages')}`,
+      href: `${projectBase}/citations?tab=pages`,
+    });
+    rows.push({ label: 'This page', text: 'was cited in none of them' });
   } else if (e.type === 'sentiment') {
     rows.push({
       label: 'Average sentiment',
@@ -339,16 +371,28 @@ export function proofCards(detail, { brandName }) {
       questions: o.promptsCount,
       brandName,
     });
-    const rows = [
-      {
-        label: 'Before',
-        text: `${o.kBefore} of ${plural(o.nBefore, 'answer', 'answers')} named ${brandName}${o.rateBefore == null ? '' : ` (${Math.round(o.rateBefore * 1000) / 10}%)`}`,
-      },
-      {
-        label: 'After',
-        text: `${o.kAfter} of ${plural(o.nAfter, 'answer', 'answers')} named ${brandName}${o.rateAfter == null ? '' : ` (${Math.round(o.rateAfter * 1000) / 10}%)`}`,
-      },
-    ];
+    const percent = (rate) => (rate == null ? '' : ` (${Math.round(rate * 1000) / 10}%)`);
+    const rows = isCitationShare(o)
+      ? [
+          {
+            label: 'Before',
+            text: `${o.kBefore} of ${plural(o.nBefore, 'cited source', 'cited sources')} were ${brandName}’s own site${percent(o.rateBefore)}`,
+          },
+          {
+            label: 'After',
+            text: `${o.kAfter} of ${plural(o.nAfter, 'cited source', 'cited sources')} were ${brandName}’s own site${percent(o.rateAfter)}`,
+          },
+        ]
+      : [
+          {
+            label: 'Before',
+            text: `${o.kBefore} of ${plural(o.nBefore, 'answer', 'answers')} named ${brandName}${percent(o.rateBefore)}`,
+          },
+          {
+            label: 'After',
+            text: `${o.kAfter} of ${plural(o.nAfter, 'answer', 'answers')} named ${brandName}${percent(o.rateAfter)}`,
+          },
+        ];
     if (o.deltaPp != null)
       rows.push({
         label: 'Change',

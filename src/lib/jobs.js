@@ -131,6 +131,10 @@ export const JOBS = Object.freeze({
   'entity.check': { queue: 'crawl', schema: z.object({ orgId: id, projectId: id }) },
   'entity.sweep': { queue: 'system', schema: z.object({}) },
 
+  // Read the format of the pages engines cite for a project (Milestone 13). IDs only. Queued after a refresh finds cited
+  // pages nobody has read; it queues a refresh again if it learned anything.
+  'citations.formats': { queue: 'crawl', schema: z.object({ orgId: id, projectId: id }) },
+
   // Check a project's WordPress connection: does the site answer, is the login still good, is the plugin there.
   'wordpress.test': { queue: 'content', schema: z.object({ orgId: id, projectId: id }) },
 

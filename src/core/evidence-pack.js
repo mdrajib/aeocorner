@@ -8,6 +8,8 @@
  * travels in prompts.
  */
 
+import { contentFormatFor, summarizeSignals } from './citation-format.js';
+
 export const FORMATS = Object.freeze([
   'comparison',
   'best_of',
@@ -72,6 +74,11 @@ export function formatOfPage({ url, title } = {}) {
   const text = `${title ?? ''} ${path}`;
   for (const [format, pattern] of PAGE_FORMATS) if (pattern.test(text)) return format;
   return null;
+}
+
+/** The Content Studio format of a cited page: what reading it showed (when we could), else its title and address. */
+export function formatOfCited(source) {
+  return contentFormatFor(source.readFormat) ?? formatOfPage(source);
 }
 
 /** The format a question asks for, when no cited page settles it. */
@@ -155,6 +162,8 @@ export function buildEvidencePack({
           timesCited: 0,
           engines: new Set(),
           isOwn: Boolean(c.isOwn) || isOwnDomain(c.domain),
+          readFormat: c.readFormat ?? null,
+          signals: c.signals ?? null,
         };
         entry.timesCited += 1;
         entry.engines.add(engineCode);
@@ -182,7 +191,9 @@ export function buildEvidencePack({
       timesCited: s.timesCited,
       engines: [...s.engines].sort(),
       isOwn: s.isOwn,
-      format: formatOfPage(s),
+      format: formatOfCited(s),
+      readFormat: s.readFormat,
+      signals: s.signals,
     }))
     .sort((a, b) => b.timesCited - a.timesCited || a.url.localeCompare(b.url))
     .slice(0, PACK_LIMITS.sources);
@@ -207,6 +218,18 @@ export function buildEvidencePack({
       .map((c) => ({ name: c.name, k: Number(c.k) || 0 })),
     sources,
     ownPagesCited: sources.filter((s) => s.isOwn).map((s) => s.url),
+    // The pages to beat (Milestone 13): the most cited pages that are not the brand's own, and what makes them easy to cite.
+    modelsToBeat: sources
+      .filter((s) => !s.isOwn)
+      .slice(0, 3)
+      .map((s) => ({
+        url: s.url,
+        title: s.title,
+        domain: s.domain,
+        readFormat: s.readFormat,
+        signals: s.signals,
+      })),
+    citable: summarizeSignals(sources.filter((s) => !s.isOwn).map((s) => ({ signals: s.signals }))),
     format: { recommended, basis, counts },
   };
 }

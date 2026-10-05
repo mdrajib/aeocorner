@@ -247,15 +247,28 @@ export function contentRoutes(
         if (rec.fixPath !== 'content' || !['open', 'in_progress'].includes(rec.status)) {
           return res.redirect(303, withNotice(`${base(res)}/actions/${rid}`, 'action-stale'));
         }
+        // A citation gap is a NEW page in the format the cited pages have (the addresses it names are somebody else's);
+        // an uncited page of the brand's own is refreshed in place.
+        const isGap = rec.ruleCode === 'citation.gap';
         const targetUrl =
-          rec.ruleCode === 'visibility.lost_prompt' ? null : (rec.affectedUrls[0] ?? null);
+          rec.ruleCode === 'visibility.lost_prompt' || isGap
+            ? null
+            : rec.ruleCode === 'citation.own_page_uncited'
+              ? (rec.evidence?.url ?? null)
+              : (rec.affectedUrls[0] ?? null);
+        const promptIds = isGap
+          ? (rec.evidence?.questions ?? []).map((q) => BigInt(q.promptId))
+          : rec.evidence?.promptId
+            ? [BigInt(rec.evidence.promptId)]
+            : [];
         try {
           const result = await startItem(req, res, {
             recommendationId: rid,
             title: rec.title,
             kind: targetUrl ? 'refresh' : 'new',
             targetUrl,
-            promptIds: rec.evidence?.promptId ? [BigInt(rec.evidence.promptId)] : [],
+            format: isGap ? (rec.evidence?.contentFormat ?? 'other') : undefined,
+            promptIds,
           });
           return res.redirect(303, result.redirect);
         } catch (err) {

@@ -19,6 +19,7 @@ import {
   sourceCheckOf,
 } from '../../core/autofix.js';
 import { buildFix, payloadOf, PLUGIN_WITH_FIXES, pluginAtLeast } from '../../core/autofix-fixes.js';
+import { buildOutreachNote } from '../../core/citation-opportunities.js';
 import { STATUS_LABELS } from '../../core/content-lifecycle.js';
 import { verifiedProfileUrls } from '../../core/entity-checks.js';
 import { DEFAULT_ENGINE_LABELS } from '../../core/narrative.js';
@@ -166,8 +167,24 @@ export function actionRoutes(router, { appPage, act, approve, jobs, logger, base
           s,
         ]),
       );
+      // A "get listed" task comes with a note to copy: built from the Brand Kit and what we saw, never sent by us.
+      let outreach = null;
+      if (rec.ruleCode === 'citation.gap' && rec.evidence?.path === 'guidance') {
+        const kit = await req.orgDb.brandKits.current(req.project.id);
+        outreach = buildOutreachNote({
+          brandName,
+          brandDomain: domain,
+          summary: kit?.data?.identity?.definition ?? '',
+          site: {
+            domain: rec.evidence.domain,
+            pages: (rec.evidence.pages ?? []).map((p) => ({ url: p.url, title: p.title })),
+            questions: (rec.evidence.questions ?? []).map((q) => q.text),
+          },
+        });
+      }
       return appPage(res, 'action-detail', {
         ...tabs(req, res),
+        outreach,
         domain,
         current: 'actions',
         rec: {

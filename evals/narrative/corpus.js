@@ -101,6 +101,89 @@ const CITED = [
   },
 ];
 
+const CITATION_GAP = [
+  {
+    tag: 'a review site, get listed',
+    evidence: {
+      type: 'citation_gap',
+      domain: 'g2.com',
+      siteKind: 'review',
+      siteType: 'Review site or directory',
+      format: 'list',
+      formatLabel: 'List or roundup',
+      path: 'guidance',
+      contentFormat: null,
+      timesCited: 9,
+      answersCiting: 6,
+      answersWithoutBrand: 5,
+      questions: [
+        { promptId: '3', text: 'What is the best CRM for dentists?', answersWithoutBrand: 3 },
+        { promptId: '8', text: 'Dental CRM pricing', answersWithoutBrand: 2 },
+      ],
+      pages: [
+        { url: 'https://g2.com/categories/dental-crm', title: 'Best dental CRM', format: 'list' },
+      ],
+    },
+  },
+  {
+    tag: 'a competitor, write the page',
+    evidence: {
+      type: 'citation_gap',
+      domain: 'brightsmiles.com',
+      siteKind: 'competitor',
+      siteType: 'Competitor',
+      format: 'comparison',
+      formatLabel: 'Comparison',
+      path: 'content',
+      contentFormat: 'comparison',
+      timesCited: 4,
+      answersCiting: 4,
+      answersWithoutBrand: 3,
+      questions: [{ promptId: '5', text: 'Bright Smiles vs the rest', answersWithoutBrand: 3 }],
+      pages: [{ url: 'https://brightsmiles.com/compare', title: null, format: 'comparison' }],
+    },
+  },
+  {
+    tag: 'a site whose pages we have not read',
+    evidence: {
+      type: 'citation_gap',
+      domain: 'localnews.example',
+      siteKind: 'other',
+      siteType: 'Other',
+      format: null,
+      formatLabel: null,
+      path: 'guidance',
+      contentFormat: null,
+      timesCited: 2,
+      answersCiting: 2,
+      answersWithoutBrand: 2,
+      questions: [],
+      pages: [],
+    },
+  },
+];
+
+const CITATION_OWN = [
+  {
+    tag: 'a service page',
+    evidence: {
+      type: 'citation_own_page',
+      url: 'https://datadental.com/services/implants',
+      ownCitations: 14,
+      pagesCited: 3,
+    },
+  },
+  {
+    tag: 'one page cited so far',
+    evidence: {
+      type: 'citation_own_page',
+      url: 'https://datadental.com/pricing',
+      ownCitations: 11,
+      pagesCited: 1,
+    },
+  },
+];
+
 const SENTIMENT = [
   { tag: 'cool', evidence: { type: 'sentiment', average: -0.5, answers: 10 } },
   { tag: 'cold', evidence: { type: 'sentiment', average: -1.75, answers: 31 } },
@@ -225,6 +308,8 @@ export const CORPUS = [
   }),
   ...everyone('visibility.lost_prompt', LOST),
   ...withPeople('visibility.cited_source', CITED),
+  ...everyone('citation.gap', CITATION_GAP),
+  ...everyone('citation.own_page_uncited', CITATION_OWN),
   ...withPeople('visibility.hedged', SENTIMENT),
   ...everyone('entity.wrong_fact', FACTS),
   ...everyone('entity.profile', PROFILES),

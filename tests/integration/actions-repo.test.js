@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
+import { TEMPLATE_VERSION } from '../../src/core/narrative.js';
 import { DomainError } from '../../src/db/index.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
 import { refreshProject } from '../../src/worker/handlers/actions.js';
@@ -196,7 +197,7 @@ describe('raising recommendations', () => {
     assert.equal(a1.evidence.check.code, 'A1');
     assert.match(a1.whyMd, /earned 0 of 8 points/);
     assert.match(a1.stepsMd, /^1\. /);
-    assert.equal(a1.narrativeVersion, 't1');
+    assert.equal(a1.narrativeVersion, TEMPLATE_VERSION);
     assert.equal(a1.questions, 3); // a site-wide fix targets every active question
     assert.ok(a1.ice > 0 && a1.impact === 100);
     const lost = todo.find((r) => r.ruleCode === 'visibility.lost_prompt');

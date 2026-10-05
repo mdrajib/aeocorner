@@ -20,7 +20,7 @@ import { READINESS_GUIDANCE } from './fix-list.js';
  * version, set in `src/llm/narrative.js`.
  */
 
-export const TEMPLATE_VERSION = 't1';
+export const TEMPLATE_VERSION = 't2';
 
 /** One sentence about why this kind of fix matters. Advice, so it has no figures and names nobody. */
 const CATEGORY_WHY = Object.freeze({
@@ -94,6 +94,29 @@ export function factsFor(evidence, { brandName, domain, engineLabel = (c) => c }
       add(`In ${evidence.answersWithoutBrand} of those answers, ${brandName} was not named.`);
       break;
     }
+    case 'citation_gap': {
+      add(
+        `${evidence.domain}${evidence.siteType ? ` (${String(evidence.siteType).toLowerCase()})` : ''} was cited ${plural(evidence.timesCited, 'time', 'times')}, in ${plural(evidence.answersCiting, 'answer', 'answers')}.`,
+      );
+      add(`In ${evidence.answersWithoutBrand} of those answers, ${brandName} was not named.`);
+      const questions = evidence.questions ?? [];
+      if (questions.length) {
+        add(
+          `It was cited without ${brandName} for ${list(questions.map((q) => `“${q.text}” (${plural(q.answersWithoutBrand, 'answer', 'answers')})`))}.`,
+        );
+      }
+      if (evidence.formatLabel && evidence.format !== 'other') {
+        add(`Its most cited pages are ${String(evidence.formatLabel).toLowerCase()} pages.`);
+      }
+      break;
+    }
+    case 'citation_own_page': {
+      add(
+        `Over the last 28 days, AI engines cited ${domain} ${plural(evidence.ownCitations, 'time', 'times')}, in ${plural(evidence.pagesCited, 'page', 'pages')} of your site.`,
+      );
+      add(`They did not cite ${evidence.url}.`);
+      break;
+    }
     case 'sentiment': {
       add(
         `Across ${plural(evidence.answers, 'answer', 'answers')} that name ${brandName}, the average sentiment was ${fmt(evidence.average)} on a scale from -2 (very negative) to 2 (very positive).`,
@@ -163,6 +186,24 @@ export function adviceSteps(ruleCode, evidence = {}) {
       `Find out how businesses get listed, reviewed or quoted on ${evidence.domain ?? 'that site'}.`,
       'Create or claim your profile there, and keep your name, description and contact details identical to your own site.',
       'Press “Mark as done” once it is live. We cannot check an outside site automatically, so we measure the effect on your answers instead.',
+    ];
+  } else if (rule === 'gap' && evidence.path === 'content') {
+    steps = [
+      'Open the pages this site is cited for and note what each one covers and how it is laid out.',
+      'Press “Write it in the Content Studio” to start a draft in the same format, with a short, plain answer to each question first.',
+      'Add what only you can: your own figures, your name and who wrote it. Publish it, then press “Mark as done”: we measure whether engines start citing your site.',
+    ];
+  } else if (rule === 'gap') {
+    steps = [
+      `Find out how businesses get listed, reviewed or quoted on ${evidence.domain ?? 'that site'}.`,
+      'Use the note below as a starting point. Check every line, change what is wrong, and send it yourself: we never contact anyone for you.',
+      'Press “Mark as done” once you are listed. We cannot check an outside site automatically, so we measure how often engines cite your site instead.',
+    ];
+  } else if (rule === 'own_page_uncited') {
+    steps = [
+      'Open the page and put a short, plain answer to the question it exists for at the top.',
+      'Name who wrote it and when it was last updated, and link the sources behind any figure.',
+      'Press “Write it in the Content Studio” to refresh it, or edit it yourself and press “Mark as done”. We measure whether engines start citing it.',
     ];
   } else if (rule === 'hedged') {
     steps = [

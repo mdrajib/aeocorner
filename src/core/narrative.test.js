@@ -51,6 +51,27 @@ const cited = {
   answersCiting: 5,
   answersWithoutBrand: 4,
 };
+const citationGap = {
+  type: 'citation_gap',
+  domain: 'g2.com',
+  siteKind: 'review',
+  siteType: 'Review site or directory',
+  format: 'list',
+  formatLabel: 'List or roundup',
+  path: 'guidance',
+  contentFormat: null,
+  timesCited: 6,
+  answersCiting: 5,
+  answersWithoutBrand: 4,
+  questions: [{ promptId: '3', text: 'Best dental CRM?', answersWithoutBrand: 4 }],
+  pages: [{ url: 'https://g2.com/x', title: 'Best CRM', format: 'list' }],
+};
+const citationOwn = {
+  type: 'citation_own_page',
+  url: 'https://datadental.com/pricing',
+  ownCitations: 12,
+  pagesCited: 2,
+};
 const cool = { type: 'sentiment', average: -1, answers: 10 };
 const wrongFact = {
   type: 'entity_fact',
@@ -111,6 +132,45 @@ describe('facts', () => {
     assert.match(second.text, /Rival Dental \(6 times\) and Other Dental \(1 time\)/);
   });
 
+  test('a citation gap names the site, the questions and the format of its pages', () => {
+    const facts = factsFor(citationGap, context).map((f) => f.text);
+    assert.ok(
+      facts[0].includes('g2.com (review site or directory) was cited 6 times, in 5 answers'),
+    );
+    assert.ok(facts[1].includes('In 4 of those answers, Data Dental was not named'));
+    assert.ok(facts.join(' ').includes('“Best dental CRM?” (4 answers)'));
+    assert.ok(facts.join(' ').includes('list or roundup pages'));
+  });
+
+  test('a page of "other" format, or one we have not read, is not described', () => {
+    const said = (e) =>
+      factsFor(e, context)
+        .map((f) => f.text)
+        .join(' ');
+    assert.ok(
+      !said({ ...citationGap, format: 'other', formatLabel: 'Other page' }).includes(
+        'most cited pages',
+      ),
+    );
+    assert.ok(
+      !said({ ...citationGap, format: null, formatLabel: null }).includes('most cited pages'),
+    );
+  });
+
+  test('an uncited page of the brand’s site is named in full', () => {
+    const [first, second] = factsFor(citationOwn, context);
+    assert.ok(first.text.includes('cited datadental.com 12 times, in 2 pages of your site'));
+    assert.ok(second.text.includes('did not cite https://datadental.com/pricing'));
+  });
+
+  test('the two paths give different steps: write the page, or get listed and send the note yourself', () => {
+    const write = adviceTextFor('citation.gap', { ...citationGap, path: 'content' });
+    const listed = adviceTextFor('citation.gap', citationGap);
+    assert.ok(write.includes('Write it in the Content Studio'));
+    assert.ok(listed.includes('we never contact anyone for you'));
+    assert.notEqual(write, listed);
+  });
+
   test('evidence of a kind we do not know has no facts, so nothing can be said', () => {
     assert.deepEqual(factsFor({ type: 'mystery' }, context), []);
     assert.deepEqual(factsFor(null, context), []);
@@ -135,6 +195,8 @@ describe('the template narrative', () => {
       ['visibility.lost_prompt', lost],
       ['visibility.cited_source', cited],
       ['visibility.hedged', cool],
+      ['citation.gap', citationGap],
+      ['citation.own_page_uncited', citationOwn],
       ['entity.wrong_fact', wrongFact],
       ['entity.profile', badProfile],
       ['entity.wikidata', noItem],

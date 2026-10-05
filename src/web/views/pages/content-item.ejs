@@ -101,6 +101,18 @@ const working = { researching: 'Reading what the engines answer today and resear
           <% } %>
         </ul>
         <% if (qc.note) { %><p class="text-ink-700 text-xs"><%= qc.note %></p><% } %>
+        <% if (qc.citable) { %>
+        <h4 class="mt-2 text-sm font-semibold">Easy to cite</h4>
+        <p class="text-ink-600 text-xs">What the pages engines cite tend to have. These do not change the score and never stop you approving.</p>
+        <ul class="flex flex-col gap-2 text-sm">
+          <% for (const c of qc.citable) { %>
+          <li>
+            <div class="flex flex-wrap items-center justify-between gap-2"><span class="font-medium"><%= c.label %></span><%- ui.badge({ text: c.statusText, tone: c.tone }) %></div>
+            <% if (c.finding) { %><p class="text-ink-800 mt-1 text-xs"><%= c.finding %></p><% } %>
+          </li>
+          <% } %>
+        </ul>
+        <% } %>
       </div>
     </section>
     <% } %>

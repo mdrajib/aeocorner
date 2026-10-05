@@ -1,5 +1,5 @@
 import { proofCards } from './action-center.js';
-import { longDate } from './outcomes.js';
+import { changePhrase, longDate } from './outcomes.js';
 
 /**
  * Sharing a proof card (UI_DESIGN D4). A customer can turn one result into a public, read-only page for a boss or a client.
@@ -11,7 +11,7 @@ import { longDate } from './outcomes.js';
 export const SHARED_FIELDS = Object.freeze([
   'the brand name and its website address',
   'the recommendation’s title',
-  'how often the engines named the brand before and after, and the result of the test',
+  'how often the engines named the brand (or cited its site) before and after, and the result of the test',
 ]);
 
 /** Never on a shared page. */
@@ -34,7 +34,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
  */
 export function shareSentence(outcome, { title, startedAt, brandName }) {
   const scope = `on the ${plural(outcome.promptsCount, 'question', 'questions')} it targets`;
-  return `Since ${brandName} marked “${title}” done on ${longDate(startedAt)}, ${brandName} was named ${scope} from ${outcome.kBefore} of ${outcome.nBefore} to ${outcome.kAfter} of ${outcome.nAfter} answers. That is bigger than normal variation.`;
+  return `Since ${brandName} marked “${title}” done on ${longDate(startedAt)}, ${changePhrase(outcome, { brandName, scope })}. That is bigger than normal variation.`;
 }
 
 /**

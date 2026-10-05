@@ -152,9 +152,14 @@ CREATE TABLE web_urls (
   domain_id       BIGINT UNSIGNED NOT NULL,
   title           VARCHAR(512)  NULL,
   first_seen_at   DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  page_format     ENUM('list','comparison','review','guide','documentation','faq','other') NULL COMMENT 'what the page is, read once; NULL = not read or could not look (0008)',
+  format_checked_at DATETIME(3) NULL,
+  format_finding  VARCHAR(32)   NULL COMMENT 'why the last read could not look; NULL after a good read',
+  citable_signals JSON          NULL COMMENT 'author, dated, sourcesLinked, figures: what makes the page easy to cite',
   PRIMARY KEY (id),
   UNIQUE KEY uq_web_urls_hash (url_hash),
   KEY ix_web_urls_domain (domain_id),
+  KEY ix_web_urls_format_check (format_checked_at),
   CONSTRAINT fk_web_urls_domain FOREIGN KEY (domain_id) REFERENCES web_domains (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='URL dictionary so citation rows stay small';
 
@@ -1015,6 +1020,7 @@ CREATE TABLE recommendations (
   category                  ENUM('crawler_access','renderability','structured_data','entity','content_new',
                                  'content_refresh','offsite_presence','reputation','technical') NOT NULL,
   fix_path                  ENUM('auto_fix','content','guidance') NOT NULL,
+  metric                    ENUM('mention_rate','citation_share') NOT NULL DEFAULT 'mention_rate' COMMENT 'the figure a fix is judged on (0008)',
   title                     VARCHAR(255)  NOT NULL,
   why_md                    TEXT          NOT NULL,
   steps_md                  TEXT          NULL,
@@ -1260,6 +1266,7 @@ CREATE TABLE action_outcomes (
   delta_pp           DECIMAL(6,2)  NULL,
   p_value            DECIMAL(9,8)  NULL,
   verdict            ENUM('proven_win','no_change','declined','insufficient_data') NOT NULL,
+  metric             ENUM('mention_rate','citation_share') NOT NULL DEFAULT 'mention_rate' COMMENT 'the figure this outcome measured (0008)',
   computed_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   notified_at        DATETIME(3)   NULL,
   PRIMARY KEY (id),
@@ -1655,5 +1662,8 @@ CREATE TABLE entity_checks (
   KEY ix_entity_checks_project (project_id, org_id),
   CONSTRAINT fk_entity_checks_project FOREIGN KEY (project_id, org_id) REFERENCES projects (id, org_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Latest entity check per profile address and for Wikidata (Milestone 12)';
+
+-- Milestone 13 (migration 0008): no new table. web_urls (page_format, format_checked_at, format_finding, citable_signals) and the
+-- metric on recommendations and action_outcomes (mention_rate or citation_share) are in the tables above.
 
 -- End of schema (68 tables: the 66 of v1, plus proof_shares (0006) and entity_checks (0007)).

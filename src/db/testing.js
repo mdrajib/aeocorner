@@ -449,6 +449,8 @@ export function fixtures(db) {
         brand,
         rivals = [],
         sentiment = 0,
+        citationsTotal = 0,
+        citationsOwn = 0,
       } = {},
     ) {
       const base = {
@@ -466,6 +468,8 @@ export function fixtures(db) {
           n_planned: nOk,
           n_ok: nOk,
           n_failed: 0,
+          citations_total: citationsTotal,
+          citations_own: citationsOwn,
           extraction_version: 'test',
         },
       });
@@ -500,6 +504,7 @@ export function fixtures(db) {
         kAfter = 40,
         promptsCount = 3,
         p = '0.00001000',
+        metric = 'mention_rate',
       } = {},
     ) {
       return prisma.action_outcomes.create({
@@ -523,6 +528,7 @@ export function fixtures(db) {
               : null,
           p_value: verdict === 'insufficient_data' ? null : p,
           verdict,
+          metric,
         },
       });
     },
@@ -856,6 +862,25 @@ export function fixtures(db) {
         });
       }
       return scan;
+    },
+
+    /**
+     * The pages a scan fetched: `[{ url, key = true, status = 200 }]`, in the order given (the scan's order, the most
+     * important first). Key pages are what Milestone 13 asks "was this ever cited?" about.
+     */
+    async scanPages(scan, pages) {
+      for (const p of pages) {
+        await prisma.scan_pages.create({
+          data: {
+            scan_id: scan.id,
+            org_id: scan.org_id,
+            url: p.url,
+            url_hash: createHash('sha256').update(p.url).digest(),
+            is_key_page: p.key ?? true,
+            http_status: p.status ?? 200,
+          },
+        });
+      }
     },
 
     /**

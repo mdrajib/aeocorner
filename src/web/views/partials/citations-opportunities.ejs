@@ -1,0 +1,50 @@
+<%# C4 opportunities. Props: sites (rankOpportunities().bySite), questions (byQuestion), actionsHref. %>
+<% if (!sites.length && !questions.length) { %>
+<%- ui.state({ kind: 'empty', title: 'No opportunity stands out', text: 'An opportunity is a site that engines cite for your questions in answers that left you out. None was cited often enough in this period.' }) %>
+<% } else { %>
+<p class="text-ink-700 max-w-3xl text-sm">These are the sources engines cite for your questions where you were not named, with the kind of site and, where we have read it, the kind of page. A site that is a competitor’s and has pages in a format we write becomes a page to publish. Any other site becomes a “get listed” task with a note you can copy and send yourself: we never contact anyone for you.</p>
+
+<div class="mt-6">
+  <%- ui.card({ title: 'Sites to be present on', headingLevel: 2, html: sites.length
+    ? ui.table({
+        caption: 'Sites cited where you were not named',
+        captionHidden: true,
+        flush: true,
+        columns: [{ key: 'site', label: 'Site' }, { key: 'type', label: 'Type' }, { key: 'format', label: 'Its pages are' }, { key: 'without', label: 'Answers without you', numeric: true }, { key: 'path', label: 'What to do' }],
+        rows: sites.map((s) => ({
+          site: s.domain,
+          type: s.typeLabel,
+          format: s.formatLabel || 'Not read yet',
+          without: s.answersWithoutBrand + ' of ' + s.answersCiting,
+          path: s.path === 'content' ? 'Publish a page like theirs' : 'Get listed or mentioned',
+        })),
+      }) + '<p class="mt-3 text-sm"><a href="' + ui.esc(actionsHref) + '">See these in your actions</a></p>'
+    : '<p class="text-ink-700 text-sm">No single site was cited in enough answers without you to be worth a task.</p>' }) %>
+</div>
+
+<div class="mt-6">
+  <h2 class="text-xl">By question</h2>
+  <p class="text-ink-700 mt-1 text-sm">For each question, the sites engines cited in answers that did not name you, and how many of that question’s readable answers they appear in.</p>
+  <div class="mt-3 flex flex-col gap-4">
+    <% for (const q of questions) { %>
+    <section class="card" aria-labelledby="q-<%= q.promptId %>">
+      <div class="card-body flex flex-col gap-3">
+        <h3 id="q-<%= q.promptId %>" class="text-base font-semibold"><a href="<%= projectBase %>/answers/<%= q.promptId %>"><%= q.text %></a></h3>
+        <%- ui.table({
+          caption: 'Sources cited for: ' + q.text,
+          captionHidden: true,
+          flush: true,
+          columns: [{ key: 'site', label: 'Site' }, { key: 'type', label: 'Type' }, { key: 'format', label: 'Its pages are' }, { key: 'share', label: 'Of this question’s answers', numeric: true }],
+          rows: q.sites.map((s) => ({
+            site: s.domain,
+            type: s.typeLabel,
+            format: s.formatLabel || 'Not read yet',
+            share: s.share == null ? 'Couldn’t check' : s.answersWithoutBrand + ' of ' + q.answers + ' (' + Math.round(s.share * 100) + '%)',
+          })),
+        }) %>
+      </div>
+    </section>
+    <% } %>
+  </div>
+</div>
+<% } %>

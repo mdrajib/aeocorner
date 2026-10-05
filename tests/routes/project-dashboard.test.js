@@ -426,6 +426,57 @@ describe('competitors and sources', () => {
     assert.match(page.text, /Most cited pages/);
   });
 
+  test('sources come in three views: overview, opportunities and your pages', async () => {
+    const ctx = await withProject();
+    await withCheck(ctx);
+    const page = await ctx.owner.get(`${ctx.base}/citations`).expect(200);
+    for (const label of ['Overview', 'Opportunities', 'Your pages']) {
+      assert.match(page.text, new RegExp(`role="tab"[^>]*>${label}<`));
+    }
+    assert.match(page.text, /data-initial="overview"/);
+    const opp = await ctx.owner.get(`${ctx.base}/citations?tab=opportunities`).expect(200);
+    assert.match(opp.text, /data-initial="opportunities"/);
+    const bogus = await ctx.owner.get(`${ctx.base}/citations?tab=nonsense`).expect(200);
+    assert.match(bogus.text, /data-initial="overview"/);
+  });
+
+  test('the overview shows the citation share and the kinds of site cited, and says it does not guess', async () => {
+    const ctx = await withProject();
+    await withCheck(ctx);
+    const page = await ctx.owner.get(`${ctx.base}/citations`).expect(200);
+    assert.match(page.text, /Your citation share/);
+    assert.match(page.text, /Your site’s share of the sources cited, by week/);
+    assert.match(page.text, /What kind of sites are cited/);
+    assert.match(page.text, /A site we do not recognise is “Other”: we do not guess/);
+    // The fixture sites are not on the reviewed list: they are "Other", and the brand's own is "Your site".
+    assert.match(page.text, /<td[^>]*>Other<\/td>/);
+    assert.match(page.text, /<td[^>]*>Your site<\/td>/);
+  });
+
+  test('opportunities lists the sources cited for each question, with the page format when it is not read yet', async () => {
+    const ctx = await withProject();
+    await withCheck(ctx);
+    const page = await ctx.owner.get(`${ctx.base}/citations?tab=opportunities`).expect(200);
+    assert.match(page.text, /we never contact anyone for you/);
+    assert.match(page.text, /Who is the best dentist near me\?/);
+    assert.match(page.text, /Not read yet/);
+    // One of the question's two readable answers cited g2 without naming the brand.
+    assert.match(page.text, /1 of 2 \(50%\)/);
+  });
+
+  test('your pages says a page is never cited only once the site was cited often enough, and asks for a scan first', async () => {
+    const ctx = await withProject();
+    await withCheck(ctx);
+    const page = await ctx.owner.get(`${ctx.base}/citations?tab=pages`).expect(200);
+    assert.match(page.text, /Your pages that engines cite/);
+    assert.match(page.text, /We have not scanned your site yet/);
+    const scan = await h.fx.scan(ctx.project, { checks: [] });
+    await h.fx.scanPages(scan, [{ url: 'https://dash.example.test/about' }]);
+    const scanned = await ctx.owner.get(`${ctx.base}/citations?tab=pages`).expect(200);
+    assert.match(scanned.text, /Your site was cited 1 time in this period/);
+    assert.match(scanned.text, /at least 10 times/);
+  });
+
   test('a project nobody has cited yet says so', async () => {
     const ctx = await withProject();
     const page = await ctx.owner.get(`${ctx.base}/citations`).expect(200);

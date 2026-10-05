@@ -158,6 +158,22 @@ export const longDate = (value) =>
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /**
+ * The figure an outcome measured (Milestone 13). `mention_rate` is every fix that is not a citation fix: k answers named
+ * the brand out of n readable. `citation_share` is a citation fix: k of the n sources cited in those answers were the
+ * brand's own site. Both go through the same test; only the words differ.
+ */
+export const METRICS = Object.freeze(['mention_rate', 'citation_share']);
+export const isCitationShare = (outcome) => outcome?.metric === 'citation_share';
+
+/** "from 3 of 40 to 12 of 45 answers", or for a citation fix "went from 3 of 40 cited sources to 12 of 45". */
+export function changePhrase(outcome, { brandName, scope }) {
+  if (isCitationShare(outcome)) {
+    return `${scope}, ${brandName}’s own site went from ${outcome.kBefore} of ${outcome.nBefore} cited sources to ${outcome.kAfter} of ${outcome.nAfter}`;
+  }
+  return `${brandName} was named ${scope} from ${outcome.kBefore} of ${outcome.nBefore} to ${outcome.kAfter} of ${outcome.nAfter} answers`;
+}
+
+/**
  * The proof card's sentence (UI D4), from an outcome row. No figure appears that is not in the row; a result that did
  * not pass the test says so in plain words and never in the colours of a win.
  *
@@ -167,15 +183,20 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 export function proofSentence(outcome, { title, startedAt, questions, brandName }) {
   const since = `Since you marked “${title}” done on ${longDate(startedAt)}`;
   const scope = `on the ${plural(questions, 'question', 'questions')} it targets`;
-  const counts = `from ${outcome.kBefore} of ${outcome.nBefore} to ${outcome.kAfter} of ${outcome.nAfter} answers`;
+  const counts = isCitationShare(outcome)
+    ? `from ${outcome.kBefore} of ${outcome.nBefore} cited sources to ${outcome.kAfter} of ${outcome.nAfter}`
+    : `from ${outcome.kBefore} of ${outcome.nBefore} to ${outcome.kAfter} of ${outcome.nAfter} answers`;
+  const change = changePhrase(outcome, { brandName, scope });
   switch (outcome.verdict) {
     case 'proven_win':
-      return `${since}, ${brandName} was named ${scope} ${counts}. That is bigger than normal variation.`;
+      return `${since}, ${change}. That is bigger than normal variation.`;
     case 'declined':
-      return `${since}, ${brandName} was named ${scope} ${counts}. That drop is bigger than normal variation, so the fix may not have helped.`;
+      return `${since}, ${change}. That drop is bigger than normal variation, so the fix may not have helped.`;
     case 'no_change':
       return outcome.horizon === 'week_4'
-        ? `Four weeks on, ${brandName} is being named ${scope} ${counts}. That is within normal variation: this fix has not shown an effect yet.`
+        ? isCitationShare(outcome)
+          ? `Four weeks on, on the questions it targets, ${brandName}’s own site is ${outcome.kAfter} of ${outcome.nAfter} cited sources (it was ${outcome.kBefore} of ${outcome.nBefore}). That is within normal variation: this fix has not shown an effect yet.`
+          : `Four weeks on, ${brandName} is being named ${scope} ${counts}. That is within normal variation: this fix has not shown an effect yet.`
         : `Within normal variation so far (${counts}). AI answers often take 2–6 weeks to change, so we check again at 4 weeks.`;
     default:
       return `We do not have enough readable answers yet to tell. We need at least ${SIGNIFICANCE.minAnswers} before and after, and have ${outcome.nBefore} and ${outcome.nAfter}.`;

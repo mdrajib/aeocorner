@@ -132,7 +132,7 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | C1 | **Dashboard** (score, engines, competitors, trend, top actions) | 6 Baseline | `…/dashboard` | app | **Milestone 5 ✅ 2026-10-03** (figures with their ranges and changes, the trend with its 95% band, the engines, competitors, what changed; "top actions" waits for the Action Center in Milestone 6) | C |
 | C2 | Question matrix (questions × engines) | 6 | `…/answers` | app | **Milestone 5 ✅ 2026-10-03** | C |
 | C3 | Answer detail with evidence, method label and "That's not us" | 6, 7 | `…/answers/:qid` | app | **Milestone 5 ✅ 2026-10-03** (a page, not a drawer: it works without JavaScript and has an address that can be shared inside the team) | C |
-| C4 | Citation and source intelligence | 6 | `…/citations` | app | **Milestone 5 ✅ 2026-10-03** (cited sites and pages, and the sites cited where the brand was not named; the competitors view is `…/compare`) | C |
+| C4 | Citation and source intelligence | 6 | `…/citations` | app | **Milestone 5 ✅ 2026-10-03** (cited sites and pages, and the sites cited where the brand was not named; the competitors view is `…/compare`); **Milestone 13 ✅ 2026-10-05**: three views (`?tab=overview|opportunities|pages`): the citation share by week and the kinds of site cited; the opportunities by site and by question, with the kind of page each site is cited for; your pages that are cited, and the key pages that never are | C |
 | C5 | First-visit guided tour (3 steps) | 6 | overlay | app | Phase 10 | C |
 | D1 | **Action Center** (ranked recommendations) | 7 Loop | `…/actions` | app | **Milestone 6 ✅ 2026-10-04** (to do, checking and measuring, results, dismissed) | D |
 | D2 | Recommendation detail: evidence, fix path, status timeline | 7 | `…/actions/:id` | app | **Milestone 6 ✅ 2026-10-04** | D |
@@ -323,8 +323,12 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
  ┌ Full answer with brand/competitor highlights ┐ Sources cited (domain, your site?) ┐
  │ [ That's not us ]  [ This answer was misread ]  → goes to the extraction review queue │
 
- C4 Citations   Table: domain · type (review site, news, forum…) · times cited · share · "you're listed?"
-                Gap panel: "Sites AI cites for your questions where you're not present"
+ C4 Citations   [ Overview | Opportunities | Your pages ]
+                Overview       Your citation share by week (chart + table) · cited sites by type · gap panel · most cited sites
+                Opportunities  Sites to be present on: site · type · its pages are (list, comparison…) · answers without you · what to do
+                               By question: each question's cited sites and their share of that question's answers
+                Your pages     Your pages engines cite (by engine) · key pages never cited · most cited pages
+                A "get listed" action shows a note to copy (built from the Brand Kit; we never send it)
 ```
 
 ### 5.4 Group D — Action Center, proof and Content Studio (sign off before Phase 11)

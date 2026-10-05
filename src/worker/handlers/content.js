@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { UnrecoverableError } from 'bullmq';
 import { buildRegistry, factTexts, sourceList, usableFacts } from '../../core/content-facts.js';
 import { analyzeBody, sanitizeBody } from '../../core/content-html.js';
-import { scoreDraft } from '../../core/content-qc.js';
+import { citableChecks, scoreDraft } from '../../core/content-qc.js';
 import { buildJsonLd } from '../../core/content-schema.js';
 import { buildCheckPack, buildEvidencePack, packUrls } from '../../core/evidence-pack.js';
 import { scriptTag, validateJsonLd } from '../../core/jsonld.js';
@@ -466,9 +466,21 @@ async function contentQc(ctx, data, job) {
       sources: sourceList(registry),
       existingPages: await existingPagesOf(ctx, scoped, projectId, item),
     });
+    // A page written to win citations is also asked what makes a page easy to cite. Advisory: it is not in the score.
+    const rec = item.recommendationId
+      ? await scoped.recommendations.load(item.recommendationId)
+      : null;
+    const citable = String(rec?.ruleCode ?? '').startsWith('citation.')
+      ? citableChecks({
+          bodyHtml: item.bodyHtml,
+          jsonld: built.jsonld,
+          facts: factTexts(registry),
+          ownDomain: world.project.domain,
+        })
+      : undefined;
     const saved = await scoped.content.saveQc(projectId, item.id, {
       revisionId: item.currentRevisionId,
-      qc: { ...qc, schemaNote: built.downgraded },
+      qc: { ...qc, schemaNote: built.downgraded, ...(citable ? { citable } : {}) },
       jsonld: built.jsonld,
     });
     return {

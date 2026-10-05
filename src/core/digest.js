@@ -78,10 +78,10 @@ export function buildDigest({
     .map((a) => ({ title: a.title, why: a.why ?? null }));
   const proofs = wins
     .slice(0, 2)
-    .map(
-      (w) =>
-        w.sentence ??
-        `“${w.title}” is working: on its questions the brand was named in ${w.kBefore} of ${w.nBefore} answers before, and in ${w.kAfter} of ${w.nAfter} since.`,
+    .map((w) =>
+      (w.sentence ?? w.metric === 'citation_share')
+        ? `“${w.title}” is working: on its questions the brand’s own site was ${w.kBefore} of ${w.nBefore} cited sources before, and ${w.kAfter} of ${w.nAfter} since.`
+        : `“${w.title}” is working: on its questions the brand was named in ${w.kBefore} of ${w.nBefore} answers before, and in ${w.kAfter} of ${w.nAfter} since.`,
     );
 
   const hasNews = changes.length > 0 || proofs.length > 0;

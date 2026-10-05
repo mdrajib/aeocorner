@@ -1169,3 +1169,111 @@ describe('auto-fix: profile links in the Organization schema (readiness.D3, Mile
     assert.equal(await ctx.scoped.autofix.current(ctx.project.id, ctx.d3.id), null);
   });
 });
+
+describe('citation fixes (Milestone 13)', () => {
+  async function withGap(evidence = {}, over = {}) {
+    const ctx = await withActions({ raise: false });
+    const kit = (await import('../../src/core/brand-kit.js')).emptyBrandKit({
+      name: 'Action Dental',
+      domain: ctx.project.domain,
+    });
+    kit.identity.definition = 'Action Dental is a family dental practice in Austin';
+    await ctx.scoped.brandKits.save(ctx.project.id, {
+      kit,
+      source: 'edited',
+      expectedVersion: null,
+    });
+    const rec = await h.fx.recommendation(ctx.project, {
+      stable_key: `citation.gap:g2.com-${unique()}`,
+      rule_code: 'citation.gap',
+      category: 'offsite_presence',
+      fix_path: 'guidance',
+      metric: 'citation_share',
+      title: 'Get listed or mentioned on g2.com',
+      evidence: {
+        type: 'citation_gap',
+        domain: 'g2.com',
+        siteType: 'Review site or directory',
+        format: 'list',
+        formatLabel: 'List or roundup',
+        path: 'guidance',
+        contentFormat: null,
+        timesCited: 6,
+        answersCiting: 5,
+        answersWithoutBrand: 4,
+        questions: [{ promptId: String(ctx.q.id), text: ctx.q.text, answersWithoutBrand: 4 }],
+        pages: [
+          {
+            url: 'https://g2.com/categories/dental',
+            title: 'Best dental software',
+            format: 'list',
+          },
+        ],
+        ...evidence,
+      },
+      ...over,
+    });
+    return { ...ctx, gap: rec, page: `${ctx.base}/actions/${rec.id}` };
+  }
+
+  test('a "get listed" task shows a note to copy, built from the Brand Kit and what we saw, and says we never send it', async () => {
+    const ctx = await withGap();
+    const page = (await ctx.owner.get(ctx.page).expect(200)).text;
+    assert.match(page, /A note to ask for a place there/);
+    assert.match(page, /We never send it for you/);
+    assert.match(page, /Could Action Dental be included on g2\.com\?/);
+    assert.match(page, /Action Dental is a family dental practice in Austin\./);
+    assert.ok(page.includes('https://g2.com/categories/dental'));
+    assert.ok(page.includes('Best dental software'));
+    assert.match(page, /data-copy-from="outreach-body"/);
+    // Nothing in the page posts the note anywhere.
+    assert.doesNotMatch(page, /action="[^"]*outreach/);
+  });
+
+  test('anyone who can see the project can read the note; it is the same page for a viewer', async () => {
+    const ctx = await withGap();
+    const page = (await ctx.viewer.get(ctx.page).expect(200)).text;
+    assert.match(page, /A note to ask for a place there/);
+  });
+
+  test('a task that is a page to write has no note, and one for another rule has none either', async () => {
+    const content = await withGap({ path: 'content', contentFormat: 'comparison' });
+    assert.doesNotMatch((await content.owner.get(content.page).expect(200)).text, /A note to ask/);
+    const other = await withActions();
+    const a1 = other.rec('readiness.A1');
+    assert.doesNotMatch(
+      (await other.owner.get(`${other.base}/actions/${a1.id}`).expect(200)).text,
+      /A note to ask/,
+    );
+  });
+
+  test('the evidence names the site, how often it was cited, and each question', async () => {
+    const ctx = await withGap();
+    const page = (await ctx.owner.get(ctx.page).expect(200)).text;
+    assert.match(page, /g2\.com \(review site or directory\)/);
+    assert.match(page, /6 times, in 5 answers/);
+    assert.match(page, /Cited for the question/);
+    assert.match(page, /Its most cited pages are/);
+  });
+
+  test('a citation result is worded as a share of cited sources on the card', async () => {
+    const ctx = await withGap();
+    await h.fx.forceRecommendation(ctx.gap.id, {
+      status: 'proven_win',
+      measuring_started_at: new Date('2026-10-01T10:00:00Z'),
+      done_at: new Date('2026-10-01T10:00:00Z'),
+    });
+    await h.fx.forceOutcome(ctx.gap, {
+      metric: 'citation_share',
+      nBefore: 40,
+      kBefore: 8,
+      nAfter: 36,
+      kAfter: 18,
+      promptsCount: 1,
+    });
+    const page = (await ctx.owner.get(ctx.page).expect(200)).text;
+    assert.match(page, /8 of 40 cited sources were Action Dental’s own site/);
+    assert.match(page, /18 of 36 cited sources were Action Dental’s own site/);
+    assert.match(page, /Action Dental’s own site went from 8 of 40 cited sources to 18 of 36/);
+  });
+});

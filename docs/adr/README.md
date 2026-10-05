@@ -18,4 +18,6 @@ One-way-door technical decisions made while building AEO Corner, and the reasoni
 | [0012](0012-billing-traffic-notifications-and-the-console.md) | Billing, traffic, email and the staff console: Stripe is the truth, plans are enforced only where there is a way to pay, secrets are opened only by the worker, and every staff change is recorded first | Accepted | 2026-10-04 |
 | [0013](0013-entity-checks-and-guidance.md) | Entity checks and guidance: a profile is confirmed only if we could read it, "couldn't check" is never a failure, and we never write to other people's profiles | Accepted | 2026-10-04 |
 
+| [0014](0014-citation-opportunities.md) | Citation opportunities: the type of a source comes from a reviewed list, a page we could not read has no format, and a citation fix is judged on citation share | Accepted | 2026-10-05 |
+
 **Format:** Status, Context, Decision, Consequences. Numbered sequentially, never renumbered or deleted — a reversed decision gets a new ADR marking the old one `Superseded by ADR-000N`, per [CLAUDE.md](../../CLAUDE.md)'s consistency rule.

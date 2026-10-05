@@ -1,0 +1,38 @@
+# ADR-0014: Citation opportunities: the type of a source comes from a reviewed list, a page we could not read has no format, and a citation fix is judged on citation share
+
+| | |
+|---|---|
+| **Status** | Accepted |
+| **Date** | 2026-10-05 |
+| **Context of discovery** | [MILESTONES_SERVICES.md Milestone 13](../MILESTONES_SERVICES.md#milestone-13--citation-opportunities-9), tasks 13.01 to 13.08. [ADR-0005](0005-fetching-other-peoples-websites.md), [ADR-0010](0010-recommendations-and-proof.md), [ADR-0011](0011-content-studio-and-wordpress.md), [ADR-0013](0013-entity-checks-and-guidance.md). |
+
+## Context
+
+The Citations screen listed the sites engines cite and the sites where the brand was missing. It could not say what kind of site each was, which of the customer's own pages engines cite, what a competitor's cited page looks like, or whether a citation fix worked. Four decisions were hard to change once customers rely on them: how a source gets its type, what a page's "format" means when we could not read the page, which figure a citation fix is measured on (it ends up in a shared proof page), and what a "get listed" task is allowed to do.
+
+## Decision
+
+**1. The type of a source is decided by rules and a reviewed list, never by a model.** `src/core/citation-types.js`: own site, competitor (both decided per project from the customer's domain and the tracked competitors' domains, before the list), review site or directory, forum or community, news and media, documentation or wiki, marketplace, other. A listed name matches itself and its subdomains (`uk.trustpilot.com`), never a longer name that merely ends in it (`g2.com.evil.net`, `fakeg2.com`). A first label of `docs`, `help`, `developer`, `wiki`, `support` on a host with a registrable name makes it documentation. Everything else is **other**. The list is short, well known and changed only by review; a site we do not recognise is "Other" on screen, and the screen says we do not guess. The old `web_domains.class` column stays in the schema and is no longer shown.
+
+**2. A cited page's format is read once, kept in the global URL dictionary, and absent when we could not look.** `web_urls.page_format` (list, comparison, review, guide, documentation, FAQ, other), with when it was read, why a read could not look (`format_finding`) and what makes the page easy to cite (`citable_signals`: a named author, a date, how many outside sites it links to, how many figures). "Other" means we read the page and it looks like none of them. A page behind robots.txt, a firewall, a server error, a missing page, a file that is not a web page or one with nothing to read has **no format** and a finding; it is tried again after a day, and a page that was read is read again after 30 days. The reader (`src/crawler/cited-page.js`) is "a URL we did not choose": the safe fetcher, robots.txt obeyed as `AEOCornerBot` (the gate is shared with the profile checker, `robots-gate.js`), the page read only by `extractPage` (linear, nesting capped). Ten pages a project a run, the most cited first, so a project with hundreds of sources catches up over days (`citations.formats`, queue `crawl`, once a day per project). The dictionary is global and public pages carry no tenant data, but a project may only label a page that its **own** citation rows point at (`saveUrlFormat`).
+
+**3. Two new rules replace `visibility.cited_source`, and the path depends on whose page it is.**
+- `citation.gap:<domain>`: a site cited in at least two answers that left the brand out. If the site is a **competitor's** and its cited pages are in a format Content Studio writes (list, comparison, guide, FAQ), the path is **content**: "Publish a comparison to compete with rival.io", started in Content Studio in that format for the questions the site was cited on (a new page; the competitor's addresses are never the target). Every other site (a review site, a forum, news) is **guidance**: "Get listed or mentioned on g2.com", with a note to copy. You cannot ask a competitor to list you, but you can write the page they wrote. The path can change while the task is still open (once we have read the format); a task someone has started keeps the path it started on.
+- `citation.own_page_uncited:<page>`: a key page from the latest scan that no engine cited in the last 28 days, judged only when the scan found the page, the page is not the home page and the site was cited at least 10 times (so "never" means something). A content refresh of that page.
+The older rule is silent whenever the caller supplies `citations` (the worker always does); a project with an open `visibility.cited_source` sees it look fixed and the new rule take over.
+
+**4. A citation fix is measured on citation share, with the same test.** `recommendations.metric` and `action_outcomes.metric` (`mention_rate`, default; `citation_share`). For a citation fix, `n` is the sources cited in the targeted questions' complete cells and `k` the ones that were the brand's own site (`cell_results.citations_total`, `citations_own`). The baseline, the after window, the 28-day windows, the two-proportion test (p below 0.05, 5 points, 20 in each window), "complete cells only" and the +2 and +4 week horizons are exactly the ones every other fix uses. A mention-rate fix is unchanged. A shared proof page for a citation win says "the brand's own site went from 8 of 40 cited sources to 18 of 36", not that the brand was "named".
+
+**5. The "get listed" note is built from facts, shown to the person, and never sent.** `buildOutreachNote`: the brand's name and address, the one-line definition the customer wrote in their Brand Kit, the site, up to two pages we saw cited and up to two questions they were cited for. It states no number, no result and no claim about the brand beyond its own definition; `findUnsupportedInNote` is a test that every address, quotation and number in it comes from those facts. No code path mails it, and the screen says so: "We never send it for you".
+
+**6. A page written to win citations is asked what makes a page citable, as advice.** `citableChecks`: two or more outside sources linked, a date in the structured data, a named author, and a figure that is one of the business's own facts. Advisory only: they are not in the 100-point score, never block approval, and never invent a person or a figure to pass. Content Studio's brief is told about the "pages to beat" (their format and what they have; `BRIEF_VERSION` is `b3`) and the evidence pack prefers the format we read over a guess from the title. Not run against the live model.
+
+**7. Words.** `TEMPLATE_VERSION` is `t2`. The narrative corpus has both new evidence types for all five business names, and the template narrative states only what the evidence holds.
+
+## Consequences
+
+- One new migration (`0008_citation_opportunities`), no new table, no change to the fact tables' keys. Existing rows keep `mention_rate`.
+- A cited page is fetched by us. That is more outbound traffic to other people's sites than before; it is paced like every other fetch and obeys robots.txt even for a verified customer. A site that blocks us stays "Not read yet" on screen.
+- The ICE priors for both rules are guesses like the others (0.3 and 0.35) until the closed loop has enough proven and unproven citation fixes to recalibrate them (`outcomes.ruleStats` counts per rule).
+- Citation share is a noisy figure for a small project: a project with few citations will mostly see "not enough data". That is the honest answer.
+- Not decided here: reading the page with a headless browser (a JavaScript-only page is "unreadable"), a person marking a source's type by hand, outreach we send ourselves (we will not), and a fix that targets one engine's citations.

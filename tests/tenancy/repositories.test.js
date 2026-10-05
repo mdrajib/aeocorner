@@ -1157,6 +1157,63 @@ describe('dashboard reads and customer feedback', () => {
 
   const range = { from: '2020-01-01', to: '2099-12-31' };
 
+  test('the citation reads (Milestone 13): B’s project is not found from A, and A sees nothing of B’s', async () => {
+    for (const fn of [
+      'citationContext',
+      'citationOpportunityRows',
+      'ownPageCitations',
+      'keyPages',
+      'citationShareDaily',
+      'unreadCitedUrls',
+    ]) {
+      await refuses(A.scoped.dashboard[fn](bDash.id, range), 'PROJECT_NOT_IN_ORG');
+    }
+    const urls = await B.scoped.dashboard.unreadCitedUrls(bDash.id, range);
+    assert.equal(urls.length, 1);
+    assert.equal((await B.scoped.dashboard.citationOpportunityRows(bDash.id, range)).length, 1);
+    assert.equal(
+      (await B.scoped.dashboard.citationContext(bDash.id)).brandName,
+      'Dashboard B Brand',
+    );
+
+    assert.deepEqual(await A.scoped.dashboard.citationOpportunityRows(aProject.id, range), []);
+    assert.deepEqual(await A.scoped.dashboard.unreadCitedUrls(aProject.id, range), []);
+    assert.deepEqual((await A.scoped.dashboard.ownPageCitations(aProject.id, range)).pages, []);
+    assert.deepEqual(await A.scoped.dashboard.citationShareDaily(aProject.id, range), []);
+    assert.deepEqual(await A.scoped.dashboard.keyPages(aProject.id), []);
+    assert.deepEqual((await A.scoped.dashboard.citationContext(aProject.id)).rivalDomains, []);
+  });
+
+  test('saveUrlFormat(): a page can be labelled only by a project whose own citations point at it', async () => {
+    const [url] = await B.scoped.dashboard.unreadCitedUrls(bDash.id, range);
+    await refuses(
+      A.scoped.dashboard.saveUrlFormat(bDash.id, url.id, { format: 'list' }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    // From A's own project the page is not one A cites: nothing is written.
+    assert.deepEqual(
+      await A.scoped.dashboard.saveUrlFormat(aProject.id, url.id, { format: 'list' }),
+      { saved: false },
+    );
+    assert.equal((await B.scoped.dashboard.unreadCitedUrls(bDash.id, range)).length, 1);
+    // From B's project it is saved; a page that could not be read keeps no format.
+    assert.deepEqual(
+      await B.scoped.dashboard.saveUrlFormat(bDash.id, url.id, {
+        format: 'list',
+        signals: { author: true },
+      }),
+      {
+        saved: true,
+      },
+    );
+    assert.deepEqual(await B.scoped.dashboard.unreadCitedUrls(bDash.id, range), []);
+    const rows = await B.scoped.dashboard.citationOpportunityRows(bDash.id, range);
+    assert.equal(rows[0].pages[0].format, 'list');
+    await B.scoped.dashboard.saveUrlFormat(bDash.id, url.id, { finding: 'blocked' });
+    const again = await B.scoped.dashboard.citationOpportunityRows(bDash.id, range);
+    assert.equal(again[0].pages[0].format, null);
+  });
+
   test('matrix(), question(), answers(), competitorCells() and citations(): B’s project is not found from A', async () => {
     await refuses(A.scoped.dashboard.matrix(bDash.id, range), 'PROJECT_NOT_IN_ORG');
     await refuses(A.scoped.dashboard.question(bDash.id, bPrompt.id, range), 'PROJECT_NOT_IN_ORG');
@@ -1961,12 +2018,19 @@ describe('coverage: no repository function without a leak test', () => {
     changes: ['detect', 'forProject'],
     dashboard: [
       'answers',
+      'citationContext',
+      'citationOpportunityRows',
+      'citationShareDaily',
       'citations',
       'competitorCells',
+      'keyPages',
       'matrix',
+      'ownPageCitations',
       'question',
       'reportAnswer',
       'reportsFor',
+      'saveUrlFormat',
+      'unreadCitedUrls',
     ],
     quota: ['returnRunNow', 'runNowUsage', 'takeRunNow'],
     recommendations: [

@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { CHECKS } from '../crawler/readiness/rubric.js';
+import { CITATION_LIMITS } from './citation-opportunities.js';
+import { FORMAT_LABELS } from './evidence-pack.js';
 import { platformLabel } from './entity-profiles.js';
 import { READINESS_GUIDANCE } from './fix-list.js';
 import { calibratedConfidence, iceScore, impactScore } from './ice.js';
@@ -68,6 +70,23 @@ export const RULES = Object.freeze({
     prior: 0.3,
   },
   'visibility.hedged': { category: 'reputation', fixPath: 'content', effort: 3, prior: 0.3 },
+  // Citations (Milestone 13). Judged on citation share, not on how often the brand is named: the fix is about being a source.
+  // A gap is "get listed" (guidance) unless the site is a competitor's and its pages are in a format we write, when the path
+  // is Content Studio; the candidate says which. Both replace `visibility.cited_source` once the caller gives `citations`.
+  'citation.gap': {
+    category: 'offsite_presence',
+    fixPath: 'guidance',
+    effort: 5,
+    prior: 0.3,
+    metric: 'citation_share',
+  },
+  'citation.own_page_uncited': {
+    category: 'content_refresh',
+    fixPath: 'content',
+    effort: 3,
+    prior: 0.35,
+    metric: 'citation_share',
+  },
   // Entity (Milestone 12). All guidance: we do not write to other people's profiles or to Google's Knowledge Graph.
   'entity.wrong_fact': { category: 'entity', fixPath: 'guidance', effort: 2, prior: 0.4 },
   'entity.profile': { category: 'entity', fixPath: 'guidance', effort: 2, prior: 0.35 },
@@ -400,6 +419,121 @@ function citedSourceCandidates({ citationGaps, answersTotal, windowRange }) {
   return out.sort((a, b) => b.sortKey - a.sortKey || a.subject.localeCompare(b.subject));
 }
 
+/** A short, stable name for one page address in a recommendation key (the key column is only 191 characters). */
+export const pageSubject = (url) => {
+  let slug = '';
+  try {
+    slug = new URL(url).pathname
+      .split('/')
+      .filter(Boolean)
+      .pop()
+      ?.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+  } catch {
+    // not an address: the hash alone names it
+  }
+  return `${slug ? `${slug}-` : ''}${createHash('sha256').update(String(url)).digest('hex').slice(0, 10)}`;
+};
+
+const lowerFirst = (text) => (text ? text[0].toLowerCase() + text.slice(1) : text);
+
+const hostPath = (url) => {
+  try {
+    const u = new URL(url);
+    return clip(`${u.hostname.replace(/^www\./, '')}${u.pathname.replace(/\/+$/, '')}`, 80);
+  } catch {
+    return clip(url, 80);
+  }
+};
+
+/**
+ * Citation gaps (13.05): a site engines cite for the brand's questions, in answers that left the brand out. Where the
+ * path is Content Studio (a competitor's page in a format we write) the title says what to publish; otherwise it is the
+ * "get listed" task the old rule made.
+ */
+function citationGapCandidates({ citations, answersTotal, windowRange }) {
+  const out = [];
+  for (const site of citations?.opportunities ?? []) {
+    if (site.answersWithoutBrand < CITATION_LIMITS.minAnswers) continue;
+    const content = site.path === 'content' && site.contentFormat;
+    const ruleCode = 'citation.gap';
+    out.push({
+      ruleCode,
+      subject: site.domain,
+      stableKey: stableKeyOf(ruleCode, site.domain),
+      ...RULES[ruleCode],
+      fixPath: content ? 'content' : 'guidance',
+      category: content ? 'content_new' : 'offsite_presence',
+      title: content
+        ? `Publish a ${lowerFirst(FORMAT_LABELS[site.contentFormat])} to compete with ${site.domain}`
+        : `Get listed or mentioned on ${site.domain}`,
+      // An outside mention helps indirectly, so it counts for half as much as a fix on the brand's own pages.
+      severity: content ? 0.6 : 0.5,
+      reach: {
+        share: answersTotal > 0 ? Math.min(1, site.answersWithoutBrand / answersTotal) : 0,
+      },
+      promptIds: site.promptIds,
+      sortKey: site.answersWithoutBrand,
+      evidence: {
+        type: 'citation_gap',
+        domain: site.domain,
+        siteKind: site.type,
+        siteType: site.typeLabel,
+        format: site.format,
+        formatLabel: site.formatLabel,
+        path: content ? 'content' : 'guidance',
+        contentFormat: content ? site.contentFormat : null,
+        timesCited: site.timesCited,
+        answersCiting: site.answersCiting,
+        answersWithoutBrand: site.answersWithoutBrand,
+        questions: site.questions.slice(0, 3).map((q) => ({
+          promptId: q.promptId,
+          text: clip(q.text, 160),
+          answersWithoutBrand: q.answersWithoutBrand,
+        })),
+        pages: site.pages.map((p) => ({
+          url: p.url,
+          title: p.title ? clip(p.title, 120) : null,
+          format: p.format ?? null,
+        })),
+        window: windowRange,
+      },
+      affectedUrls: site.pages.map((p) => p.url),
+    });
+  }
+  return out.sort((a, b) => b.sortKey - a.sortKey || a.subject.localeCompare(b.subject));
+}
+
+/** Key pages of the brand's own site that engines never cited, though they cited the site (13.05). */
+function ownPageCandidates({ citations, windowRange }) {
+  const out = [];
+  for (const page of citations?.uncitedPages ?? []) {
+    const ruleCode = 'citation.own_page_uncited';
+    const subject = pageSubject(page.url);
+    out.push({
+      ruleCode,
+      subject,
+      stableKey: stableKeyOf(ruleCode, subject),
+      ...RULES[ruleCode],
+      title: `Make ${hostPath(page.url)} easier for AI to cite`,
+      severity: 0.4,
+      reach: { share: 0.25 },
+      promptIds: [],
+      evidence: {
+        type: 'citation_own_page',
+        url: page.url,
+        ownCitations: citations.ownCitations,
+        pagesCited: citations.ownPagesCited,
+        window: windowRange,
+      },
+      affectedUrls: [page.url],
+    });
+  }
+  return out;
+}
+
 function hedgedCandidates({ sentiment, grid, brandName, windowRange }) {
   if (!sentiment || sentiment.n < LIMITS.minSentimentAnswers) return [];
   const average = sentiment.sum / sentiment.n;
@@ -448,6 +582,9 @@ function hedgedCandidates({ sentiment, grid, brandName, windowRange }) {
  * @param entity        what Milestone 12 knows, or null: `{ checks, accuracy, wikidataId, profilesListed }`: the latest
  *                      entity checks, the accuracy comparison (`checkFacts`), the Wikidata item the customer named, and how
  *                      many profiles the Brand Kit lists
+ * @param citations     Milestone 13, or null: `{ opportunities, uncitedPages, ownCitations, ownPagesCited, ownPagesJudged }`
+ *                      from `rankOpportunities().bySite` and `uncitedKeyPages`. When it is given, `citation.gap` and
+ *                      `citation.own_page_uncited` are raised and the older `visibility.cited_source` is not
  * @returns `{ candidates, detectedKeys, evaluated }` (`evaluated` has `readiness`, `visibility` and one entry per entity rule); `candidates` are what to raise (capped);
  *          `detectedKeys` is every issue found, capped or not, so one the cap left out is not mistaken for a fixed one;
  *          candidates have no impact or ice yet: see `scoreCandidates`
@@ -463,6 +600,7 @@ export function evaluateRules({
   answersTotal = 0,
   windowRange = null,
   entity = null,
+  citations = null,
 }) {
   const universeAll = prompts.map((p) => ({
     promptId: p.id,
@@ -473,9 +611,13 @@ export function evaluateRules({
   const hasAnswers =
     Boolean(grid) && grid.some((row) => row.engines.some((e) => Number(e.nOk) > 0));
   const lost = hasAnswers ? lostQuestionCandidates({ grid, brandName }) : [];
-  const sites = hasAnswers
-    ? citedSourceCandidates({ citationGaps, answersTotal, windowRange })
-    : [];
+  const sites =
+    hasAnswers && !citations
+      ? citedSourceCandidates({ citationGaps, answersTotal, windowRange })
+      : [];
+  const gaps =
+    hasAnswers && citations ? citationGapCandidates({ citations, answersTotal, windowRange }) : [];
+  const ownPages = hasAnswers && citations ? ownPageCandidates({ citations, windowRange }) : [];
   const cool = hasAnswers ? hedgedCandidates({ sentiment, grid, brandName, windowRange }) : [];
   const facts = wrongFactCandidates({ entity, brandName, windowRange });
   const profiles = profileCandidates({ entity, brandName, universeAll });
@@ -485,6 +627,8 @@ export function evaluateRules({
     ...readiness,
     ...lost,
     ...sites,
+    ...gaps,
+    ...ownPages,
     ...cool,
     ...facts,
     ...profiles.out,
@@ -494,6 +638,8 @@ export function evaluateRules({
     ...readiness.map((c) => c.stableKey),
     ...lost.slice(0, LIMITS.lostQuestions).map((c) => c.stableKey),
     ...sites.slice(0, LIMITS.citedSites).map((c) => c.stableKey),
+    ...gaps.slice(0, CITATION_LIMITS.gaps).map((c) => c.stableKey),
+    ...ownPages.slice(0, CITATION_LIMITS.uncitedPages).map((c) => c.stableKey),
     ...cool.map((c) => c.stableKey),
     ...facts.map((c) => c.stableKey),
     ...profiles.out.map((c) => c.stableKey),
@@ -524,6 +670,10 @@ export function evaluateRules({
       'entity.profile': Boolean(
         entity && (entity.checks.some((c) => c.kind === 'profile') || entity.profilesListed === 0),
       ),
+      // The citation rules are judged one by one too: a gap needs readable answers, an uncited page needs a scan and a site
+      // that was cited often enough for "never" to mean something.
+      'citation.gap': Boolean(citations) && hasAnswers,
+      'citation.own_page_uncited': Boolean(citations?.ownPagesJudged) && hasAnswers,
       'entity.wikidata': Boolean(
         entity?.checks.some((c) => c.kind === 'wikidata' && c.status !== 'error'),
       ),

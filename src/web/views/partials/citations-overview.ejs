@@ -1,0 +1,38 @@
+<%# C4 overview. Props: total, rows, gaps, types ([{ label, timesCited, sites, share }]), trend ({ labels, values, own, total }). %>
+<div class="grid gap-6 lg:grid-cols-2">
+  <%- ui.card({ title: 'Your citation share', headingLevel: 2, html:
+    '<p class="text-ink-700 mb-3 text-sm">' + (trend.total
+      ? 'Of the ' + trend.total + ' sources cited in this period, ' + trend.own + ' ' + (trend.own === 1 ? 'was' : 'were') + ' your own site. This is the figure a citation fix is judged on.'
+      : 'No source was cited in this period, so there is no share to show.') + '</p>'
+    + ui.chart({ title: 'Your site’s share of the sources cited, by week', xLabel: 'Week starting', unit: '%', labels: trend.labels, series: [{ label: 'Your citation share', values: trend.values }], summary: trend.total ? 'Your site made up ' + trend.own + ' of ' + trend.total + ' citations in the period.' : 'No citations in the period.', emptyText: 'No weeks in this period.' }) }) %>
+  <%- ui.card({ title: 'What kind of sites are cited', headingLevel: 2, html: types.length
+    ? ui.table({
+        caption: 'Cited sources by type',
+        captionHidden: true,
+        flush: true,
+        columns: [{ key: 'type', label: 'Type' }, { key: 'sites', label: 'Sites', numeric: true }, { key: 'times', label: 'Times cited', numeric: true }, { key: 'share', label: 'Share', numeric: true }],
+        rows: types.map((t) => ({ type: t.label, sites: String(t.sites), times: String(t.timesCited), share: t.share == null ? '—' : t.share + '%' })),
+      }) + '<p class="text-ink-600 mt-3 text-xs">We decide the type from a reviewed list of well-known sites and a few rules. A site we do not recognise is “Other”: we do not guess.</p>'
+    : '<p class="text-ink-700 text-sm">No sources cited yet.</p>' }) %>
+</div>
+
+<div class="mt-6">
+  <%- ui.card({ title: 'Where you are not present', headingLevel: 2, html: ui.fragment('partials/citation-gaps', { gaps }) }) %>
+</div>
+
+<div class="mt-6">
+  <h2 class="text-xl">Most cited sites</h2>
+  <div class="mt-3">
+    <%- ui.table({
+      caption: 'Sites cited, most cited first',
+      columns: [{ key: 'site', label: 'Site' }, { key: 'type', label: 'Type' }, { key: 'times', label: 'Times cited', numeric: true }, { key: 'share', label: 'Share', numeric: true }, { key: 'named', label: 'Answers that also named you', numeric: true }],
+      rows: rows.map((r) => ({
+        site: { html: ui.esc(r.domain) + (r.own ? ' ' + ui.badge({ text: 'Your site', tone: 'success' }) : '') },
+        type: r.classLabel,
+        times: String(r.timesCited),
+        share: r.share == null ? '—' : r.share + '%',
+        named: r.answersWithBrand + ' of ' + r.answersCiting,
+      })),
+    }) %>
+  </div>
+</div>

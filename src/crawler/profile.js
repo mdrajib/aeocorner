@@ -1,8 +1,7 @@
 import { judgeProfile } from '../core/entity-checks.js';
 import { decodeBody } from './decode.js';
-import { detectBotBlock } from './bot-block.js';
 import { extractPage } from './html.js';
-import { evaluateRobots, parseRobots, ROBOTS_MAX_BYTES } from './robots.js';
+import { createRobotsGate } from './robots-gate.js';
 import { FetchError } from './safe-fetch.js';
 
 /**
@@ -16,7 +15,6 @@ import { FetchError } from './safe-fetch.js';
  * input and is read only by `extractPage`, which is linear and caps nesting.
  */
 
-const AGENT = 'AEOCornerBot';
 const PAGE_TYPES = [/^text\/html/i, /^application\/xhtml/i];
 const PAGE_BYTES = 1.5 * 1024 * 1024;
 
@@ -31,28 +29,8 @@ const couldNot = (finding, extra = {}) => ({
 });
 
 export function createProfileChecker({ fetcher }) {
-  /** May we read this page? `{ allowed }`, or `{ allowed: false, finding }` when the answer is a "couldn't check". */
-  async function robotsAllow(url) {
-    const u = new URL(url);
-    let res;
-    try {
-      res = await fetcher.fetch(`${u.origin}/robots.txt`, {
-        maxBytes: ROBOTS_MAX_BYTES,
-        bodyTypes: [/^text\//i, /^$/, /octet-stream/i],
-        timeoutMs: 10_000,
-      });
-    } catch (err) {
-      if (!(err instanceof FetchError)) throw err;
-      return { allowed: false, finding: 'fetch_failed' };
-    }
-    if (detectBotBlock(res).blocked) return { allowed: false, finding: 'blocked' };
-    if (res.status === 429 || res.status >= 500) return { allowed: false, finding: 'unavailable' };
-    if (res.status < 200 || res.status >= 300) return { allowed: true }; // 404 and the like: no rules
-    const text = decodeBody(res.body ?? Buffer.alloc(0), res.contentType).text;
-    if (/html/i.test(res.contentType) || /^\s*</.test(text)) return { allowed: true };
-    const verdict = evaluateRobots(parseRobots(text), AGENT, `${u.pathname}${u.search}`);
-    return verdict.allowed ? { allowed: true } : { allowed: false, finding: 'robots' };
-  }
+  const gate = createRobotsGate({ fetcher });
+  const robotsAllow = (url) => gate.allow(url);
 
   /**
    * @param {object} p

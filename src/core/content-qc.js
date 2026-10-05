@@ -473,3 +473,88 @@ export function scoreDraft({
     words: body.words,
   };
 }
+
+// --- Easy to cite (Milestone 13, task 13.06) -------------------------------------------------------------------
+//
+// For a page written to win citations (a `citation.*` recommendation), four more things count: a named author, a date,
+// sources linked, and figures that are the business's own. They are ADVISORY: they never change the score, never block
+// approval and never invent anything to pass. A draft cannot name an author it was not given, nor state a figure that is
+// not in the facts, so "could be better" here usually means "add this to your Brand Kit".
+
+export const CITABLE_CHECKS = Object.freeze([
+  { code: 'sources_linked', label: 'Sources are linked' },
+  { code: 'dated', label: 'Shows when it was updated' },
+  { code: 'author', label: 'Names who wrote it' },
+  { code: 'own_figures', label: 'Has figures of your own' },
+]);
+
+const HREF = /href="(https?:\/\/[^"\s]{1,2000})"/g;
+
+const hostOf = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * @param {object} input
+ * @param {string} input.bodyHtml    sanitized markup
+ * @param {object|null} input.jsonld the page's structured data
+ * @param {string[]} [input.facts]   sentences the draft may state as fact
+ * @param {string} [input.ownDomain] the business's own domain (its links do not count as outside sources)
+ * @returns {{ code, label, status, finding }[]}  `status` is 'pass' or 'warn', never 'fail': these do not block
+ */
+export function citableChecks({ bodyHtml, jsonld = null, facts = [], ownDomain = '' }) {
+  const body = analyzeBody(bodyHtml);
+  const own = String(ownDomain)
+    .toLowerCase()
+    .replace(/^www\./, '');
+  const outside = new Set();
+  for (const m of String(bodyHtml ?? '').matchAll(HREF)) {
+    const host = hostOf(m[1]);
+    if (host && host !== own && !(own && host.endsWith(`.${own}`))) outside.add(host);
+  }
+  const nodes = [jsonld].flat().filter(Boolean);
+  const graph = nodes.flatMap((n) => (Array.isArray(n['@graph']) ? n['@graph'] : [n]));
+  const authored = graph.some((n) => {
+    const a = n.author ?? n.creator;
+    return Boolean(typeof a === 'string' ? a.trim() : a?.name);
+  });
+  const dated = graph.some((n) => n.dateModified || n.datePublished);
+  const allowedFigures = new Set(facts.flatMap((f) => figuresIn(f)));
+  const figuresOnPage = [...new Set(figuresIn(body.text))].filter((n) => n.length > 1);
+  const ownFigures = figuresOnPage.filter((n) => allowedFigures.has(n));
+
+  const check = (code, ok, finding) => ({
+    code,
+    label: CITABLE_CHECKS.find((c) => c.code === code).label,
+    status: ok ? 'pass' : 'warn',
+    finding: ok ? null : finding,
+  });
+  return [
+    check(
+      'sources_linked',
+      outside.size >= 2,
+      outside.size === 0
+        ? 'The page links to no outside source. Link the source of each figure you state.'
+        : 'The page links to one outside source. Pages engines cite usually link two or more.',
+    ),
+    check(
+      'dated',
+      dated,
+      'The structured data carries no date. Publishing through WordPress adds one; otherwise add “Updated” and the date.',
+    ),
+    check(
+      'author',
+      authored,
+      'No author is named. Add a persona with a name to your Brand Kit’s voice and the page carries it. We never make up a person.',
+    ),
+    check(
+      'own_figures',
+      ownFigures.length > 0,
+      'No figure of your own on the page. If you have one (a count, a price, a year), add it as a fact in your Brand Kit. We never make one up.',
+    ),
+  ];
+}

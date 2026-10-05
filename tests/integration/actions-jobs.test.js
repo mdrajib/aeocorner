@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { after, before, describe, test } from 'node:test';
 import { UnrecoverableError } from 'bullmq';
+import { TEMPLATE_VERSION } from '../../src/core/narrative.js';
 import { createHostPacer } from '../../src/crawler/pacer.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
 import { ProviderError } from '../../src/engines/contract.js';
@@ -262,7 +263,7 @@ describe('the narrative', () => {
     );
     assert.equal(result.skipped, 'unsupported');
     const kept = (await org.scoped.recommendations.get(project.id, rec.id)).recommendation;
-    assert.equal(kept.narrativeVersion, 't1');
+    assert.equal(kept.narrativeVersion, TEMPLATE_VERSION);
     assert.equal(kept.whyMd, rec.whyMd);
   });
 

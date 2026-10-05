@@ -1,4 +1,5 @@
 import { DomainError } from '../errors.js';
+import { Prisma } from '../generated/client/client.ts';
 
 /**
  * What the dashboard screens read (Milestone 5, MVP F5): the question matrix, one question's history and answers, who
@@ -230,7 +231,7 @@ export function dashboardRepos(prisma, orgId) {
       const urlRows = citations.length
         ? await prisma.web_urls.findMany({
             where: { id: { in: [...new Set(citations.map((c) => c.url_id))] } },
-            select: { id: true, url: true, title: true },
+            select: { id: true, url: true, title: true, page_format: true, citable_signals: true },
           })
         : [];
       const domainRows = citations.length
@@ -276,6 +277,9 @@ export function dashboardRepos(prisma, orgId) {
               position: c.position,
               url: urls.get(c.url_id)?.url ?? null,
               title: urls.get(c.url_id)?.title ?? null,
+              // What reading the page showed (Milestone 13); null when it has not been read or could not be.
+              readFormat: urls.get(c.url_id)?.page_format ?? null,
+              signals: urls.get(c.url_id)?.citable_signals ?? null,
               domain: domains.get(c.domain_id) ?? null,
               isOwn: c.is_own,
               ownerEntityId: c.owner_entity_id,
@@ -368,6 +372,260 @@ export function dashboardRepos(prisma, orgId) {
           own: toNumber(r.own) === 1,
         })),
       };
+    },
+
+    /**
+     * What the citation screens need to know about who is who (Milestone 13): the brand's name and domains, and the
+     * tracked competitors' domains, so a cited site can be told apart as "yours" or "a competitor's".
+     *
+     * @returns `{ brandName, ownDomains, rivalDomains, homeUrl }`
+     */
+    async citationContext(projectId) {
+      await ownProject(projectId);
+      const [project, brand, rivals] = await Promise.all([
+        prisma.projects.findFirst({
+          where: { id: projectId, org_id: orgId },
+          select: { domain: true },
+        }),
+        prisma.tracked_entities.findFirst({
+          where: { project_id: projectId, org_id: orgId, kind: 'brand' },
+          select: { name: true, primary_domain: true },
+        }),
+        prisma.tracked_entities.findMany({
+          where: {
+            project_id: projectId,
+            org_id: orgId,
+            kind: 'competitor',
+            status: 'active',
+            primary_domain: { not: null },
+          },
+          select: { primary_domain: true },
+          orderBy: { id: 'asc' },
+        }),
+      ]);
+      const own = [...new Set([project?.domain, brand?.primary_domain].filter(Boolean))];
+      return {
+        brandName: brand?.name ?? project?.domain ?? '',
+        ownDomains: own,
+        rivalDomains: [...new Set(rivals.map((r) => r.primary_domain))],
+        homeUrl: project?.domain ? `https://${project.domain}/` : null,
+      };
+    },
+
+    /**
+     * Per question and cited site over the period, for the opportunities table: how often the site was cited, in how many
+     * answers, and in how many of those the brand was also named; the readable answers to the question; and the site's
+     * most cited pages with the format we read for each (null = not read or could not look).
+     *
+     * @returns `[{ promptId, text, domain, timesCited, answersCiting, answersWithBrand, answersInQuestion,
+     *   pages: [{ url, title, timesCited, format }] }]`, most cited first
+     */
+    async citationOpportunityRows(projectId, { from, to, limit = 300 }) {
+      await ownProject(projectId);
+      const brand = (await brandOf(projectId)) ?? 0n;
+      const start = dayStart(from);
+      const end = dayStart(to);
+      const cap = Math.min(Math.max(1, Math.floor(limit)), 500);
+      const [siteRows, pageRows, answerRows] = await Promise.all([
+        prisma.$queryRaw`
+          SELECT c.prompt_id AS prompt_id, p.text AS text, d.domain AS domain, COUNT(*) AS times_cited,
+                 COUNT(DISTINCT c.snapshot_id) AS answers_citing,
+                 COUNT(DISTINCT CASE WHEN m.id IS NOT NULL THEN c.snapshot_id END) AS answers_with_brand
+          FROM citations c
+          JOIN web_domains d ON d.id = c.domain_id
+          JOIN prompts p ON p.id = c.prompt_id AND p.org_id = c.org_id
+          LEFT JOIN mentions m ON m.snapshot_id = c.snapshot_id AND m.run_date = c.run_date
+                              AND m.entity_id = ${brand} AND m.org_id = c.org_id AND m.is_excluded = 0
+          WHERE c.org_id = ${orgId} AND c.project_id = ${projectId} AND c.run_date BETWEEN ${start} AND ${end}
+          GROUP BY c.prompt_id, p.text, d.id, d.domain
+          ORDER BY times_cited DESC, c.prompt_id ASC, d.domain ASC
+          LIMIT ${cap}`,
+        prisma.$queryRaw`
+          SELECT c.prompt_id AS prompt_id, d.domain AS domain, u.url AS url, u.title AS title,
+                 u.page_format AS page_format, COUNT(*) AS times_cited
+          FROM citations c
+          JOIN web_urls u ON u.id = c.url_id
+          JOIN web_domains d ON d.id = c.domain_id
+          WHERE c.org_id = ${orgId} AND c.project_id = ${projectId} AND c.run_date BETWEEN ${start} AND ${end}
+          GROUP BY c.prompt_id, d.domain, u.id, u.url, u.title, u.page_format
+          ORDER BY times_cited DESC, u.url ASC
+          LIMIT ${cap * 4}`,
+        prisma.$queryRaw`
+          SELECT prompt_id, COUNT(*) AS n FROM answer_snapshots
+          WHERE org_id = ${orgId} AND project_id = ${projectId} AND run_date BETWEEN ${start} AND ${end}
+            AND status = 'ok' AND extraction_status = 'done'
+          GROUP BY prompt_id`,
+      ]);
+      const answers = new Map(answerRows.map((r) => [String(r.prompt_id), toNumber(r.n)]));
+      const pages = new Map();
+      for (const r of pageRows) {
+        const key = `${r.prompt_id}|${r.domain}`;
+        const list = pages.get(key) ?? [];
+        list.push({
+          url: r.url,
+          title: r.title,
+          timesCited: toNumber(r.times_cited),
+          format: r.page_format ?? null,
+        });
+        pages.set(key, list);
+      }
+      return siteRows.map((r) => ({
+        promptId: String(r.prompt_id),
+        text: r.text,
+        domain: r.domain,
+        timesCited: toNumber(r.times_cited),
+        answersCiting: toNumber(r.answers_citing),
+        answersWithBrand: toNumber(r.answers_with_brand),
+        answersInQuestion: answers.get(String(r.prompt_id)) ?? 0,
+        pages: pages.get(`${r.prompt_id}|${r.domain}`) ?? [],
+      }));
+    },
+
+    /**
+     * The brand's own pages that were cited in the period, one row per page and engine, and how many citations of the
+     * brand's own site there were in all.
+     *
+     * @returns `{ ownCitations, pages: [{ url, title, engineCode, timesCited, answersCiting }] }`
+     */
+    async ownPageCitations(projectId, { from, to, limit = 200 }) {
+      await ownProject(projectId);
+      const start = dayStart(from);
+      const end = dayStart(to);
+      const cap = Math.min(Math.max(1, Math.floor(limit)), 500);
+      const [totalRows, pageRows] = await Promise.all([
+        prisma.$queryRaw`
+          SELECT COUNT(*) AS n FROM citations
+          WHERE org_id = ${orgId} AND project_id = ${projectId} AND run_date BETWEEN ${start} AND ${end}
+            AND is_own = 1`,
+        prisma.$queryRaw`
+          SELECT u.url AS url, u.title AS title, c.engine_code AS engine_code, COUNT(*) AS times_cited,
+                 COUNT(DISTINCT c.snapshot_id) AS answers_citing
+          FROM citations c
+          JOIN web_urls u ON u.id = c.url_id
+          WHERE c.org_id = ${orgId} AND c.project_id = ${projectId} AND c.run_date BETWEEN ${start} AND ${end}
+            AND c.is_own = 1
+          GROUP BY u.id, u.url, u.title, c.engine_code
+          ORDER BY times_cited DESC, u.url ASC
+          LIMIT ${cap}`,
+      ]);
+      return {
+        ownCitations: toNumber(totalRows[0]?.n),
+        pages: pageRows.map((r) => ({
+          url: r.url,
+          title: r.title,
+          engineCode: r.engine_code,
+          timesCited: toNumber(r.times_cited),
+          answersCiting: toNumber(r.answers_citing),
+        })),
+      };
+    },
+
+    /**
+     * The key pages the latest finished scan fetched successfully, in the scan's order (the most important first):
+     * `[{ url }]`. Empty before the first scan.
+     */
+    async keyPages(projectId, { limit = 30 } = {}) {
+      await ownProject(projectId);
+      const scan = await prisma.site_scans.findFirst({
+        where: { project_id: projectId, org_id: orgId, status: { in: ['complete', 'partial'] } },
+        orderBy: [{ finished_at: 'desc' }, { id: 'desc' }],
+        select: { id: true },
+      });
+      if (!scan) return [];
+      const rows = await prisma.scan_pages.findMany({
+        where: { scan_id: scan.id, org_id: orgId, is_key_page: true, http_status: 200 },
+        orderBy: { id: 'asc' },
+        take: Math.min(Math.max(1, Math.floor(limit)), 100),
+        select: { url: true },
+      });
+      return rows.map((r) => ({ url: r.url }));
+    },
+
+    /**
+     * Citations of the brand's own site against all citations, per day: `[{ date, own, total }]`. Failed cells have no
+     * citations to count; a day with none is left out, and the screen shows a gap there, never 0%.
+     */
+    async citationShareDaily(projectId, { from, to }) {
+      await ownProject(projectId);
+      const grouped = await prisma.cell_results.groupBy({
+        by: ['run_date'],
+        where: {
+          project_id: projectId,
+          org_id: orgId,
+          run_date: range({ from, to }),
+          status: { in: ['complete', 'partial'] },
+        },
+        _sum: { citations_own: true, citations_total: true },
+        orderBy: { run_date: 'asc' },
+      });
+      return grouped
+        .map((g) => ({
+          date: g.run_date.toISOString().slice(0, 10),
+          own: toNumber(g._sum.citations_own),
+          total: toNumber(g._sum.citations_total),
+        }))
+        .filter((g) => g.total > 0);
+    },
+
+    /**
+     * Cited pages (not the brand's) whose format has not been read, or whose last read is old, most cited first:
+     * `[{ id, url, timesCited }]`. A page that could not be read is tried again after a day; one that was read is read
+     * again after 30 days. `id` is the dictionary row (a string).
+     */
+    async unreadCitedUrls(projectId, { from, to, limit = 10, now = new Date() }) {
+      await ownProject(projectId);
+      const start = dayStart(from);
+      const end = dayStart(to);
+      const cap = Math.min(Math.max(1, Math.floor(limit)), 50);
+      const retryBefore = new Date(now.getTime() - 86_400_000);
+      const staleBefore = new Date(now.getTime() - 30 * 86_400_000);
+      const rows = await prisma.$queryRaw`
+        SELECT u.id AS id, u.url AS url, COUNT(*) AS times_cited
+        FROM citations c
+        JOIN web_urls u ON u.id = c.url_id
+        WHERE c.org_id = ${orgId} AND c.project_id = ${projectId} AND c.run_date BETWEEN ${start} AND ${end}
+          AND c.is_own = 0
+          AND (u.format_checked_at IS NULL
+               OR (u.page_format IS NULL AND u.format_checked_at < ${retryBefore})
+               OR u.format_checked_at < ${staleBefore})
+        GROUP BY u.id, u.url
+        ORDER BY times_cited DESC, u.id ASC
+        LIMIT ${cap}`;
+      return rows.map((r) => ({
+        id: String(r.id),
+        url: r.url,
+        timesCited: toNumber(r.times_cited),
+      }));
+    },
+
+    /**
+     * Keep what reading a cited page showed. The dictionary is global, so the page must be one this organization's own
+     * citations point at. A good read sets the format and the citable signals; a read that could not look sets only the
+     * finding (and never a format).
+     *
+     * @returns `{ saved }`: false when the page is not cited by this project
+     */
+    async saveUrlFormat(
+      projectId,
+      urlId,
+      { format = null, finding = null, signals = null, now = new Date() },
+    ) {
+      await ownProject(projectId);
+      const cited = await prisma.citations.findFirst({
+        where: { org_id: orgId, project_id: projectId, url_id: BigInt(urlId) },
+        select: { id: true },
+      });
+      if (!cited) return { saved: false };
+      await prisma.web_urls.update({
+        where: { id: BigInt(urlId) },
+        data: {
+          page_format: format,
+          format_finding: format ? null : String(finding ?? 'unreadable').slice(0, 32),
+          citable_signals: format && signals ? signals : Prisma.DbNull,
+          format_checked_at: now,
+        },
+      });
+      return { saved: true };
     },
 
     /**

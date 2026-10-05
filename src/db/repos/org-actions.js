@@ -76,6 +76,7 @@ const toRecommendation = (r) => ({
   verification: r.verification,
   measuringStartedAt: r.measuring_started_at,
   baseline: r.baseline,
+  metric: r.metric,
   signalClearedAt: r.signal_cleared_at,
   firstSeenRunId: r.first_seen_run_id,
   lastSeenRunId: r.last_seen_run_id,
@@ -100,6 +101,7 @@ const toOutcome = (o) => ({
   deltaPp: o.delta_pp == null ? null : Number(o.delta_pp),
   p: o.p_value == null ? null : Number(o.p_value),
   verdict: o.verdict,
+  metric: o.metric,
   computedAt: o.computed_at,
 });
 
@@ -127,7 +129,7 @@ export function actionRepos(prisma, orgId) {
    * The cells of some questions over a window, with the run each came from and when it was queued, and how many of its
    * answers named the brand. One row per question × engine × run.
    */
-  async function cellsFor(db, projectId, brandId, promptIds, window) {
+  async function cellsFor(db, projectId, brandId, promptIds, window, metric = 'mention_rate') {
     if (promptIds.length === 0 || !brandId) return [];
     const [from, to] = dayBounds(window);
     const where = {
@@ -138,7 +140,15 @@ export function actionRepos(prisma, orgId) {
     };
     const cells = await db.cell_results.findMany({
       where,
-      select: { run_id: true, prompt_id: true, engine_code: true, status: true, n_ok: true },
+      select: {
+        run_id: true,
+        prompt_id: true,
+        engine_code: true,
+        status: true,
+        n_ok: true,
+        citations_total: true,
+        citations_own: true,
+      },
     });
     if (cells.length === 0) return [];
     const runIds = [...new Set(cells.map((c) => c.run_id))];
@@ -153,6 +163,20 @@ export function actionRepos(prisma, orgId) {
       }),
     ]);
     const queued = new Map(runs.map((r) => [r.id, r.queued_at]));
+    // A citation fix is judged on citation share: of the sources cited in a cell's answers, how many were the brand's own
+    // site. The same shape, so the same counting and the same test apply; only the two numbers differ.
+    if (metric === 'citation_share') {
+      return cells
+        .filter((c) => queued.has(c.run_id))
+        .map((c) => ({
+          promptId: String(c.prompt_id),
+          runId: String(c.run_id),
+          queuedAt: queued.get(c.run_id),
+          status: c.status,
+          nOk: c.citations_total,
+          brandK: c.citations_own,
+        }));
+    }
     const brandK = new Map(
       brandRows.map((r) => [`${r.run_id}|${r.prompt_id}|${r.engine_code}`, r.k_mentioned]),
     );
@@ -740,9 +764,10 @@ export function actionRepos(prisma, orgId) {
       const brand = await brandOf(projectId);
       const promptIds = await scopeOf(prisma, rec);
       const window = baselineWindow(now);
-      const cells = await cellsFor(prisma, projectId, brand?.id, promptIds, window);
+      const cells = await cellsFor(prisma, projectId, brand?.id, promptIds, window, rec.metric);
       const counted = countWindow({ cells, promptIds, window });
       const baseline = {
+        metric: rec.metric,
         capturedAt: now.toISOString(),
         window: { from: window.from.toISOString(), to: window.to.toISOString() },
         promptIds,
@@ -968,6 +993,10 @@ export function actionRepos(prisma, orgId) {
         });
         narrativeReplaced = true;
       }
+      // A citation gap can turn from "get listed" into "write the page" when we learn the format of the pages cited. Only
+      // while nobody has started it: a fix in progress keeps the path it was started on.
+      if (current.status === 'open')
+        Object.assign(data, { fix_path: item.fixPath, category: item.category });
       scopeChanged = true;
     }
     await prisma.recommendations.updateMany({
@@ -1001,6 +1030,7 @@ export function actionRepos(prisma, orgId) {
             stable_key: item.stableKey,
             category: item.category,
             fix_path: item.fixPath,
+            metric: item.metric ?? 'mention_rate',
             title: item.title.slice(0, 255),
             why_md: item.why,
             steps_md: item.steps,
@@ -1070,7 +1100,14 @@ export function actionRepos(prisma, orgId) {
       const brand = await brandOf(projectId);
       const baseline = rec.baseline;
       const window = afterWindow(rec.measuring_started_at, horizon);
-      const cells = await cellsFor(prisma, projectId, brand?.id, baseline.promptIds ?? [], window);
+      const cells = await cellsFor(
+        prisma,
+        projectId,
+        brand?.id,
+        baseline.promptIds ?? [],
+        window,
+        rec.metric,
+      );
       const after = countWindow({ cells, promptIds: baseline.promptIds ?? [], window });
       const result = measureOutcome({ baseline: { n: baseline.n, k: baseline.k }, after });
 
@@ -1094,6 +1131,7 @@ export function actionRepos(prisma, orgId) {
             delta_pp: result.deltaPp == null ? null : String(result.deltaPp),
             p_value: result.p == null ? null : Math.min(0.99999999, result.p).toFixed(8),
             verdict: result.verdict,
+            metric: rec.metric,
             computed_at: now,
           },
         });

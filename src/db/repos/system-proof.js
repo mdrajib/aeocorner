@@ -36,6 +36,7 @@ export function systemProof(prisma) {
           kBefore: o.k_before,
           nAfter: o.n_after,
           kAfter: o.k_after,
+          metric: o.metric,
           rateBefore: o.rate_before == null ? null : Number(o.rate_before),
           rateAfter: o.rate_after == null ? null : Number(o.rate_after),
           deltaPp: o.delta_pp == null ? null : Number(o.delta_pp),

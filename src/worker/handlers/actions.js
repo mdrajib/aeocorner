@@ -1,7 +1,12 @@
 import { createHash } from 'node:crypto';
 import { UnrecoverableError } from 'bullmq';
 import { canonicalJson } from '../../core/canonical-json.js';
-import { citationRows } from '../../core/dashboard.js';
+import {
+  CITATION_LIMITS,
+  ownPageRows,
+  rankOpportunities,
+  uncitedKeyPages,
+} from '../../core/citation-opportunities.js';
 import { checkFacts } from '../../core/entity-accuracy.js';
 import {
   adviceTextFor,
@@ -21,7 +26,12 @@ import { fromMicros } from '../../core/spend.js';
 import { RUBRIC_VERSION } from '../../crawler/readiness/index.js';
 import { extractPage } from '../../crawler/html.js';
 import { ProviderError } from '../../engines/contract.js';
-import { fixVerifyJobId, narrateJobId, outcomeJobId } from '../../lib/job-ids.js';
+import {
+  citationFormatsJobId,
+  fixVerifyJobId,
+  narrateJobId,
+  outcomeJobId,
+} from '../../lib/job-ids.js';
 import { costMicros, modelProfile } from '../../llm/models.js';
 import {
   buildNarrativeRequest,
@@ -68,8 +78,28 @@ export async function refreshProject(
 ) {
   const from = new Date(now.getTime() - (WINDOW_DAYS - 1) * DAY_MS);
   const signals = await scoped.recommendations.signals(projectId, { from, to: now });
-  const cited = await scoped.dashboard.citations(projectId, { from, to: now, limit: 100 });
-  const { gaps } = citationRows({ domains: cited.domains, total: cited.total });
+
+  // Citations (Milestone 13): who engines cite for the brand's questions, and which of the brand's own pages they do not.
+  const range = { from, to: now };
+  const [who, rows, own, keyPages] = await Promise.all([
+    scoped.dashboard.citationContext(projectId),
+    scoped.dashboard.citationOpportunityRows(projectId, range),
+    scoped.dashboard.ownPageCitations(projectId, range),
+    scoped.dashboard.keyPages(projectId),
+  ]);
+  const ownCited = ownPageRows(own.pages);
+  const citations = {
+    opportunities: rankOpportunities(rows, who).bySite,
+    uncitedPages: uncitedKeyPages({
+      keyPages,
+      cited: ownCited,
+      ownCitations: own.ownCitations,
+      homeUrl: who.homeUrl,
+    }),
+    ownCitations: own.ownCitations,
+    ownPagesCited: ownCited.length,
+    ownPagesJudged: keyPages.length > 0 && own.ownCitations >= CITATION_LIMITS.minOwnCitations,
+  };
 
   // Entity (Milestone 12): the latest profile and Wikidata checks, and what the engines said about the brand's facts.
   const kit = await scoped.brandKits.current(projectId);
@@ -94,7 +124,7 @@ export async function refreshProject(
     enginesCount: signals.enginesCount,
     grid: signals.grid,
     sentiment: signals.sentiment,
-    citationGaps: gaps,
+    citations,
     answersTotal: signals.answersTotal,
     windowRange: signals.window,
     entity,
@@ -154,6 +184,20 @@ async function recommendationsRefresh(ctx, data) {
       );
       queued += 1;
     }
+  }
+  // Pages engines cite that nobody has read yet: read them (at most once a day), then look again at the rules.
+  const unread = await scoped.dashboard.unreadCitedUrls(projectId, {
+    from: new Date(ctx.now().getTime() - (WINDOW_DAYS - 1) * DAY_MS),
+    to: ctx.now(),
+    limit: 1,
+    now: ctx.now(),
+  });
+  if (unread.length > 0 && ctx.crawler?.fetcher) {
+    await ctx.jobs.add(
+      'citations.formats',
+      { orgId: data.orgId, projectId: data.projectId },
+      { jobId: citationFormatsJobId(projectId, ctx.now().toISOString().slice(0, 10)) },
+    );
   }
   return {
     projectId: data.projectId,

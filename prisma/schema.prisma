@@ -46,6 +46,7 @@ model action_outcomes {
   delta_pp          Decimal?                @db.Decimal(6, 2)
   p_value           Decimal?                @db.Decimal(9, 8)
   verdict           action_outcomes_verdict
+  metric            action_outcomes_metric  @default(mention_rate)
   computed_at       DateTime                @default(now())
   notified_at       DateTime?
   projects          projects                @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_action_outcomes_project")
@@ -1181,6 +1182,7 @@ model recommendations {
   stable_key               String
   category                 recommendations_category
   fix_path                 recommendations_fix_path
+  metric                   recommendations_metric          @default(mention_rate)
   title                    String                          @db.VarChar(255)
   why_md                   String                          @db.Text
   steps_md                 String?                         @db.Text
@@ -1704,9 +1706,14 @@ model web_urls {
   domain_id     BigInt      @db.UnsignedBigInt
   title         String?     @db.VarChar(512)
   first_seen_at DateTime    @default(now())
+  page_format       web_urls_page_format?
+  format_checked_at DateTime?
+  format_finding    String?             @db.VarChar(32)
+  citable_signals   Json?
   web_domains   web_domains @relation(fields: [domain_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_web_urls_domain")
 
   @@index([domain_id], map: "ix_web_urls_domain")
+  @@index([format_checked_at], map: "ix_web_urls_format_check")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -2516,4 +2523,24 @@ enum quota_usage_meter {
   runs_now
   audits
   drafts_billed
+}
+
+enum web_urls_page_format {
+  list
+  comparison
+  review
+  guide
+  documentation
+  faq
+  other
+}
+
+enum action_outcomes_metric {
+  mention_rate
+  citation_share
+}
+
+enum recommendations_metric {
+  mention_rate
+  citation_share
 }

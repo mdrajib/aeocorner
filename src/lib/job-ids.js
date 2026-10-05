@@ -78,6 +78,12 @@ export const recsRefreshJobId = (projectId, cause) => jobId('recs', projectId, c
  */
 export const entityCheckJobId = (projectId, tag) => jobId('entity', projectId, tag);
 
+/**
+ * Reading the formats of a project's frequently cited pages (Milestone 13). `tag` is a day, so one project is read at most
+ * once a day however many refreshes ask.
+ */
+export const citationFormatsJobId = (projectId, tag) => jobId('citfmt', projectId, tag);
+
 /** Writing one recommendation's words with the model, for this evidence (the hash is of the stored evidence). */
 export const narrateJobId = (recommendationId, evidenceHash) =>
   jobId('narrate', recommendationId, evidenceHash);

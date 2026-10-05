@@ -13,6 +13,14 @@ import {
   winRate,
 } from '../../core/dashboard.js';
 import { AUDIT_ENGINE_LABELS, AUDIT_ENGINE_ORDER } from '../../core/audit-progress.js';
+import { PAGE_FORMAT_LABELS } from '../../core/citation-format.js';
+import {
+  ownPageRows,
+  rankOpportunities,
+  uncitedKeyPages,
+  weeklyCitationShare,
+} from '../../core/citation-opportunities.js';
+import { classifyDomain, SOURCE_TYPE_LABELS, typeBreakdown } from '../../core/citation-types.js';
 import { describeRun, isRunning } from '../../core/run-status.js';
 import { windowsAt } from '../../core/trends.js';
 import { listItem } from '../../core/action-center.js';
@@ -476,24 +484,66 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
     try {
       if (req.project.status !== 'active') return off(req, res, 'Sources');
       const f = await frame(req, res, 'citations');
-      const cited = await req.orgDb.dashboard.citations(req.project.id, {
-        from: f.windows.after[0],
-        to: f.windows.after[1],
-        limit: 25,
+      const range = { from: f.windows.after[0], to: f.windows.after[1] };
+      const [cited, who, oppRows, own, keyPages, daily] = await Promise.all([
+        req.orgDb.dashboard.citations(req.project.id, { ...range, limit: 100 }),
+        req.orgDb.dashboard.citationContext(req.project.id),
+        req.orgDb.dashboard.citationOpportunityRows(req.project.id, range),
+        req.orgDb.dashboard.ownPageCitations(req.project.id, range),
+        req.orgDb.dashboard.keyPages(req.project.id),
+        req.orgDb.dashboard.citationShareDaily(req.project.id, {
+          from: f.windows.before[0],
+          to: f.windows.after[1],
+        }),
+      ]);
+      const { rows: allRows, gaps } = citationRows({ domains: cited.domains, total: cited.total });
+      // Our own reading of what kind of site each is (src/core/citation-types.js), not the stored guess.
+      const kindOf = (d) => (d.own ? 'own' : classifyDomain(d.domain, who));
+      const rows = allRows
+        .map((r) => ({ ...r, classLabel: SOURCE_TYPE_LABELS[kindOf(r)] }))
+        .slice(0, 25);
+      const { byQuestion, bySite } = rankOpportunities(oppRows, who);
+      const ownRows = ownPageRows(own.pages);
+      const never = uncitedKeyPages({
+        keyPages,
+        cited: ownRows,
+        ownCitations: own.ownCitations,
+        homeUrl: who.homeUrl,
       });
-      const { rows, gaps } = citationRows({ domains: cited.domains, total: cited.total });
+      const trend = weeklyCitationShare(daily, {
+        from: f.windows.before[0],
+        to: f.windows.after[1],
+      });
+      const tab = ['overview', 'opportunities', 'pages'].includes(req.query.tab)
+        ? req.query.tab
+        : 'overview';
       return appPage(res, 'citations', {
         ...tabs(req, res),
         domain: f.brand?.primary_domain ?? '',
+        charts: true,
         current: 'citations',
         ranges: f.ranges,
         updatedLabel: f.updatedLabel,
         stale: f.stale,
         lastRun: f.lastRun,
+        tab,
         total: cited.total,
         rows,
-        gaps: gaps.slice(0, 10),
+        gaps: gaps.slice(0, 10).map((g) => ({ ...g, classLabel: SOURCE_TYPE_LABELS[kindOf(g)] })),
         urls: cited.urls,
+        types: typeBreakdown(cited.domains, who),
+        trend,
+        questions: byQuestion.slice(0, 10),
+        sites: bySite.slice(0, 10),
+        pageFormats: PAGE_FORMAT_LABELS,
+        ownPages: ownRows.slice(0, 15).map((p) => ({
+          ...p,
+          engineLabels: p.engines.map((c) => AUDIT_ENGINE_LABELS[c] ?? c),
+        })),
+        ownCitations: own.ownCitations,
+        never: never.slice(0, 10),
+        scanned: keyPages.length > 0,
+        actionsHref: `${res.locals.projectBase}/actions`,
         meta: meta(req, 'Sources'),
       });
     } catch (err) {

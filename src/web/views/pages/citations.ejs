@@ -1,5 +1,5 @@
-<%# C4: the sources the AI cites. Props: total, rows ([{ domain, classLabel, timesCited, share, answersCiting, answersWithBrand, own }]), gaps, urls,
-    ranges, updatedLabel, stale, lastRun; locals: orgBase, projectBase, projectName, domain. %>
+<%# C4: the sources the AI cites. Props: total, rows, gaps, urls, types, trend, sites, questions, ownPages, ownCitations, never, scanned, tab,
+    ranges, updatedLabel, stale, lastRun, actionsHref; locals: orgBase, projectBase, projectName, domain. %>
 <%- ui.fragment('partials/dashboard-top', { orgBase, projectBase, projectName, domain, current: 'citations', ranges, updatedLabel, stale, lastRun }) %>
 
 <% if (!total) { %>
@@ -8,39 +8,10 @@
 <p class="text-ink-700 mt-4 max-w-3xl text-sm">These are the websites the AI engines cited in their answers to your questions: <%= total %> citations in this period. Being named on the sites AI trusts is one of the strongest ways to be named by it.</p>
 
 <div class="mt-6">
-  <%- ui.card({ title: 'Where you are not present', headingLevel: 2, html: ui.fragment('partials/citation-gaps', { gaps }) }) %>
-</div>
-
-<div class="mt-6">
-  <h2 class="text-xl">Most cited sites</h2>
-  <div class="mt-3">
-    <%- ui.table({
-      caption: 'Sites cited, most cited first',
-      columns: [{ key: 'site', label: 'Site' }, { key: 'type', label: 'Type' }, { key: 'times', label: 'Times cited', numeric: true }, { key: 'share', label: 'Share', numeric: true }, { key: 'named', label: 'Answers that also named you', numeric: true }],
-      rows: rows.map((r) => ({
-        site: { html: ui.esc(r.domain) + (r.own ? ' ' + ui.badge({ text: 'Your site', tone: 'success' }) : '') },
-        type: r.classLabel,
-        times: String(r.timesCited),
-        share: r.share == null ? '—' : r.share + '%',
-        named: r.answersWithBrand + ' of ' + r.answersCiting,
-      })),
-    }) %>
-  </div>
-</div>
-
-<div class="mt-8">
-  <h2 class="text-xl">Most cited pages</h2>
-  <div class="mt-3">
-    <%- ui.table({
-      caption: 'Pages cited, most cited first',
-      stack: true,
-      columns: [{ key: 'page', label: 'Page' }, { key: 'times', label: 'Times cited', numeric: true }, { key: 'answers', label: 'In answers', numeric: true }],
-      rows: urls.map((u) => ({
-        page: { html: (/^https?:\/\//i.test(u.url) ? '<a href="' + ui.esc(u.url) + '" rel="noopener noreferrer nofollow" target="_blank">' + ui.esc(u.title || u.url) + '</a>' : ui.esc(u.title || u.domain)) + '<span class="text-ink-600 block text-xs [overflow-wrap:anywhere]">' + ui.esc(u.domain) + '</span>' + (u.own ? ui.badge({ text: 'Your site', tone: 'success' }) : '') },
-        times: String(u.timesCited),
-        answers: String(u.answersCiting),
-      })),
-    }) %>
-  </div>
+  <%- ui.tabs({ id: 'citations', label: 'Citation views', initial: tab, tabs: [
+    { id: 'overview', label: 'Overview', html: ui.fragment('partials/citations-overview', { total, rows, gaps, types, trend }) },
+    { id: 'opportunities', label: 'Opportunities', html: ui.fragment('partials/citations-opportunities', { sites, questions, actionsHref, projectBase }) },
+    { id: 'pages', label: 'Your pages', html: ui.fragment('partials/citations-pages', { ownPages, ownCitations, never, scanned, urls }) },
+  ] }) %>
 </div>
 <% } %>

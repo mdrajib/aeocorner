@@ -105,6 +105,12 @@ export const appPages = [
       path: (f) => `/app/o/${f.orgId}/projects/${f.projectId}/${screen}`,
     },
   ]),
+  // The Sources screen's other two views (Milestone 13); the first view is the page above.
+  ...['opportunities', 'pages'].map((tab) => ({
+    name: `project-citations-${tab}`,
+    as: 'owner',
+    path: (f) => `/app/o/${f.orgId}/projects/${f.dashboardProjectId}/citations?tab=${tab}`,
+  })),
   {
     name: 'project-answer-detail',
     as: 'owner',

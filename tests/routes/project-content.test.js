@@ -320,6 +320,44 @@ describe('one page', () => {
     );
   });
 
+  test('a page written to win citations shows what makes it easy to cite, as advice that never blocks approval', async () => {
+    const w = await world();
+    const { url, item } = await w.ready();
+    const plain = (await w.editor.get(url).expect(200)).text;
+    assert.doesNotMatch(plain, /Easy to cite/);
+    // An edit sends the page back through the check (status qc); the check then saves its result.
+    await w.scoped.content.saveEdit(w.project.id, item.id, {
+      html: '<p>Edited for the check.</p>',
+    });
+    await w.scoped.content.saveQc(w.project.id, item.id, {
+      revisionId: (await w.scoped.content.get(w.project.id, item.id)).currentRevisionId,
+      qc: {
+        version: 1,
+        score: 90,
+        ready: true,
+        blocking: [],
+        checks: [],
+        words: 300,
+        citable: [
+          { code: 'sources_linked', label: 'Sources are linked', status: 'pass', finding: null },
+          {
+            code: 'author',
+            label: 'Names who wrote it',
+            status: 'warn',
+            finding: 'No author is named. We never make up a person.',
+          },
+        ],
+      },
+      jsonld: JSONLD,
+    });
+    const page = (await w.editor.get(url).expect(200)).text;
+    assert.match(page, /Easy to cite/);
+    assert.match(page, /do not change the score and never stop you approving/);
+    assert.match(page, /Names who wrote it/);
+    assert.match(page, /We never make up a person/);
+    assert.match(page, /90 \/ 100/);
+  });
+
   test('a save from an out-of-date page is refused with an explanation, and nothing changes', async () => {
     const w = await world();
     const { url, item } = await w.ready();
@@ -843,6 +881,65 @@ describe('from a recommendation', () => {
     const item = await w.scoped.content.get(
       w.project.id,
       made.headers.location.match(/content\/([0-9A-Z]{26})/)[1],
+    );
+    assert.deepEqual(
+      [item.kind, item.targetUrl, item.quotaUnits],
+      ['refresh', 'https://example.test/services', 0.5],
+    );
+  });
+
+  test('a citation gap on a competitor starts a NEW page in the format its pages have, for the questions it was cited on', async () => {
+    const w = await world();
+    const rec = await h.fx.recommendation(w.project, {
+      stable_key: `citation.gap:rival-${unique()}.test`,
+      rule_code: 'citation.gap',
+      category: 'content_new',
+      fix_path: 'content',
+      metric: 'citation_share',
+      title: 'Publish a comparison to compete with rival.test',
+      // The addresses it names are somebody else's: the new page must not target them.
+      affected_urls: ['https://rival.test/compare'],
+      evidence: {
+        type: 'citation_gap',
+        domain: 'rival.test',
+        path: 'content',
+        contentFormat: 'comparison',
+        questions: [{ promptId: String(w.q.id), text: w.q.text, answersWithoutBrand: 3 }],
+        pages: [{ url: 'https://rival.test/compare', title: null, format: 'comparison' }],
+      },
+    });
+    const res = await w.editor.post(`${w.base}/actions/${rec.id}/content`, {}).expect(303);
+    const item = await w.scoped.content.get(
+      w.project.id,
+      res.headers.location.match(/content\/([0-9A-Z]{26})/)[1],
+    );
+    assert.deepEqual(
+      [item.kind, item.format, item.targetUrl, item.promptIds, item.quotaUnits],
+      ['new', 'comparison', null, [String(w.q.id)], 1],
+    );
+  });
+
+  test('a key page of the site that was never cited is refreshed in place', async () => {
+    const w = await world();
+    const rec = await h.fx.recommendation(w.project, {
+      stable_key: `citation.own_page_uncited:p-${unique()}`,
+      rule_code: 'citation.own_page_uncited',
+      category: 'content_refresh',
+      fix_path: 'content',
+      metric: 'citation_share',
+      title: 'Make example.test/services easier for AI to cite',
+      affected_urls: ['https://example.test/services'],
+      evidence: {
+        type: 'citation_own_page',
+        url: 'https://example.test/services',
+        ownCitations: 14,
+        pagesCited: 1,
+      },
+    });
+    const res = await w.editor.post(`${w.base}/actions/${rec.id}/content`, {}).expect(303);
+    const item = await w.scoped.content.get(
+      w.project.id,
+      res.headers.location.match(/content\/([0-9A-Z]{26})/)[1],
     );
     assert.deepEqual(
       [item.kind, item.targetUrl, item.quotaUnits],

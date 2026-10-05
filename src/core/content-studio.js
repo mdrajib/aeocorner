@@ -100,6 +100,16 @@ export function qcView(qc, { revisionIsCurrent = true } = {}) {
       findings: (c.findings ?? []).slice(0, 8),
     })),
     note: qc.schemaNote ?? null,
+    // Only on a page written to win citations: advisory, never part of the score.
+    citable: Array.isArray(qc.citable)
+      ? qc.citable.map((c) => ({
+          code: c.code,
+          label: c.label,
+          tone: c.status === 'pass' ? 'success' : 'warning',
+          statusText: c.status === 'pass' ? 'Yes' : 'Could be better',
+          finding: c.finding ?? null,
+        }))
+      : null,
   };
 }
 

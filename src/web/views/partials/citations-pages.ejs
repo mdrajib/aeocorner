@@ -1,0 +1,41 @@
+<%# C4 your pages. Props: ownPages ([{ url, title, timesCited, answersCiting, engineLabels }]), ownCitations, never ([{ url }]), scanned, urls. %>
+<div class="grid gap-6">
+  <%- ui.card({ title: 'Your pages that engines cite', headingLevel: 2, html: ownPages.length
+    ? ui.table({
+        caption: 'Your pages cited, most cited first',
+        captionHidden: true,
+        flush: true,
+        stack: true,
+        columns: [{ key: 'page', label: 'Page' }, { key: 'times', label: 'Times cited', numeric: true }, { key: 'engines', label: 'Cited by' }],
+        rows: ownPages.map((p) => ({
+          page: { html: '<a href="' + ui.esc(p.url) + '" rel="noopener noreferrer nofollow" target="_blank">' + ui.esc(p.title || p.url) + '</a><span class="text-ink-600 block text-xs [overflow-wrap:anywhere]">' + ui.esc(p.url) + '</span>' },
+          times: String(p.timesCited),
+          engines: p.engineLabels.join(', '),
+        })),
+      })
+    : '<p class="text-ink-700 text-sm">Engines did not cite any page of your site in this period.</p>' }) %>
+
+  <%- ui.card({ title: 'Key pages never cited', headingLevel: 2, html: !scanned
+    ? '<p class="text-ink-700 text-sm">We have not scanned your site yet, so we do not know which pages are key. Run a scan from the project’s overview page.</p>'
+    : ownCitations < 10
+      ? '<p class="text-ink-700 text-sm">Your site was cited ' + ownCitations + (ownCitations === 1 ? ' time' : ' times') + ' in this period. We say a page is never cited only once your site has been cited at least 10 times, because with fewer, any page could be missing by chance.</p>'
+      : never.length
+        ? '<p class="text-ink-700 mb-3 text-sm">Engines cite your site, but not these key pages. Each is in your actions, with a way to make it easier to cite.</p><ul class="flex list-disc flex-col gap-1 pl-5 text-sm">' + never.map((p) => '<li class="[overflow-wrap:anywhere]">' + ui.esc(p.url) + '</li>').join('') + '</ul>'
+        : '<p class="text-ink-700 text-sm">Every key page we found was cited at least once.</p>' }) %>
+
+  <div>
+    <h2 class="text-xl">Most cited pages</h2>
+    <div class="mt-3">
+      <%- ui.table({
+        caption: 'Pages cited, most cited first',
+        stack: true,
+        columns: [{ key: 'page', label: 'Page' }, { key: 'times', label: 'Times cited', numeric: true }, { key: 'answers', label: 'In answers', numeric: true }],
+        rows: urls.map((u) => ({
+          page: { html: (/^https?:\/\//i.test(u.url) ? '<a href="' + ui.esc(u.url) + '" rel="noopener noreferrer nofollow" target="_blank">' + ui.esc(u.title || u.url) + '</a>' : ui.esc(u.title || u.domain)) + '<span class="text-ink-600 block text-xs [overflow-wrap:anywhere]">' + ui.esc(u.domain) + '</span>' + (u.own ? ui.badge({ text: 'Your site', tone: 'success' }) : '') },
+          times: String(u.timesCited),
+          answers: String(u.answersCiting),
+        })),
+      }) %>
+    </div>
+  </div>
+</div>
