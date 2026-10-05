@@ -30,6 +30,9 @@ export function pageRenderer({ config, viewsDir, publicDir }) {
     appEnv: config.appEnv,
     authEnabled: Boolean(config.auth),
     turnstileSiteKey: config.turnstileSiteKey,
+    clerk: config.auth
+      ? { publishableKey: config.auth.publishableKey, frontendApi: config.auth.frontendApi }
+      : null,
     posthog: config.posthog,
   };
 

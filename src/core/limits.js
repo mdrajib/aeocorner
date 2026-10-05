@@ -7,8 +7,9 @@
  * The provider values (2026-10-03) come from the providers' documentation, set well under the stated ceiling,
  * because our own polling shares the budget and a throttled account stops every customer at once:
  *   dataforseo      2,000 requests a minute per account (about 33 a second); we use 20 a second, burst 40
- *   perplexity_api  limits depend on the account's usage tier and are not published for the Agent API; 2 a
- *                   second, burst 5, until the account's tier is known
+ *   perplexity_api  limits depend on the account's usage tier and are not published for the Agent API. 2 a second
+ *                   answered HTTP 429 on a first real run (2026-10-05: 4 of 150 answers failed), so it is now
+ *                   one call every two seconds (30 a minute), burst 2, until the account's tier is known
  *   serpapi         each plan has an hourly throughput cap as well as its monthly searches; 2 a second, burst 5,
  *                   until the plan is chosen
  * Re-measure each once the account exists (BUILD_PLAN Phase 5 spike) and record it in ADR-0006.
@@ -21,7 +22,7 @@ export const PROVIDER_LIMITS = Object.freeze({
   default: { capacity: 10, refillPerSec: 5 },
   noop: { capacity: 50, refillPerSec: 50 },
   dataforseo: { capacity: 40, refillPerSec: 20 },
-  perplexity_api: { capacity: 5, refillPerSec: 2 },
+  perplexity_api: { capacity: 2, refillPerSec: 0.5 },
   serpapi: { capacity: 5, refillPerSec: 2 },
   // Claude: a batch is one request however many answers it holds, so this mostly paces single-answer reads.
   anthropic: { capacity: 10, refillPerSec: 4 },

@@ -49,3 +49,12 @@ test('production upgrades insecure requests; development does not', () => {
   );
   assert.equal('upgrade-insecure-requests' in buildCspDirectives(loadConfig({})), false);
 });
+
+test("Clerk's frontend API host is allowed for scripts and connections only when sign-in is configured", () => {
+  const off = buildCspDirectives(loadConfig({}));
+  assert.doesNotMatch(off['script-src'].join(' '), /clerk/);
+  const on = buildCspDirectives({ auth: { frontendApi: 'x.clerk.accounts.dev' } });
+  assert.ok(on['script-src'].includes('https://x.clerk.accounts.dev'));
+  assert.ok(on['connect-src'].includes('https://x.clerk.accounts.dev'));
+  assert.equal(on['frame-src'].join(' '), "'none'");
+});

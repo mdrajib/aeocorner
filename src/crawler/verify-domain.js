@@ -1,6 +1,22 @@
 import dns from 'node:dns/promises';
 import { dnsRecord, fileProof, fileProves, txtProves } from '../core/domain-verification.js';
 
+// A machine whose own resolver is broken or missing (Node on Windows can end up pointed at 127.0.0.1) answers
+// with one of these; "no such record" (ENODATA, ENOTFOUND) is a real answer and is never retried.
+const RESOLVER_BROKEN = new Set(['ECONNREFUSED', 'ETIMEOUT', 'ESERVFAIL', 'ECONNRESET', 'EREFUSED']);
+const PUBLIC_RESOLVERS = ['1.1.1.1', '8.8.8.8'];
+
+async function resolveTxtWithFallback(name) {
+  try {
+    return await dns.resolveTxt(name);
+  } catch (err) {
+    if (!RESOLVER_BROKEN.has(err?.code)) throw err;
+    const resolver = new dns.Resolver({ timeout: 3000, tries: 2 });
+    resolver.setServers(PUBLIC_RESOLVERS);
+    return resolver.resolveTxt(name);
+  }
+}
+
 /**
  * Look for a customer's proof that they own a site (src/core/domain-verification.js has the rules). The two checks:
  *
@@ -16,7 +32,7 @@ import { dnsRecord, fileProof, fileProves, txtProves } from '../core/domain-veri
  * @param {{ fetch: Function }} deps.fetcher   createSafeFetcher()
  * @param {Function} [deps.resolveTxt]         defaults to dns.resolveTxt (tests replace it)
  */
-export function createDomainVerifier({ fetcher, resolveTxt = dns.resolveTxt }) {
+export function createDomainVerifier({ fetcher, resolveTxt = resolveTxtWithFallback }) {
   async function checkDns(domain, token) {
     const record = dnsRecord(domain, token);
     try {

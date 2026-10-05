@@ -227,15 +227,28 @@ export function parseJob(name, data) {
 
 /**
  * The producer's side: `jobs.add('system.noop', data, { jobId })` validates the payload and puts the job on the
- * right queue. Adding a job whose `jobId` already exists is a no-op that returns the existing job.
+ * right queue. Adding a job whose `jobId` already exists is a no-op that returns the existing job, with one
+ * exception: a job that failed because its worker died (BullMQ's "stalled" failure) never got to do its work, and
+ * its ID would otherwise block every later attempt to queue the same work (a run's checker re-adds the answers
+ * nobody has read yet). That one is removed and added again. A job that failed with its own error keeps its ID, so
+ * a bad input can't be retried (and paid for) in a loop.
  */
+export const STALLED_REASON = 'job stalled more than allowable limit';
+
 export function createJobClient(queues) {
   return {
     async add(name, data, { jobId, delayMs, priority } = {}) {
       const { def, data: valid } = parseJob(name, data);
       const queue = queues[def.queue];
+      const id = jobId ? buildJobId(jobId) : null;
+      if (id) {
+        const existing = await queue.getJob(id);
+        if (existing?.failedReason === STALLED_REASON && (await existing.isFailed())) {
+          await existing.remove();
+        }
+      }
       return queue.add(name, valid, {
-        ...(jobId ? { jobId: buildJobId(jobId) } : {}),
+        ...(id ? { jobId: id } : {}),
         ...(delayMs ? { delay: delayMs } : {}),
         ...(priority ? { priority } : {}),
       });

@@ -59,6 +59,8 @@
     </div>
   </div>
   <div class="toast-region" data-toast-region role="status" aria-live="polite"></div>
+<%# Clerk's browser script renews the session cookie in the background (it lasts about a minute), so a form sent from a page left open still carries a valid session. components.js loads it. %>
+<% if (site.clerk && typeof csrfToken !== 'undefined') { %><script src="https://<%= site.clerk.frontendApi %>/npm/@clerk/clerk-js@6/dist/clerk.browser.js" data-clerk-publishable-key="<%= site.clerk.publishableKey %>" crossorigin="anonymous" async></script><% } %>
 <%- include('../partials/scripts') %>
 </body>
 </html>

@@ -63,3 +63,7 @@ The free audit (Milestone 1) spends money before any organization exists, so `ca
 - **The ledger row is the audit's own** (`usage_ledger` with `org_id` NULL and `audit_id` set, through `db.audits.ledger`), and concurrency slots are counted **per audit** (scope `audit`, 6 at once), because the organization slot would otherwise be one shared slot for every visitor.
 
 The same two reasons mean the audit's spend is **not** in any organization's spend (a tenancy test checks both directions).
+
+## Addendum 2026-10-06: a stalled job no longer blocks its own ID
+
+First real run on a laptop: the worker was restarted while 10 `extract.answer` jobs were running. BullMQ marked them failed with "job stalled more than allowable limit" and kept them, and a run's checker (`tracking.advance`) re-adds unread answers under the same job IDs every minute, which BullMQ ignores while a job with that ID exists. The run would have waited out its 26-hour deadline. **Decided:** `createJobClient.add` (`src/lib/jobs.js`) removes an existing job and adds it again only when it failed with exactly that stalled reason, because the work never ran to its end and handlers are safe to repeat. A job that failed with its own error keeps its ID, so a bad input can never be retried, and paid for, in a loop. Test: `src/lib/jobs.test.js`.

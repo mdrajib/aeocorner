@@ -17,6 +17,12 @@ export function buildCspDirectives(config) {
     script.push(TURNSTILE_ORIGIN);
     frame.push(TURNSTILE_ORIGIN);
   }
+  // Clerk's browser script keeps the short-lived session cookie fresh in the signed-in app (ADR-0004 addendum).
+  // Only the customer instance's own frontend API host; the staff console does not load it.
+  if (config.auth?.frontendApi) {
+    script.push(`https://${config.auth.frontendApi}`);
+    connect.push(`https://${config.auth.frontendApi}`);
+  }
   if (config.posthog) {
     script.push(config.posthog.assetsHost);
     connect.push(config.posthog.host, config.posthog.assetsHost);

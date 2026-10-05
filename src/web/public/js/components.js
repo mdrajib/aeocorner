@@ -115,6 +115,44 @@ document.addEventListener('htmx:responseError', (event) => {
   if (event.detail.xhr && event.detail.xhr.status === 401) window.location.reload();
 });
 
+// Clerk's browser script (loaded by the app layout) renews the session cookie, which lasts about a minute, so a
+// form sent from a page that has been open a while is still signed in. It does not start itself: load it once it
+// has arrived. A plain form post waits (at most two seconds) for a fresh token first; if Clerk is missing or slow
+// the form is sent anyway, and the server's answer is the same as before.
+(function () {
+  const tag = document.querySelector('script[data-clerk-publishable-key]');
+  if (!tag) return;
+  let loaded = null;
+  function start() {
+    if (!window.Clerk) return null;
+    loaded = loaded || Promise.resolve(window.Clerk.load()).catch(() => null);
+    return loaded;
+  }
+  if (window.Clerk) start();
+  else tag.addEventListener('load', start);
+
+  const refreshed = new WeakSet();
+  document.addEventListener(
+    'submit',
+    (event) => {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement) || event.defaultPrevented || refreshed.has(form)) return;
+      if ((form.method || '').toLowerCase() !== 'post' || form.hasAttribute('hx-post')) return;
+      const ready = start();
+      if (!ready) return;
+      event.preventDefault();
+      const submitter = event.submitter;
+      const wait = new Promise((resolve) => setTimeout(resolve, 2000));
+      const fresh = ready.then(() => (window.Clerk.session ? window.Clerk.session.getToken() : null));
+      Promise.race([fresh.catch(() => null), wait]).then(() => {
+        refreshed.add(form);
+        form.requestSubmit(submitter || undefined);
+      });
+    },
+    true,
+  );
+})();
+
 // The free audit's live page (UI_DESIGN A8). The server renders the whole feed, so the page is complete without
 // this script; with it, the feed is swapped for the server's newer rendering as steps finish (server-sent events,
 // /audit/:id/events) and the visitor is sent to the report when it is ready. The HTML is our own server's output,
