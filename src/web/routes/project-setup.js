@@ -38,7 +38,7 @@ export function setupRoutes(router, { jobs, logger, appPage, edit }) {
       req.orgDb.brandKits.current(project.id),
       req.orgDb.entities.list(project.id, { kind: 'competitor' }),
       req.orgDb.prompts.list(project.id, { status: 'active' }),
-      step === 'start' ? req.orgDb.projectEngines.list(project.id) : [],
+      step === 'start' ? req.orgDb.projectEngines.choices(project.id) : [],
     ]);
     const coverage = checkCoverage(active, { hasCity: Boolean(project.city) });
     const sinceWindow = Date.now() - new Date(project.created_at).getTime();

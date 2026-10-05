@@ -1,4 +1,5 @@
 import { BRAND_KIT_SCHEMA_VERSION, parseBrandKit } from '../../core/brand-kit.js';
+import { engineChoices, featureForEngine } from '../../core/engines.js';
 import {
   checkProjectFields,
   normalizeEntityName,
@@ -38,6 +39,33 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
       orderBy: { sort_order: 'asc' },
     });
     return rows.map((r) => r.code);
+  }
+
+  /**
+   * Which plan-gated engines (src/core/engines.js) this organization may use. An organization with no plan is not held
+   * back (as `billing.featureAllowed`: billing is not on yet, or it has not chosen one); one with a plan needs the
+   * feature. `included` is stricter: only a plan that explicitly lists it, which is what a NEW project is given by
+   * default (task 16.05); an engine that costs money is never switched on for a project by the absence of a plan.
+   */
+  async function planEngines(db) {
+    const org = await db.organizations.findFirst({
+      where: { id: orgId },
+      select: { plan_code: true },
+    });
+    const plan = org?.plan_code
+      ? await db.plans.findUnique({ where: { code: org.plan_code } })
+      : null;
+    const hasPlan = Boolean(org?.plan_code);
+    return {
+      allowed: (code) => {
+        const feature = featureForEngine(code);
+        return !feature || !hasPlan || Boolean(plan?.features?.[feature]);
+      },
+      included: (code) => {
+        const feature = featureForEngine(code);
+        return !feature || Boolean(plan?.features?.[feature]);
+      },
+    };
   }
 
   const versionRow = (client, projectId, version) =>
@@ -167,7 +195,8 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
               source: sourceAuditId === null ? 'user' : 'audit',
             },
           });
-          const codes = await activeEngineCodes(tx);
+          const gate = await planEngines(tx);
+          const codes = (await activeEngineCodes(tx)).filter(gate.included);
           if (codes.length) {
             await tx.project_engines.createMany({
               data: codes.map((engine_code) => ({
@@ -353,6 +382,25 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
       });
     },
 
+    /**
+     * Every live engine with this project's setting for it, in catalog order, and whether the plan lets the organization
+     * use it. An engine the project has no row for was never offered to it: `notTracked`, which a screen shows as "Not
+     * tracked" and which is not a measurement of any kind (src/core/engines.js).
+     */
+    async choices(projectId) {
+      await ownProject(prisma, projectId);
+      const [catalog, rows, gate] = await Promise.all([
+        prisma.engines.findMany({
+          where: { status: 'active' },
+          select: { code: true, name: true },
+          orderBy: { sort_order: 'asc' },
+        }),
+        prisma.project_engines.findMany({ where: { project_id: projectId, org_id: orgId } }),
+        planEngines(prisma),
+      ]);
+      return engineChoices(catalog, rows, gate.allowed);
+    },
+
     /** Switch engines on or off. Only engines that are live in the catalog can be enabled; at least one stays on. */
     async setEnabled(projectId, enabledCodes, { actorUserId } = {}) {
       const wanted = [...new Set(enabledCodes)];
@@ -361,6 +409,8 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         const project = await ownProject(tx, projectId);
         const live = new Set(await activeEngineCodes(tx));
         if (!wanted.every((code) => live.has(code))) throw new DomainError('UNKNOWN_ENGINE');
+        const gate = await planEngines(tx);
+        if (!wanted.every(gate.allowed)) throw new DomainError('ENGINE_NOT_IN_PLAN');
         for (const code of live) {
           const enabled = wanted.includes(code);
           const result = await tx.project_engines.updateMany({

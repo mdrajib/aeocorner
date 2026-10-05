@@ -7,6 +7,7 @@ Responses from the answer-engine providers, replayed by the adapter contract tes
 | `dataforseo/` | DataForSEO LLM Scraper (ChatGPT, Gemini) | `task_post`, `task_get/advanced`, `live/advanced` |
 | `perplexity/` | Perplexity Agent API (`perplexity/sonar` + `web_search`) | `POST /v1/agent` |
 | `serpapi/` | SerpApi Google Search (AI Overviews) | `search.json?engine=google`, `engine=google_ai_overview` |
+| `claude/` | The Claude Messages API with the web-search tool (Milestone 16) | `POST /v1/messages` |
 
 ## Where they came from
 
@@ -26,4 +27,5 @@ npm run engines:try -- --engine chatgpt --mode live --record "What is the best d
 | `serpapi/google-aio-recorded-2026-10-03.json` | live call, Google US, English | 2026-10-03 |
 | `dataforseo/chatgpt-live-recorded-2026-10-03.json` | live call, ChatGPT (`gpt-5-6`), US, English | 2026-10-03 |
 | `dataforseo/gemini-live-recorded-2026-10-03.json` | live call, Gemini (`3.5 Flash-Lite`), US, English | 2026-10-03 |
+| `claude/*.json` | hand-built from the Messages API and web-search tool docs (no recording yet: it is a paid call, `npm run engines:try -- --engine claude --record`) | 2026-10-05 |
 | everything else | documented shape, hand-built | 2026-10-03 |

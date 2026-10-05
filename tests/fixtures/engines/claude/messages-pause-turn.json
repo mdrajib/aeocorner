@@ -1,0 +1,11 @@
+{
+  "id": "msg_01ClaudeEngineFixturePause",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-5-5",
+  "stop_reason": "pause_turn",
+  "content": [
+    { "type": "server_tool_use", "id": "srvtoolu_01D", "name": "web_search", "input": { "query": "dental software" } }
+  ],
+  "usage": { "input_tokens": 1000, "output_tokens": 50, "server_tool_use": { "web_search_requests": 1 } }
+}

@@ -5,7 +5,7 @@
 <%
 const setupBase = projectBase + '/setup';
 const INTENT_LABELS = { discovery: 'Finding options', comparison: 'Comparing', problem_solution: 'Solving a problem', brand: 'About the brand', local: 'Near me', transactional: 'Buying' };
-const ENGINE_NAMES = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', gemini: 'Gemini', google_aio: 'Google AI Overviews' };
+const ENGINE_NAMES = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', gemini: 'Gemini', google_aio: 'Google AI Overviews', claude: 'Claude' };
 const previous = stepIndex > 0 ? setupBase + '/' + ['brand', 'competitors', 'questions', 'connect', 'start'][stepIndex - 1] : null;
 const ro = !canEdit;
 -%>

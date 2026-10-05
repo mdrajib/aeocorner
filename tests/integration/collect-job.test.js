@@ -101,8 +101,9 @@ before(async () => {
       dataforseo: { login: 'dfs-login', password: 'dfs-secret' },
       perplexity: { apiKey: 'pplx-secret' },
       serpapi: { apiKey: 'serp-secret', costPerSearchMicros: 10_000 },
+      claude: { apiKey: 'sk-ant-secret' },
     },
-    { baseUrls: { dataforseo: origin, perplexity: origin, serpapi: origin } },
+    { baseUrls: { dataforseo: origin, perplexity: origin, serpapi: origin, anthropic: origin } },
   );
 
   org = await fx.org();
@@ -498,5 +499,47 @@ describe('the daily spend cap holds back real collection (Milestone 10, task 10.
       assert.equal((await finished(snapshot)).returnvalue.status, 'ok');
     }
     assert.equal(providerCalls('POST /v1/agent'), askedBefore + 1 + wanted.length);
+  });
+});
+
+describe('Claude as an engine (Milestone 16)', () => {
+  test('answers at once: raw stored, snapshot complete, one ledger row at the cost counted from usage and searches', async () => {
+    routes['POST /v1/messages'] = { body: fixture('claude/messages-ok.json') };
+    const snapshot = await collect('claude');
+    const job = await finished(snapshot);
+    assert.equal(job.returnvalue.status, 'ok');
+
+    const row = await reload(snapshot);
+    assert.equal(row.status, 'ok');
+    assert.equal(row.provider_code, 'anthropic');
+    assert.equal(row.method, 'api_grounded');
+    assert.equal(row.model_version, 'claude-sonnet-5-5');
+    assert.match(row.text_excerpt, /^I'll look up current options/);
+    assert.equal(row.extraction_status, 'pending');
+    assert.match(row.raw_uri, /^test\/answers\/\d{4}\/\d{2}\/[0-9a-f]{64}\.json$/);
+
+    const ledger = await ledgerFor(snapshot);
+    assert.equal(ledger.length, 1);
+    assert.equal(ledger[0].provider_code, 'anthropic');
+    assert.equal(ledger[0].meter, 'answer_collect');
+    assert.equal(ledger[0].model, 'claude-sonnet-5-5');
+    assert.equal(ledger[0].tokens_in, 5120);
+    assert.equal(ledger[0].tokens_out, 640);
+    assert.equal(String(ledger[0].cost_usd), '0.02664');
+    assert.equal(providerCalls('POST /v1/messages'), 1);
+  });
+
+  test('an answer we cannot read is "couldn’t check", never "no answer"; a refusal is a real "no answer"', async () => {
+    routes['POST /v1/messages'] = { body: fixture('claude/messages-empty.json') };
+    const unreadable = await collect('claude');
+    await finished(unreadable, ['failed']);
+    const bad = await reload(unreadable);
+    assert.equal(bad.status, 'failed');
+    assert.match(bad.failure_reason, /bad_response/);
+
+    routes['POST /v1/messages'] = { body: fixture('claude/messages-refusal.json') };
+    const refused = await collect('claude');
+    await finished(refused);
+    assert.equal((await reload(refused)).status, 'no_answer');
   });
 });

@@ -12,7 +12,7 @@ import {
   trendSeries,
   winRate,
 } from '../../core/dashboard.js';
-import { AUDIT_ENGINE_LABELS, AUDIT_ENGINE_ORDER } from '../../core/audit-progress.js';
+import { ENGINE_LABELS, ENGINE_ORDER } from '../../core/engines.js';
 import { PAGE_FORMAT_LABELS } from '../../core/citation-format.js';
 import {
   ownPageRows,
@@ -123,7 +123,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
       tracked: entities
         .filter((e) => e.kind === 'brand' || (e.kind === 'competitor' && e.status === 'active'))
         .map((e) => ({ id: String(e.id), name: e.name, kind: e.kind })),
-      engineCodes: AUDIT_ENGINE_ORDER.filter((c) =>
+      engineCodes: ENGINE_ORDER.filter((c) =>
         engines.some((e) => e.engine_code === c && e.enabled),
       ),
       latest,
@@ -203,7 +203,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
         lastRun: f.lastRun,
         stale: f.stale,
         hasData: figures.hasData,
-        incomplete: incompleteNotice(figures.coverage, AUDIT_ENGINE_LABELS),
+        incomplete: incompleteNotice(figures.coverage, ENGINE_LABELS),
         baseline: figures.hasData && periodDays.size <= 1,
         tiles: [
           statOf(t.visibility, 'AI Visibility Score', { href: `${base}/answers` }),
@@ -239,7 +239,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
           engineCodes: f.engineCodes,
           asOf: f.today,
           days: f.days,
-        }).map((e) => ({ ...e, name: AUDIT_ENGINE_LABELS[e.engineCode] ?? e.engineCode })),
+        }).map((e) => ({ ...e, name: ENGINE_LABELS[e.engineCode] ?? e.engineCode })),
         competitors: competitors.slice(0, 5),
         topActions: topRows.map((r) =>
           listItem({ ...r, questions: 0 }, { projectBase: base, brandName: f.brand?.name }),
@@ -248,7 +248,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
         changes: events.map((e) =>
           describeChange(e, {
             entityName: names.get(String(e.entity_id)),
-            engineNames: AUDIT_ENGINE_LABELS,
+            engineNames: ENGINE_LABELS,
           }),
         ),
         meta: meta(req, 'Dashboard'),
@@ -277,7 +277,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
         updatedLabel: f.updatedLabel,
         stale: f.stale,
         lastRun: f.lastRun,
-        engines: f.engineCodes.map((code) => ({ code, name: AUDIT_ENGINE_LABELS[code] })),
+        engines: f.engineCodes.map((code) => ({ code, name: ENGINE_LABELS[code] })),
         rows: prompts.map((p) => ({
           id: String(p.id),
           text: p.text,
@@ -317,7 +317,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
     // One line per engine over the check dates, with a gap wherever the cell could not be read.
     const dates = [...new Set(detail.history.map((h) => h.runDate))].sort();
     const series = f.engineCodes.map((code) => ({
-      label: AUDIT_ENGINE_LABELS[code],
+      label: ENGINE_LABELS[code],
       values: dates.map((date) => {
         const cell = detail.history.find((h) => h.engineCode === code && h.runDate === date);
         if (!cell || cell.status !== 'complete' || cell.nOk === 0) return null;
@@ -326,9 +326,9 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
     }));
 
     const brandId = f.brandId;
-    const grouped = AUDIT_ENGINE_ORDER.map((code) => ({
+    const grouped = ENGINE_ORDER.map((code) => ({
       code,
-      name: AUDIT_ENGINE_LABELS[code],
+      name: ENGINE_LABELS[code],
       samples: (answers?.snapshots ?? [])
         .filter((s) => s.engineCode === code)
         .map((s) => ({
@@ -366,7 +366,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
       question: detail.prompt,
       history: detail.history.map((h) => ({
         ...h,
-        engineName: AUDIT_ENGINE_LABELS[h.engineCode] ?? h.engineCode,
+        engineName: ENGINE_LABELS[h.engineCode] ?? h.engineCode,
         result: matrixCell(h),
       })),
       readable: detail.readable,
@@ -465,7 +465,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
         updatedLabel: f.updatedLabel,
         stale: f.stale,
         lastRun: f.lastRun,
-        incomplete: incompleteNotice(head.coverage, AUDIT_ENGINE_LABELS),
+        incomplete: incompleteNotice(head.coverage, ENGINE_LABELS),
         hasData: head.hasData,
         competitorCount: f.tracked.length - 1,
         rows: table.map((r) => ({
@@ -538,7 +538,7 @@ export function dashboardRoutes(router, { appPage, edit, logger }) {
         pageFormats: PAGE_FORMAT_LABELS,
         ownPages: ownRows.slice(0, 15).map((p) => ({
           ...p,
-          engineLabels: p.engines.map((c) => AUDIT_ENGINE_LABELS[c] ?? c),
+          engineLabels: p.engines.map((c) => ENGINE_LABELS[c] ?? c),
         })),
         ownCitations: own.ownCitations,
         never: never.slice(0, 10),

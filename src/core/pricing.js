@@ -22,6 +22,7 @@ const FEATURE_ROWS = Object.freeze([
   { key: 'ga4', label: 'AI-traffic reports (Google Analytics and Search Console)' },
   { key: 'alerts', label: 'Alerts on significant drops and negative mentions' },
   { key: 'autopilot', label: 'Autopilot: fixes and drafts prepared each week for you to approve' },
+  { key: 'claude_engine', label: 'Claude tracked as a fifth AI engine, with web search' },
   { key: 'client_seats', label: 'Read-only client seats' },
 ]);
 

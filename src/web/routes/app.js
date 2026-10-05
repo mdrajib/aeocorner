@@ -52,6 +52,7 @@ const NOTICES = {
   ],
   'engines-saved': ['success', 'Engines saved. The next check uses them.'],
   'engines-none': ['warning', 'At least one engine has to stay on, so nothing was changed.'],
+  'engines-plan': ['warning', 'That engine isn’t part of your plan, so nothing was changed.'],
   'engines-invalid': ['danger', 'That engine isn’t available, so nothing was changed.'],
   'access-saved': ['success', 'Access updated.'],
   'competitor-tracked': ['success', 'We’ll track that competitor.'],

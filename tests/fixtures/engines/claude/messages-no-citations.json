@@ -1,0 +1,19 @@
+{
+  "id": "msg_01ClaudeEngineFixtureNoCite",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-5-5",
+  "stop_reason": "end_turn",
+  "content": [
+    {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_01B",
+      "content": [
+        { "type": "web_search_result", "url": "https://a.example.com/x", "title": "A", "encrypted_content": "AA==" },
+        { "type": "web_search_result", "url": "https://b.example.com/y", "title": "B", "encrypted_content": "BB==" }
+      ]
+    },
+    { "type": "text", "text": "Several tools fit a small clinic; DentOS and DentaMile are two." }
+  ],
+  "usage": { "input_tokens": 3000, "output_tokens": 300, "server_tool_use": { "web_search_requests": 1 } }
+}

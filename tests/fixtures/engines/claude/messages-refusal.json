@@ -1,0 +1,10 @@
+{
+  "id": "msg_01ClaudeEngineFixtureRefusal",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-5-5",
+  "stop_reason": "refusal",
+  "stop_details": { "type": "refusal", "category": null, "explanation": null },
+  "content": [],
+  "usage": { "input_tokens": 400, "output_tokens": 0 }
+}

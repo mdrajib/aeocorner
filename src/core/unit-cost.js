@@ -4,7 +4,10 @@
  * target is met. Money is micro-dollars.
  *
  * Definitions, so the number means the same thing every time it is quoted:
- *   prompt-run   one question asked in one run, on every engine and sample it was planned for (MVP §12.2: ten answers)
+ *   prompt-run   one question asked in one run, on every engine and sample it was planned for (MVP §12.2: ten answers
+ *                on four engines; thirteen for a project that also tracks Claude, whose answers cost about $0.027 to
+ *                collect against $0.004 for the others, ADR-0006 addendum: so the figure is a property of the engines a
+ *                project tracks, and a window that mixes the two is read with that in mind)
  *   cost of one  the collection and extraction ledger rows of the window, divided by the prompt-runs collected in it.
  *                Collection is the `answer_collect` and `serp` meters; extraction is `llm_extract`. Content, Brand Kit
  *                and narrative spend is not a prompt-run's cost and is shown separately.

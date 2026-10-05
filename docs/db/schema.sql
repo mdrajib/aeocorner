@@ -1790,4 +1790,6 @@ CREATE TABLE autopilot_items (
   CONSTRAINT ck_autopilot_items_fix       CHECK ((kind = 'auto_fix') = (prepared_hash IS NOT NULL))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='What Autopilot prepared for a person to approve (Milestone 15)';
 
+-- Milestone 16 (migration 0011): Claude as a fifth engine. DATA ONLY, no table changes: the `claude` row of `engines` becomes active and the plans' `features` gain `claude_engine` (seed_reference.sql carries both).
+
 -- End of schema (72 tables: the 66 of v1, plus proof_shares (0006), entity_checks (0007), recovery_cases and recovery_events (0009), autopilot_settings and autopilot_items (0010)).

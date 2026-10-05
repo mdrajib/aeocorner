@@ -860,6 +860,30 @@ describe('the engines of a project', () => {
     await members.viewer.post(`${base}/engines`, { engine: ['chatgpt'] }).expect(403);
   });
 
+  test('Claude is listed as "not tracked" for a project that predates it, and the plan decides who may switch it on', async () => {
+    const { owner, base, orgId, scoped, project } = await withProject();
+    const found = await h.db.organizations.findForUser({ publicId: orgId, userId: owner.user.id });
+    const page = await owner.get(base).expect(200);
+    assert.match(page.text, /name="engine" value="claude"/);
+    assert.match(page.text, /Claude \(not tracked yet\)/);
+    assert.doesNotMatch(page.text, /Claude \(not in your plan\)/);
+
+    // With no plan yet, an editor may switch it on; the other four stay as they were.
+    const four = ['chatgpt', 'gemini', 'google_aio', 'perplexity'];
+    await owner.post(`${base}/engines`, { engine: [...four, 'claude'] }).expect(303);
+    assert.equal((await scoped.projectEngines.list(project.id)).filter((e) => e.enabled).length, 5);
+    await owner.post(`${base}/engines`, { engine: four }).expect(303);
+
+    // On a plan without it, the switch is locked and a forged post changes nothing.
+    await h.fx.setOrg(found.org.id, { plan_code: 'growth', billing_status: 'active' });
+    const locked = await owner.get(base).expect(200);
+    assert.match(locked.text, /Claude \(not in your plan\)/);
+    assert.match(locked.text, /id="engine-claude"[^>]* disabled/);
+    const forged = await owner.post(`${base}/engines`, { engine: [...four, 'claude'] }).expect(303);
+    assert.match(forged.headers.location, /engines-plan/);
+    assert.equal((await scoped.projectEngines.list(project.id)).filter((e) => e.enabled).length, 4);
+  });
+
   test('another organization’s project cannot have its engines changed', async () => {
     const mine = await withProject();
     const theirs = await withProject();

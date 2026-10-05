@@ -285,7 +285,7 @@ export function projectRoutes({
   async function renderProject(req, res, { verifyResult = null, status } = {}) {
     const [entities, engines, proof, kit, active, runs, usage] = await Promise.all([
       req.orgDb.entities.list(req.project.id),
-      req.orgDb.projectEngines.list(req.project.id),
+      req.orgDb.projectEngines.choices(req.project.id),
       req.orgDb.projects.verification(req.project.id),
       req.orgDb.brandKits.current(req.project.id),
       req.orgDb.prompts.list(req.project.id, { status: 'active' }),
@@ -453,6 +453,9 @@ export function projectRoutes({
       } catch (err) {
         if (err instanceof DomainError && err.code === 'NO_ENGINES') {
           return res.redirect(303, withNotice(res.locals.projectBase, 'engines-none'));
+        }
+        if (err instanceof DomainError && err.code === 'ENGINE_NOT_IN_PLAN') {
+          return res.redirect(303, withNotice(res.locals.projectBase, 'engines-plan'));
         }
         if (err instanceof DomainError && err.code === 'UNKNOWN_ENGINE') {
           return res.redirect(303, withNotice(res.locals.projectBase, 'engines-invalid'));

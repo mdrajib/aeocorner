@@ -83,6 +83,10 @@ const envSchema = z.object({
 
   // Claude (src/llm): answer extraction now, the rest of MVP §7.7 later. Without a key, extraction jobs fail at once.
   ANTHROPIC_API_KEY: optional(z.string().min(1)),
+  // The model that answers when Claude is tracked as an engine (Milestone 16, decision F2), with web search on.
+  CLAUDE_ENGINE_MODEL: z
+    .enum(['claude-sonnet-5-5', 'claude-opus-5-5'])
+    .default('claude-sonnet-5-5'),
   // The model that reads answers (decision D4, ADR-0007): opus55 or haiku45.
   EXTRACTION_MODEL: z.enum(['opus55', 'haiku45']).default('opus55'),
   // The model that researches, plans and writes Content Studio drafts. The checked facts come from code, not the model.
@@ -275,6 +279,10 @@ function providersConfig(e) {
           apiKey: e.SERPAPI_API_KEY,
           costPerSearchMicros: toMicros(e.SERPAPI_COST_PER_SEARCH_USD ?? '0.010'),
         }
+      : null,
+    // Claude as an answer engine (Milestone 16) uses the same key as extraction; the model is its own choice.
+    claude: e.ANTHROPIC_API_KEY
+      ? { apiKey: e.ANTHROPIC_API_KEY, model: e.CLAUDE_ENGINE_MODEL }
       : null,
   };
 }

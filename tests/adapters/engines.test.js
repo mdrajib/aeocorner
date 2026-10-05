@@ -66,8 +66,9 @@ const adapters = () =>
       dataforseo: { login: 'dfs-login', password: 'dfs-secret' },
       perplexity: { apiKey: 'pplx-secret' },
       serpapi: { apiKey: 'serp-secret', costPerSearchMicros: 10_000 },
+      claude: { apiKey: 'sk-ant-secret' },
     },
-    { baseUrls: { dataforseo: origin, perplexity: origin, serpapi: origin } },
+    { baseUrls: { dataforseo: origin, perplexity: origin, serpapi: origin, anthropic: origin } },
   );
 
 const task = (overrides = {}) => ({
@@ -90,7 +91,7 @@ const providerError =
     if (retryable !== undefined) assert.equal(err.retryable, retryable, 'retryable');
     if (counts !== undefined)
       assert.equal(err.countsAgainstProvider, counts, 'countsAgainstProvider');
-    for (const secret of ['dfs-secret', 'pplx-secret', 'serp-secret']) {
+    for (const secret of ['dfs-secret', 'pplx-secret', 'serp-secret', 'sk-ant-secret']) {
       assert.ok(!err.message.includes(secret), 'an error never carries a credential');
     }
     return true;
@@ -384,6 +385,66 @@ describe('SerpApi (Google AI Overviews)', () => {
 /** `engines:try --record` keeps the one task the provider returned; the server sends it inside this envelope. */
 const inEnvelope = (path) =>
   JSON.stringify({ status_code: 20000, status_message: 'Ok.', tasks: [JSON.parse(fixture(path))] });
+
+describe('Claude engine (Messages API with web search)', () => {
+  const claude = () => adapters().get('anthropic', 'claude');
+  const askedClaude = () => task({ engine: 'claude', searchQuery: null });
+  const messageError = (status, type) => ({
+    status,
+    body: JSON.stringify({
+      type: 'error',
+      error: { type, message: 'secret-looking detail sk-ant-secret' },
+    }),
+  });
+
+  test('sends the key, the question, the search tool and the place; reads the answer back', async () => {
+    routes['POST /v1/messages'] = { body: fixture('claude/messages-ok.json') };
+    const adapter = claude();
+    const handle = await adapter.submit(askedClaude());
+    const [post] = requests;
+    assert.equal(post.headers['x-api-key'], 'sk-ant-secret');
+    assert.equal(post.body.model, 'claude-sonnet-5-5');
+    assert.deepEqual(post.body.messages, [{ role: 'user', content: askedClaude().text }]);
+    assert.equal(post.body.tools[0].type, 'web_search_20260209');
+    assert.equal(post.body.tools[0].user_location.country, 'US');
+    assert.equal(handle.tokensIn, 5120);
+    const answer = adapter.normalize(await adapter.poll(handle), askedClaude());
+    normalizedAnswerSchema.parse(answer);
+    assert.equal(answer.status, 'ok');
+    assert.equal(answer.sources.length, 2);
+    assert.equal(requests.length, 1, 'one request, one charge');
+  });
+
+  test('a refusal is a real "no answer", not a failure', async () => {
+    routes['POST /v1/messages'] = { body: fixture('claude/messages-refusal.json') };
+    const adapter = claude();
+    const handle = await adapter.submit(askedClaude());
+    assert.equal(adapter.normalize(handle.raw, askedClaude()).status, 'no_answer');
+  });
+
+  test('failures are classified by whose fault they are, and never carry the body or the key', async () => {
+    routes['POST /v1/messages'] = messageError(401, 'authentication_error');
+    await assert.rejects(
+      claude().submit(askedClaude()),
+      providerError('auth', { retryable: false, counts: false }),
+    );
+    routes['POST /v1/messages'] = messageError(529, 'overloaded_error');
+    await assert.rejects(
+      claude().submit(askedClaude()),
+      providerError('overloaded', { retryable: true, counts: true }),
+    );
+    routes['POST /v1/messages'] = messageError(429, 'rate_limit_error');
+    await assert.rejects(
+      claude().submit(askedClaude()),
+      providerError('rate_limited', { retryable: true, counts: true }),
+    );
+    routes['POST /v1/messages'] = messageError(400, 'invalid_request_error');
+    await assert.rejects(
+      claude().submit(askedClaude()),
+      providerError('http_400', { retryable: false, counts: false }),
+    );
+  });
+});
 
 describe('real recorded responses (live calls on 2026-10-03), replayed over HTTP', () => {
   test('Perplexity: the reported cost and the answer come through the whole adapter', async () => {

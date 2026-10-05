@@ -1,3 +1,4 @@
+import { ENGINE_LABELS } from './engines.js';
 import { READINESS_GUIDANCE } from './fix-list.js';
 
 /**
@@ -41,12 +42,7 @@ const CATEGORY_WHY = Object.freeze({
     'Basic technical health decides whether engines can reach and trust your pages at all.',
 });
 
-export const DEFAULT_ENGINE_LABELS = Object.freeze({
-  chatgpt: 'ChatGPT',
-  perplexity: 'Perplexity',
-  gemini: 'Gemini',
-  google_aio: 'Google AI Overviews',
-});
+export const DEFAULT_ENGINE_LABELS = ENGINE_LABELS;
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const list = (items) =>

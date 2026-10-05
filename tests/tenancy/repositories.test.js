@@ -934,6 +934,8 @@ describe('projects, engines, competitors and aliases (Milestone 3)', () => {
   test('projectEngines: A cannot read or change the engines of B’s project', async () => {
     await refuses(A.scoped.projectEngines.list(bProject.id), 'NOT_FOUND');
     await refuses(A.scoped.projectEngines.setEnabled(bProject.id, ['chatgpt']), 'NOT_FOUND');
+    await refuses(A.scoped.projectEngines.choices(bProject.id), 'NOT_FOUND');
+    assert.ok(Array.isArray(await B.scoped.projectEngines.choices(bProject.id)));
     assert.ok(Array.isArray(await B.scoped.projectEngines.list(bProject.id)));
   });
 
@@ -2325,7 +2327,7 @@ describe('coverage: no repository function without a leak test', () => {
       'wordpressSecret',
     ],
     brandKits: ['current', 'get', 'history', 'save'],
-    projectEngines: ['list', 'setEnabled'],
+    projectEngines: ['choices', 'list', 'setEnabled'],
     prompts: ['add', 'clusters', 'edit', 'importMany', 'list', 'setStatus'],
     entities: ['addAlias', 'addCompetitor', 'list', 'removeAlias', 'setStatus', 'update'],
     scans: ['checks', 'create', 'fail', 'finish', 'get', 'knownPages', 'pages', 'recent', 'start'],

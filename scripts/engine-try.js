@@ -27,7 +27,7 @@ const engine = valueOf('--engine');
 
 if (!question || !engine || flag('--help')) {
   console.log(
-    'Usage: npm run engines:try -- --engine <chatgpt|gemini|perplexity|google_aio> [--mode standard|priority|live]\n' +
+    'Usage: npm run engines:try -- --engine <chatgpt|gemini|perplexity|google_aio|claude> [--mode standard|priority|live]\n' +
       '         [--country US] [--language en] [--query "keyword form"] [--record] "<question>"',
   );
   process.exit(flag('--help') ? 0 : 1);
@@ -38,6 +38,7 @@ const PRIMARY = {
   gemini: 'dataforseo',
   perplexity: 'perplexity_api',
   google_aio: 'serpapi',
+  claude: 'anthropic',
 };
 
 const config = loadConfig();

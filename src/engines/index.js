@@ -1,4 +1,5 @@
 import { assertAdapter } from './contract.js';
+import { createClaudeAdapter } from './claude.js';
 import { createDataForSeoAdapter } from './dataforseo.js';
 import { createPerplexityAdapter } from './perplexity.js';
 import { createSerpApiAdapter } from './serpapi.js';
@@ -37,6 +38,9 @@ export function createAdapters(providers, { baseUrls = {}, fetchImpl } = {}) {
   }
   if (providers?.serpapi) {
     list.push(createSerpApiAdapter({ ...providers.serpapi, baseUrl: baseUrls.serpapi, fetchImpl }));
+  }
+  if (providers?.claude) {
+    list.push(createClaudeAdapter({ ...providers.claude, baseUrl: baseUrls.anthropic }));
   }
   return adapterRegistry(list);
 }

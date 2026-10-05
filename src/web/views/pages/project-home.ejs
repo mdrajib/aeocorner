@@ -1,7 +1,7 @@
 <%# One project's page for now: where it is in setup, its latest check, its engines, and its competitors. Props: entities, engines, countryName, languageName, setupOpen, lastRun, runNow, tracking;
     locals: project, projectBase, orgBase, csrfToken, can. %>
 <%
-const ENGINE_NAMES = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', gemini: 'Gemini', google_aio: 'Google AI Overviews' };
+const ENGINE_NAMES = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', gemini: 'Gemini', google_aio: 'Google AI Overviews', claude: 'Claude' };
 const competitors = entities.filter((e) => e.kind === 'competitor' && ['active', 'paused'].includes(e.status));
 const suggested = entities.filter((e) => e.kind === 'competitor' && e.status === 'suggested');
 const brand = entities.find((e) => e.kind === 'brand');

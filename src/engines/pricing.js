@@ -27,6 +27,20 @@ export const PRICES = Object.freeze({
     typical: { inputTokens: 1_000, outputTokens: 500, searches: 1 },
   },
 
+  // Claude as an engine (Milestone 16): the Claude API with its web-search tool. The typical run is the question, two
+  // searches and a page or two of results read back in (about 6,000 tokens in) and a 700-token answer. Token prices
+  // are from Anthropic's published table (checked 2026-10-05); the web-search price ($10 per 1,000 searches) is from
+  // the docs and not yet seen on an invoice, so compare the first real run (npm run engines:try) with the ledger.
+  claude: {
+    model: 'claude-sonnet-5-5',
+    models: {
+      'claude-sonnet-5-5': { inputPerMTok: 2_000_000, outputPerMTok: 10_000_000 },
+      'claude-opus-5-5': { inputPerMTok: 4_000_000, outputPerMTok: 20_000_000 },
+    },
+    webSearchPerCall: 10_000,
+    typical: { inputTokens: 6_000, outputTokens: 700, searches: 2 },
+  },
+
   // https://serpapi.com/pricing: a monthly plan with a number of searches. Only successful searches count;
   // cached, errored and failed ones are free. The per-search cost depends on the plan, so it is configuration
   // (SERPAPI_COST_PER_SEARCH_USD); the default is the Production plan ($150 for 15,000 = $0.010).
@@ -49,6 +63,17 @@ export function perplexityMicros({ inputTokens, outputTokens, searches }) {
     tokenCostMicros(inputTokens, sonar.inputPerMTok) +
     tokenCostMicros(outputTokens, sonar.outputPerMTok) +
     Math.max(0, searches) * webSearchPerCall
+  );
+}
+
+/** One Claude engine answer: tokens in and out at the model's price, plus each web search the run made. */
+export function claudeMicros({ inputTokens, outputTokens, searches, model = PRICES.claude.model }) {
+  const price = PRICES.claude.models[model];
+  if (!price) throw new RangeError(`No price for the Claude engine model ${model}`);
+  return (
+    tokenCostMicros(inputTokens, price.inputPerMTok) +
+    tokenCostMicros(outputTokens, price.outputPerMTok) +
+    Math.max(0, searches) * PRICES.claude.webSearchPerCall
   );
 }
 

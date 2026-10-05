@@ -122,6 +122,10 @@
     @apply border-ink-400 text-brand-600 mt-1 size-5 shrink-0 rounded;
   }
 
+  .checkbox:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
   .radio {
     @apply border-ink-400 text-brand-600 mt-1 size-5 shrink-0 rounded-full;
   }

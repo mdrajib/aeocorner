@@ -27,8 +27,9 @@ INSERT INTO engines
   ('perplexity',     'Perplexity',          'active',   'text',         3, 'perplexity_api', 'api_grounded', 'dataforseo', 'api_grounded', 20),
   ('gemini',         'Gemini',              'active',   'text',         3, 'dataforseo',     'ui_capture',   'gemini_api', 'api_grounded', 30),
   ('google_aio',     'Google AI Overviews', 'active',   'search_query', 1, 'serpapi',        'serp',         'dataforseo', 'serp',         40),
+  -- Claude with web search (Milestone 16). Migration 0011 switches it on; this keeps a fresh load identical to that.
+  ('claude',         'Claude',              'active',   'text',         3, 'anthropic',      'api_grounded', NULL, NULL, 50),
   -- v1.1 engines: providers are chosen when they are built.
-  ('claude',         'Claude',              'disabled', 'text',         3, NULL, NULL, NULL, NULL, 50),
   ('copilot',        'Microsoft Copilot',   'disabled', 'text',         3, NULL, NULL, NULL, NULL, 60),
   ('google_ai_mode', 'Google AI Mode',      'disabled', 'search_query', 3, NULL, NULL, NULL, NULL, 70),
   ('grok',           'Grok',                'disabled', 'text',         3, NULL, NULL, NULL, NULL, 80),
@@ -45,13 +46,13 @@ INSERT INTO plans
    runs_now_per_month, samples_per_engine, features, is_public, sort_order) VALUES
   ('starter', 'Starter',  79.00,  1,  50, NULL,  4.0, NULL, 3,
      JSON_OBJECT('wordpress', TRUE, 'ga4', TRUE, 'alerts', FALSE, 'csv_export', FALSE,
-                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', FALSE), TRUE, 10),
+                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', FALSE, 'claude_engine', FALSE), TRUE, 10),
   ('growth',  'Growth',  249.00,  3, 150, NULL, 15.0, NULL, 3,
      JSON_OBJECT('wordpress', TRUE, 'ga4', TRUE, 'alerts', TRUE, 'csv_export', TRUE,
-                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', TRUE), TRUE, 20),
+                 'client_seats', FALSE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', TRUE, 'claude_engine', FALSE), TRUE, 20),
   ('agency',  'Agency',  599.00, 10, 500, NULL, 40.0, NULL, 3,
      JSON_OBJECT('wordpress', TRUE, 'ga4', TRUE, 'alerts', TRUE, 'csv_export', TRUE,
-                 'client_seats', TRUE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', TRUE), TRUE, 30)
+                 'client_seats', TRUE, 'daily_addon', TRUE, 'white_label', FALSE, 'autopilot', TRUE, 'claude_engine', TRUE), TRUE, 30)
 AS new
 ON DUPLICATE KEY UPDATE
   name = new.name, price_usd_month = new.price_usd_month, max_projects = new.max_projects,

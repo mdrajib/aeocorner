@@ -1,3 +1,4 @@
+import { ENGINE_LABELS } from './engines.js';
 import { FINDINGS } from './entity-checks.js';
 import { checkFacts, statedFacts } from './entity-accuracy.js';
 import { checklists } from './entity-guidance.js';
@@ -109,12 +110,6 @@ export function wikidataCard(check, { wikidataId = '' } = {}) {
   return card;
 }
 
-const ENGINE_LABELS = {
-  chatgpt: 'ChatGPT',
-  perplexity: 'Perplexity',
-  gemini: 'Gemini',
-  google_aio: 'Google AI Overviews',
-};
 const engineLabel = (code) => ENGINE_LABELS[code] ?? code;
 
 const FACT_STATUS = {

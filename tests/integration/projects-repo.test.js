@@ -156,8 +156,88 @@ describe('engines', () => {
       ['chatgpt', 'google_aio'],
     );
     await refuses(A.scoped.projectEngines.setEnabled(p.id, []), 'NO_ENGINES');
-    await refuses(A.scoped.projectEngines.setEnabled(p.id, ['claude']), 'UNKNOWN_ENGINE');
     await refuses(A.scoped.projectEngines.setEnabled(p.id, ['nonsense']), 'UNKNOWN_ENGINE');
+  });
+});
+
+describe('Claude as a fifth engine (Milestone 16)', () => {
+  const FOUR = ['chatgpt', 'gemini', 'google_aio', 'perplexity'];
+  const enabledOf = async (projectId) =>
+    (await A.scoped.projectEngines.list(projectId))
+      .filter((r) => r.enabled)
+      .map((r) => r.engine_code)
+      .sort();
+
+  test('a new project is not given Claude unless the plan includes it; with no plan it has four engines', async () => {
+    const p = await A.scoped.projects.create(input());
+    assert.deepEqual(await enabledOf(p.id), FOUR);
+    const choices = await A.scoped.projectEngines.choices(p.id);
+    assert.deepEqual(
+      choices.map((c) => c.engine_code),
+      ['chatgpt', 'perplexity', 'gemini', 'google_aio', 'claude'],
+    );
+    const claude = choices.find((c) => c.engine_code === 'claude');
+    assert.deepEqual(
+      { enabled: claude.enabled, notTracked: claude.notTracked, allowed: claude.allowed },
+      { enabled: false, notTracked: true, allowed: true },
+    );
+    // No plan yet (billing not on): an editor may switch it on.
+    await A.scoped.projectEngines.setEnabled(p.id, [...FOUR, 'claude']);
+    assert.deepEqual(await enabledOf(p.id), [
+      'chatgpt',
+      'claude',
+      'gemini',
+      'google_aio',
+      'perplexity',
+    ]);
+  });
+
+  test('a plan without the feature cannot switch it on, and a new project on one is not given it', async () => {
+    const { org, scoped } = await fx.org();
+    await fx.setOrg(org.id, { plan_code: 'growth', billing_status: 'active' });
+    const p = await scoped.projects.create(input());
+    const rows = (await scoped.projectEngines.list(p.id)).filter((r) => r.enabled);
+    assert.deepEqual(rows.map((r) => r.engine_code).sort(), FOUR);
+    const claude = (await scoped.projectEngines.choices(p.id)).find(
+      (c) => c.engine_code === 'claude',
+    );
+    assert.equal(claude.allowed, false);
+    await refuses(
+      scoped.projectEngines.setEnabled(p.id, [...FOUR, 'claude']),
+      'ENGINE_NOT_IN_PLAN',
+    );
+    // The four stay as they were.
+    assert.deepEqual(
+      (await scoped.projectEngines.list(p.id))
+        .filter((r) => r.enabled)
+        .map((r) => r.engine_code)
+        .sort(),
+      FOUR,
+    );
+  });
+
+  test('on the top plan a new project has all five, and the projects it already had are left alone', async () => {
+    const { org, scoped } = await fx.org();
+    const before = await scoped.projects.create(input());
+    await fx.setOrg(org.id, { plan_code: 'agency', billing_status: 'active' });
+    const after = await scoped.projects.create(input());
+    const on = async (id) =>
+      (await scoped.projectEngines.list(id))
+        .filter((r) => r.enabled)
+        .map((r) => r.engine_code)
+        .sort();
+    assert.deepEqual(await on(after.id), [
+      'chatgpt',
+      'claude',
+      'gemini',
+      'google_aio',
+      'perplexity',
+    ]);
+    assert.deepEqual(
+      await on(before.id),
+      FOUR,
+      'a plan change does not add an engine to an existing project',
+    );
   });
 });
 

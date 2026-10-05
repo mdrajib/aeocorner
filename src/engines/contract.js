@@ -4,8 +4,8 @@ import { z } from 'zod';
  * The engine adapter contract (MVP §7.5). Every way of getting an answer out of an AI engine, whoever provides
  * it, looks the same to the rest of the app:
  *
- *   adapter.engine            'chatgpt' | 'perplexity' | 'gemini' | 'google_aio'
- *   adapter.provider          'dataforseo' | 'perplexity_api' | 'serpapi' | ...  (providers.code)
+ *   adapter.engine            'chatgpt' | 'perplexity' | 'gemini' | 'google_aio' | 'claude'
+ *   adapter.provider          'dataforseo' | 'perplexity_api' | 'serpapi' | 'anthropic' | ...  (providers.code)
  *   adapter.method            'ui_capture' | 'api_grounded' | 'serp'
  *   adapter.submit(task)      -> ProviderHandle { providerRef, raw, costMicros, ... }. A provider that answers
  *                                straight away puts the answer in `raw`; one that queues the work leaves `raw`
@@ -20,7 +20,7 @@ import { z } from 'zod';
  * Errors are `ProviderError`s that say whether trying again could help.
  */
 
-export const ENGINES = Object.freeze(['chatgpt', 'perplexity', 'gemini', 'google_aio']);
+export const ENGINES = Object.freeze(['chatgpt', 'perplexity', 'gemini', 'google_aio', 'claude']);
 export const METHODS = Object.freeze(['ui_capture', 'api_grounded', 'serp']);
 export const MODES = Object.freeze(['standard', 'priority', 'live']);
 

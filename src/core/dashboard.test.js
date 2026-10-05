@@ -357,6 +357,30 @@ describe('byEngine', () => {
   test('an engine not yet checked is "none"', () => {
     assert.equal(by.google_aio.state, 'none');
   });
+
+  test('a fifth engine (Claude) follows the same rules: unchecked is "none", failed is "unknown", and neither is 0%', () => {
+    const five = byEngine({
+      rows: [...rows, row({ engineCode: 'claude', nAnswers: 0, kMentioned: 0 })],
+      brandId: BRAND,
+      engineCodes: ['chatgpt', 'gemini', 'perplexity', 'google_aio', 'claude'],
+      asOf: AS_OF,
+    });
+    assert.equal(five.length, 5);
+    assert.deepEqual(
+      five.slice(0, 4).map((e) => [e.engineCode, e.display]),
+      result.map((e) => [e.engineCode, e.display]),
+      'the four others are unchanged by a fifth',
+    );
+    assert.equal(five[4].state, 'unknown');
+    assert.equal(five[4].display, '—');
+    const notAsked = byEngine({
+      rows,
+      brandId: BRAND,
+      engineCodes: ['chatgpt', 'claude'],
+      asOf: AS_OF,
+    });
+    assert.deepEqual([notAsked[1].state, notAsked[1].display], ['none', '—']);
+  });
 });
 
 describe('competitorTable', () => {

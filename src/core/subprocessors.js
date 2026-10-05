@@ -19,8 +19,8 @@ export const SUBPROCESSORS = Object.freeze([
     name: 'Anthropic',
     status: 'in_use',
     purpose:
-      'Language model that reads AI answers, reads your site, drafts content and researches facts',
-    data: 'Answer text, brand details, page excerpts, content briefs',
+      'Language model that reads AI answers, reads your site, drafts content and researches facts, and, where Claude is tracked as an engine, answers your tracked questions with web search',
+    data: 'Answer text, brand details, page excerpts, content briefs, the tracked questions (when Claude is tracked)',
     location: 'United States',
     evidence: {
       env: ['ANTHROPIC_API_KEY'],
