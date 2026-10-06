@@ -40,3 +40,18 @@ To make that policy workable:
 - Chart.js and TipTap are both CSP-compatible when self-hosted; check each one's CSP notes when they are added (Phases 10 and 12) and record any exception in a new ADR rather than loosening the policy quietly.
 - Turnstile and PostHog are the only external origins, and neither could be exercised end to end in this phase (no keys yet). The policy matches their documented requirements; the first real run against staging with keys is the check. If either needs more, widen the CSP for that origin only.
 - Clerk's embedded components (Phase 2) load scripts from Clerk's domains. Prefer Clerk's hosted pages to keep the policy as is; if embedded components are chosen, add Clerk's origins narrowly and note it here.
+
+## Addendum 2026-10-06: `worker-src` for Clerk's token timer
+
+First real use on a Clerk development instance (through a dev tunnel) showed the console full of "Creating a worker from 'blob:…' violates … script-src": Clerk's browser script runs its session-token renewal timer in a worker made from a `blob:` URL, and with no `worker-src` the browser falls back to `script-src`. The renewal never ran, so a form posted after about a minute got `Sign in required.` (see the ADR-0004 addendum).
+
+- **Change:** when sign-in is configured, `worker-src 'self' blob:` is added (`buildCspDirectives`). Nothing is added to `script-src`, so no inline or `blob:` script can run. With sign-in off, there is no `worker-src` and the policy is as before.
+- **Why this is safe enough:** a worker can only be started by script that is already allowed; the only `blob:` workers on the signed-in app are Clerk's.
+- **Not yet confirmed:** that this alone makes a late form post succeed. Check on the dev instance after the change.
+
+## Addendum 2026-10-06 (second): `form-action` for the Google consent redirect
+
+"Connect Google" is a form post to our own address that is answered with a redirect to `accounts.google.com`. Chrome applies `form-action` to the redirect as well, so with `form-action 'self'` the browser refused to follow it and the page appeared to do nothing (console: "Sending form data to … violates … form-action 'self'").
+
+- **Change:** when Google OAuth is configured (`config.google`), `form-action` is `'self' https://accounts.google.com`. Nothing else is added; with Google off it is `'self'` as before.
+- **Cost:** a form on one of our pages could now also submit to Google's sign-in host. That is a Google page that cannot receive our form fields in any useful way and cannot be steered by the attacker, so the exposure is small.

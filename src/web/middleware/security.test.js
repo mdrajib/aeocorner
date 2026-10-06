@@ -58,3 +58,16 @@ test("Clerk's frontend API host is allowed for scripts and connections only when
   assert.ok(on['connect-src'].includes('https://x.clerk.accounts.dev'));
   assert.equal(on['frame-src'].join(' '), "'none'");
 });
+
+test("forms may be answered by a redirect to Google's consent page only when Google OAuth is configured", () => {
+  assert.deepEqual(buildCspDirectives(loadConfig({}))['form-action'], ["'self'"]);
+  const on = buildCspDirectives({ google: { clientId: 'x', clientSecret: 'y' } });
+  assert.deepEqual(on['form-action'], ["'self'", 'https://accounts.google.com']);
+});
+
+test("workers may start from blob: URLs only when sign-in is configured (Clerk's token timer)", () => {
+  assert.equal('worker-src' in buildCspDirectives(loadConfig({})), false);
+  const on = buildCspDirectives({ auth: { frontendApi: 'x.clerk.accounts.dev' } });
+  assert.deepEqual(on['worker-src'], ["'self'", 'blob:']);
+  assert.doesNotMatch(on['script-src'].join(' '), /blob:/);
+});

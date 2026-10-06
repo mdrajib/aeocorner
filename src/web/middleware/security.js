@@ -1,6 +1,7 @@
 import helmet from 'helmet';
 
 const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
+const GOOGLE_AUTH_ORIGIN = 'https://accounts.google.com';
 
 /**
  * Content-Security-Policy for the web app. Strict on purpose (docs/adr/0003-strict-csp.md):
@@ -12,6 +13,8 @@ export function buildCspDirectives(config) {
   const script = ["'self'"];
   const connect = ["'self'"];
   const frame = [];
+  const formAction = ["'self'"];
+  let worker = null;
 
   if (config.turnstileSiteKey) {
     script.push(TURNSTILE_ORIGIN);
@@ -22,7 +25,13 @@ export function buildCspDirectives(config) {
   if (config.auth?.frontendApi) {
     script.push(`https://${config.auth.frontendApi}`);
     connect.push(`https://${config.auth.frontendApi}`);
+    // Its token-renewal timer runs in a worker made from a blob: URL. Without this, worker-src falls back to
+    // script-src, the worker is blocked, the session cookie is not renewed and a form post after a minute is a 401.
+    worker = ["'self'", 'blob:'];
   }
+  // "Connect Google" is a form post answered by a redirect to Google's consent page, and Chrome applies form-action to
+  // that redirect. Only the one host, and only when Google OAuth is configured.
+  if (config.google) formAction.push(GOOGLE_AUTH_ORIGIN);
   if (config.posthog) {
     script.push(config.posthog.assetsHost);
     connect.push(config.posthog.host, config.posthog.assetsHost);
@@ -38,9 +47,10 @@ export function buildCspDirectives(config) {
     'frame-src': frame.length ? frame : ["'none'"],
     'frame-ancestors': ["'none'"],
     'base-uri': ["'self'"],
-    'form-action': ["'self'"],
+    'form-action': formAction,
     'object-src': ["'none'"],
   };
+  if (worker) directives['worker-src'] = worker;
   if (config.isProduction) directives['upgrade-insecure-requests'] = [];
   return directives;
 }
