@@ -117,11 +117,14 @@ document.addEventListener('htmx:responseError', (event) => {
 
 // Clerk's browser script (loaded by the app layout) renews the session cookie, which lasts about a minute, so a
 // form sent from a page that has been open a while is still signed in. It does not start itself: load it once it
-// has arrived. A plain form post waits (at most two seconds) for a fresh token first; if Clerk is missing or slow
-// the form is sent anyway, and the server's answer is the same as before.
+// has arrived. A plain form post waits for a token that was really fetched just now (skipCache: a cached one would not
+// touch the cookie), and only gives up after a generous limit, because sending with an expired cookie is a 401 and the
+// press is lost. Every press does this, not only the first one on a page, and a second press while one is waiting
+// is ignored so the form is never sent twice. If Clerk is missing or fails the form is sent anyway.
 (function () {
   const tag = document.querySelector('script[data-clerk-publishable-key]');
   if (!tag) return;
+  const LIMIT_MS = 8000;
   let loaded = null;
   function start() {
     if (!window.Clerk) return null;
@@ -131,21 +134,33 @@ document.addEventListener('htmx:responseError', (event) => {
   if (window.Clerk) start();
   else tag.addEventListener('load', start);
 
-  const refreshed = new WeakSet();
+  const sending = new WeakSet(); // being re-submitted by this script, let it through once
+  const waiting = new WeakSet(); // a press is already waiting for Clerk
   document.addEventListener(
     'submit',
     (event) => {
       const form = event.target;
-      if (!(form instanceof HTMLFormElement) || event.defaultPrevented || refreshed.has(form)) return;
+      if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
+      if (sending.has(form)) {
+        sending.delete(form);
+        return;
+      }
       if ((form.method || '').toLowerCase() !== 'post' || form.hasAttribute('hx-post')) return;
       const ready = start();
       if (!ready) return;
       event.preventDefault();
+      if (waiting.has(form)) return;
+      waiting.add(form);
       const submitter = event.submitter;
-      const wait = new Promise((resolve) => setTimeout(resolve, 2000));
-      const fresh = ready.then(() => (window.Clerk.session ? window.Clerk.session.getToken() : null));
-      Promise.race([fresh.catch(() => null), wait]).then(() => {
-        refreshed.add(form);
+      if (submitter) submitter.setAttribute('aria-busy', 'true');
+      const limit = new Promise((resolve) => setTimeout(resolve, LIMIT_MS));
+      const fresh = ready.then(() =>
+        window.Clerk.session ? window.Clerk.session.getToken({ skipCache: true }) : null,
+      );
+      Promise.race([fresh.catch(() => null), limit]).then(() => {
+        waiting.delete(form);
+        if (submitter) submitter.removeAttribute('aria-busy');
+        sending.add(form);
         form.requestSubmit(submitter || undefined);
       });
     },
