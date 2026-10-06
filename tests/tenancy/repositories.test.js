@@ -1711,6 +1711,36 @@ describe('entity checks (Milestone 12)', () => {
     );
     await refuses(f.forgetProfilesExcept(bProject.id, []), 'PROJECT_NOT_IN_ORG');
     await refuses(f.accuracyInputs(bProject.id, window), 'PROJECT_NOT_IN_ORG');
+    await refuses(
+      f.confirmProfile(bProject.id, subject, { userId: A.owner.id }),
+      'PROJECT_NOT_IN_ORG',
+    );
+    await refuses(f.unconfirmProfile(bProject.id, subject), 'PROJECT_NOT_IN_ORG');
+  });
+
+  test('confirming in A’s project never marks B’s row, even for the same address', async () => {
+    const blocked = {
+      kind: 'profile',
+      subject: subject + '-shared',
+      platform: 'linkedin',
+      status: 'error',
+      finding: 'robots',
+    };
+    await A.scoped.entityChecks.saveCheck(aProject.id, blocked);
+    await B.scoped.entityChecks.saveCheck(bProject.id, blocked);
+    await A.scoped.entityChecks.confirmProfile(aProject.id, blocked.subject, {
+      userId: A.owner.id,
+    });
+    const mine = (await A.scoped.entityChecks.checks(aProject.id)).find(
+      (c) => c.subject === blocked.subject,
+    );
+    const theirs = (await B.scoped.entityChecks.checks(bProject.id)).find(
+      (c) => c.subject === blocked.subject,
+    );
+    assert.ok(mine.confirmedAt);
+    assert.equal(theirs.confirmedAt, null);
+    await A.scoped.entityChecks.forgetProfilesExcept(aProject.id, [subject]);
+    await B.scoped.entityChecks.forgetProfilesExcept(bProject.id, [subject]);
   });
 
   test('the same address checked in A’s project does not touch B’s row', async () => {
@@ -2202,7 +2232,14 @@ describe('coverage: no repository function without a leak test', () => {
       'savePrevious',
     ],
     proofShares: ['forRecommendation', 'revoke', 'share'],
-    entityChecks: ['accuracyInputs', 'checks', 'forgetProfilesExcept', 'saveCheck'],
+    entityChecks: [
+      'accuracyInputs',
+      'checks',
+      'confirmProfile',
+      'forgetProfilesExcept',
+      'saveCheck',
+      'unconfirmProfile',
+    ],
     recovery: [
       'byId',
       'close',

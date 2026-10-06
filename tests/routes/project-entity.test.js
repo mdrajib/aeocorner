@@ -133,6 +133,80 @@ describe('the screen', () => {
     assert.match(page.text, /Can’t tell which is yours/);
   });
 
+  test('an editor confirms a profile we could not read, it shows as their statement, and they can take it back', async () => {
+    const ctx = await world();
+    const current = await ctx.scoped.brandKits.current(ctx.project.id);
+    const kit = structuredClone(
+      current?.data ?? emptyBrandKit({ name: 'Entity Co', domain: ctx.project.domain }),
+    );
+    kit.entity = {
+      foundingYear: '2014',
+      headquarters: 'Austin, Texas',
+      profiles: [
+        { platform: 'linkedin', url: LI },
+        { platform: 'crunchbase', url: CB },
+      ],
+      wikidataId: '',
+    };
+    await ctx.scoped.brandKits.save(ctx.project.id, {
+      kit,
+      source: 'edited',
+      expectedVersion: current?.version ?? null,
+    });
+    const check = (subject, platform, status, finding) =>
+      ctx.scoped.entityChecks.saveCheck(ctx.project.id, {
+        kind: 'profile',
+        subject,
+        platform,
+        status,
+        finding,
+      });
+    await check(LI, 'linkedin', 'error', 'robots');
+    await check(CB, 'crunchbase', 'failed', 'brand_not_named');
+
+    const before = await ctx.owner.get(`${ctx.base}/entity`).expect(200);
+    assert.match(before.text, /does not let our crawler read this page/);
+    assert.match(before.text, /I checked it myself/);
+    assert.equal(
+      (before.text.match(/I checked it myself/g) ?? []).length,
+      1,
+      'only the unreadable one',
+    );
+    const asViewer = await ctx.viewer.get(`${ctx.base}/entity`).expect(200);
+    assert.doesNotMatch(asViewer.text, /I checked it myself/);
+    await ctx.viewer.post(`${ctx.base}/entity/confirm`, { url: LI }).expect(403);
+
+    const done = await ctx.owner.post(`${ctx.base}/entity/confirm`, { url: LI }).expect(303);
+    assert.match(done.headers.location, /notice=profile-confirmed$/);
+    const page = await ctx.owner.get(`${ctx.base}/entity`).expect(200);
+    assert.match(page.text, /Confirmed by you/);
+    assert.match(page.text, /your statement, not our check/);
+    assert.match(page.text, /Take back my confirmation/);
+    assert.match(page.text, /1 of 2/);
+    const [li] = (await ctx.scoped.entityChecks.checks(ctx.project.id)).filter(
+      (c) => c.subject === LI,
+    );
+    assert.equal(li.status, 'error', 'our finding is untouched');
+    assert.equal(li.confirmedByUserId, ctx.owner.user.id);
+
+    // A page we read cannot be confirmed away, and an address that is not in the Brand Kit is refused.
+    const read = await ctx.owner.post(`${ctx.base}/entity/confirm`, { url: CB }).expect(303);
+    assert.match(read.headers.location, /profile-read/);
+    const stray = await ctx.owner
+      .post(`${ctx.base}/entity/confirm`, { url: 'https://example.test/not-ours' })
+      .expect(303);
+    assert.match(stray.headers.location, /profile-not-listed/);
+
+    const back = await ctx.owner.post(`${ctx.base}/entity/unconfirm`, { url: LI }).expect(303);
+    assert.match(back.headers.location, /profile-unconfirmed/);
+    const after = await ctx.owner.get(`${ctx.base}/entity`).expect(200);
+    assert.doesNotMatch(after.text, /Confirmed by you/);
+
+    // Another organization's project cannot be touched.
+    const other = await world();
+    await other.owner.post(`${ctx.base}/entity/confirm`, { url: LI }).expect(404);
+  });
+
   test('"Check now" queues one check for the ten minutes, for an editor; a viewer cannot', async () => {
     const ctx = await world();
     const before = added.length;

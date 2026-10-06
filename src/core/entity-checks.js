@@ -197,6 +197,18 @@ export function judgeWikidata({ brandNames, domain, givenId = '', items }) {
 
 // --- What the rest of the product reads -----------------------------------------------------------------------
 
-/** The profile addresses that passed their check: the only ones that may go into a site's `sameAs`. */
+/**
+ * A profile our crawler could not read, that a person says they checked themselves. It is their statement, not our
+ * finding, so it is shown as "Confirmed by you" and never as a passed check. Only while the latest check is `error`:
+ * once we can read the page, what we read decides (the repository clears the confirmation then).
+ */
+export const isSelfConfirmed = (check) => check?.status === 'error' && Boolean(check?.confirmedAt);
+
+/**
+ * The profile addresses that may go into a site's `sameAs`: those that passed our check, and those a person confirmed
+ * where we could not look. The person sees the exact code and approves it before anything is written (D3).
+ */
 export const verifiedProfileUrls = (checks) =>
-  checks.filter((c) => c.kind === 'profile' && c.status === 'passed').map((c) => c.subject);
+  checks
+    .filter((c) => c.kind === 'profile' && (c.status === 'passed' || isSelfConfirmed(c)))
+    .map((c) => c.subject);

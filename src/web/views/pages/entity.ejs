@@ -44,9 +44,16 @@ const t = view.tiles;
     rows: view.profiles.map((p) => ({
       platform: { html: '<a href="' + ui.esc(p.url) + '" rel="noopener noreferrer nofollow">' + ui.esc(p.platform) + '</a><br><span class="text-ink-600 text-xs [overflow-wrap:anywhere]">' + ui.esc(p.url) + '</span>' },
       status: { html: ui.badge({ text: p.status, tone: p.tone }) + (p.checkedOn ? '<br><span class="text-ink-600 text-xs">Checked ' + ui.esc(p.checkedOn) + '</span>' : '') },
-      detail: { html: ui.esc(p.detail) + (p.note ? '<br><span class="text-ink-600 text-xs">' + ui.esc(p.note) + '</span>' : '') },
+      detail: { html: ui.esc(p.detail) + (p.note ? '<br><span class="text-ink-600 text-xs">' + ui.esc(p.note) + '</span>' : '')
+        + (canEdit && (p.canConfirm || p.selfConfirmed)
+          ? '<form method="post" action="' + ui.esc(projectBase) + '/entity/' + (p.selfConfirmed ? 'unconfirm' : 'confirm') + '" class="mt-2">'
+            + '<input type="hidden" name="_csrf" value="' + ui.esc(csrfToken) + '"><input type="hidden" name="url" value="' + ui.esc(p.url) + '">'
+            + (p.canConfirm ? '<p class="text-ink-600 mb-2 text-xs">Open the link yourself. If it shows your business, confirm it here. We will show it as your statement, not our check.</p>' : '')
+            + ui.button({ label: p.selfConfirmed ? 'Take back my confirmation' : 'I checked it myself: it’s ours', type: 'submit', variant: p.selfConfirmed ? 'ghost' : 'secondary', size: 'sm' })
+            + '</form>'
+          : '') },
     })) }) %></div>
-  <p class="text-ink-600 mt-2 text-xs">Some sites, LinkedIn most often, show our checker a sign-in page. That is “Couldn’t check”, not a problem with your profile. Only confirmed profiles are written into your site’s structured data.</p>
+  <p class="text-ink-600 mt-2 text-xs">Some sites, LinkedIn most often, show our checker a sign-in page or tell it not to read the page. That is “Couldn’t check”, not a problem with your profile; you can confirm those yourself. Profiles we confirmed, and ones you confirmed, are written into your site’s structured data once you approve the code. If we can read the page later, what we read replaces your confirmation.</p>
   <% } %>
 </section>
 

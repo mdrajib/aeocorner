@@ -1,5 +1,5 @@
 import { ENGINE_LABELS } from './engines.js';
-import { FINDINGS } from './entity-checks.js';
+import { FINDINGS, isSelfConfirmed } from './entity-checks.js';
 import { checkFacts, statedFacts } from './entity-accuracy.js';
 import { checklists } from './entity-guidance.js';
 import { platformLabel } from './entity-profiles.js';
@@ -36,6 +36,8 @@ export function profileRow(profile, check) {
     checkedOn: null,
     note: null,
     confirmed: false,
+    selfConfirmed: false,
+    canConfirm: false,
   };
   if (!check) return row;
   row.checkedOn = date(check.checkedAt);
@@ -52,10 +54,18 @@ export function profileRow(profile, check) {
     row.tone = 'warning';
     row.status = check.finding === 'not_found' ? 'Page not found' : 'Doesn’t name you';
     row.detail = FINDINGS[check.finding] ?? 'The page did not pass our check.';
+  } else if (isSelfConfirmed(check)) {
+    row.tone = 'info';
+    row.status = 'Confirmed by you';
+    row.confirmed = true;
+    row.selfConfirmed = true;
+    row.detail = `${FINDINGS[check.finding] ?? 'We could not look at this page.'} You told us on ${date(check.confirmedAt)} that you checked it yourself and it describes your business. This is your statement, not our check.`;
   } else {
     row.tone = 'unknown';
     row.status = 'Couldn’t check';
     row.detail = FINDINGS[check.finding] ?? 'We could not look at this page.';
+    // We were not allowed or not able to read it, so only a person can say what it shows.
+    row.canConfirm = true;
   }
   if (check.status !== 'error' && d.lastAttempt) {
     row.note = `We could not check again on ${date(d.lastAttempt.at)}: ${String(
@@ -177,7 +187,9 @@ export function entityView({ kit, checks, said, domain, country = '' }) {
 
   const confirmed = profiles.filter((p) => p.confirmed).length;
   // Only a profile with a real result counts as looked at: a page that blocked us says nothing either way.
-  const looked = profiles.filter((p) => p.tone === 'success' || p.tone === 'warning').length;
+  const looked = profiles.filter(
+    (p) => p.tone === 'success' || p.tone === 'warning' || p.selfConfirmed,
+  ).length;
   const rightFacts = facts.filter((f) => f.tone === 'success').length;
   const wrongFacts = facts.filter((f) => f.tone === 'warning').length;
   return {

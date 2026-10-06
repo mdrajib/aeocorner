@@ -1,4 +1,5 @@
 import { DomainError, isUniqueViolation } from '../errors.js';
+import { transaction } from '../transaction.js';
 
 /**
  * One organization's entity checks (Milestone 12). Merged into `forOrg(orgId)` as `entityChecks` (not `entities`, which is the tracked brand and competitors). The organization is bound once
@@ -28,9 +29,11 @@ const toCheck = (r) => ({
   httpStatus: r.http_status,
   details: r.details ?? {},
   checkedAt: r.checked_at,
+  confirmedAt: r.confirmed_at ?? null,
+  confirmedByUserId: r.confirmed_by_user_id ?? null,
 });
 
-export function entityRepos(prisma, orgId) {
+export function entityRepos(prisma, orgId, { appendActivity } = {}) {
   async function ownProject(projectId) {
     const project = await prisma.projects.findFirst({
       where: { id: projectId, org_id: orgId, deleted_at: null },
@@ -94,6 +97,8 @@ export function entityRepos(prisma, orgId) {
         http_status: c.httpStatus ?? null,
         details: c.details ?? {},
         checked_at: now,
+        // What we could read outranks what a person said: a real result ends a self-confirmation.
+        ...(c.status === 'error' ? {} : { confirmed_at: null, confirmed_by_user_id: null }),
       };
       const update = () => prisma.entity_checks.updateMany({ where, data });
       if ((await update()).count === 1) return { kept: false };
@@ -105,6 +110,77 @@ export function entityRepos(prisma, orgId) {
         await update();
       }
       return { kept: false };
+    },
+
+    /**
+     * A person says they have looked at a profile our crawler could not read, and it describes the business. Only for a
+     * listed profile whose LATEST check could not look (`error`): a page we did read and found wanting is fixed on the
+     * page, not confirmed away, and a passed one needs no confirming. `NOT_FOUND` when the profile has no check row yet,
+     * `NOT_CONFIRMABLE` when its check read the page. Safe to repeat: the first confirmation stands.
+     */
+    async confirmProfile(projectId, subject, { userId, now = new Date() } = {}) {
+      return transaction(prisma, async (tx) => {
+        const project = await tx.projects.findFirst({
+          where: { id: projectId, org_id: orgId, deleted_at: null },
+          select: { id: true },
+        });
+        if (!project) throw new DomainError('PROJECT_NOT_IN_ORG');
+        const row = await tx.entity_checks.findFirst({
+          where: {
+            org_id: orgId,
+            project_id: projectId,
+            kind: 'profile',
+            subject: String(subject),
+          },
+        });
+        if (!row) throw new DomainError('NOT_FOUND');
+        if (row.status !== 'error') throw new DomainError('NOT_CONFIRMABLE');
+        if (row.confirmed_at) return toCheck(row);
+        const updated = await tx.entity_checks.update({
+          where: { id: row.id, org_id: orgId },
+          data: { confirmed_at: now, confirmed_by_user_id: userId ?? null },
+        });
+        await appendActivity?.(tx, {
+          actorUserId: userId,
+          action: 'entity.profile_confirmed',
+          targetType: 'project',
+          targetId: projectId,
+          summary: `A ${row.platform ?? 'profile'} profile was confirmed by a person`,
+          metadata: { platform: row.platform },
+        });
+        return toCheck(updated);
+      });
+    },
+
+    /** Take a self-confirmation back. Returns whether there was one to remove. */
+    async unconfirmProfile(projectId, subject, { userId } = {}) {
+      return transaction(prisma, async (tx) => {
+        const project = await tx.projects.findFirst({
+          where: { id: projectId, org_id: orgId, deleted_at: null },
+          select: { id: true },
+        });
+        if (!project) throw new DomainError('PROJECT_NOT_IN_ORG');
+        const done = await tx.entity_checks.updateMany({
+          where: {
+            org_id: orgId,
+            project_id: projectId,
+            kind: 'profile',
+            subject: String(subject),
+            confirmed_at: { not: null },
+          },
+          data: { confirmed_at: null, confirmed_by_user_id: null },
+        });
+        if (done.count === 1) {
+          await appendActivity?.(tx, {
+            actorUserId: userId,
+            action: 'entity.profile_unconfirmed',
+            targetType: 'project',
+            targetId: projectId,
+            summary: 'A profile confirmation was taken back',
+          });
+        }
+        return done.count === 1;
+      });
     },
 
     /** Forget the profile checks whose address is no longer in the Brand Kit. Returns how many were removed. */

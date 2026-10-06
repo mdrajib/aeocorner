@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { extractPage } from '../crawler/html.js';
-import { judgeProfile, judgeWikidata, namesAnyOf, verifiedProfileUrls } from './entity-checks.js';
+import {
+  isSelfConfirmed,
+  judgeProfile,
+  judgeWikidata,
+  namesAnyOf,
+  verifiedProfileUrls,
+} from './entity-checks.js';
 
 const NAMES = ['Acme Dental', 'Acme'];
 const URL_ = 'https://www.example-directory.test/acme';
@@ -249,5 +255,23 @@ describe('verifiedProfileUrls', () => {
       { kind: 'wikidata', subject: 'wikidata', status: 'passed' },
     ];
     assert.deepEqual(verifiedProfileUrls(checks), ['https://a.test/1']);
+  });
+
+  test('a profile a person confirmed where we could not look is offered too, but never one we read and found wanting', () => {
+    const at = new Date('2026-10-06T00:00:00Z');
+    const checks = [
+      { kind: 'profile', subject: 'https://a.test/1', status: 'passed' },
+      { kind: 'profile', subject: 'https://a.test/2', status: 'error', confirmedAt: at },
+      { kind: 'profile', subject: 'https://a.test/3', status: 'error', confirmedAt: null },
+      { kind: 'profile', subject: 'https://a.test/4', status: 'failed', confirmedAt: at },
+    ];
+    assert.deepEqual(verifiedProfileUrls(checks), ['https://a.test/1', 'https://a.test/2']);
+    assert.equal(isSelfConfirmed(checks[1]), true);
+    assert.equal(
+      isSelfConfirmed(checks[3]),
+      false,
+      'a page we read decides, not a stale statement',
+    );
+    assert.equal(isSelfConfirmed(undefined), false);
   });
 });

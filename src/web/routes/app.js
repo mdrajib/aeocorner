@@ -60,6 +60,23 @@ const NOTICES = {
     'warning',
     'Some of your questions already exist for that place from an earlier move, so nothing was changed. Archive the old copies or pick another place.',
   ],
+  'profile-confirmed': [
+    'success',
+    'Saved. We show this profile as confirmed by you. It is your statement, not our check, and it is replaced if we can ever read the page.',
+  ],
+  'profile-unconfirmed': ['info', 'Taken back. This profile shows as “Couldn’t check” again.'],
+  'profile-not-listed': [
+    'warning',
+    'That address isn’t one of the profiles in your Brand Kit, so nothing was changed.',
+  ],
+  'profile-not-checked': [
+    'warning',
+    'We haven’t tried this profile yet. Press “Check now”, then confirm it if we couldn’t read it.',
+  ],
+  'profile-read': [
+    'info',
+    'We could read this page, so what we found stands. Nothing was changed.',
+  ],
   'engines-saved': ['success', 'Engines saved. The next check uses them.'],
   'engines-none': ['warning', 'At least one engine has to stay on, so nothing was changed.'],
   'engines-plan': ['warning', 'That engine isn’t part of your plan, so nothing was changed.'],

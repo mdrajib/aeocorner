@@ -36,3 +36,16 @@ Engines name a business when they can tell it from a namesake. The evidence they
 - The checks and the accuracy comparison are deterministic and tested over fixtures; hostile-input tests cover the profile reader (deep nesting, a megabyte word, thousands of links) and the claim reader.
 - A confirmed profile that is later edited to remove the business's name becomes `failed` at the next real check, and the next `sameAs` fix would no longer include it; a `sameAs` already on the site stays until the customer undoes the fix or applies a new one.
 - Not decided here: a person's confirmation of a profile we cannot read, a browser-rendered read of LinkedIn, an `AboutPage` type, and writing anything to another site.
+
+## Addendum 2026-10-06: a person can confirm a profile we are not allowed to read
+
+**Problem.** Some platforms never let our crawler read a profile. LinkedIn's robots.txt allows only its own bot and a short list of approved search engines, so a LinkedIn check ends as "couldn't check" for ever, and the profile can never reach `sameAs`. Other apps get around this by ignoring robots.txt, using a signed-in session or buying data; we obey robots.txt on profile pages (decision above) and will not do any of those.
+
+**Decision.** A person with edit rights can say they opened the profile themselves and it describes the business.
+- It is the customer's statement, stored in its own columns (`confirmed_at`, `confirmed_by_user_id`) and shown as "Confirmed by you". The check's `status` stays what the crawler found; a confirmation is never a `passed`.
+- Allowed only while the latest check is `error`. A page we could read and found wanting (`failed`) is fixed on the page, not confirmed away; a `passed` one needs nothing.
+- Any later real result (`passed` or `failed`) clears it: what we read outranks what a person said. A "couldn't check" keeps it. Changing the profile address starts clean, because the confirmation belongs to the address.
+- A confirmed profile may go into the `sameAs` of the Organization fix (`readiness.D3`). The customer still sees the exact code and approves it before anything is written, so the statement is theirs and reviewed.
+- Written to the activity log (`entity.profile_confirmed`, `entity.profile_unconfirmed`). No foreign key on `confirmed_by_user_id`: it is an audit trail and must outlive a user.
+
+**Cost of being wrong.** A person could confirm a profile that does not name the business. The effect is one extra link in a structured-data block they reviewed, which they can take back at any time. A wrong claim never reaches the numbers: confirmations are not read by any score or recommendation rule.

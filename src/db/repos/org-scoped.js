@@ -363,7 +363,7 @@ export function orgScopedRepos(prisma, orgId) {
     ...contentRepos(prisma, orgId),
     ...autofixRepos(prisma, orgId),
     ...proofShareRepos(prisma, orgId),
-    ...entityRepos(prisma, orgId),
+    ...entityRepos(prisma, orgId, { appendActivity }),
     ...recoveryRepos(prisma, orgId),
     ...autopilotRepos(prisma, orgId, { appendActivity }),
     ...billingRepos(prisma, orgId, { appendActivity }),

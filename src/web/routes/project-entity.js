@@ -1,5 +1,6 @@
 import { emptyBrandKit } from '../../core/brand-kit.js';
 import { entityView } from '../../core/entity-view.js';
+import { DomainError } from '../../db/index.js';
 import { entityCheckJobId, slotOf } from '../../lib/job-ids.js';
 import { notFound } from '../middleware/errors.js';
 import { withNotice } from './project-helpers.js';
@@ -11,12 +12,15 @@ import { withNotice } from './project-helpers.js';
  *
  *   GET  /projects/:pid/entity         the screen (anyone who can see the project)
  *   POST /projects/:pid/entity/check   look at the profiles and Wikidata now (strategy.edit); the same ten minutes is one job
+ *   POST …/entity/confirm | unconfirm  say you checked a profile our crawler could not read yourself, or take that back (strategy.edit)
  *
  * Nothing is posted anywhere and no account is made: the checklists are for the customer to carry out. The profile
  * addresses and facts themselves are edited on the Brand Kit's Entity tab.
  */
 
 const WINDOW_DAYS = 28;
+
+const text = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 export function entityRoutes(router, { appPage, edit, jobs, logger }) {
   router.get('/projects/:pid/entity', async (req, res, next) => {
@@ -45,6 +49,45 @@ export function entityRoutes(router, { appPage, edit, jobs, logger }) {
           description: 'How AI engines can tell your business from a namesake.',
         },
       });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // A person says they looked at a listed profile that our crawler may not read (LinkedIn, most often). Only a profile in
+  // the current Brand Kit can be confirmed, and only while its latest check could not look.
+  router.post('/projects/:pid/entity/confirm', edit, async (req, res, next) => {
+    try {
+      const back = (notice) =>
+        res.redirect(303, withNotice(`${res.locals.projectBase}/entity`, notice));
+      const url = text(req.body.url);
+      const kit = await req.orgDb.brandKits.current(req.project.id);
+      const listed = (kit?.data?.entity?.profiles ?? []).some((p) => p.url === url);
+      if (!listed) return back('profile-not-listed');
+      try {
+        await req.orgDb.entityChecks.confirmProfile(req.project.id, url, { userId: req.user.id });
+      } catch (err) {
+        if (err instanceof DomainError && err.code === 'NOT_FOUND')
+          return back('profile-not-checked');
+        if (err instanceof DomainError && err.code === 'NOT_CONFIRMABLE')
+          return back('profile-read');
+        throw err;
+      }
+      return back('profile-confirmed');
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/projects/:pid/entity/unconfirm', edit, async (req, res, next) => {
+    try {
+      await req.orgDb.entityChecks.unconfirmProfile(req.project.id, text(req.body.url), {
+        userId: req.user.id,
+      });
+      return res.redirect(
+        303,
+        withNotice(`${res.locals.projectBase}/entity`, 'profile-unconfirmed'),
+      );
     } catch (err) {
       next(err);
     }

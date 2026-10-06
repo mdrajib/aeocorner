@@ -148,7 +148,7 @@ export const fingerprint = (jsonld) =>
  * @param {string} [p.domain]      the project's domain, used when there is no `homeUrl`
  * @param {{logoUrl?: string|null, sameAs?: string[]}} [p.extras]  from `parseExtras`
  * @param {{sameAs?: string[], foundingYear?: string}} [p.entity]  for `readiness.D3`: the profile addresses whose check
- *        passed, and the founding year the customer typed. Nothing else is ever put in `sameAs` for that rule
+ *        passed or that a person confirmed where we could not look, and the founding year the customer typed. Nothing else is ever put in `sameAs` for that rule
  * @param {object[]} [p.existingNodes]  the nodes already applied to the home page
  * @returns {{ ok: true, targetUrl, jsonld, node, hash, includes, notIncluded } | { ok: false, reason }}
  */

@@ -638,6 +638,8 @@ model entity_checks {
   http_status Int?                 @db.UnsignedSmallInt
   details     Json?
   checked_at  DateTime
+  confirmed_at         DateTime?
+  confirmed_by_user_id BigInt?               @db.UnsignedBigInt
   created_at  DateTime             @default(now())
   updated_at  DateTime             @default(now())
   projects    projects             @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_entity_checks_project")

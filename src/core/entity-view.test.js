@@ -41,6 +41,33 @@ const view = (over = {}) =>
 describe('a profile row', () => {
   const p = { platform: 'linkedin', url: LI };
 
+  test('a profile we could not read can be confirmed by a person, and says whose statement it is', () => {
+    const blocked = profileRow(p, check(LI, 'error', 'robots'));
+    assert.deepEqual(
+      [blocked.status, blocked.canConfirm, blocked.confirmed],
+      ['Couldn’t check', true, false],
+    );
+    const mine = profileRow(
+      p,
+      check(LI, 'error', 'robots', { confirmedAt: new Date('2026-10-06T00:00:00Z') }),
+    );
+    assert.equal(mine.status, 'Confirmed by you');
+    assert.deepEqual([mine.confirmed, mine.selfConfirmed, mine.canConfirm], [true, true, false]);
+    assert.match(mine.detail, /your statement, not our check/);
+    assert.match(mine.detail, /robots.txt/);
+    // A page we read wins over a statement left from before.
+    const read = profileRow(
+      p,
+      check(LI, 'failed', 'brand_not_named', { confirmedAt: new Date('2026-10-06T00:00:00Z') }),
+    );
+    assert.deepEqual(
+      [read.status, read.selfConfirmed, read.canConfirm],
+      ['Doesn’t name you', false, false],
+    );
+    assert.equal(profileRow(p, check(LI, 'passed', 'names_brand')).canConfirm, false);
+    assert.equal(profileRow(p, undefined).canConfirm, false, 'nothing to confirm before a check');
+  });
+
   test('with no check it is "not checked yet", never a result', () => {
     const r = profileRow(p, undefined);
     assert.deepEqual([r.tone, r.status, r.confirmed], ['unknown', 'Not checked yet', false]);
