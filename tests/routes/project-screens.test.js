@@ -884,6 +884,39 @@ describe('the engines of a project', () => {
     assert.equal((await scoped.projectEngines.list(project.id)).filter((e) => e.enabled).length, 4);
   });
 
+  test('an editor changes where the questions are asked from; a viewer cannot, and nothing leaks across organizations', async () => {
+    const { owner, members, base, scoped, project } = await withProject();
+    const q = await h.fx.prompt(project, { country: 'US' });
+    const page = await owner.get(base).expect(200);
+    assert.match(page.text, /Where we ask from/);
+    assert.match(page.text, /Save location/);
+    assert.match(page.text, /<option value="BD">Bangladesh<\/option>/);
+
+    const saved = await owner
+      .post(`${base}/location`, { country: 'BD', city: 'Dhaka' })
+      .expect(303);
+    assert.match(saved.headers.location, /notice=location-saved$/);
+    const row = await h.fx.projectRow(project.id);
+    assert.deepEqual([row.country, row.city], ['BD', 'Dhaka']);
+    const moved = (await h.fx.prismaPrompts(project.id)).find((p) => p.id === q.id);
+    assert.deepEqual([moved.country, moved.city], ['BD', 'Dhaka']);
+
+    const same = await owner.post(`${base}/location`, { country: 'BD', city: 'Dhaka' }).expect(303);
+    assert.match(same.headers.location, /location-same/);
+    const bad = await owner.post(`${base}/location`, { country: 'ZZ', city: '' }).expect(303);
+    assert.match(bad.headers.location, /location-invalid/);
+    assert.equal((await h.fx.projectRow(project.id)).country, 'BD');
+
+    const view = await members.viewer.get(base).expect(200);
+    assert.doesNotMatch(view.text, /Save location/);
+    await members.viewer.post(`${base}/location`, { country: 'IN', city: '' }).expect(403);
+
+    const theirs = await withProject();
+    await owner.post(`${theirs.base}/location`, { country: 'IN', city: '' }).expect(404);
+    assert.equal((await h.fx.projectRow(theirs.project.id)).country, 'US');
+    void scoped;
+  });
+
   test('another organization’s project cannot have its engines changed', async () => {
     const mine = await withProject();
     const theirs = await withProject();

@@ -1,4 +1,4 @@
-<%# One project's page for now: where it is in setup, its latest check, its engines, and its competitors. Props: entities, engines, countryName, languageName, setupOpen, lastRun, runNow, tracking;
+<%# One project's page for now: where it is in setup, its latest check, its engines, and its competitors. Props: entities, engines, location, countryName, languageName, setupOpen, lastRun, runNow, tracking;
     locals: project, projectBase, orgBase, csrfToken, can. %>
 <%
 const ENGINE_NAMES = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', gemini: 'Gemini', google_aio: 'Google AI Overviews', claude: 'Claude' };
@@ -20,4 +20,5 @@ const canEdit = can('strategy.edit');
   <%- ui.card({ title: 'Competitors', headingLevel: 2, html: ui.fragment('partials/competitor-list', { competitors, suggested, projectBase, csrfToken, canEdit }) }) %>
   <%- ui.card({ title: 'Website ownership', headingLevel: 2, html: ui.fragment('partials/domain-verify-card', { verification, projectBase, csrfToken, canEdit }) }) %>
   <%- ui.card({ title: 'AI engines we check', headingLevel: 2, html: ui.fragment('partials/engine-list', { engines, names: ENGINE_NAMES, canEdit, projectBase, csrfToken }) }) %>
+  <%- ui.card({ title: 'Where we ask from', headingLevel: 2, html: ui.fragment('partials/project-location-card', { location, countryName, canEdit, projectBase, csrfToken }) }) %>
 </div>

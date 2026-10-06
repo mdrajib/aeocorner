@@ -1019,6 +1019,20 @@ describe('projects, engines, competitors and aliases (Milestone 3)', () => {
     const row = await fx.projectRow(bProject.id);
     assert.equal(row.domain_verified_at, null);
   });
+  test('location: A cannot move B’s project or B’s questions to another place', async () => {
+    const before = await fx.projectRow(bProject.id);
+    const bPrompts = await fx.prismaPrompts(bProject.id);
+    await refuses(
+      A.scoped.projects.setLocation(bProject.id, { country: 'BD', city: 'Dhaka' }),
+      'NOT_FOUND',
+    );
+    const after = await fx.projectRow(bProject.id);
+    assert.deepEqual([after.country, after.city], [before.country, before.city]);
+    assert.deepEqual(
+      (await fx.prismaPrompts(bProject.id)).map((p) => [p.id, p.country, p.city]).sort(),
+      bPrompts.map((p) => [p.id, p.country, p.city]).sort(),
+    );
+  });
 });
 
 describe('tracking runs, rollups, changes and quota', () => {
@@ -2234,6 +2248,7 @@ describe('coverage: no repository function without a leak test', () => {
       'getByPublicId',
       'list',
       'markVerified',
+      'setLocation',
       'startTracking',
       'update',
       'verification',

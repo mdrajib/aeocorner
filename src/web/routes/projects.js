@@ -325,6 +325,11 @@ export function projectRoutes({
         },
         tracking: req.project.status === 'active',
         countryName: COUNTRIES[req.project.country] ?? req.project.country,
+        location: {
+          country: req.project.country,
+          city: req.project.city,
+          countries: COUNTRY_OPTIONS,
+        },
         languageName: LANGUAGES[req.project.language] ?? req.project.language,
         meta: {
           title: `${req.project.name} · ${req.org.name} | AEO Corner`,
@@ -437,6 +442,31 @@ export function projectRoutes({
       );
     } catch (err) {
       next(err);
+    }
+  });
+
+  // Where this project's questions are asked from. Moves the project and its questions still in use together.
+  router.post('/projects/:pid/location', edit, async (req, res, next) => {
+    try {
+      const back = (notice) => res.redirect(303, withNotice(res.locals.projectBase, notice));
+      try {
+        const { moved } = await req.orgDb.projects.setLocation(
+          req.project.id,
+          { country: text(req.body.country, 2), city: text(req.body.city, 128) },
+          { actorUserId: req.user.id },
+        );
+        return back(moved ? 'location-saved' : 'location-same');
+      } catch (err) {
+        if (err instanceof DomainError && err.code === 'INVALID_PROJECT') {
+          return back('location-invalid');
+        }
+        if (err instanceof DomainError && err.code === 'LOCATION_CONFLICT') {
+          return back('location-conflict');
+        }
+        throw err;
+      }
+    } catch (err) {
+      return next(err);
     }
   });
 

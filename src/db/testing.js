@@ -142,6 +142,13 @@ export function fixtures(db) {
     /** A project as stored (including deleted_at), to prove another organization could not change it. */
     projectRow: (projectId) => prisma.projects.findUnique({ where: { id: projectId } }),
 
+    /** Every prompt of a project as stored (any status), to check where each is asked from. */
+    prismaPrompts: (projectId) => prisma.prompts.findMany({ where: { project_id: projectId } }),
+
+    /** Put a test prompt at a city and status directly (the fixture makes it active, with no city). */
+    setPromptPlace: (promptId, { city = '', status = 'active' } = {}) =>
+      prisma.prompts.update({ where: { id: promptId }, data: { city, status } }),
+
     /** Hand an audit to an organization, as signing up from its report will. */
     claimAudit: (auditId, orgId) =>
       prisma.audits.update({ where: { id: auditId }, data: { org_id: orgId } }),

@@ -1,0 +1,14 @@
+<%# Where a project's questions are asked from. Props: location ({ country, city, countries }), countryName; optional: canEdit, projectBase, csrfToken (editors get the form). Changing it moves the project and its questions still in use; archived questions keep their old place. %>
+<% if (locals.canEdit) { %>
+<form method="post" action="<%= projectBase %>/location" class="flex flex-col gap-3" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="grid gap-4 sm:grid-cols-2">
+    <%- ui.field({ id: 'location-country', name: 'country', label: 'Country', type: 'select', required: true, options: location.countries, value: location.country }) %>
+    <%- ui.field({ id: 'location-city', name: 'city', label: 'City', value: location.city, autocomplete: 'off', hint: 'Leave empty if you serve the whole country.' }) %>
+  </div>
+  <p class="text-ink-600 text-sm">Your questions are asked from here. Changing it moves every question still in use, starting with the next check. Earlier answers keep the place they were asked from, so a trend may step at the change.</p>
+  <div><%- ui.button({ label: 'Save location', type: 'submit', variant: 'secondary', size: 'sm' }) %></div>
+</form>
+<% } else { %>
+<p><%= countryName %><%= location.city ? ' · ' + location.city : '' %></p>
+<% } %>

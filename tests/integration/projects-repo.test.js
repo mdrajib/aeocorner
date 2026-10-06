@@ -501,3 +501,64 @@ describe('proving the site is theirs', () => {
     );
   });
 });
+
+describe('moving a project to another country and city', () => {
+  const place = async (id) => {
+    const rows = await fx.prismaPrompts(id);
+    return rows.map((r) => `${r.status}:${r.country}/${r.city}`).sort();
+  };
+
+  test('moves the project and every question still in use, and leaves archived ones where they were asked', async () => {
+    const p = await A.scoped.projects.create(input({ country: 'IN', city: 'Kolkata' }));
+    const live = await fx.prompt(p, { country: 'IN' });
+    await fx.setPromptPlace(live.id, { city: 'Kolkata' });
+    const paused = await fx.prompt(p, { country: 'IN' });
+    await fx.setPromptPlace(paused.id, { city: 'Kolkata', status: 'paused' });
+    const old = await fx.prompt(p, { country: 'IN' });
+    await fx.setPromptPlace(old.id, { city: 'Kolkata', status: 'archived' });
+
+    const { project, moved } = await A.scoped.projects.setLocation(
+      p.id,
+      { country: 'bd', city: 'Dhaka' },
+      { actorUserId: A.owner.id },
+    );
+    assert.equal(moved, 2);
+    assert.deepEqual([project.country, project.city], ['BD', 'Dhaka']);
+    assert.deepEqual(await place(p.id), [
+      'active:BD/Dhaka',
+      'archived:IN/Kolkata',
+      'paused:BD/Dhaka',
+    ]);
+    const log = await A.scoped.activity.recent({ limit: 50 });
+    assert.equal(
+      log.filter((l) => l.action === 'project.location_changed' && l.target_id === p.id).length,
+      1,
+    );
+  });
+
+  test('an unchanged place changes nothing, and an empty city is allowed', async () => {
+    const p = await A.scoped.projects.create(input({ country: 'IN', city: 'Pune' }));
+    const same = await A.scoped.projects.setLocation(p.id, { country: 'IN', city: 'Pune' });
+    assert.equal(same.moved, 0);
+    const whole = await A.scoped.projects.setLocation(p.id, { country: 'IN', city: '' });
+    assert.equal(whole.project.city, '');
+  });
+
+  test('refuses a country we cannot ask from, and a move that would collide with an earlier copy', async () => {
+    const p = await A.scoped.projects.create(input({ country: 'IN', city: 'Kolkata' }));
+    await refuses(A.scoped.projects.setLocation(p.id, { country: 'ZZ' }), 'INVALID_PROJECT');
+    await refuses(A.scoped.projects.setLocation(p.id, {}), 'INVALID_PROJECT');
+
+    const text = `Which tool is best for ${n++} invoices?`;
+    const mine = await fx.prompt(p, { text, country: 'IN' });
+    await fx.setPromptPlace(mine.id, { city: 'Kolkata' });
+    const earlier = await fx.prompt(p, { text, country: 'BD' });
+    await fx.setPromptPlace(earlier.id, { city: 'Dhaka', status: 'archived' });
+    await refuses(
+      A.scoped.projects.setLocation(p.id, { country: 'BD', city: 'Dhaka' }),
+      'LOCATION_CONFLICT',
+    );
+    assert.deepEqual(await place(p.id), ['active:IN/Kolkata', 'archived:BD/Dhaka']);
+    assert.equal((await A.scoped.projects.get(p.id)).country, 'IN');
+  });
+});

@@ -50,6 +50,16 @@ const NOTICES = {
     'success',
     'Your website is verified. We now follow your own instructions, not its robots.txt, when we check it for you.',
   ],
+  'location-saved': [
+    'success',
+    'Location changed. Your questions now ask from there, starting with the next check. Earlier answers keep their old place.',
+  ],
+  'location-same': ['info', 'That is already the project’s location, so nothing was changed.'],
+  'location-invalid': ['danger', 'Choose a country from the list, so nothing was changed.'],
+  'location-conflict': [
+    'warning',
+    'Some of your questions already exist for that place from an earlier move, so nothing was changed. Archive the old copies or pick another place.',
+  ],
   'engines-saved': ['success', 'Engines saved. The next check uses them.'],
   'engines-none': ['warning', 'At least one engine has to stay on, so nothing was changed.'],
   'engines-plan': ['warning', 'That engine isn’t part of your plan, so nothing was changed.'],

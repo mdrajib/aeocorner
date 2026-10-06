@@ -277,6 +277,72 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
     },
 
     /**
+     * Move a project, and every question that is still in use, to another country and city. A question carries the
+     * place it is asked from, so changing only the project would leave the next check asking from the old one.
+     * Archived questions stay where they were asked (they are history, and their answers belong to that place).
+     * A question whose text already exists at the new place (from an earlier move) cannot move: the whole change is
+     * refused with LOCATION_CONFLICT and nothing is changed. Returns `{ project, moved }`.
+     */
+    async setLocation(projectId, { country, city = '' }, { actorUserId } = {}) {
+      const checked = checkProjectFields({ country: country ?? '', city }, { partial: true });
+      if (!checked.ok) throw new DomainError('INVALID_PROJECT', JSON.stringify(checked.errors));
+      const next = { country: checked.value.country, city: checked.value.city ?? '' };
+      return transaction(prisma, async (tx) => {
+        const project = await ownProject(tx, projectId);
+        if (project.country === next.country && project.city === next.city) {
+          return { project, moved: 0 };
+        }
+        const live = await tx.prompts.findMany({
+          where: {
+            project_id: project.id,
+            org_id: orgId,
+            status: { in: ['active', 'paused'] },
+          },
+          select: { id: true, language: true, text_hash: true },
+        });
+        if (live.length) {
+          const clash = await tx.prompts.findFirst({
+            where: {
+              project_id: project.id,
+              org_id: orgId,
+              country: next.country,
+              city: next.city,
+              id: { notIn: live.map((p) => p.id) },
+              OR: live.map((p) => ({ language: p.language, text_hash: p.text_hash })),
+            },
+            select: { id: true },
+          });
+          if (clash) throw new DomainError('LOCATION_CONFLICT');
+        }
+        const moved = await tx.prompts.updateMany({
+          where: {
+            project_id: project.id,
+            org_id: orgId,
+            status: { in: ['active', 'paused'] },
+          },
+          data: next,
+        });
+        const updated = await tx.projects.update({
+          where: { id: project.id, org_id: orgId },
+          data: next,
+        });
+        await appendActivity(tx, {
+          actorUserId,
+          action: 'project.location_changed',
+          targetType: 'project',
+          targetId: project.id,
+          summary: `Project ${updated.name} moved to ${next.city ? `${next.city}, ` : ''}${next.country}`,
+          metadata: {
+            from: { country: project.country, city: project.city },
+            to: next,
+            questions: moved.count,
+          },
+        });
+        return { project: updated, moved: moved.count };
+      });
+    },
+
+    /**
      * What the customer needs to prove they own the site, and whether they have: `{ token, verifiedAt, method }`.
      * A project made before verification existed gets its token the first time it is asked for.
      */
