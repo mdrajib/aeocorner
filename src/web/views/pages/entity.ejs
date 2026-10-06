@@ -94,6 +94,19 @@ const t = view.tiles;
       <div class="card-body flex flex-col gap-3 border-ink-200 border-t">
         <p class="text-ink-700 text-sm"><%= c.intro %></p>
         <% if (c.start) { %><p class="text-sm"><a href="<%= c.start %>" rel="noopener noreferrer">Where to start</a></p><% } %>
+        <% if (c.suggestions.length) { %>
+        <div>
+          <h4 class="text-base font-semibold">Directories to try</h4>
+          <ul class="mt-2 flex flex-col gap-2">
+            <% for (const s of c.suggestions) { %>
+            <li class="flex flex-col gap-1 text-sm">
+              <span class="flex flex-wrap items-center gap-2"><a class="font-medium" href="<%= s.url %>" rel="noopener noreferrer nofollow"><%= s.name %></a> <%- ui.badge({ text: s.scope === 'local' ? 'Local' : 'Worldwide', tone: s.scope === 'local' ? 'info' : 'neutral' }) %> <span class="text-ink-600 text-xs"><%= s.kindLabel %></span></span>
+              <span class="text-ink-700"><%= s.about %></span>
+            </li>
+            <% } %>
+          </ul>
+        </div>
+        <% } %>
         <ol class="list-decimal pl-5 text-sm">
           <% for (const step of c.steps) { %><li class="mt-1"><%= step %></li><% } %>
         </ol>

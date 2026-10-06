@@ -153,7 +153,7 @@ export function factRows(accuracy) {
  * @param {{claims, answersRead}} p.said   `entityChecks.accuracyInputs()`
  * @param {string} p.domain
  */
-export function entityView({ kit, checks, said, domain }) {
+export function entityView({ kit, checks, said, domain, country = '' }) {
   const listed = kit?.entity?.profiles ?? [];
   const byUrl = new Map(checks.filter((c) => c.kind === 'profile').map((c) => [c.subject, c]));
   const profiles = listed.map((p) => profileRow(p, byUrl.get(p.url)));
@@ -187,7 +187,7 @@ export function entityView({ kit, checks, said, domain }) {
     facts,
     answersRead: accuracy.answersRead,
     missing,
-    checklists: kit ? checklists(kit, { domain }) : [],
+    checklists: kit ? checklists(kit, { domain, country }) : [],
     tiles: {
       // With nothing listed or nothing looked at there is no figure: "couldn't check", never 0.
       profiles:

@@ -66,6 +66,23 @@ describe('the screen', () => {
     assert.doesNotMatch(page.text, /undefined|NaN/);
   });
 
+  test('the trade directory list names places for the project’s country, at least one, and moves with the country', async () => {
+    const ctx = await world();
+    const us = await ctx.owner.get(`${ctx.base}/entity`).expect(200);
+    assert.match(us.text, /Directories to try/);
+    assert.match(us.text, /Bing Places for Business/);
+    assert.match(us.text, /Worldwide/);
+    assert.doesNotMatch(us.text, /Bangladesh\.com Business Directory/);
+
+    await ctx.scoped.projects.setLocation(ctx.project.id, { country: 'BD', city: 'Dhaka' });
+    const bd = await ctx.owner.get(`${ctx.base}/entity`).expect(200);
+    assert.match(bd.text, /KhojKorun/);
+    assert.match(bd.text, /Bangladesh\.com Business Directory/);
+    assert.match(bd.text, /Local/);
+    assert.match(bd.text, /last checked 2026-10-06/);
+    assert.doesNotMatch(bd.text, /undefined|NaN/);
+  });
+
   test('shows each result in words: confirmed, does not name you, and could not check', async () => {
     const ctx = await world();
     const current = await ctx.scoped.brandKits.current(ctx.project.id);

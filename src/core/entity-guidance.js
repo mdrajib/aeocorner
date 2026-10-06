@@ -1,4 +1,5 @@
 import { platformLabel } from './entity-profiles.js';
+import { DIRECTORIES_CHECKED_ON, suggestDirectories } from './trade-directories.js';
 
 /**
  * Fill-in-the-blank guidance for the profiles AEO Corner cannot touch (Milestone 12, task 12.07): the steps to take and
@@ -184,13 +185,19 @@ const BUILDERS = {
     };
   },
 
-  directory(f) {
+  directory(f, { country } = {}) {
+    const suggestions = suggestDirectories({
+      country,
+      category: f.category,
+      definition: f.description,
+    });
     return {
       intro:
         'A trade or local directory that serves your industry repeats your name, address and website. The more places agree, the more sure an engine can be about who you are.',
       start: null,
+      suggestions,
       steps: [
-        'Pick one or two directories people in your trade actually use (a professional body’s member list, a local chamber of commerce).',
+        'Start with the directories suggested below, the ones that fit your country and your kind of business. Read each one’s own terms and fees before you apply.',
         'Fill in the fields below exactly as they are written, so every listing matches your website.',
         'Put each listing’s address in your Brand Kit (Entity tab) so we can check it names you.',
       ],
@@ -201,7 +208,9 @@ const BUILDERS = {
         f.location && field('Location', f.location),
         f.founded && field('Year founded', f.founded),
       ],
-      notes: [],
+      notes: [
+        `Suggestions come from a list we review by hand (last checked ${DIRECTORIES_CHECKED_ON}). They are not endorsements, and we cannot apply for you.`,
+      ],
     };
   },
 };
@@ -210,12 +219,13 @@ const BUILDERS = {
  * The checklist for one platform, from the Brand Kit.
  * @returns {{ platform, label, intro, start, steps, fields: {label,value,hint}[], notes, missing: {what, where}[], checkedOn }}
  */
-export function checklistFor(platform, kit, { domain }) {
+export function checklistFor(platform, kit, { domain, country = '' }) {
   const build = BUILDERS[platform];
   if (!build) throw new RangeError(`No checklist for ${platform}`);
   const facts = profileFacts(kit, { domain });
-  const built = build(facts);
+  const built = build(facts, { country });
   return {
+    suggestions: [],
     platform,
     label: platform === 'directory' ? 'A trade directory' : platformLabel(platform),
     ...built,
@@ -226,10 +236,10 @@ export function checklistFor(platform, kit, { domain }) {
 }
 
 /** Every checklist, marking the ones the customer already has a profile for (a listed address on that platform). */
-export function checklists(kit, { domain }) {
+export function checklists(kit, { domain, country = '' }) {
   const have = new Set((kit?.entity?.profiles ?? []).map((p) => p.platform));
   return CHECKLIST_PLATFORMS.map((platform) => ({
-    ...checklistFor(platform, kit, { domain }),
+    ...checklistFor(platform, kit, { domain, country }),
     listed: platform === 'wikidata' ? Boolean(kit?.entity?.wikidataId) : have.has(platform),
   }));
 }

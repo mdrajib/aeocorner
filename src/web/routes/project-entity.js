@@ -34,6 +34,7 @@ export function entityRoutes(router, { appPage, edit, jobs, logger }) {
         checks,
         said,
         domain: req.project.domain ?? '',
+        country: req.project.country,
       });
       appPage(res, 'entity', {
         domain: req.project.domain ?? '',

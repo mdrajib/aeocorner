@@ -39,6 +39,17 @@ describe('checklistFor', () => {
     }
   });
 
+  test('only the trade directory checklist carries suggestions, from the project’s country', () => {
+    for (const p of CHECKLIST_PLATFORMS.filter((x) => x !== 'directory')) {
+      assert.deepEqual(checklistFor(p, kit(), { domain, country: 'BD' }).suggestions, [], p);
+    }
+    const bd = checklistFor('directory', kit(), { domain, country: 'BD' });
+    assert.ok(bd.suggestions.length >= 1 && bd.suggestions.length <= 3);
+    assert.ok(bd.suggestions.every((s) => s.scope === 'local'));
+    const none = checklistFor('directory', kit(), { domain });
+    assert.ok(none.suggestions.length >= 1, 'no country still gets a worldwide place');
+  });
+
   test('the website is the project’s domain without www', () => {
     const c = checklistFor('linkedin', kit(), { domain });
     assert.equal(c.fields.find((f) => f.label === 'Website').value, 'https://datadental.test/');
