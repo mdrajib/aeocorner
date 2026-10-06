@@ -51,3 +51,6 @@ tests/fixtures/engines/recorded/
 
 # The extraction eval's cached Claude replies (re-created by `npm run eval:extraction`)
 evals/extraction/.cache/
+
+# Scratch note: Google tag for another site
+docs/google-tag.txt
