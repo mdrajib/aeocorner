@@ -214,6 +214,6 @@ The worker runs these on a schedule: `billing.reconcile` (05:15 UTC), `billing.r
 | Gap | Why | When |
 |---|---|---|
 | GitHub Actions deploy workflow | Written when staging exists, from the manual steps above | Task 2.09 |
-| Backups restore drill | The managed database backs up daily; a restore has not been tried | Milestone 10 |
+| Backups restore drill | The managed database backs up daily; the drill is written ([RUNBOOK_RESTORE_DRILL.md](RUNBOOK_RESTORE_DRILL.md)) but a restore has not been tried on a real cluster | Before launch |
 | Log shipping and uptime checks | DigitalOcean Monitoring and an uptime check on `/healthz` are set in the console, not in code | Task 2.09 |
 | Scaling the worker to its own Droplet | Not needed until CPU or memory stays above 70% ([MVP §7.11](MVP.md#711-digitalocean-deployment-topology)) | When it happens |

@@ -129,7 +129,7 @@ S1, always, even if it looks like a mistake.
 
 ### 5.7 Data lost or damaged: the database
 
-The managed database backs up daily and can restore to a point in time. **A restore has not been drilled** ([RUNBOOK_PROVISIONING §12](RUNBOOK_PROVISIONING.md)): do the first one on a throwaway cluster before you need it. In a real loss: restore to a *new* database, check it with `docs/db/checks.sql` (every query must return zero rows), then point `DATABASE_URL` at it and reload. Raw pages and answers are in Spaces under content-addressed keys, so extraction can be re-run from them for any gap.
+The managed database backs up daily and can restore to a point in time. **A restore has not been drilled yet**: the drill and the recovery order are in [RUNBOOK_RESTORE_DRILL.md](RUNBOOK_RESTORE_DRILL.md) (do the first drill on a throwaway cluster before you need it). In a real loss: stop the worker and set maintenance mode, restore to a *new* cluster, check it with `npm run restore:check` (it runs `docs/db/checks.sql`, every query must return zero rows, and compares tables and migrations), then point `DATABASE_URL` at it and reload. Raw pages and answers are in Spaces under content-addressed keys, so extraction can be re-run from them for any gap.
 
 ## 6. Telling customers
 
@@ -164,5 +164,5 @@ A follow-up that changes a rule updates the affected doc in the same pass (the C
 | No status page, announcement banner UI or customer-detail screen (the `announcements` table exists) | Use the maintenance page and email the owners from the team's address | When the first S2 reaches customers |
 | No loop that re-wraps stored secrets after a master-key change | The old master key must be kept | Before the first rotation |
 | The purge's two outside steps have only run against stand-ins: the Spaces delete and Clerk's `users.deleteUser` have not been seen on the real services | A failing step stops the purge before any row is deleted, and the nightly sweep retries it; the error is in the worker log ("Purging a closed organization failed") | Watch the first real purge; check a closed test account is gone from Clerk and its files from the bucket |
-| A database restore has not been drilled | Unknown restore time | Before launch, on a throwaway cluster |
+| A database restore has not been drilled ([RUNBOOK_RESTORE_DRILL.md](RUNBOOK_RESTORE_DRILL.md) is written and its checker is tested locally, not on a DigitalOcean restore) | Unknown restore time and data loss | Before launch, on a throwaway cluster |
 | Redis loss leaves free audits `queued` | A person re-queues them | If it ever happens |

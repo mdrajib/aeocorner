@@ -40,6 +40,7 @@
     "eval:extraction": "node scripts/eval-extraction.js",
     "eval:narrative": "node scripts/eval-narrative.js",
     "cost:report": "node scripts/cost-report.js",
+    "restore:check": "node scripts/restore-check.js",
     "load:audits": "node scripts/load-audits.js",
     "start": "node src/web/server.js",
     "stripe:sync": "node scripts/stripe-sync-plans.js"

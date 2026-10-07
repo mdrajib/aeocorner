@@ -27,6 +27,7 @@ A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perpl
 | `docs/db/schema.sql` | DDL: 72 tables, 120 foreign keys, 25 CHECKs. A readable snapshot of Prisma migration `0001_init` plus later migrations (`0003` to `0010`) |
 | `docs/db/seed_reference.sql` | Idempotent reference data (plans, engines, providers, seed domains). Currently an identical copy of migration `0002_reference_data` |
 | `docs/db/checks.sql` | CI guard rails. Every query must return zero rows |
+| `docs/RUNBOOK_RESTORE_DRILL.md` | The database restore drill (restore to a new cluster, `npm run restore:check`, destroy it), the order for a real recovery, and the log of drills. Written 2026-10-07, never run on a real cluster |
 | `docs/adr/` | Architecture Decision Records — one-way-door technical decisions and why, written as they happen (not planned per phase) |
 
 Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there; they aren't repeated here.
@@ -345,4 +346,4 @@ The dev machine runs Windows 11. MySQL is a native Windows install, not Docker. 
 - **The subprocessor list is `src/core/subprocessors.js`** (privacy page, `/subprocessors`, `/dpa`). `tests/routes/subprocessors.test.js` compares it with the config's environment variables, `package.json`, provider hosts and the `providers` seed: wiring a new vendor fails it until the list says so. The three pages are drafts for counsel.
 - **`npm run test:journey`** (`tests/journey/`, own CI step, never beside the route tests: it sets the plans' Stripe prices) drives a new customer from the free audit to a done recommendation through the real web app and worker.
 - **Cost measurement:** `npm run cost:report -- --since <time>` (cost per prompt-run and per audit against $0.12 and $0.75, `src/core/unit-cost.js`); `npm run load:audits` and `tests/load/` are the staging-only load test, **not yet run**. A prompt-run is about $0.16 with Opus 5.5, so the $0.12 target and decision D4 are in conflict until the founder chooses.
-- **Known open before launch:** the purge's Spaces and Clerk deletes have only run against stand-ins (see "Purge" in `docs/RUNBOOK_INCIDENTS.md`); a database restore has not been drilled; the design-partner polish (10.08) waits for partners.
+- **Known open before launch:** the purge's Spaces and Clerk deletes have only run against stand-ins (see "Purge" in `docs/RUNBOOK_INCIDENTS.md`); a database restore has not been drilled (`docs/RUNBOOK_RESTORE_DRILL.md`; `npm run restore:check` judges a restored copy, read only, and refuses to treat `DATABASE_URL` as the copy); the design-partner polish (10.08) waits for partners.

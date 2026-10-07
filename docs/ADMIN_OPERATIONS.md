@@ -138,7 +138,7 @@ flowchart TD
 | | Digest and email delivery rates (bounces, spam complaints) | On-call | 10 min |
 | **Monthly** | Margin by plan vs. the 70% target (MVP §12) | Finance | 1 h |
 | | Reconcile provider invoices against `usage_ledger` (difference should be under 5%) | Finance | 1 h |
-| | **Database restore drill** (point-in-time restore to a scratch database, check row counts) | Tech lead | 1 h |
+| | **Database restore drill** ([RUNBOOK_RESTORE_DRILL.md](RUNBOOK_RESTORE_DRILL.md): restore to a new cluster, `npm run restore:check`, destroy it) | Tech lead | 1 h |
 | | Dependency and security updates; review Sentry's top errors | Engineers | 2 h |
 | | Clean up feature flags (remove flags fully rolled out for 30+ days) | Tech lead | 30 min |
 | | Staff access review (who has which role; remove leavers) | Super admin | 15 min |
