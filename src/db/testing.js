@@ -82,6 +82,25 @@ export function fixtures(db) {
       return { user, membership };
     },
 
+    /**
+     * An hour of the week (100-160) in which no active project of any organization is scheduled, nor in the three
+     * hours before or the hour after it: a scheduler test that counts the projects due needs hours of its own, and the
+     * test database also holds whatever other test runs (the browser tests' seeded projects, for one) left behind.
+     */
+    async quietHour() {
+      const rows = await prisma.projects.findMany({
+        where: { status: 'active', deleted_at: null },
+        select: { weekly_slot_hour: true },
+        distinct: ['weekly_slot_hour'],
+      });
+      const busy = new Set(rows.map((r) => r.weekly_slot_hour));
+      for (let hour = 100; hour <= 160; hour += 1) {
+        const window = [hour - 3, hour - 2, hour - 1, hour, hour + 1];
+        if (!window.some((h) => busy.has(h))) return hour;
+      }
+      throw new Error('No quiet hour of the week is free in the test database');
+    },
+
     async project(orgId, name = `Project ${unique()}`, { status, slotHour = 1 } = {}) {
       return prisma.projects.create({
         data: {

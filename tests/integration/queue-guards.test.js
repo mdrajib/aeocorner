@@ -482,11 +482,17 @@ describe('provider health and the circuit breaker', () => {
 });
 
 describe('the hourly scheduler', () => {
-  // Sunday 05:30 UTC, ISO week 40 of 2026: hour of the week 149. Nothing else in the test database is
-  // scheduled for that hour.
-  const at = new Date('2026-10-04T05:30:00Z');
-  const HOUR = hourOfWeek(at);
-  const WEEK = isoWeekKey(at);
+  // Half past an hour of ISO week 40 of 2026 (Monday 28 September) that nothing else in the test database is
+  // scheduled for: other test runs leave active projects behind, and the tick counts every project that is due.
+  let at;
+  let HOUR;
+  let WEEK;
+  before(async () => {
+    const hour = await fx.quietHour();
+    at = new Date(Date.UTC(2026, 8, 28) + hour * 3_600_000 + 30 * 60_000);
+    HOUR = hourOfWeek(at);
+    WEEK = isoWeekKey(at);
+  });
 
   test('starts each due project once per week, however many times the tick fires', async () => {
     const started = [];
