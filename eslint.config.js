@@ -8,6 +8,7 @@ const browserGlobals = {
   setTimeout: 'readonly',
   CustomEvent: 'readonly',
   HTMLDialogElement: 'readonly',
+  HTMLFormElement: 'readonly',
   Event: 'readonly',
 };
 
