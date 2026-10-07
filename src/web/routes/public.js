@@ -96,6 +96,22 @@ function specificJsonLd(page, config, { pricing = null, faq = [] }) {
       out.push(faqLd(faq));
       return out;
     }
+    case 'tool':
+      return [
+        {
+          '@context': CONTEXT,
+          '@type': 'WebApplication',
+          name: page.crumb,
+          description: page.description,
+          url: `${config.baseUrl}${page.path}`,
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Any',
+          browserRequirements: 'Requires a web browser',
+          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+          provider: organizationRef(config),
+        },
+        ...(faq.length ? [faqLd(faq)] : []),
+      ];
     default:
       return [];
   }
@@ -138,6 +154,7 @@ const HAS_OWN_AUDIT_FORM = new Set(['product', 'agencies']);
 export function publicRoutes(config, { db = null, logger = null } = {}) {
   const router = Router();
   for (const page of publicPages) {
+    if (page.own) continue; // served by its own router (the free tools: routes/tools.js)
     router.get(page.path, async (req, res, next) => {
       try {
         const data = await pageData(page, { db, logger });

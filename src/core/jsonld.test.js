@@ -358,3 +358,109 @@ test('any other founding date is refused, with a message that names both forms',
     assert.match(r.errors[0].message, /year such as 2014/);
   }
 });
+
+// Lenient mode is for markup somebody else wrote (the free structured-data tool, Milestone 17). Our own markup is
+// always checked strictly: every earlier test in this file runs without the option.
+const lenient = (doc) => validateJsonLd(doc, { lenient: true });
+
+test('lenient: a type outside our vocabulary is listed as unchecked, never as an error', () => {
+  const r = lenient({ ...ctx, '@type': 'Recipe', name: 'Pancakes' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.unchecked, [{ path: '$.@type', kind: 'type', name: 'Recipe' }]);
+  assert.equal(
+    validateJsonLd({ ...ctx, '@type': 'Recipe', name: 'Pancakes' }).ok,
+    false,
+    'strict still refuses it',
+  );
+});
+
+test('lenient: a property we do not know is unchecked, and a wrong value is still an error', () => {
+  const r = lenient({
+    ...ctx,
+    '@type': 'Organization',
+    name: 'Acme',
+    url: 'https://acme.test',
+    hasMap: 'https://maps.test/x',
+    foundingDate: 'last year',
+  });
+  assert.deepEqual(
+    r.unchecked.map((u) => [u.kind, u.name, u.owner]),
+    [['property', 'hasMap', 'Organization']],
+  );
+  assert.equal(r.ok, false);
+  assert.ok(
+    r.errors.some((e) => e.path === '$.foundingDate'),
+    'the bad date is an error',
+  );
+});
+
+test('lenient: several types on one node are read by the first one we know', () => {
+  const r = lenient({
+    ...ctx,
+    '@type': ['LocalBusiness', 'Dentist'],
+    name: 'Data Dental',
+    url: 'https://dd.test',
+  });
+  assert.equal(r.errors.length, 0);
+  assert.ok(r.types.includes('LocalBusiness'));
+  assert.equal(
+    validateJsonLd({ ...ctx, '@type': ['LocalBusiness', 'Dentist'], name: 'X' }).ok,
+    false,
+  );
+});
+
+test('lenient: a missing property we expect is a suggestion, and a missing @context is still an error', () => {
+  const r = lenient({ ...ctx, '@type': 'Organization' });
+  assert.equal(r.errors.length, 0);
+  assert.ok(r.warnings.some((w) => /normally has name/.test(w.message)));
+  const noContext = lenient({ '@type': 'Organization', name: 'Acme' });
+  assert.ok(noContext.errors.some((e) => /@context is missing/.test(e.message)));
+});
+
+test('lenient: other keywords are unchecked, and the structure rules still hold', () => {
+  const r = lenient({ ...ctx, '@type': 'Organization', name: 'Acme', '@language': 'en' });
+  assert.deepEqual(
+    r.unchecked.map((u) => u.name),
+    ['@language'],
+  );
+  assert.equal(lenient('not json').ok, false);
+  assert.equal(lenient(42).ok, false);
+  assert.equal(lenient([]).ok, false);
+});
+
+test('lenient: hostile input stays inside the caps (too many parts, too deep)', () => {
+  const many = {
+    ...ctx,
+    '@graph': Array.from({ length: 5000 }, (_, i) => ({ '@type': 'Thing', name: `n${i}` })),
+  };
+  const r = lenient(many);
+  assert.ok(r.errors.some((e) => /too many parts/.test(e.message)));
+  let deep = { '@type': 'Organization', name: 'x' };
+  for (let i = 0; i < 50_000; i += 1)
+    deep = { '@type': 'Organization', name: 'x', parentOrganization: deep };
+  assert.ok(
+    lenient({ ...ctx, ...deep }).errors.some((e) =>
+      /nested too deeply|too many parts/.test(e.message),
+    ),
+  );
+});
+
+test('WebApplication: a free tool page validates, and it needs a name', () => {
+  const app = {
+    ...ctx,
+    '@type': 'WebApplication',
+    name: 'Robots.txt checker',
+    description: 'Checks robots.txt for AI crawlers.',
+    url: 'https://aeocorner.com/tools/robots-txt-checker',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Any',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  };
+  assert.equal(validateJsonLd(app).ok, true);
+  assert.ok(errorsOf({ ...app, name: undefined }).some((e) => /needs name/.test(e)));
+  assert.ok(
+    errorsOf({ ...app, offers: { '@type': 'Offer', price: '0' } }).some((e) =>
+      /needs a currency/.test(e),
+    ),
+  );
+});

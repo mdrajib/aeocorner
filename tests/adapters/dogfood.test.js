@@ -132,8 +132,8 @@ describe('our own site, production configuration, read by our own crawler', () =
     assert.equal(check('E4').status, 'pass');
   });
 
-  test('the score does not slip: 85 or more (it was 90 on 2026-10-04)', () => {
-    assert.ok(result.readinessScore >= 85, `readiness ${result.readinessScore}`);
+  test('the score does not slip: 90 or more (the free tools of Milestone 17 are in the sitemap too)', () => {
+    assert.ok(result.readinessScore >= 90, `readiness ${result.readinessScore}`);
   });
 
   test('the key pages are indexable', () => {

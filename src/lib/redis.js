@@ -36,6 +36,7 @@ export function redisKeys(prefix) {
     healthIndex: () => `${prefix}:health:pairs`,
     breaker: (provider, engine) => `${prefix}:breaker:${part(provider)}:${part(engine || '-')}`,
     auditLimit: (kind, id, day) => `${prefix}:audit-limit:${part(kind)}:${part(id)}:${day}`,
+    toolLimit: (name, id, slot) => `${prefix}:tool-limit:${part(name)}:${part(id)}:${slot}`,
     otp: (auditId) => `${prefix}:otp:${part(auditId)}`,
     otpSends: (auditId) => `${prefix}:otp:${part(auditId)}:sends`,
     otpCooldown: (auditId) => `${prefix}:otp:${part(auditId)}:cooldown`,

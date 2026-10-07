@@ -237,8 +237,13 @@ const schemaType = (t) =>
     .replace(/^https?:\/\/schema\.org\//i, '')
     .trim();
 
-function readJsonLd($) {
+/**
+ * The JSON-LD blocks of a page. With `keep` the parsed blocks (`docs`) and what was wrong with the others (`problems`)
+ * are returned too, for the free structured-data tool; a scan does not keep them, so stored page facts stay small.
+ */
+function readJsonLd($, { keep = false } = {}) {
   const out = { blocks: 0, parseErrors: 0, oversize: 0, nodes: [], types: [] };
+  if (keep) Object.assign(out, { docs: [], problems: [] });
   const seenTypes = new Set();
   $('script[type]').each((_, el) => {
     if (!/^application\/ld\+json\b/i.test(el.attribs.type ?? '')) return;
@@ -247,6 +252,7 @@ function readJsonLd($) {
     const raw = $(el).text().trim();
     if (raw.length > LIMITS.jsonLdBlockChars) {
       out.oversize += 1;
+      if (keep) out.problems.push({ block: out.blocks, problem: 'too_large' });
       return;
     }
     let data;
@@ -259,8 +265,10 @@ function readJsonLd($) {
       );
     } catch {
       out.parseErrors += 1;
+      if (keep) out.problems.push({ block: out.blocks, problem: 'invalid_json' });
       return;
     }
+    if (keep) out.docs.push({ block: out.blocks, data });
     // Flatten arrays and @graph into one list of nodes (iteratively; the data is untrusted).
     const pending = [data];
     while (pending.length) {
@@ -282,6 +290,17 @@ function readJsonLd($) {
     }
   });
   return out;
+}
+
+/**
+ * Every JSON-LD block in some HTML, parsed, with the same limits as a scan (blocks, size, nesting). For the free
+ * structured-data tool: `{ blocks, docs: [{ block, data }], problems: [{ block, problem }], tooDeep }`.
+ */
+export function readJsonLdBlocks(html) {
+  const tooDeep = nestsDeeperThan(html);
+  const $ = cheerio.load(tooDeep ? '' : String(html));
+  const { blocks, docs, problems } = readJsonLd($, { keep: true });
+  return { blocks, docs, problems, tooDeep };
 }
 
 function resolveHref(href, base) {

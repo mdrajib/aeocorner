@@ -3,6 +3,7 @@ import { after, describe, test } from 'node:test';
 import request from 'supertest';
 import { MONEY_BACK_DAYS, TRIAL_DAYS } from '../../src/core/entitlements.js';
 import { validateJsonLd } from '../../src/core/jsonld.js';
+import { TOOL_SLUGS } from '../../src/core/tool-slugs.js';
 import { connectTestDb } from '../../src/db/testing.js';
 import { loadConfig } from '../../src/lib/config.js';
 import { createApp } from '../../src/web/app.js';
@@ -132,6 +133,38 @@ describe('Autopilot copy (Milestone 15)', () => {
       assert.ok(!text.includes('agentic'), `${path}: agentic`);
       assert.ok(!text.includes('on autopilot'), `${path}: on autopilot`);
     }
+  });
+});
+
+describe('free tools copy (Milestone 17)', () => {
+  test('every tool page says what it cannot tell you and that nothing is saved, and promises no result', async () => {
+    for (const slug of TOOL_SLUGS) {
+      const text = decode((await app.get(`/tools/${slug}`).expect(200)).text).toLowerCase();
+      assert.ok(
+        text.includes('what this tool cannot tell you'),
+        `${slug}: what it cannot tell you`,
+      );
+      assert.ok(text.includes('we do not save what you enter'), `${slug}: nothing is saved`);
+      for (const bad of [
+        'guarantee',
+        'rank #1',
+        'boost your ranking',
+        'get cited by chatgpt',
+        'instantly',
+        'agentic',
+      ]) {
+        assert.ok(!text.includes(bad), `${slug}: "${bad}"`);
+      }
+    }
+  });
+
+  test('the hub points to the free audit as the way to see what the engines say', async () => {
+    const text = decode((await app.get('/tools').expect(200)).text);
+    assert.match(text, /utm_source=tools&(amp;)?utm_campaign=hub#audit/);
+    assert.match(
+      text,
+      /whether ChatGPT, Perplexity, Gemini and Google AI Overviews actually name your brand/,
+    );
   });
 });
 

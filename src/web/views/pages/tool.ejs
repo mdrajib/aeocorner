@@ -1,0 +1,71 @@
+<%# One free tool (Milestone 17, ADR-0017). Props: tool (the definition), values, errors, banner, result ({ status: 'ok', findings } | { status: 'couldnt_check', reason } | null), faq.
+    The page is complete without JavaScript: the form posts and the answer is this page again with the result in it. %>
+<div class="bg-ink-50 border-ink-200 border-b py-12 sm:py-16">
+  <div class="container-narrow">
+    <p class="eyebrow"><a href="/tools">Free tools</a></p>
+    <h1 class="mt-2 text-4xl sm:text-5xl"><%= tool.name %></h1>
+    <p class="text-ink-700 mt-3 text-lg"><%= tool.lead %></p>
+  </div>
+</div>
+
+<section class="py-10" aria-labelledby="tool-form-heading">
+  <div class="container-narrow">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="text-xl" id="tool-form-heading">Try it</h2>
+        <form method="post" action="/tools/<%= tool.slug %>#result" class="mt-4 flex flex-col gap-4" id="tool-form">
+          <% if (banner) { %><%- ui.banner({ tone: banner.tone, text: banner.text }) %><% } %>
+          <%# A tool with many fields groups them under headings (`group` on a field): every group is visible, so the page works without JavaScript. %>
+          <% let openGroup = null; %>
+          <% for (const f of tool.fields) { %>
+            <% if (f.group && f.group !== openGroup) { %>
+              <% if (openGroup) { %></fieldset><% } %>
+              <fieldset class="flex flex-col gap-4 border-ink-200 border-t pt-4"><legend class="text-base font-semibold"><%= f.group %></legend>
+              <% openGroup = f.group; %>
+            <% } %>
+            <% if (f.type === 'checkbox') { %>
+              <%- ui.checkbox({ id: 'tool-' + f.name, name: f.name, label: f.label, hint: f.hint, checked: values[f.name], error: errors[f.name] }) %>
+            <% } else { %>
+              <%- ui.field({ id: 'tool-' + f.name, name: f.name, label: f.label, type: f.type ?? 'text', hint: f.hint, placeholder: f.placeholder, rows: f.rows, options: f.options, inputmode: f.inputmode, autocomplete: f.autocomplete ?? 'off', required: f.required !== false, value: values[f.name], error: errors[f.name] }) %>
+            <% } %>
+          <% } %>
+          <% if (openGroup) { %></fieldset><% } %>
+          <% if (turnstile && site.turnstileSiteKey) { %><div class="cf-turnstile" data-sitekey="<%= site.turnstileSiteKey %>" data-theme="light"></div><% } %>
+          <div><%- ui.button({ label: tool.submitLabel ?? 'Run the check', type: 'submit', size: 'lg', iconRight: 'arrow-right' }) %></div>
+        </form>
+        <p class="text-ink-600 mt-4 text-sm">Free, no account. We do not save what you enter.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<% if (result) { %>
+<section class="pb-10" id="result" tabindex="-1" aria-labelledby="result-heading">
+  <div class="container-narrow">
+    <% if (result.status === 'ok') { %>
+      <%- include('../partials/tool-findings', { findings: result.findings }) %>
+    <% } else { %>
+      <h2 class="sr-only" id="result-heading">Result</h2>
+      <%- ui.state({ kind: 'error', title: 'Couldn’t check', text: result.reason }) %>
+      <p class="text-ink-700 mt-3 text-sm">“Couldn’t check” means we could not look, not that anything is wrong with your site. Try again in a minute.</p>
+    <% } %>
+  </div>
+</section>
+<% } %>
+
+<section class="pb-10" aria-labelledby="cannot-see-heading">
+  <div class="container-narrow">
+    <h2 class="text-2xl" id="cannot-see-heading">What this tool cannot tell you</h2>
+    <p class="text-ink-700 mt-3 leading-7"><%= tool.cannotSee %></p>
+    <p class="text-ink-700 mt-3 leading-7">To see whether the AI engines actually name your brand, run the <a href="/?utm_source=tools&amp;utm_campaign=<%= tool.slug %>#audit">free AEO audit</a>.</p>
+  </div>
+</section>
+
+<% if (faq.length) { %>
+<section class="pb-14" aria-labelledby="tool-faq-heading">
+  <div class="container-narrow">
+    <h2 class="text-2xl" id="tool-faq-heading">Questions about this tool</h2>
+    <%- include('../partials/faq-list') %>
+  </div>
+</section>
+<% } %>

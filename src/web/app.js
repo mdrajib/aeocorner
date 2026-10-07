@@ -23,6 +23,7 @@ import { authRoutes } from './routes/auth.js';
 import { inviteRoutes } from './routes/invite.js';
 import { healthRoutes, publicRoutes } from './routes/public.js';
 import { seoRoutes } from './routes/seo.js';
+import { toolRoutes } from './routes/tools.js';
 import { styleguideRoutes } from './routes/styleguide.js';
 import { unsubscribeRoutes } from './routes/unsubscribe.js';
 import { webhookRoutes } from './routes/webhooks.js';
@@ -44,6 +45,8 @@ const PUBLIC_DIR = join(WEB_DIR, 'public');
  *   mailer         sends transactional email.
  *   audit          { otp, limiter, turnstile, mail, jobs, funnel }: what the free audit needs (src/web/routes/audit.js).
  *                  Without it (or without a database) the audit form says the audit isn't open yet.
+ *   tools          { limiter, turnstile, runner, definitions? }: what the free tools need (src/web/routes/tools.js, ADR-0017).
+ *                  Without it the tool pages render and a run says the tool opens soon. `definitions` is for tests.
  *   funnel         the anonymous PostHog funnel (src/lib/funnel.js). Defaults to the audit's; the sign-up event uses it too.
  *   billing        { stripe, now? }: the Stripe client (src/integrations/stripe.js). Without it the webhook answers 503 and
  *                  the billing screen cannot start a checkout. Whether plans are ENFORCED is `config.billingEnforced`.
@@ -60,6 +63,7 @@ export function createApp({
   mailer = createMailer({ config, logger }),
   queues = null,
   audit = null,
+  tools = null,
   jobs = null,
   content = null,
   billing = null,
@@ -117,6 +121,7 @@ export function createApp({
 
   app.use(seoRoutes(config));
   app.use(publicRoutes(config, { db, logger }));
+  app.use(toolRoutes({ config, db, tools, logger, funnel }));
   app.use(db && audit ? auditRoutes({ config, db, audit, logger }) : auditStubRoutes());
   if (db) app.use(proofShareRoutes({ db }));
   if (db) app.use(unsubscribeRoutes({ config, db }));

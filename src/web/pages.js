@@ -5,6 +5,7 @@
 // page in the browser sweeps, so two pages that share a view need one each. `crumb` is the page's name in its
 // BreadcrumbList (every page but the home page has one).
 import { agency, stages } from './content/product.js';
+import { toolPages } from './tools/registry.js';
 
 export const publicPages = [
   {
@@ -107,4 +108,6 @@ export const publicPages = [
     lastmod: '2026-10-04',
     priority: 0.3,
   },
+  // The free tools (Milestone 17): the hub and one page per tool, served by routes/tools.js. None while no tool is built.
+  ...toolPages(),
 ];

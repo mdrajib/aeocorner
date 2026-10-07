@@ -150,6 +150,18 @@ const VOCAB = {
     required: ['name'],
     recommended: ['provider', 'description'],
   },
+  WebApplication: {
+    parent: 'CreativeWork',
+    props: {
+      applicationCategory: 'Text',
+      operatingSystem: 'Text',
+      browserRequirements: 'Text',
+      offers: 'Offer',
+      provider: 'Organization Person',
+    },
+    required: ['name'],
+    recommended: ['description', 'applicationCategory', 'offers'],
+  },
   Brand: { parent: 'Thing', props: { logo: 'URL ImageObject' } },
   Offer: {
     parent: 'Thing',
@@ -310,11 +322,16 @@ const DANGEROUS = /<\/script|<!--|<script/i;
  * Check one JSON-LD document (an object, an array of objects, or an object with `@graph`).
  *
  * @param {unknown} input  parsed JSON, or a JSON string
- * @returns {{ ok: boolean, errors: {path,message}[], warnings: {path,message}[], types: string[], nodes: number }}
+ * @param {{ lenient?: boolean }} [options]  `lenient` is for markup somebody else wrote (the free structured-data tool):
+ *   a type, a property or a keyword outside the vocabulary we write is listed in `unchecked` instead of being an error,
+ *   a node with several types is read by its first known one, and a missing property we expect is a warning. The rules
+ *   about values (dates, web addresses, numbers) and the structure stay errors. Our own markup is always checked strictly.
+ * @returns {{ ok: boolean, errors: {path,message}[], warnings: {path,message}[], types: string[], nodes: number, unchecked: {path,kind,name,owner?}[] }}
  */
-export function validateJsonLd(input) {
+export function validateJsonLd(input, { lenient = false } = {}) {
   const errors = [];
   const warnings = [];
+  const unchecked = [];
   const types = [];
   let nodes = 0;
   const err = (path, message) => errors.push({ path, message });
@@ -324,13 +341,13 @@ export function validateJsonLd(input) {
   if (typeof input === 'string') {
     if (input.length > 500_000) {
       err('$', 'The structured data is too large.');
-      return { ok: false, errors, warnings, types, nodes };
+      return { ok: false, errors, warnings, types, nodes, unchecked };
     }
     try {
       doc = JSON.parse(input);
     } catch {
       err('$', 'The structured data is not valid JSON.');
-      return { ok: false, errors, warnings, types, nodes };
+      return { ok: false, errors, warnings, types, nodes, unchecked };
     }
   }
 
@@ -439,9 +456,15 @@ export function validateJsonLd(input) {
 
     let rawType = node['@type'];
     if (Array.isArray(rawType)) {
-      if (rawType.length !== 1) {
+      if (rawType.length !== 1 && !lenient) {
         err(`${path}.@type`, 'Use one type per node.');
         rawType = rawType[0];
+      } else if (lenient && rawType.length > 1) {
+        const known = rawType.find(
+          (t) =>
+            typeof t === 'string' && VOCAB[t.replace(/^(?:https?:\/\/schema\.org\/|schema:)/, '')],
+        );
+        rawType = known ?? rawType[0];
       } else rawType = rawType[0];
     }
     if (rawType === undefined && expected?.length === 1) rawType = expected[0];
@@ -451,7 +474,8 @@ export function validateJsonLd(input) {
     }
     const type = rawType.replace(/^(?:https?:\/\/schema\.org\/|schema:)/, '');
     if (!VOCAB[type]) {
-      err(`${path}.@type`, `"${type}" is not a type we write.`);
+      if (lenient) unchecked.push({ path: `${path}.@type`, kind: 'type', name: type });
+      else err(`${path}.@type`, `"${type}" is not a type we write.`);
       return null;
     }
     types.push(type);
@@ -464,12 +488,15 @@ export function validateJsonLd(input) {
         continue;
       }
       if (prop.startsWith('@')) {
-        err(`${path}.${prop}`, `${prop} is not allowed here.`);
+        if (lenient) unchecked.push({ path: `${path}.${prop}`, kind: 'keyword', name: prop });
+        else err(`${path}.${prop}`, `${prop} is not allowed here.`);
         continue;
       }
       const kinds = specOf(type, prop);
       if (!kinds) {
-        err(`${path}.${prop}`, `"${prop}" is not a property of ${type}.`);
+        if (lenient)
+          unchecked.push({ path: `${path}.${prop}`, kind: 'property', name: prop, owner: type });
+        else err(`${path}.${prop}`, `"${prop}" is not a property of ${type}.`);
         continue;
       }
       checkValue(value, kinds, `${path}.${prop}`, depth, type, prop);
@@ -483,7 +510,10 @@ export function validateJsonLd(input) {
       return true;
     };
     for (const prop of listOf(type, 'required')) {
-      if (!present(prop)) err(`${path}.${prop}`, `A ${type} needs ${prop}.`);
+      if (!present(prop)) {
+        if (lenient) warn(`${path}.${prop}`, `A ${type} normally has ${prop}.`);
+        else err(`${path}.${prop}`, `A ${type} needs ${prop}.`);
+      }
     }
     for (const prop of listOf(type, 'recommended')) {
       if (!present(prop)) warn(`${path}.${prop}`, `A ${type} is better with ${prop}.`);
@@ -499,7 +529,7 @@ export function validateJsonLd(input) {
 
   if (doc === null || typeof doc !== 'object') {
     err('$', 'The structured data must be an object.');
-    return { ok: false, errors, warnings, types, nodes };
+    return { ok: false, errors, warnings, types, nodes, unchecked };
   }
   if (Array.isArray(doc)) {
     if (doc.length === 0) err('$', 'The structured data is empty.');
@@ -522,7 +552,14 @@ export function validateJsonLd(input) {
     checkNode(doc, '$', 0, { top: true });
   }
 
-  return { ok: errors.length === 0, errors, warnings, types: [...new Set(types)], nodes };
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    types: [...new Set(types)],
+    nodes,
+    unchecked,
+  };
 }
 
 /**
@@ -530,10 +567,10 @@ export function validateJsonLd(input) {
  * two line separators are written as escapes, so no string in it can close the script or start a comment. Throws on a
  * document that does not validate: markup is never produced from unchecked data.
  */
-export function scriptTag(doc) {
+export function scriptTag(doc, { pretty = false } = {}) {
   const result = validateJsonLd(doc);
   if (!result.ok) throw new RangeError(`Invalid JSON-LD: ${result.errors[0].message}`);
-  const json = JSON.stringify(doc)
+  const json = JSON.stringify(doc, null, pretty ? 2 : 0)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026')

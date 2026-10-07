@@ -1,6 +1,7 @@
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanUtm } from '../../core/utm.js';
+import { toolPages } from '../tools/registry.js';
 import { buildMeta } from '../meta.js';
 import { createUi } from '../ui.js';
 
@@ -30,6 +31,7 @@ export function pageRenderer({ config, viewsDir, publicDir }) {
     appEnv: config.appEnv,
     authEnabled: Boolean(config.auth),
     turnstileSiteKey: config.turnstileSiteKey,
+    hasTools: toolPages().length > 0, // the footer links to /tools only once a tool is live
     clerk: config.auth
       ? { publishableKey: config.auth.publishableKey, frontendApi: config.auth.frontendApi }
       : null,

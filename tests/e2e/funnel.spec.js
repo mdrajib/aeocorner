@@ -12,6 +12,8 @@ const ALLOWED_PROPERTIES = new Set([
   'cached',
   'status',
   'score_band',
+  'tool',
+  'outcome',
   'utm_source',
   'utm_medium',
   'utm_campaign',

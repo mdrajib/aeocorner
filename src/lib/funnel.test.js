@@ -79,7 +79,22 @@ describe('funnel events', () => {
       'audit_report_viewed',
       'audit_track_clicked',
       'signup_completed',
+      'tool_used',
     ]);
+  });
+
+  test('tool_used carries a listed tool and an outcome, and nothing a visitor typed', async () => {
+    const r = recorder();
+    const funnel = createFunnel({ posthog, fetchImpl: r.fetchImpl });
+    await funnel.capture('tool_used', { tool: 'robots-txt-checker', outcome: 'ok' });
+    await funnel.capture('tool_used', { tool: 'acme-dental.com', outcome: 'maybe' });
+    const props = (i) =>
+      Object.fromEntries(
+        Object.entries(r.calls[i].body.properties).filter(([k]) => !k.startsWith('$')),
+      );
+    assert.deepEqual(props(0), { tool: 'robots-txt-checker', outcome: 'ok' });
+    assert.deepEqual(props(1), {}, 'a value outside the list is dropped, not sent');
+    await assert.rejects(funnel.capture('tool_used', { domain: 'acme.test' }), /not allowed/);
   });
 
   test('campaign tags go through as plain labels; anything else about them is dropped', async () => {

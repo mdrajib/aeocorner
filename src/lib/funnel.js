@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { TOOL_SLUGS } from '../core/tool-slugs.js';
 import { UTM_KEYS, utmLabel } from '../core/utm.js';
 
 /**
@@ -19,6 +20,7 @@ export const FUNNEL_EVENTS = Object.freeze([
   'audit_report_viewed', // a finished report was opened
   'audit_track_clicked', // "track this weekly" was clicked on a report
   'signup_completed', // a new account made its first organization
+  'tool_used', // a free tool was run (which one, and whether it could check); nothing that was typed
 ]);
 
 /** The only properties an event may carry, and the kind of value each may hold. */
@@ -29,6 +31,8 @@ const PROPERTIES = Object.freeze({
   cached: 'boolean',
   status: ['complete', 'partial', 'failed'],
   score_band: ['none', 'low', 'mid', 'high'],
+  tool: TOOL_SLUGS, // a free tool's address, from a fixed list (src/core/tool-slugs.js)
+  outcome: ['ok', 'couldnt_check'],
 });
 
 const TIMEOUT_MS = 2_000;

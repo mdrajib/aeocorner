@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { detectPlatform, extractPage, nestsDeeperThan } from './html.js';
+import { detectPlatform, extractPage, nestsDeeperThan, readJsonLdBlocks } from './html.js';
 
 const URL_ = 'https://example.com/about';
 const page = (head, body) =>
@@ -361,5 +361,51 @@ describe('hostile and broken pages', () => {
     const many = Array.from({ length: 100_000 }, (_, i) => `<a href="/p${i}">x</a>`).join('');
     const f = extractPage(page('', many), URL_);
     assert.ok(f.links.length <= 1500);
+  });
+});
+
+describe('readJsonLdBlocks (the free structured-data tool)', () => {
+  const block = (json) => `<script type="application/ld+json">${json}</script>`;
+
+  test('returns every block parsed, in order, and says what was wrong with the others', () => {
+    const html = page(
+      block('{"@type":"Organization","name":"Acme"}') +
+        block('{not json') +
+        block('[{"@type":"WebSite"}]'),
+      '<p>hi</p>',
+    );
+    const r = readJsonLdBlocks(html);
+    assert.equal(r.blocks, 3);
+    assert.deepEqual(
+      r.docs.map((d) => d.block),
+      [1, 3],
+    );
+    assert.deepEqual(r.problems, [{ block: 2, problem: 'invalid_json' }]);
+    assert.equal(r.tooDeep, false);
+  });
+
+  test('a block over the size limit is "too_large", not parsed', () => {
+    const big = `{"@type":"Thing","name":"${'x'.repeat(300 * 1024)}"}`;
+    const r = readJsonLdBlocks(page(block(big), ''));
+    assert.deepEqual(r.problems, [{ block: 1, problem: 'too_large' }]);
+    assert.equal(r.docs.length, 0);
+  });
+
+  test('a scan does not keep the parsed blocks: stored page facts stay small', () => {
+    const f = extractPage(page(block('{"@type":"Organization","name":"Acme"}'), ''), URL_);
+    assert.equal(f.jsonLd.docs, undefined);
+    assert.equal(f.jsonLd.problems, undefined);
+    assert.equal(f.jsonLd.blocks, 1);
+  });
+
+  test('a page nested absurdly deep is flagged, not parsed', () => {
+    const r = readJsonLdBlocks(`${'<div>'.repeat(5000)}${block('{"@type":"Thing"}')}`);
+    assert.equal(r.tooDeep, true);
+    assert.equal(r.blocks, 0);
+  });
+
+  test('no more than the first 50 blocks are read', () => {
+    const r = readJsonLdBlocks(page(Array(80).fill(block('{"@type":"Thing"}')).join(''), ''));
+    assert.equal(r.blocks, 50);
   });
 });

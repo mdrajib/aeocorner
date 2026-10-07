@@ -8,7 +8,7 @@ import { unsubscribeToken } from '../../src/core/notify.js';
 import { INTENT_LABELS } from '../../src/core/prompt-rules.js';
 import { connectTestDb, fixtures } from '../../src/db/testing.js';
 import { createAuditLimiter } from '../../src/lib/audit-limits.js';
-import { createSafeFetcher } from '../../src/crawler/safe-fetch.js';
+import { createSafeFetcher, FetchError } from '../../src/crawler/safe-fetch.js';
 import { createAuditMail } from '../../src/lib/audit-mail.js';
 import { loadConfig } from '../../src/lib/config.js';
 import { createFunnel } from '../../src/lib/funnel.js';
@@ -16,6 +16,7 @@ import { createLogger } from '../../src/lib/logger.js';
 import { memoryMailer } from '../../src/lib/mailer.js';
 import { createOtpStore } from '../../src/lib/otp.js';
 import { createSecretBox } from '../../src/lib/secrets.js';
+import { createToolRunner } from '../../src/lib/tool-runner.js';
 import { hashToken, newToken } from '../../src/lib/tokens.js';
 import { createApp } from '../../src/web/app.js';
 import { auditFixtures } from '../helpers/audit-fixtures.js';
@@ -1074,6 +1075,71 @@ const audit = {
   }),
 };
 
+// --- the free tools ---------------------------------------------------------------------------------
+// A limiter that always allows, the audit's bot check (which passes), and a fetcher with three planted sites, so the
+// browser tests can run a tool from the form to the answer without the network.
+const sitemapXml = [
+  '<?xml version="1.0"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  '<url><loc>https://maps.example.test/</loc><lastmod>2026-09-20</lastmod></url>',
+  '<url><loc>https://maps.example.test/about</loc><lastmod>2026-09-18</lastmod></url>',
+  '<url><loc>https://maps.example.test/pricing</loc><lastmod>2026-09-01</lastmod></url>',
+  '</urlset>',
+].join('\n');
+// Each site: what its robots.txt answers and which other files exist. A file not listed is a 404.
+const toolSites = {
+  'blocks-ai.example.test': {
+    robots: {
+      body: [
+        'User-agent: OAI-SearchBot',
+        'Disallow: /',
+        '',
+        'Sitemap: https://blocks-ai.example.test/sitemap.xml',
+        '',
+      ].join('\n'),
+    },
+  },
+  'open.example.test': { robots: { status: 404, body: 'not found' } },
+  'down.example.test': { fail: 'timeout' },
+  'maps.example.test': {
+    robots: {
+      body: [
+        'User-agent: *',
+        'Allow: /',
+        'Sitemap: https://maps.example.test/sitemap.xml',
+        '',
+      ].join('\n'),
+    },
+    pages: { '/sitemap.xml': { type: 'application/xml', body: sitemapXml } },
+  },
+};
+const toolFetcher = {
+  async fetch(url) {
+    const { hostname, pathname } = new URL(url);
+    const site = toolSites[hostname];
+    if (!site) throw new FetchError('dns_failed', `no such host ${hostname}`);
+    if (site.fail) throw new FetchError(site.fail, 'planted failure');
+    const file = pathname === '/robots.txt' ? site.robots : site.pages?.[pathname];
+    const answer = file ?? { status: 404, body: 'not found' };
+    const type = answer.type ?? 'text/plain';
+    return {
+      url,
+      status: answer.status ?? 200,
+      headers: { 'content-type': type },
+      body: Buffer.from(answer.body),
+      bodySkipped: false,
+      contentType: type,
+      redirects: [],
+      connections: [{ host: hostname, address: '93.184.216.34', port: 443 }],
+    };
+  },
+};
+const tools = {
+  limiter: { admit: async () => ({ allowed: true }) },
+  turnstile: audit.turnstile,
+  runner: createToolRunner({ fetcher: toolFetcher }),
+};
+
 // --- the app ----------------------------------------------------------------------------------------
 const app = createApp({
   config,
@@ -1082,6 +1148,7 @@ const app = createApp({
   provider,
   mailer,
   audit,
+  tools,
   // The Content Studio's own queue (it only remembers), a Redis that holds no draft, and the dev key for secrets.
   content: {
     jobs: { add: async (name, data) => void queuedContentJobs.push({ name, data }) },

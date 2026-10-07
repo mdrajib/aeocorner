@@ -16,6 +16,8 @@ export const KNOWN_FLAGS = Object.freeze({
   'google.sync': 'Read Google Analytics and Search Console every day.',
   autopilot:
     'Let Autopilot prepare fixes and drafts for people to approve. The staff kill switch: off stops every tick.',
+  free_tools:
+    'Run the free tools (robots.txt, sitemap and structured data checkers, and the generators). The staff kill switch: off closes every tool at once.',
 });
 
 /** Which setting wins: the organization's own override, else the flag's default. A flag that does not exist is off. */

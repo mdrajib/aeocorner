@@ -4,10 +4,18 @@ import { detectBotBlock } from './bot-block.js';
 import { decodeBody } from './decode.js';
 import { extractPage } from './html.js';
 import { runReadinessChecks } from './readiness/index.js';
-import { evaluateRobots, parseRobots, ROBOTS_MAX_BYTES } from './robots.js';
+import {
+  createGet,
+  fetchLlmsTxt,
+  fetchRobots,
+  newSitemapState,
+  PAGE_BODY_TYPES,
+  readSitemap,
+  sitemapCandidates,
+} from './gather.js';
+import { evaluateRobots } from './robots.js';
 import { MAX_KEY_PAGES, MAX_RENDERED_PAGES, pickRenderPages, selectPages } from './select-pages.js';
-import { CRAWLER_USER_AGENT, FetchError } from './safe-fetch.js';
-import { inflateIfGzipped, parseSitemap, SITEMAP_LIMITS } from './sitemap.js';
+import { CRAWLER_USER_AGENT } from './safe-fetch.js';
 
 /**
  * One scan of one website: everything Phase 4 builds, in order (MVP F1 steps 1-4). Given a domain it
@@ -25,10 +33,6 @@ import { inflateIfGzipped, parseSitemap, SITEMAP_LIMITS } from './sitemap.js';
  * A thing we could not look at is recorded as such. It never turns into "the site lacks this".
  */
 
-const PAGE_BODY_TYPES = [/html/i, /xml/i, /^text\//i];
-const TEXT_BODY_TYPES = [/^text\//i, /xml/i, /json/i, /octet-stream/i, /^$/];
-const SITEMAP_BODY_TYPES = [/xml/i, /^text\//i, /gzip/i, /octet-stream/i, /^$/];
-const DEFAULT_SITEMAPS = ['/sitemap.xml', '/sitemap_index.xml', '/wp-sitemap.xml'];
 const PAGE_CONCURRENCY = 2;
 // Headers worth keeping with a page: what the readiness checks and later diagnosis read.
 const KEPT_HEADERS = [
@@ -117,20 +121,7 @@ export async function runSiteScan(
   };
 
   /** A fetch that reports failure as data. Every connection is recorded to show what the scan touched. */
-  async function get(url, options = {}) {
-    try {
-      const res = await fetcher.fetch(url, options);
-      connections.push(...res.connections);
-      return { ok: true, ...res };
-    } catch (err) {
-      if (!(err instanceof FetchError)) throw err;
-      log('fetch_failed', { url, code: err.code });
-      return {
-        ok: false,
-        error: { code: err.code, message: err.message, guard: err.code.startsWith('blocked_') },
-      };
-    }
-  }
+  const get = createGet({ fetcher, connections, log });
 
   const save = (kind, res, body = res.body) =>
     storeRaw(store, {
@@ -149,39 +140,7 @@ export async function runSiteScan(
 
   async function robotsFor(origin) {
     if (robotsByOrigin.has(origin)) return robotsByOrigin.get(origin);
-    const res = await get(`${origin}/robots.txt`, {
-      maxBytes: ROBOTS_MAX_BYTES,
-      bodyTypes: TEXT_BODY_TYPES,
-    });
-    const info = {
-      origin,
-      status: 'unreachable',
-      httpStatus: res.ok ? res.status : null,
-      parsed: null,
-      key: null,
-      error: res.ok ? null : res.error.code,
-    };
-    if (res.ok && detectBotBlock(res).blocked) {
-      // A firewall answered instead of the site. We can't tell what robots.txt says; that is not "no rules".
-      info.error = 'blocked_by_firewall';
-      info.blocked = true;
-    } else if (res.ok) {
-      const text = decodeBody(res.body, res.contentType).text;
-      if (res.status >= 200 && res.status < 300) {
-        const looksLikeHtml = /html/i.test(res.contentType) || /^\s*</.test(text);
-        if (looksLikeHtml || res.bodySkipped) {
-          info.status = 'missing'; // a web page served where robots.txt should be: no rules
-        } else {
-          info.status = 'ok';
-          info.parsed = parseRobots(text);
-          info.key = (await save('robots', res)).key;
-        }
-      } else if (res.status === 429 || res.status >= 500) {
-        info.status = 'unreachable'; // RFC 9309: assume the worst
-      } else {
-        info.status = 'missing'; // 404 and the like: nothing is off limits
-      }
-    }
+    const info = await fetchRobots(get, origin, { save });
     robotsByOrigin.set(origin, info);
     return info;
   }
@@ -249,61 +208,23 @@ export async function runSiteScan(
 
   phase('sitemaps');
   // --- 3. sitemaps -------------------------------------------------------------------------------------------
-  const sitemaps = {
-    found: [],
-    referenced: robots.parsed?.sitemaps ?? [],
-    lastmods: [],
-    urls: [],
-    blocked: false,
-  };
+  const sitemaps = newSitemapState(robots);
   const sitemapsStarted = Date.now();
   const sitemapsEnough = () =>
     sitemaps.urls.length >= policy.sitemapEnoughUrls ||
     Date.now() - sitemapsStarted > policy.sitemapBudgetMs;
-  async function readSitemap(url, depth = 0) {
-    if (sitemaps.urls.length >= policy.maxSitemapUrls) return false;
-    const res = await get(url, { maxBytes: 5 * 1024 * 1024, bodyTypes: SITEMAP_BODY_TYPES });
-    // A firewall's answer means we could not look, which the sitemap check must not report as "no sitemap".
-    if (res.ok && detectBotBlock(res).blocked) sitemaps.blocked = true;
-    if (!res.ok || res.status < 200 || res.status >= 300) return false;
-    let text;
-    try {
-      text = inflateIfGzipped(res.body, 5 * 1024 * 1024);
-    } catch {
-      return false; // a compressed bomb or a damaged file
-    }
-    const parsed = parseSitemap(text, { maxUrls: policy.maxSitemapUrls - sitemaps.urls.length });
-    if (parsed.kind === 'unknown' || (parsed.urls.length === 0 && parsed.sitemaps.length === 0))
-      return false;
-    // The top-level file is kept as fetched (decompressed); a finding about it can point at the stored copy.
-    const stored = depth === 0 ? await save('sitemap', res, Buffer.from(text)) : null;
-    sitemaps.found.push({
-      url: res.url,
-      kind: parsed.kind,
-      urlCount: parsed.urls.length,
-      children: parsed.sitemaps.length,
-      key: stored?.key ?? null,
+  const readOne = (url) =>
+    readSitemap(get, url, sitemaps, {
+      save,
+      maxUrls: policy.maxSitemapUrls,
+      stop: () => outOfTime() || sitemapsEnough(),
     });
-    for (const u of parsed.urls) {
-      sitemaps.urls.push(u);
-      if (u.lastmod) sitemaps.lastmods.push(u.lastmod);
-    }
-    if (parsed.kind === 'index' && depth === 0) {
-      for (const child of parsed.sitemaps.slice(0, SITEMAP_LIMITS.maxChildSitemaps)) {
-        if (outOfTime() || sitemapsEnough()) break;
-        await readSitemap(child.loc, 1);
-      }
-    }
-    return true;
-  }
 
   if (!homeProblem) {
-    const candidates = robots.parsed?.sitemaps.length
-      ? robots.parsed.sitemaps.slice(0, 3)
-      : DEFAULT_SITEMAPS.map((p) => `${origin}${p}`);
+    const candidates = sitemapCandidates(robots, origin);
     for (const candidate of candidates) {
       if (outOfTime() || sitemapsEnough()) break;
-      const ok = await readSitemap(candidate);
+      const ok = await readOne(candidate);
       // Default addresses are guesses: stop at the first that is real. Declared ones are all read.
       if (ok && !robots.parsed?.sitemaps.length) break;
     }
@@ -478,31 +399,7 @@ export async function runSiteScan(
   let llmsTxt = { status: 'error', httpStatus: null };
   let botProbes = null;
   if (!homeProblem) {
-    const llms = await get(`${origin}/llms.txt`, {
-      maxBytes: 1024 * 1024,
-      bodyTypes: TEXT_BODY_TYPES,
-    });
-    if (llms.ok) {
-      const text = decodeBody(llms.body, llms.contentType).text.trim();
-      const isFile =
-        llms.status >= 200 &&
-        llms.status < 300 &&
-        text.length >= 10 &&
-        !/html/i.test(llms.contentType) &&
-        !text.startsWith('<');
-      if (isFile) {
-        llmsTxt = {
-          status: 'present',
-          httpStatus: llms.status,
-          key: (await save('llms', llms)).key,
-        };
-      } else if (llms.status >= 500 || detectBotBlock(llms).blocked) {
-        // A server failure, or a firewall in the way: we could not look, which is not the same as "not there".
-        llmsTxt = { status: 'error', httpStatus: llms.status };
-      } else {
-        llmsTxt = { status: 'missing', httpStatus: llms.status };
-      }
-    }
+    llmsTxt = await fetchLlmsTxt(get, origin, { save });
 
     if (!outOfTime()) {
       const control = home?.ok

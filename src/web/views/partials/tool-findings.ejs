@@ -1,0 +1,66 @@
+<%# What a free tool found (src/core/tool-findings.js has already cut and checked every string; this draws it, escaped). Props: findings. %>
+<%
+const tones = { good: 'success', warn: 'warning', bad: 'danger', neutral: 'neutral', unknown: 'unknown' };
+const words = { good: 'OK', warn: 'Check', bad: 'Problem', neutral: 'Info', unknown: 'Couldn’t check' };
+-%>
+<h2 class="text-2xl break-words" id="result-heading"><%= findings.headline %></h2>
+
+<% for (const section of findings.sections) { %>
+<section class="card mt-6" aria-label="<%= section.heading %>">
+  <header class="card-header"><h3 class="text-base font-semibold tracking-normal"><%= section.heading %></h3></header>
+  <div class="card-body">
+    <% if (section.note) { %><p class="text-ink-700 mb-3 text-sm"><%= section.note %></p><% } %>
+    <ul class="divide-ink-200 divide-y">
+      <% for (const row of section.rows) { %>
+      <li class="flex flex-wrap items-start justify-between gap-2 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="font-medium break-words"><%= row.label %></p>
+          <% if (row.detail) { %><p class="text-ink-700 mt-1 text-sm break-words"><%= row.detail %></p><% } %>
+        </div>
+        <div class="flex max-w-full items-center gap-2 break-words">
+          <% if (row.value && row.state !== 'unknown') { %><span class="text-sm"><%= row.value %></span><% } %>
+          <%- ui.badge({ text: words[row.state], tone: tones[row.state] }) %>
+        </div>
+      </li>
+      <% } %>
+    </ul>
+  </div>
+</section>
+<% } %>
+
+<% if (findings.lines) { %>
+<section class="card mt-6" aria-label="<%= findings.lines.heading %>">
+  <header class="card-header"><h3 class="text-base font-semibold tracking-normal"><%= findings.lines.heading %></h3></header>
+  <div class="card-body">
+    <pre class="overflow-x-auto text-sm"><code><% for (const line of findings.lines.items) { %><%= line %>
+<% } %></code></pre>
+    <% if (findings.lines.more > 0) { %><p class="text-ink-700 mt-2 text-sm">and <%= findings.lines.more %> more lines that are not shown.</p><% } %>
+  </div>
+</section>
+<% } %>
+
+<% if (findings.output) { %>
+<section class="card mt-6" aria-label="Your file">
+  <header class="card-header"><h3 class="text-base font-semibold tracking-normal">Your file: <%= findings.output.filename %></h3></header>
+  <div class="card-body">
+    <label class="label" for="tool-output">Copy this into a file named <%= findings.output.filename %></label>
+    <textarea class="textarea mt-2 font-mono text-sm" id="tool-output" rows="14" readonly><%= findings.output.text %></textarea>
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      <%- ui.button({ label: 'Copy', variant: 'secondary', size: 'sm', attrs: { 'data-copy-from': 'tool-output', 'data-copied-text': 'Copied.' } }) %>
+      <% if (typeof tool !== 'undefined' && tool.download) { %>
+      <%# The file is made again from the same choices: nothing is kept on our side between the page and the download. %>
+      <form method="post" action="/tools/<%= tool.slug %>/download">
+        <% for (const f of tool.fields) { %><% if (f.type === 'checkbox') { %><% if (values[f.name]) { %><input type="hidden" name="<%= f.name %>" value="1"><% } %><% } else { %><input type="hidden" name="<%= f.name %>" value="<%= values[f.name] %>"><% } %><% } %>
+        <%- ui.button({ label: 'Download ' + findings.output.filename, variant: 'secondary', size: 'sm', type: 'submit' }) %>
+      </form>
+      <% } %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<% if (findings.notes.length) { %>
+<ul class="text-ink-700 mt-6 list-disc space-y-1 pl-5 text-sm break-words">
+  <% for (const note of findings.notes) { %><li><%= note %></li><% } %>
+</ul>
+<% } %>

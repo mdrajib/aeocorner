@@ -117,6 +117,8 @@ Routes for screens not yet built are proposals. Organization pages carry the org
 | A10 | Audit edge-case messages: cached report, limit reached, site blocks our crawler, site unreachable, non-English | 2 | in A6 / A8 / A9 | public | Phase 7 ✅ except non-English (no message yet) | A |
 | A11 | Crawler identity page (the URL in our bot's user agent) | n/a | `/bot` | public | Phase 7 ✅ | A |
 | A12 | Emails: verification code ✅, "Your AEO report is ready", nurture (3) | 2, 3 | n/a | email | Phase 1 / 7 | A |
+| A13 | **Free tools hub**: one card per live tool, each free, no account | 1 Discover | `/tools` | public | **Milestone 17 ✅ 2026-10-07** (built to the wireframe in §5.1, a proposal until the founder signs it off) | A |
+| A14 | **A free tool**: the form, the answer on the same page, what the tool cannot tell you, questions, and a link to the free audit. Six tools: robots.txt checker, structured data validator, sitemap checker, and the robots.txt, schema markup and llms.txt generators | 1 | `/tools/:slug` | public | **Milestone 17 ✅ 2026-10-07** (same wireframe; complete without JavaScript; nothing a visitor enters is stored) | A |
 | B1 | Sign up and sign in | 4 Trial | `/sign-in`, `/sign-up` → Clerk's hosted pages ([ADR-0004](adr/0004-clerk-hosted-sign-in.md)) | Clerk | **Phase 2 ✅** | B |
 | B1a | Sign-in unavailable (a server with no Clerk keys) | 4 | `/sign-in`, `/app` | public | **Phase 2 ✅** | B |
 | B2 | Create organisation (name pre-filled from the audit domain with `?domain=`) | 4 | `/app/new-org` | app | **Phase 2 ✅** | B |
@@ -264,6 +266,35 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
 | Site unreachable or behind a login | Error state: what we tried, what to check, "this didn't count toward your limit" |
 | An engine fails | *Couldn't check* cell and a line in the progress feed. Never a 0 |
 | Non-English site | Info banner: audit ran in the site's language, or says plainly that it isn't supported yet |
+
+**A13 Free tools hub and A14 a free tool** (Milestone 17; a proposal until the founder signs it off). The page after a run is the same page again with the answer in it, so it works without JavaScript.
+
+```
+ A13 /tools                                    A14 /tools/robots-txt-checker
+ ┌──────────────────────────────────┐          ┌──────────────────────────────────┐
+ │ FREE TOOLS                       │          │ FREE TOOLS  (links back to /tools)│
+ │ Free tools for AI search         │          │ robots.txt checker                │
+ │ Each is free, no account, and    │          │ one-sentence lead                 │
+ │ says what it cannot tell you     │          ├──────────────────────────────────┤
+ ├──────────────────────────────────┤          │ ┌ Try it ───────────────────────┐ │
+ │ Choose a tool                    │          │ │ [ field(s), grouped if many ] │ │
+ │ ┌────────────┐ ┌────────────┐    │          │ │ [ Turnstile, fetching tools ] │ │
+ │ │ name (link)│ │ name (link)│    │          │ │ [ Run the check → ]           │ │
+ │ │ lead       │ │ lead       │    │          │ │ Free, no account. We do not   │ │
+ │ │ [badge]    │ │ [badge]    │    │          │ │ save what you enter.          │ │
+ │ └────────────┘ └────────────┘    │          │ └───────────────────────────────┘ │
+ │ … six cards, two across          │          │ Answer (after a run):             │
+ │ Each tool looks at one file or   │          │  headline · sections of rows      │
+ │ page. To see whether engines     │          │  (label · detail · OK/Check/      │
+ │ name you: [free AEO audit]       │          │  Problem/Info/Couldn't check)     │
+ └──────────────────────────────────┘          │  or, for a generator, the file in │
+                                               │  a box with [Copy] [Download]     │
+                                               │ What this tool cannot tell you    │
+                                               │  … run the [free AEO audit]       │
+                                               │ Questions about this tool ▸ …     │
+                                               └──────────────────────────────────┘
+ A tool that could not look says "Couldn't check" with the reason, never "missing" or "fine".
+```
 
 ### 5.2 Group B — onboarding, Brand Kit and questions (sign off before Phase 8)
 

@@ -11,6 +11,8 @@ import { createOtpStore } from '../lib/otp.js';
 import { createSecretBox } from '../lib/secrets.js';
 import { closeQueues, createQueues } from '../lib/queues.js';
 import { closeRedis, createRedis } from '../lib/redis.js';
+import { createToolLimiter } from '../lib/tool-limits.js';
+import { createToolRunner } from '../lib/tool-runner.js';
 import { createTurnstile } from '../lib/turnstile.js';
 import { createStripe } from '../integrations/stripe.js';
 import { createApp } from './app.js';
@@ -88,6 +90,20 @@ if (!audit)
     'The free audit is closed: it needs DATABASE_URL, REDIS_URL and TURNSTILE_SECRET_KEY.',
   );
 
+// The free tools (Milestone 17, ADR-0017) need the database (the abuse blocks and the staff switch) and Redis (the limits).
+// A tool that asks someone's site also needs the bot check, so without a Turnstile secret those stay closed and the
+// generators still run. Redis being down closes every tool; it never opens them up.
+function buildTools() {
+  if (!db || !redis) return null;
+  return {
+    limiter: createToolLimiter({ redis, prefix: config.redis.prefix, db }),
+    turnstile: audit?.turnstile ?? null,
+    // The safe fetcher is the only way out; three redirects is plenty for a robots.txt or a sitemap.
+    runner: createToolRunner({ fetcher: createSafeFetcher({ limits: { maxRedirects: 3 } }) }),
+  };
+}
+const tools = buildTools();
+
 // The Content Studio's web side (Milestone 7): Redis to show a draft as it is written, the key that seals a customer's
 // WordPress password (the web process only ever encrypts; the worker opens it), and the safe fetcher that checks a
 // site before it is saved. Without a secrets key the WordPress screen says it is not set up.
@@ -116,7 +132,7 @@ if (!billing)
 else if (!config.stripe.webhookSecret)
   logger.warn('STRIPE_WEBHOOK_SECRET is not set: webhooks from Stripe will be refused.');
 
-const app = createApp({ config, logger, db, queues, audit, content, billing });
+const app = createApp({ config, logger, db, queues, audit, tools, content, billing });
 
 const server = app.listen(config.port, () => {
   logger.info(
