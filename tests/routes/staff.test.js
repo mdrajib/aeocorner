@@ -258,6 +258,13 @@ describe('staff sign-out', () => {
     assert.equal(ok.status, 303);
     assert.ok(staffClerk.revoked.includes(me.sessionId));
   });
+
+  test('with no session left (the cookie lasts about a minute) it still ends at sign-in, not at "Sign in required"', async () => {
+    const res = await staff('post', '/sign-out', { body: {} });
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, '/');
+    assert.doesNotMatch(res.text, /Sign in required/);
+  });
 });
 
 describe('roles inside the console', () => {

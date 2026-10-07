@@ -27,16 +27,21 @@ export function staffRoutes({ config, db, provider, logger, cloudflareKeys, queu
     router.use(cloudflareAccess({ ...config.staff.cloudflareAccess, keys: cloudflareKeys }));
   }
 
+  // With a live session the request must carry its CSRF token. With none (the cookie lasts about a minute) there is
+  // nothing to protect: clear the cookies and go to sign-in rather than answer "Sign in required".
+  const checkCsrf = csrfProtection({ secret: config.appSecret });
   router.post(
     '/sign-out',
-    staffAuth.identify,
+    staffAuth.optionalSession,
     express.urlencoded({ extended: false, limit: '2kb' }),
-    csrfProtection({ secret: config.appSecret }),
+    (req, res, next) => (req.session ? checkCsrf(req, res, next) : next()),
     async (req, res, next) => {
       try {
-        await provider.endSession(req.session.sessionId).catch((err) => {
-          logger.warn({ err }, 'Could not revoke the staff Clerk session');
-        });
+        if (req.session) {
+          await provider.endSession(req.session.sessionId).catch((err) => {
+            logger.warn({ err }, 'Could not revoke the staff Clerk session');
+          });
+        }
         clearClerkCookies(req, res);
         res.redirect(303, '/');
       } catch (err) {

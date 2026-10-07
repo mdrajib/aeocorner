@@ -73,6 +73,29 @@ test("a page allows only the Clerk application that owns it: the staff host neve
   assert.doesNotMatch(publicSide['script-src'].join(' '), /staff/);
 });
 
+test('sign-out may be answered by a redirect into the page’s own Clerk application, and no other', () => {
+  const config = {
+    auth: {
+      frontendApi: 'customer.clerk.accounts.dev',
+      signInUrl: 'https://customer.accounts.dev/sign-in',
+    },
+    staff: {
+      frontendApi: 'staff.clerk.accounts.dev',
+      signInUrl: 'https://staff.accounts.dev/sign-in',
+    },
+  };
+  assert.deepEqual(buildCspDirectives(config, config.staff)['form-action'], [
+    "'self'",
+    'https://staff.clerk.accounts.dev',
+    'https://staff.accounts.dev',
+  ]);
+  assert.deepEqual(buildCspDirectives(config)['form-action'], [
+    "'self'",
+    'https://customer.clerk.accounts.dev',
+    'https://customer.accounts.dev',
+  ]);
+});
+
 test("forms may be answered by a redirect to Google's consent page only when Google OAuth is configured", () => {
   assert.deepEqual(buildCspDirectives(loadConfig({}))['form-action'], ["'self'"]);
   const on = buildCspDirectives({ google: { clientId: 'x', clientSecret: 'y' } });

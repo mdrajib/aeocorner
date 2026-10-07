@@ -30,6 +30,16 @@ export function buildCspDirectives(config, clerk = config.auth) {
     // script-src, the worker is blocked, the session cookie is not renewed and a form post after a minute is a 401.
     worker = ["'self'", 'blob:'];
   }
+  // "Sign out" is a form post answered by a redirect into Clerk (its handshake, then its sign-in page), and Chrome applies
+  // form-action to every hop of that redirect. Without these two hosts the click does nothing until a refresh.
+  if (clerk?.frontendApi) formAction.push(`https://${clerk.frontendApi}`);
+  if (clerk?.signInUrl) {
+    try {
+      formAction.push(new URL(clerk.signInUrl).origin);
+    } catch {
+      // A malformed override is config.js's problem; the policy just stays tight.
+    }
+  }
   // "Connect Google" is a form post answered by a redirect to Google's consent page, and Chrome applies form-action to
   // that redirect. Only the one host, and only when Google OAuth is configured.
   if (config.google) formAction.push(GOOGLE_AUTH_ORIGIN);

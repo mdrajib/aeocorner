@@ -83,5 +83,22 @@ export function createStaffAuth({ config, provider, db, logger }) {
       deny(res, 'role');
     };
 
-  return { identify: [clerk, identify], requireRole };
+  /**
+   * For sign-out only: look at the Clerk session but never refuse because there is none. The session cookie lasts about a
+   * minute, so a person who clicks "Sign out" after a pause has none left, and must still end up at the sign-in page,
+   * not on a blank "Sign in required".
+   */
+  const optionalSession = [
+    clerk,
+    async (req, res, next) => {
+      try {
+        req.session = (await provider.authenticate(req)) ?? null;
+        next();
+      } catch (err) {
+        next(err);
+      }
+    },
+  ];
+
+  return { identify: [clerk, identify], optionalSession, requireRole };
 }
