@@ -8,6 +8,8 @@ import { fromApiUser } from './clerk-user.js';
  *   authenticate(req)     -> { clerkUserId, sessionId, claims } | null
  *   fetchUser(id)         -> the Clerk user in our shape (see clerk-user.js)
  *   endSession(sessionId) revoke the session at Clerk (sign out)
+ *   deleteUser(id)        delete the account at Clerk (the purge of a closed organization, src/worker/handlers/billing.js);
+ *                         an account that is already gone is not an error
  */
 export function createClerkProvider({ publishableKey, secretKey, signInUrl, signUpUrl, baseUrl }) {
   const clerkClient = createClerkClient({ publishableKey, secretKey });
@@ -51,6 +53,14 @@ export function createClerkProvider({ publishableKey, secretKey, signInUrl, sign
     async endSession(sessionId) {
       await clerkClient.sessions.revokeSession(sessionId);
     },
+
+    async deleteUser(clerkUserId) {
+      try {
+        await clerkClient.users.deleteUser(clerkUserId);
+      } catch (err) {
+        if (err?.status !== 404) throw err;
+      }
+    },
   };
 }
 
@@ -64,6 +74,7 @@ export function createUnconfiguredProvider() {
     authenticate: async () => null,
     fetchUser: async () => null,
     endSession: async () => {},
+    deleteUser: async () => {},
   };
 }
 

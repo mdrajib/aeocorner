@@ -1055,6 +1055,19 @@ export function fixtures(db) {
     /** A delivery ID (Clerk's `svix-id`) for a webhook this file sends through the route. */
     webhookId: () => `${webhookPrefix}${webhookCount++}`,
 
+    /** A Clerk delivery with a payload, received at `receivedAt`. Removed with the rest by its ID prefix. */
+    async webhookWithPayload(receivedAt) {
+      return prisma.webhook_events.create({
+        data: {
+          source: 'clerk',
+          external_id: this.webhookId(),
+          event_type: 'user.updated',
+          payload: { data: { email_addresses: ['someone@example.test'] } },
+          received_at: receivedAt,
+        },
+      });
+    },
+
     trackWebhook(id) {
       webhookIds.push(id);
     },

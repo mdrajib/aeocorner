@@ -154,6 +154,8 @@ export function createSpacesStore({
       await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
 
+    prefix,
+
     close: () => s3.destroy?.(),
   };
 }
@@ -182,6 +184,7 @@ export function createFileStore({ dir, prefix = '' }) {
   return {
     kind: 'file',
     root,
+    prefix,
 
     async put({ key, body, contentType = 'application/octet-stream', metadata }) {
       const fullKey = `${prefix}${key}`;

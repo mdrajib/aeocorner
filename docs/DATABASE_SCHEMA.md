@@ -456,7 +456,7 @@ Assumptions: 100 projects × 100 questions, weekly runs (4.33 per month), 10 ans
 | Cancelled accounts | Everything for the org | 90 days read-only *(proposed, CUSTOMER_JOURNEY §7 change 6)*, then purged | `organizations.retain_until` |
 | Deleted accounts | Everything for the org | 24-hour undo, then purged within 30 days | `data_requests` + `organizations.purge_after` |
 
-**Org purge order** (safe with the foreign keys; built 2026-10-04 as `retention.purge`, which works the order out from the schema's foreign keys rather than from this list, and keeps `admin_audit_log`, `data_requests`, `org_activity_log` and `usage_ledger`; steps 8 (Spaces) and 9 (users, Clerk) are not done):
+**Org purge order** (safe with the foreign keys; built 2026-10-04 as `retention.purge`, which works the order out from the schema's foreign keys rather than from this list, and keeps `admin_audit_log`, `data_requests`, `org_activity_log` and `usage_ledger`; the Spaces files and the Clerk accounts, steps 8 and 9, were added 2026-10-07 and run FIRST, before any row is deleted, so a failure leaves the organization whole and the next night retries; the webhook payloads are emptied after 30 days and their rows deleted after 90 by the same nightly sweep):
 1. Facts and cell rollups by `org_id`, in batches (no foreign keys).
 2. `action_outcomes`, `fix_verifications`, then `site_changes`.
 3. Content tables, then recommendation tables.
@@ -464,8 +464,9 @@ Assumptions: 100 projects × 100 questions, weekly runs (4.33 per month), 10 ans
 5. Project configuration: entities (aliases cascade), `prompts`, clusters, `brand_profiles`, `site_pages`, `project_engines`, `membership_projects`.
 6. `projects`.
 7. Billing rows, invitations, memberships, notes and notifications.
-8. `organizations`, plus Spaces prefixes for the org.
-9. Users with no remaining memberships, and their Clerk accounts (deleted through Clerk's Backend API).
+8. `organizations`, and (done first) the Spaces files that only this organization's rows point at. Raw files are content addressed, so a file another organization's or audit's row still points at stays; only keys under this app's storage prefix are ever deleted. A scan, answer or report added between the check and the delete could lose a file: the 13-month lifecycle rule is the backstop for any file left behind.
+9. Members who belong to no other organization: their Clerk account is deleted (Clerk's Backend API; an account already gone is fine) and the local `users` row is anonymized (`users.markDeleted`), also first. A worker without Clerk keys or a storage prefix skips that step and says so in its log.
+`data_requests.export_uri` is not purged yet: nothing writes an export file today. When one does, its file belongs in the list of keys the purge deletes (`filesOf` in `src/db/repos/system-purge.js`).
 
 `data_requests` and `admin_audit_log` keep the numeric `org_id` as proof the purge happened. They hold no customer content.
 

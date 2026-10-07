@@ -75,6 +75,9 @@ export const SCHEDULES = Object.freeze([
  * @param {object} [deps.entity]    { wikidata, profiles? } for entity.check (Milestone 12): the Wikidata client
  *                                   (src/integrations/wikidata.js) and, for tests, a stand-in for the profile checker; without
  *                                   a Wikidata client the profiles are still checked and the Wikidata lookup is skipped
+ * @param {object} [deps.retention]  { store, clerk } for the purge of closed organizations: the bucket whose files are deleted and
+ *                                   the Clerk provider (src/web/auth/provider.js) whose accounts are; without one the purge removes
+ *                                   database rows only
  * @param {object} [deps.mail]       the notifier (src/lib/notify.js): every email the worker sends on its own (retention and
  *                                   trial notices, the weekly digest, alerts) goes through it
  * @param {object} [deps.tracking]   { timing } overrides for how often a run looks again and when it gives up (src/worker/handlers/tracking.js); tests use tiny values
@@ -98,6 +101,7 @@ export function createWorkerRuntime({
   billing = null,
   google = null,
   entity = null,
+  retention = null,
   mail = null,
   audit = {},
   now = () => new Date(),
@@ -169,6 +173,7 @@ export function createWorkerRuntime({
     billing,
     google,
     entity,
+    retention,
     mail,
     audit: { ...audit, budget: auditBudget },
     now,

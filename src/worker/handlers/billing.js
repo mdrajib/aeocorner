@@ -1,3 +1,4 @@
+import { WEBHOOK_PAYLOAD_DAYS, WEBHOOK_ROW_DAYS } from '../../core/org-purge.js';
 import { syncSubscription } from '../../integrations/stripe-sync.js';
 import { StripeError } from '../../integrations/stripe.js';
 
@@ -104,6 +105,48 @@ export async function billingReportUsage(ctx) {
   return sent;
 }
 
+/**
+ * What the purge of a closed organization does beyond deleting rows (system-purge.js runs these first and stops if one
+ * fails): delete its raw files from Spaces (only keys under this app's own prefix, and only the ones no other owner's
+ * rows point at; the repository decides that) and the Clerk accounts of people who belong to no other organization.
+ * Without a bucket or without Clerk keys on the worker that part is skipped and said so in the log.
+ */
+function erasure(ctx) {
+  const { store, clerk } = ctx.retention ?? {};
+  const erase = {};
+  if (store?.prefix) {
+    erase.files = async (keys) => {
+      const own = keys.filter((key) => key.startsWith(store.prefix));
+      for (let i = 0; i < own.length; i += 20) {
+        await Promise.all(own.slice(i, i + 20).map((key) => store.delete(key)));
+      }
+      if (own.length < keys.length) {
+        ctx.logger.warn(
+          { skipped: keys.length - own.length },
+          'Purge: files outside this app’s storage prefix were left alone',
+        );
+      }
+      return own.length;
+    };
+  } else {
+    ctx.logger.warn('Purge: no storage prefix, so the organization’s files were not deleted');
+  }
+  if (clerk?.configured) {
+    erase.users = async (members) => {
+      for (const member of members) {
+        await clerk.deleteUser(member.clerkUserId);
+        await ctx.db.users.markDeleted(member.clerkUserId);
+      }
+      return members.length;
+    };
+  } else {
+    ctx.logger.warn(
+      'Purge: Clerk is not configured here, so the people’s accounts were not deleted',
+    );
+  }
+  return erase;
+}
+
 /** Warn, then close. The warning is one email per organization (its dedupe key), 14 days before the end. */
 export async function retentionSweep(ctx) {
   const now = ctx.now();
@@ -134,11 +177,23 @@ export async function retentionSweep(ctx) {
     }
   }
 
+  // A delivery's payload (customer details) is kept 30 days; the row, which recognises a repeat, 90.
+  const day = 86_400_000;
+  const pruned = await ctx.db.webhookEvents.prune({
+    payloadsBefore: new Date(now.getTime() - WEBHOOK_PAYLOAD_DAYS * day),
+    rowsBefore: new Date(now.getTime() - WEBHOOK_ROW_DAYS * day),
+  });
+  out.payloadsEmptied = pruned.payloads;
+  out.webhooksDeleted = pruned.rows;
+
   // Then delete what was closed 30 days ago or more. A few organizations a night; the rest wait for tomorrow.
   out.purged = 0;
   for (const orgId of await ctx.db.system.billing.retention.purgeDue({ now, limit: 5 })) {
     try {
-      const removed = await ctx.db.system.billing.retention.purge(orgId, { now });
+      const removed = await ctx.db.system.billing.retention.purge(orgId, {
+        now,
+        erase: erasure(ctx),
+      });
       if (removed) {
         out.purged += 1;
         ctx.logger.info(

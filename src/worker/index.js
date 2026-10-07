@@ -9,6 +9,7 @@ import { createGoogle } from '../integrations/google.js';
 import { createWikidata } from '../integrations/wikidata.js';
 import { createStripe } from '../integrations/stripe.js';
 import { createObjectStore } from '../integrations/spaces.js';
+import { createProvider } from '../web/auth/provider.js';
 import { createAlerter } from '../lib/alerts.js';
 import { createAuditMail } from '../lib/audit-mail.js';
 import { loadConfig } from '../lib/config.js';
@@ -106,6 +107,8 @@ const runtime = createWorkerRuntime({
   google: config.google ? createGoogle(config.google) : null,
   // Entity checks (Milestone 12): the public Wikidata API needs no key.
   entity: { wikidata: createWikidata() },
+  // The purge of closed organizations also deletes their files in Spaces and their Clerk accounts.
+  retention: { store, clerk: createProvider(config) },
   mail: createNotifier({
     db,
     mailer: createMailer({ config, logger }),

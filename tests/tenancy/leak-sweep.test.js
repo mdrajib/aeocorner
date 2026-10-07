@@ -33,10 +33,8 @@ const REVIEWED = {};
  * fails if it stays on it).
  */
 const NOT_BUILT = {
-  reports: 'white-label client reports (the agency page says they are not built yet)',
   impersonation_sessions: 'read-only impersonation in the staff console',
   org_notes: 'staff notes on a customer',
-  data_requests: 'export and deletion requests (the purge of closed accounts exists, but nothing files a request yet)',
 };
 
 /** The text of a balanced `( … )` starting at the opening parenthesis, skipping quoted strings. */

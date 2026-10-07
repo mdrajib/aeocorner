@@ -9,6 +9,32 @@ const MAX_ERROR_LENGTH = 1000;
 export function webhookEventsRepo(prisma) {
   return {
     /**
+     * Retention (docs/DATABASE_SCHEMA.md §8): empty the payload of every delivery received before `payloadsBefore`, and
+     * delete the row of every one received before `rowsBefore`. The row outlives the payload because its
+     * (source, external_id) is what recognises a delivery the provider sends again. Returns both counts.
+     */
+    async prune({ payloadsBefore, rowsBefore }) {
+      const loop = async (run) => {
+        let total = 0;
+        for (;;) {
+          const n = Number(await run());
+          total += n;
+          if (n < 5000) return total;
+        }
+      };
+      const payloads = await loop(
+        () => prisma.$executeRaw`
+          UPDATE webhook_events SET payload = NULL
+          WHERE received_at < ${payloadsBefore} AND payload IS NOT NULL LIMIT 5000`,
+      );
+      const rows = await loop(
+        () =>
+          prisma.$executeRaw`DELETE FROM webhook_events WHERE received_at < ${rowsBefore} LIMIT 5000`,
+      );
+      return { payloads, rows };
+    },
+
+    /**
      * Record a delivery. If we have seen this ID before, return the stored row with `duplicate: true`;
      * the caller decides whether it needs processing again (it does, if the earlier attempt failed).
      */

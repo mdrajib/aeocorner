@@ -18,6 +18,11 @@ export const KEPT_AFTER_PURGE = {
     'what each provider call cost: kept for the 25-month cost record, no customer content',
 };
 
+/** How long a webhook delivery keeps its payload (the `webhook_events.payload` column's own comment says 30 days). */
+export const WEBHOOK_PAYLOAD_DAYS = 30;
+/** And how long the row itself stays, to recognise a delivery sent again (docs/DATABASE_SCHEMA.md §8). */
+export const WEBHOOK_ROW_DAYS = 90;
+
 /**
  * Put `tables` in a deletion order: a table comes after every table that has a foreign key pointing at it.
  * `edges` are `{ child, parent }` pairs; a pair that names a table outside `tables`, or a table pointing at
