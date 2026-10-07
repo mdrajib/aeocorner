@@ -13,7 +13,18 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        // The dummy Clerk keys name a real host (e2e-clerk.accounts.dev). Without this the browser downloads Clerk's
+        // script from the internet, Clerk cannot load with fake keys, and every form post stalls for seconds.
+        // Blocked, the script fails at once and the form is sent straight away (components.js).
+        launchOptions: { args: ['--host-resolver-rules=MAP *.accounts.dev ~NOTFOUND'] },
+      },
+    },
+  ],
   webServer: {
     // Build the CSS first so a fresh checkout (where src/web/public/build is git-ignored) works.
     // tests/e2e/server.js is the real app with a fake Clerk and the test database (MySQL must be running).

@@ -4,6 +4,11 @@ import { expect, test } from '@playwright/test';
 // real test database. Each test makes its own people and organizations, so the tests can run in parallel.
 const unique = () => Math.random().toString(36).slice(2, 8);
 
+// playwright.config.js stops the browser reaching Clerk's host (the dummy keys name a real one), so that one
+// failed download is expected; any other console error is a problem.
+const isProblem = (message) =>
+  message.type() === 'error' && !message.text().includes('net::ERR_NAME_NOT_RESOLVED');
+
 async function signInAsNewPerson(page, { email, next = '/app' } = {}) {
   const query = new globalThis.URLSearchParams({ as: 'fresh', next });
   if (email) query.set('email', email);
@@ -139,7 +144,7 @@ test('sign out ends the session: the signed-in area asks for sign-in again', asy
 
 test('the app pages obey the strict CSP: no console errors while using them', async ({ page }) => {
   const problems = [];
-  page.on('console', (m) => m.type() === 'error' && problems.push(m.text()));
+  page.on('console', (m) => isProblem(m) && problems.push(m.text()));
   page.on('pageerror', (e) => problems.push(e.message));
 
   await signInAsNewPerson(page);
@@ -181,7 +186,7 @@ test('a signed-in user opens the dashboard, sees the chart, and drills into one 
 }) => {
   const problems = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(message.text());
+    if (isProblem(message)) problems.push(message.text());
   });
   page.on('pageerror', (error) => problems.push(error.message));
 
@@ -253,7 +258,7 @@ test('an editor opens the Action Center, reads a recommendation and starts it', 
 }) => {
   const problems = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(message.text());
+    if (isProblem(message)) problems.push(message.text());
   });
   page.on('pageerror', (error) => problems.push(error.message));
 
@@ -288,7 +293,7 @@ test('an editor reads a page in the Content Studio, edits it in the rich editor 
 }) => {
   const problems = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(message.text());
+    if (isProblem(message)) problems.push(message.text());
   });
   page.on('pageerror', (error) => problems.push(error.message));
 
@@ -345,7 +350,7 @@ test('an editor shares a proven win, copies the link, and anyone can read the pa
 }) => {
   const problems = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(message.text());
+    if (isProblem(message)) problems.push(message.text());
   });
   page.on('pageerror', (error) => problems.push(error.message));
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
