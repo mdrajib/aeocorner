@@ -88,6 +88,12 @@ describe('who can open the dashboard', () => {
     }
   });
 
+  test('the dashboard offers the way back to the rest of the console', async () => {
+    const { res } = await asStaff(['ops'], 'get', '/queues');
+    assert.equal(res.status, 200);
+    assert.ok(res.text.includes('Back to staff console'));
+  });
+
   test('the page itself is served, with its own script and no inline code', async () => {
     const { res } = await asStaff(['ops'], 'get', '/queues/');
     assert.equal(res.status, 200);

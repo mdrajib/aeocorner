@@ -59,6 +59,20 @@ test("Clerk's frontend API host is allowed for scripts and connections only when
   assert.equal(on['frame-src'].join(' '), "'none'");
 });
 
+test("a page allows only the Clerk application that owns it: the staff host never gets the customer's", () => {
+  const config = {
+    auth: { frontendApi: 'customer.clerk.accounts.dev' },
+    staff: { frontendApi: 'staff.clerk.accounts.dev' },
+  };
+  const staff = buildCspDirectives(config, config.staff);
+  assert.ok(staff['script-src'].includes('https://staff.clerk.accounts.dev'));
+  assert.doesNotMatch(staff['script-src'].join(' '), /customer/);
+  assert.doesNotMatch(staff['connect-src'].join(' '), /customer/);
+  const publicSide = buildCspDirectives(config);
+  assert.ok(publicSide['script-src'].includes('https://customer.clerk.accounts.dev'));
+  assert.doesNotMatch(publicSide['script-src'].join(' '), /staff/);
+});
+
 test("forms may be answered by a redirect to Google's consent page only when Google OAuth is configured", () => {
   assert.deepEqual(buildCspDirectives(loadConfig({}))['form-action'], ["'self'"]);
   const on = buildCspDirectives({ google: { clientId: 'x', clientSecret: 'y' } });

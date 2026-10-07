@@ -34,7 +34,13 @@ export function queueBoard({ queues, staffAuth, db, logger }) {
   createBullBoard({
     queues: Object.values(queues).map((q) => new BullMQAdapter(q)),
     serverAdapter: adapter,
-    options: { uiConfig: { boardTitle: 'AEO Corner queues' } },
+    options: {
+      uiConfig: {
+        boardTitle: 'AEO Corner queues',
+        // Bull Board has no menu of ours, so give staff the way back to the rest of the console.
+        miscLinks: [{ text: 'Back to staff console', url: '/' }],
+      },
+    },
   });
 
   const router = Router();

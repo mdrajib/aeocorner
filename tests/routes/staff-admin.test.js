@@ -373,3 +373,23 @@ describe('failed jobs and retry', () => {
     assert.equal((await auditActions(ops.member)).length, 3);
   });
 });
+
+describe('which Clerk application a staff page belongs to', () => {
+  test("the staff console loads the staff app's browser script and allows only its host, never the customer's", async () => {
+    const ops = await staffer(['ops']);
+    const res = await ops.get('/costs');
+    assert.equal(res.status, 200);
+    assert.ok(res.text.includes(`https://${staffFrontend}/npm/@clerk/clerk-js`));
+    assert.ok(!res.text.includes('example-12.clerk.accounts.dev'));
+    const csp = res.headers['content-security-policy'];
+    assert.ok(csp.includes(staffFrontend));
+    assert.ok(!csp.includes('example-12.clerk.accounts.dev'));
+  });
+
+  test("the public host still gets the customer app's script and host, not the staff one", async () => {
+    const res = await h.agent.get('/').set('Host', 'localhost:3000');
+    const csp = res.headers['content-security-policy'];
+    assert.ok(!csp.includes(staffFrontend));
+    assert.ok(csp.includes('example-12.clerk.accounts.dev'));
+  });
+});

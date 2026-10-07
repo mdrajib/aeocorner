@@ -37,11 +37,23 @@ export function pageRenderer({ config, viewsDir, publicDir }) {
       : null,
     posthog: config.posthog,
   };
+  // The staff console is a second Clerk application. Its pages must load THAT application's browser script: the
+  // customer one would see "signed out" there and clear the staff session cookies.
+  const staffHost = config.staff?.host?.toLowerCase() ?? null;
+  const staffSite = config.staff
+    ? {
+        ...site,
+        clerk: {
+          publishableKey: config.staff.publishableKey,
+          frontendApi: config.staff.frontendApi,
+        },
+      }
+    : null;
 
   return function pageRendererMiddleware(req, res, next) {
     res.locals.ui = ui;
     res.locals.asset = asset;
-    res.locals.site = site;
+    res.locals.site = staffSite && req.host?.toLowerCase() === staffHost ? staffSite : site;
     res.locals.currentPath = req.path;
     res.locals.utm = cleanUtm(req.query); // campaign tags, carried through the audit form (src/core/utm.js)
     res.locals.flash = [];
