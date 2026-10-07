@@ -208,6 +208,7 @@ CREATE TABLE organizations (
   is_design_partner        BOOLEAN       NOT NULL DEFAULT FALSE,
   canceled_at              DATETIME(3)   NULL,
   retain_until             DATETIME(3)   NULL COMMENT 'cancelled accounts: read-only until this date (policy pending)',
+  claude_until             DATETIME(3)   NULL COMMENT 'after a downgrade: Claude is still collected until this moment (the paid period end), then switched off; NULL = no grace',
   deleted_at               DATETIME(3)   NULL,
   purge_after              DATETIME(3)   NULL,
   created_at               DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -1795,5 +1796,7 @@ CREATE TABLE autopilot_items (
 -- Milestone 16 (migration 0011): Claude as a fifth engine. DATA ONLY, no table changes: the `claude` row of `engines` becomes active and the plans' `features` gain `claude_engine` (seed_reference.sql carries both).
 
 -- Self-confirmed profiles (migration 0012): entity_checks gains confirmed_at and confirmed_by_user_id (a person says they checked a profile our crawler is not allowed to read). No new table, key or CHECK.
+
+-- Claude after a downgrade (migration 0013): organizations gains claude_until. No new table, key or CHECK.
 
 -- End of schema (72 tables: the 66 of v1, plus proof_shares (0006), entity_checks (0007), recovery_cases and recovery_events (0009), autopilot_settings and autopilot_items (0010)).

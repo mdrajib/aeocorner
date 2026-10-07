@@ -40,6 +40,13 @@ const TEMPLATES = {
     footerReason:
       'You are receiving this because you own an AEO Corner organization whose subscription was cancelled.',
   },
+  'claude-ending': {
+    subject: (d) => `Claude tracking stops on ${d.endDate}`,
+    preheader: (d) =>
+      `${d.orgName}'s plan no longer includes Claude. It keeps running until ${d.endDate}.`,
+    footerReason:
+      'You are receiving this because you own an AEO Corner organization whose plan no longer includes Claude.',
+  },
   digest: {
     subject: (d) => d.digest.subject,
     preheader: (d) => d.digest.preheader,

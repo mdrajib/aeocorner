@@ -1,4 +1,5 @@
-<%# The engines a project is checked on. Props: engines ([{ engine_code, enabled, notTracked, allowed }]), names; optional: canEdit, projectBase, csrfToken (editors get switches). An engine the project was never offered is "Not tracked", not "Off"; one the plan does not include cannot be switched on. %>
+<%# The engines a project is checked on. Props: engines ([{ engine_code, enabled, notTracked, allowed, graceUntil }]), names; optional: canEdit, projectBase, csrfToken (editors get switches). An engine the project was never offered is "Not tracked", not "Off"; one the plan does not include cannot be switched on. %>
+<% const stops = (e) => e.graceUntil ? 'stops on ' + new Date(e.graceUntil).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : null; %>
 <% if (locals.canEdit) { %>
 <form method="post" action="<%= projectBase %>/engines" class="flex flex-col gap-3" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -6,7 +7,7 @@
     <legend class="sr-only">AI engines we check</legend>
     <% for (const e of engines) { %>
     <% const locked = e.allowed === false && !e.enabled; %>
-    <%- ui.checkbox({ id: 'engine-' + e.engine_code, name: 'engine', value: e.engine_code, label: (names[e.engine_code] || e.engine_code) + (locked ? ' (not in your plan)' : e.notTracked ? ' (not tracked yet)' : ''), checked: e.enabled, disabled: locked }) %>
+    <%- ui.checkbox({ id: 'engine-' + e.engine_code, name: 'engine', value: e.engine_code, label: (names[e.engine_code] || e.engine_code) + (locked ? ' (not in your plan)' : e.notTracked ? ' (not tracked yet)' : stops(e) ? ' (' + stops(e) + ': not in your plan)' : ''), checked: e.enabled, disabled: locked }) %>
     <% } %>
   </fieldset>
   <p class="text-ink-600 text-sm">At least one engine stays on. Each one you add is asked every question, every week.</p>
@@ -17,7 +18,7 @@
   <% for (const e of engines) { %>
   <li class="flex items-center justify-between gap-3 py-2">
     <span><%= names[e.engine_code] || e.engine_code %></span>
-    <%- ui.badge({ text: e.enabled ? 'On' : (e.notTracked ? 'Not tracked' : 'Off'), tone: e.enabled ? 'success' : 'neutral' }) %>
+    <%- ui.badge({ text: e.enabled ? (stops(e) ? 'On, ' + stops(e) : 'On') : (e.notTracked ? 'Not tracked' : 'Off'), tone: e.enabled ? (stops(e) ? 'warning' : 'success') : 'neutral' }) %>
   </li>
   <% } %>
 </ul>

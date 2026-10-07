@@ -196,6 +196,7 @@ export function billingView({
   limits,
   access,
   plans,
+  claudeUntil = null,
   now = new Date(),
 }) {
   const copy = STATUS_COPY[billingStatus] ?? STATUS_COPY.none;
@@ -254,7 +255,16 @@ export function billingView({
     });
   }
 
+  // Claude after a downgrade (founder decision F3, option C): still collected until the paid period ends, then stopped.
+  if (claudeUntil && new Date(claudeUntil) > now) {
+    banners.push({
+      tone: 'warning',
+      text: `Claude tracking stops on ${dateText(claudeUntil)}. Your plan no longer includes it, and it keeps running until the end of the period you have paid for. Switch back to a plan with Claude before then to keep it.`,
+    });
+  }
+
   const hasSubscription = billingStatus !== 'none' && billingStatus !== 'canceled';
+  const hasClaude = Boolean(plan?.features?.claude_engine);
   const choices = (plans ?? []).map((p) => ({
     code: p.code,
     name: p.name,
@@ -262,6 +272,13 @@ export function billingView({
     current: p.code === plan?.code,
     canChoose: Boolean(p.stripe_price_id),
     highlights: planHighlights(p),
+    // Said before the switch, not after: moving to a plan without Claude ends Claude tracking at the period's end.
+    claudeNote:
+      hasSubscription && hasClaude && p.code !== plan?.code && !p.features?.claude_engine
+        ? subscription?.currentPeriodEnd
+          ? `Claude tracking stops on ${dateText(subscription.currentPeriodEnd)}, when the period you have paid for ends.`
+          : 'Claude tracking stops when the period you have paid for ends.'
+        : null,
   }));
 
   return {

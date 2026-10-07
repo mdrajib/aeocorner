@@ -984,6 +984,7 @@ model organizations {
   is_design_partner       Boolean                      @default(false)
   canceled_at             DateTime?
   retain_until            DateTime?
+  claude_until            DateTime?
   deleted_at              DateTime?
   purge_after             DateTime?
   created_at              DateTime                     @default(now())

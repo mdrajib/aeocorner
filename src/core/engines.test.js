@@ -4,7 +4,14 @@ import { ENGINES } from '../engines/contract.js';
 import { AUDIT_ENGINES } from '../worker/handlers/audit.js';
 import { AUDIT_ENGINE_ORDER } from './audit-progress.js';
 import { DEFAULT_ENGINE_LABELS } from './narrative.js';
-import { ENGINE_LABELS, ENGINE_ORDER, engineChoices, featureForEngine } from './engines.js';
+import {
+  ENGINE_LABELS,
+  ENGINE_ORDER,
+  engineAccess,
+  engineChoices,
+  featureForEngine,
+  graceAfterPlanChange,
+} from './engines.js';
 
 describe('engine names and order', () => {
   test('every engine the adapters can answer for has a name, in the same order', () => {
@@ -64,5 +71,64 @@ describe('engineChoices()', () => {
     const choices = engineChoices(catalog, [], (code) => code !== 'claude');
     assert.equal(choices.find((c) => c.engine_code === 'claude').allowed, false);
     assert.ok(choices.filter((c) => c.engine_code !== 'claude').every((c) => c.allowed));
+  });
+});
+
+describe('a plan gated engine after a plan change (option C)', () => {
+  const now = new Date('2026-10-10T00:00:00Z');
+  const end = new Date('2026-10-28T00:00:00Z');
+
+  test('losing the feature starts a grace that ends with the paid period', () => {
+    assert.equal(graceAfterPlanChange({ before: true, after: false, periodEnd: end, now }), end);
+  });
+
+  test('gaining the feature clears a grace that is running', () => {
+    assert.equal(
+      graceAfterPlanChange({ before: false, after: true, periodEnd: end, existing: end, now }),
+      null,
+    );
+  });
+
+  test('a period that already ended starts no grace', () => {
+    const past = new Date('2026-10-01T00:00:00Z');
+    assert.equal(graceAfterPlanChange({ before: true, after: false, periodEnd: past, now }), null);
+    assert.equal(graceAfterPlanChange({ before: true, after: false, periodEnd: null, now }), null);
+  });
+
+  test('a change that never involved the feature leaves a running grace alone and does not extend it', () => {
+    assert.equal(
+      graceAfterPlanChange({
+        before: false,
+        after: false,
+        periodEnd: new Date('2026-11-28'),
+        existing: end,
+        now,
+      }),
+      end,
+    );
+    assert.equal(graceAfterPlanChange({ before: false, after: false, periodEnd: end, now }), null);
+  });
+
+  test('access is plan, grace or none', () => {
+    const growth = { features: { claude_engine: false } };
+    const agency = { features: { claude_engine: true } };
+    const base = { code: 'claude', hasPlan: true, now };
+    assert.equal(engineAccess({ ...base, plan: agency }), 'plan');
+    assert.equal(engineAccess({ ...base, plan: growth, graceUntil: end }), 'grace');
+    assert.equal(
+      engineAccess({ ...base, plan: growth, graceUntil: new Date('2026-10-09') }),
+      'none',
+    );
+    assert.equal(engineAccess({ ...base, plan: growth }), 'none');
+    assert.equal(
+      engineAccess({ ...base, hasPlan: false, plan: null }),
+      'plan',
+      'no plan yet: not held back',
+    );
+    assert.equal(
+      engineAccess({ ...base, code: 'chatgpt', plan: growth }),
+      'plan',
+      'an engine in every plan',
+    );
   });
 });

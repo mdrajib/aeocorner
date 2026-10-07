@@ -1,5 +1,5 @@
 import { BRAND_KIT_SCHEMA_VERSION, parseBrandKit } from '../../core/brand-kit.js';
-import { engineChoices, featureForEngine } from '../../core/engines.js';
+import { engineAccess, engineChoices, featureForEngine } from '../../core/engines.js';
 import {
   checkProjectFields,
   normalizeEntityName,
@@ -50,7 +50,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
   async function planEngines(db) {
     const org = await db.organizations.findFirst({
       where: { id: orgId },
-      select: { plan_code: true },
+      select: { plan_code: true, claude_until: true },
     });
     const plan = org?.plan_code
       ? await db.plans.findUnique({ where: { code: org.plan_code } })
@@ -65,6 +65,12 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         const feature = featureForEngine(code);
         return !feature || Boolean(plan?.features?.[feature]);
       },
+      /** Until when a project that already tracks the engine keeps it after a downgrade (F3, option C); null if no grace runs. */
+      graceUntil: (code) =>
+        engineAccess({ code, hasPlan, plan, graceUntil: org?.claude_until, now: new Date() }) ===
+        'grace'
+          ? org.claude_until
+          : null,
     };
   }
 
@@ -464,7 +470,7 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         prisma.project_engines.findMany({ where: { project_id: projectId, org_id: orgId } }),
         planEngines(prisma),
       ]);
-      return engineChoices(catalog, rows, gate.allowed);
+      return engineChoices(catalog, rows, gate.allowed, gate.graceUntil);
     },
 
     /** Switch engines on or off. Only engines that are live in the catalog can be enabled; at least one stays on. */
@@ -476,7 +482,18 @@ export function projectRepos(prisma, orgId, { appendActivity }) {
         const live = new Set(await activeEngineCodes(tx));
         if (!wanted.every((code) => live.has(code))) throw new DomainError('UNKNOWN_ENGINE');
         const gate = await planEngines(tx);
-        if (!wanted.every(gate.allowed)) throw new DomainError('ENGINE_NOT_IN_PLAN');
+        // Keeping an engine the plan no longer includes is fine while its paid period runs (it can only be switched off then).
+        const current = await tx.project_engines.findMany({
+          where: { project_id: project.id, org_id: orgId, enabled: true },
+          select: { engine_code: true },
+        });
+        const keeping = new Set(current.map((r) => r.engine_code));
+        if (
+          !wanted.every(
+            (code) => gate.allowed(code) || (keeping.has(code) && gate.graceUntil(code)),
+          )
+        )
+          throw new DomainError('ENGINE_NOT_IN_PLAN');
         for (const code of live) {
           const enabled = wanted.includes(code);
           const result = await tx.project_engines.updateMany({

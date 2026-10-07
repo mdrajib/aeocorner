@@ -63,6 +63,7 @@ export function billingRoutes(org, { auth, appPage, billing, config, db, logger 
         limits: summary.limits,
         access: summary.access,
         plans,
+        claudeUntil: summary.claudeUntil,
       });
       appPage(res, 'billing', {
         view,

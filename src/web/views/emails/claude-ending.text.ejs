@@ -1,0 +1,10 @@
+Claude tracking stops on <%= endDate %>
+
+The plan for <%= orgName %> was changed to one that does not include Claude. We keep checking Claude until <%= endDate %>, the end of the period you have already paid for, and then we stop.
+
+It is on for: <%= projectNames %>.
+
+Nothing is deleted. Claude's earlier answers stay in your history, and after <%= endDate %> Claude shows as "Not tracked", never as a drop to zero. Your other engines carry on as before.
+
+To keep Claude, switch back to a plan that includes it before <%= endDate %>. Tracking then carries on without a break:
+<%- billingUrl %>

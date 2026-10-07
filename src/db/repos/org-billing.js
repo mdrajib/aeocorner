@@ -44,6 +44,7 @@ export function billingRepos(prisma, orgId, { appendActivity }) {
         stripe_customer_id: true,
         canceled_at: true,
         retain_until: true,
+        claude_until: true,
         public_id: true,
         name: true,
       },
@@ -108,6 +109,8 @@ export function billingRepos(prisma, orgId, { appendActivity }) {
         planCode: org.plan_code,
         billingStatus: org.billing_status,
         stripeCustomerId: org.stripe_customer_id,
+        // After a downgrade: when Claude stops being collected (null when no grace is running).
+        claudeUntil: org.claude_until && org.claude_until > now ? org.claude_until : null,
         plan,
         grants: grants.filter((g) => !g.ends_at || g.ends_at > now),
         subscription: subscription && {

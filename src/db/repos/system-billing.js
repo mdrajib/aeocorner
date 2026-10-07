@@ -1,6 +1,7 @@
 import { datesAfter, firstPayment, grantsFromAddons } from '../../core/billing.js';
 import { ADDONS } from '../../core/addons.js';
 import { addDays } from '../../core/entitlements.js';
+import { graceAfterPlanChange } from '../../core/engines.js';
 import { transaction } from '../transaction.js';
 import { entitledLimit } from './org-billing.js';
 import { systemPurge } from './system-purge.js';
@@ -144,6 +145,23 @@ export function systemBilling(prisma) {
           };
           mirrorChanged =
             org.plan_code !== next.plan_code || org.billing_status !== next.billing_status;
+          // Losing Claude by a downgrade starts a grace until the end of the period already paid for (F3, option C).
+          if (org.plan_code !== next.plan_code) {
+            const hasClaude = async (code) =>
+              code
+                ? Boolean(
+                    (await tx.plans.findUnique({ where: { code }, select: { features: true } }))
+                      ?.features?.claude_engine,
+                  )
+                : false;
+            next.claude_until = graceAfterPlanChange({
+              before: await hasClaude(org.plan_code),
+              after: await hasClaude(next.plan_code),
+              periodEnd: current.current_period_end,
+              existing: org.claude_until,
+              now,
+            });
+          }
           await tx.organizations.update({ where: { id: orgId }, data: next });
 
           await syncGrants(tx, orgId, PAYING.has(parsed.status) ? parsed.addons : [], now);
@@ -407,8 +425,109 @@ export function systemBilling(prisma) {
     },
   };
 
+  /**
+   * Claude after a downgrade (founder decision F3, option C; `organizations.claude_until`). The tracking planner
+   * already stops asking Claude when the grace is over; this switches the engine off on the projects so the screens say
+   * so, and finds who has to be told while it still runs.
+   */
+  const engineGrace = {
+    /** Organizations whose grace is over: Claude is switched off on every project, the grace cleared, a line written. */
+    async expire({ now = new Date(), limit = 100 } = {}) {
+      const due = await prisma.organizations.findMany({
+        where: { claude_until: { lte: now }, deleted_at: null },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      const done = [];
+      for (const { id } of due) {
+        const result = await transaction(prisma, async (tx) => {
+          const org = await tx.organizations.findFirst({
+            where: { id, claude_until: { lte: now } },
+            select: { plan_code: true },
+          });
+          if (!org) return null;
+          const plan = org.plan_code
+            ? await tx.plans.findUnique({
+                where: { code: org.plan_code },
+                select: { features: true },
+              })
+            : null;
+          // A plan with Claude again should have cleared the grace already; if it did not, nothing is switched off.
+          const keep = !org.plan_code || Boolean(plan?.features?.claude_engine);
+          const off = keep
+            ? { count: 0 }
+            : await tx.project_engines.updateMany({
+                where: { org_id: id, engine_code: 'claude', enabled: true },
+                data: { enabled: false },
+              });
+          await tx.organizations.update({ where: { id }, data: { claude_until: null } });
+          if (off.count > 0) {
+            await tx.org_activity_log.create({
+              data: {
+                org_id: id,
+                actor_type: 'system',
+                action: 'engine.claude_stopped',
+                summary: 'Claude tracking stopped: the plan no longer includes it',
+                metadata: { projects: off.count },
+              },
+            });
+          }
+          return { orgId: id, projects: off.count };
+        });
+        if (result) done.push(result);
+      }
+      return done;
+    },
+
+    /**
+     * Organizations in a grace with Claude still on somewhere, with the projects and the owners' addresses (for the
+     * notice). The notification's own dedupe key stops a second email, so this can be asked for as often as needed.
+     */
+    async ending({ now = new Date(), limit = 200 } = {}) {
+      const orgs = await prisma.organizations.findMany({
+        where: { claude_until: { gt: now }, deleted_at: null },
+        select: {
+          id: true,
+          name: true,
+          public_id: true,
+          claude_until: true,
+          memberships: {
+            where: { role: 'owner' },
+            select: { users: { select: { id: true, email: true, deleted_at: true } } },
+          },
+        },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      const out = [];
+      for (const org of orgs) {
+        const tracked = await prisma.project_engines.findMany({
+          where: { org_id: org.id, engine_code: 'claude', enabled: true },
+          select: { project_id: true },
+        });
+        if (tracked.length === 0) continue;
+        const projects = await prisma.projects.findMany({
+          where: { org_id: org.id, id: { in: tracked.map((t) => t.project_id) } },
+          select: { name: true },
+          orderBy: { id: 'asc' },
+        });
+        out.push({
+          orgId: org.id,
+          orgName: org.name,
+          orgPublicId: org.public_id,
+          until: org.claude_until,
+          projectNames: projects.map((p) => p.name),
+          owners: org.memberships.map((m) => m.users).filter((u) => u && !u.deleted_at),
+        });
+      }
+      return out;
+    },
+  };
+
   // The purge is the last step of the same lifecycle: warn, close (above), then delete (system-purge.js).
   return {
+    engineGrace,
     plans,
     subscriptions,
     retention: { ...retention, ...systemPurge(prisma) },

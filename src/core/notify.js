@@ -14,6 +14,7 @@ export const KINDS = Object.freeze({
   alert: { category: 'proactive', pref: 'alerts' },
   'trial-ending': { category: 'transactional', pref: null },
   'retention-warning': { category: 'transactional', pref: null },
+  'claude-ending': { category: 'transactional', pref: null },
   'google-reconnect': { category: 'transactional', pref: null },
 });
 

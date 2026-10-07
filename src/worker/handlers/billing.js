@@ -186,6 +186,13 @@ export async function retentionSweep(ctx) {
   out.payloadsEmptied = pruned.payloads;
   out.webhooksDeleted = pruned.rows;
 
+  // Claude after a downgrade: a grace that has run out switches the engine off on the projects (the tracking planner has
+  // stopped asking it since the moment the grace ended; this makes the screens say so).
+  out.claudeStopped = (await ctx.db.system.billing.engineGrace.expire({ now })).reduce(
+    (n, o) => n + o.projects,
+    0,
+  );
+
   // Then delete what was closed 30 days ago or more. A few organizations a night; the rest wait for tomorrow.
   out.purged = 0;
   for (const orgId of await ctx.db.system.billing.retention.purgeDue({ now, limit: 5 })) {
@@ -215,7 +222,7 @@ export async function retentionSweep(ctx) {
 /** The trial-ending email, four days before the card is charged. One per owner and trial (the notification's dedupe key). */
 export async function billingNotices(ctx) {
   if (!ctx.mail) return { skipped: 'email is not configured' };
-  const out = { trialEnding: 0 };
+  const out = { trialEnding: 0, claudeEnding: 0 };
   for (const t of await ctx.db.system.billing.trials.ending({ now: ctx.now() })) {
     for (const owner of t.owners) {
       const sent = await ctx.mail.sendTrialEnding({
@@ -230,6 +237,21 @@ export async function billingNotices(ctx) {
         chargeDate: t.trialEndsAt,
       });
       if (sent) out.trialEnding += 1;
+    }
+  }
+  // Told once, when the plan change is first seen (the notification's dedupe key holds an owner and an end date).
+  for (const g of await ctx.db.system.billing.engineGrace.ending({ now: ctx.now() })) {
+    for (const owner of g.owners) {
+      const sent = await ctx.mail.sendClaudeEnding({
+        to: owner.email,
+        userId: owner.id,
+        orgId: g.orgId,
+        orgPublicId: g.orgPublicId,
+        orgName: g.orgName,
+        until: g.until,
+        projectNames: g.projectNames,
+      });
+      if (sent) out.claudeEnding += 1;
     }
   }
   return out;

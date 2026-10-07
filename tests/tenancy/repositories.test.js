@@ -2435,6 +2435,7 @@ describe('coverage: no repository function without a leak test', () => {
 
   // Billing is a group of groups: what a Stripe webhook and the billing jobs need to find an organization by Stripe's IDs.
   const SYSTEM_BILLING = {
+    engineGrace: ['ending', 'expire'],
     plans: ['get', 'list', 'priceMap', 'setStripePrice'],
     subscriptions: ['apply', 'reconcilable'],
     retention: ['close', 'due', 'filesToDelete', 'purge', 'purgeDue', 'warnable'],

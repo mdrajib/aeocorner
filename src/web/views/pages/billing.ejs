@@ -36,6 +36,7 @@
       <ul class="text-ink-800 flex flex-1 flex-col gap-1 text-sm">
         <% c.highlights.forEach((h) => { %><li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span><%= h %></span></li><% }) %>
       </ul>
+      <% if (c.claudeNote) { %><p class="text-ink-700 text-sm"><%= c.claudeNote %></p><% } %>
       <% if (!c.current) { %>
       <form method="post" action="<%= orgBase %>/billing/<%= view.hasSubscription ? 'plan' : 'checkout' %>">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">

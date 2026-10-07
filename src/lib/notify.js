@@ -143,6 +143,24 @@ export function createNotifier({
       return r.status === 'sent';
     },
 
+    /** The plan lost Claude: when tracking stops and how to keep it. One per owner and end date. */
+    async sendClaudeEnding({ to, userId, orgId, orgPublicId, orgName, until, projectNames }) {
+      const r = await send({
+        to,
+        userId,
+        orgId,
+        kind: 'claude-ending',
+        dedupeKey: `claude-ending.${orgId}.${userId}.${new Date(until).toISOString().slice(0, 10)}`,
+        data: {
+          orgName,
+          endDate: longDate(until),
+          projectNames: projectNames.join(', '),
+          billingUrl: `${base}/app/o/${orgPublicId}/billing`,
+        },
+      });
+      return r.status === 'sent';
+    },
+
     /** The Google login stopped working: reconnect. At most one a month per person and project. */
     async sendGoogleReconnect({ to, userId, orgId, projectId, projectName, month, trafficUrl }) {
       const r = await send({

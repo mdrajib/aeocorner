@@ -375,6 +375,29 @@ describe('plan changes, the portal and add-ons', () => {
     assert.match(again.headers.location, /billing-same-plan/);
   });
 
+  test('leaving the plan with Claude: the card warns first, then the page says when Claude stops, and the engine list says so too', async () => {
+    const o = await subscribed('agency');
+    const before = (await o.owner.get(`${o.base}/billing`).expect(200)).text;
+    assert.match(before, /Claude tracking stops on/, 'a cheaper plan says what it costs');
+
+    const res = await o.owner.post(`${o.base}/billing/plan`, { plan: 'growth' }).expect(303);
+    assert.match(res.headers.location, /billing-plan-changed/);
+    const summary = await o.scoped.billing.summary();
+    assert.ok(summary.claudeUntil, 'the grace runs until the end of the paid period');
+
+    const page = (await o.owner.get(`${o.base}/billing`).expect(200)).text;
+    assert.match(page, /Claude tracking stops on/);
+    assert.match(page, /Switch back to a plan with Claude/);
+
+    const project = await h.fx.project(o.org.id, 'Claude Co');
+    await h.fx.engines(project, ['perplexity', 'claude']);
+    const engines = await o.scoped.projectEngines.choices(project.id);
+    assert.ok(engines.find((e) => e.engine_code === 'claude').graceUntil);
+    const settings = (await o.owner.get(`${o.base}/projects/${project.public_id}`).expect(200))
+      .text;
+    assert.match(settings, /stops on/);
+  });
+
   test('a smaller plan is refused while more is in use than it allows, and nothing is deleted', async () => {
     const o = await subscribed('growth');
     await h.fx.project(o.org.id);

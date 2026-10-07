@@ -354,3 +354,47 @@ describe('trialDaysLeft', () => {
     assert.equal(trialDaysLeft(null, NOW), null);
   });
 });
+
+describe('billingView and Claude after a downgrade', () => {
+  const mk = (code, claude) => ({
+    code,
+    name: code,
+    price_usd_month: '100.00',
+    stripe_price_id: `price_${code}`,
+    max_projects: 1,
+    max_prompts: 50,
+    drafts_per_month: '4.0',
+    features: { claude_engine: claude },
+  });
+  const plans = [mk('growth', false), mk('agency', true), mk('starter', false)];
+  const subscription = { currentPeriodEnd: new Date('2026-10-28T00:00:00Z') };
+  const view = (plan, extra = {}) =>
+    billingView({ billingStatus: 'active', plan, plans, subscription, now: NOW, ...extra });
+
+  test('while a grace runs the page says when Claude stops and how to keep it', () => {
+    const v = view(plans[0], { claudeUntil: new Date('2026-10-28T00:00:00Z') });
+    const banner = v.banners.find((b) => /Claude tracking stops on/.test(b.text));
+    assert.ok(banner, 'a banner');
+    assert.match(banner.text, /October 28, 2026/);
+    assert.match(banner.text, /Switch back/);
+  });
+
+  test('no banner without a grace, or after it', () => {
+    assert.ok(!view(plans[0]).banners.some((b) => /Claude/.test(b.text)));
+    const over = view(plans[0], { claudeUntil: new Date('2026-10-01T00:00:00Z') });
+    assert.ok(!over.banners.some((b) => /Claude/.test(b.text)));
+  });
+
+  test('a plan card that would end Claude says so before the switch; the others say nothing', () => {
+    const v = view(plans[1]);
+    const note = (code) => v.choices.find((c) => c.code === code).claudeNote;
+    assert.match(note('growth'), /Claude tracking stops on October 28, 2026/);
+    assert.match(note('starter'), /Claude tracking stops/);
+    assert.equal(note('agency'), null, 'the current plan');
+    const fromGrowth = view(plans[0]);
+    assert.ok(
+      fromGrowth.choices.every((c) => c.claudeNote === null),
+      'nothing to lose',
+    );
+  });
+});

@@ -28,6 +28,12 @@ const sample = {
     closeDate: 'January 2, 2027',
     billingUrl: 'https://aeocorner.com/app',
   },
+  'claude-ending': {
+    orgName: 'Acme Dental',
+    endDate: 'October 28, 2026',
+    projectNames: 'Acme Dental, Acme Implants',
+    billingUrl: 'https://aeocorner.com/app/o/X/billing',
+  },
   digest: {
     dashboardUrl: 'https://aeocorner.com/app/o/X/projects/Y/dashboard',
     settingsUrl: 'https://aeocorner.com/app/o/X/notifications',

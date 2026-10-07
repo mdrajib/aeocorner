@@ -1,3 +1,4 @@
+import { engineAccess } from '../../core/engines.js';
 import { buildCells, rollupDay, runOutcome, samplesFor } from '../../core/tracking.js';
 import { detectChanges, TREND_WINDOW_DAYS, windowsAt } from '../../core/trends.js';
 import { DomainError, isUniqueViolation } from '../errors.js';
@@ -226,7 +227,7 @@ export function trackingRepos(prisma, orgId) {
      * What a run needs planned: the project's active questions and enabled engines (with the samples each gets and
      * its weight), from the project and its plan. Empty lists for a run that is not this organization's.
      */
-    async plan(runId) {
+    async plan(runId, { now = new Date() } = {}) {
       const run = await findRun(runId);
       if (!run) return { run: null, prompts: [], engines: [] };
       const [prompts, projectEngines, org] = await Promise.all([
@@ -241,15 +242,25 @@ export function trackingRepos(prisma, orgId) {
         }),
         prisma.organizations.findFirst({
           where: { id: orgId },
-          select: { plan_code: true },
+          select: { plan_code: true, claude_until: true },
         }),
       ]);
       const plan = org?.plan_code
         ? await prisma.plans.findUnique({
             where: { code: org.plan_code },
-            select: { samples_per_engine: true },
+            select: { samples_per_engine: true, features: true },
           })
         : null;
+      // An engine the plan does not include is collected only while a paid period after a downgrade still runs
+      // (founder decision F3, option C): after that nothing is asked of it, even before the daily sweep switches it off.
+      const collectable = (code) =>
+        engineAccess({
+          code,
+          hasPlan: Boolean(org?.plan_code),
+          plan,
+          graceUntil: org?.claude_until ?? null,
+          now,
+        }) !== 'none';
       const references = await prisma.engines.findMany({
         where: {
           code: { in: projectEngines.map((e) => e.engine_code) },
@@ -265,7 +276,7 @@ export function trackingRepos(prisma, orgId) {
       });
       const byCode = new Map(references.map((e) => [e.code, e]));
       const engines = projectEngines
-        .filter((e) => byCode.has(e.engine_code))
+        .filter((e) => byCode.has(e.engine_code) && collectable(e.engine_code))
         .map((e) => {
           const ref = byCode.get(e.engine_code);
           return {
