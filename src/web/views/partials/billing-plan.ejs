@@ -1,4 +1,4 @@
-<%# The plan card on the billing screen. Props: view, csrfToken, orgBase, hasCustomer, configured. %>
+<%# The plan card on the billing screen. Props: view, csrfToken, orgBase, hasCustomer, configured, provider, bkash. %>
 <div class="flex flex-col gap-3">
   <div class="flex flex-wrap items-center gap-2">
     <p class="text-2xl font-semibold"><%= view.planName || 'No plan yet' %></p>
@@ -6,7 +6,16 @@
   </div>
   <p class="text-ink-800 text-sm font-medium"><%= view.statusLine %></p>
   <% view.lines.forEach((line) => { %><p class="text-ink-700 text-sm"><%= line %></p><% }) %>
-  <% if (view.canManage && hasCustomer) { %>
+  <% if (provider === 'bkash') { %>
+  <% if (view.canManage && (view.statusLabel === 'Active' || view.statusLabel === 'Free trial')) { %>
+  <form method="post" action="<%= orgBase %>/billing/bkash/renewal">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="stop" value="<%= bkash.renewalStopped ? '0' : '1' %>">
+    <%- ui.button({ label: bkash.renewalStopped ? 'Keep my plan going' : 'Stop renewing', type: 'submit', variant: 'secondary' }) %>
+    <p class="text-ink-700 mt-2 text-xs"><%= bkash.renewalStopped ? 'Your plan ends when the period you have paid for does.' : 'Nothing renews by itself; this stops our reminder and ends your plan when the period you have paid for ends.' %></p>
+  </form>
+  <% } %>
+  <% } else if (view.canManage && hasCustomer) { %>
   <form method="post" action="<%= orgBase %>/billing/portal">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <%- ui.button({ label: 'Manage billing', type: 'submit', variant: 'secondary', disabled: !configured }) %>

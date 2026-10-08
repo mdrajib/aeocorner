@@ -66,6 +66,15 @@ const TEMPLATES = {
     footerReason:
       'You are receiving this because you manage the Google connection of an AEO Corner project.',
   },
+  'bkash-renewal': {
+    subject: (d) =>
+      d.trial
+        ? `Your free trial ends on ${d.endsDate}: pay with bKash to continue`
+        : `Your plan runs until ${d.endsDate}: pay with bKash to renew`,
+    preheader: (d) =>
+      `${d.priceText} keeps ${d.orgName} tracked. Nothing is charged automatically.`,
+    footerReason: 'You are receiving this because you own an AEO Corner organization.',
+  },
   'trial-ending': {
     subject: (d) => `Your free trial ends on ${d.chargeDate}`,
     preheader: (d) =>

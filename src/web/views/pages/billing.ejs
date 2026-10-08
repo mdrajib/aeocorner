@@ -15,14 +15,16 @@
 <% view.banners.forEach((b) => { %><div class="mt-6"><%- ui.banner({ tone: b.tone, text: b.text }) %></div><% }) %>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-2">
-  <%- ui.card({ title: 'Your plan', headingLevel: 2, html: ui.fragment('partials/billing-plan', { view, csrfToken, orgBase, hasCustomer, configured }) }) %>
+  <%- ui.card({ title: 'Your plan', headingLevel: 2, html: ui.fragment('partials/billing-plan', { view, csrfToken, orgBase, hasCustomer, configured, provider, bkash }) }) %>
 
   <%- ui.card({ title: 'Usage', headingLevel: 2, html: ui.fragment('partials/billing-usage', { view }) }) %>
 </div>
 
 <h2 class="mt-10 text-2xl"><%= view.hasSubscription ? 'Change plan' : 'Choose a plan' %></h2>
 <p class="text-ink-700 mt-1 max-w-2xl text-sm">
-  <% if (view.hasSubscription) { %>Changing plan is prorated: you pay or are credited the difference. A smaller plan has to be big enough for what you use now.<% } else { %>Every plan starts with a <%= trialDays %>-day free trial. You enter a card on Stripe’s secure page and pay nothing today; cancel any time before the trial ends and you are not charged.<% } %>
+  <% if (provider === 'bkash') { %>
+    <% if (bkash.canTrial) { %>Every plan starts with a <%= trialDays %>-day free trial. You pay nothing now and give us no payment details. When it ends, you pay for the month with bKash to keep going.<% } else { %>You pay one month at a time with bKash, on bKash’s own page. We never see your bKash number or PIN. Moving to a bigger plan starts it now and takes off the unused part of this month; a smaller plan can start in the last week of the month.<% } %>
+  <% } else if (view.hasSubscription) { %>Changing plan is prorated: you pay or are credited the difference. A smaller plan has to be big enough for what you use now.<% } else { %>Every plan starts with a <%= trialDays %>-day free trial. You enter a card on Stripe’s secure page and pay nothing today; cancel any time before the trial ends and you are not charged.<% } %>
 </p>
 <div class="mt-4 grid gap-6 md:grid-cols-3">
   <% view.choices.forEach((c) => { %>
@@ -37,7 +39,18 @@
         <% c.highlights.forEach((h) => { %><li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span><%= h %></span></li><% }) %>
       </ul>
       <% if (c.claudeNote) { %><p class="text-ink-700 text-sm"><%= c.claudeNote %></p><% } %>
-      <% if (!c.current) { %>
+      <% if (provider === 'bkash') { %>
+      <% const trialOpen = bkash.canTrial; %>
+      <form method="post" action="<%= orgBase %>/billing/bkash/<%= trialOpen ? 'trial' : 'pay' %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="plan" value="<%= c.code %>">
+        <% const payLabel = trialOpen ? 'Start free trial' : (c.current ? 'Renew with bKash' : 'Pay ' + (c.pay.amountText || '') + ' with bKash'); %>
+        <%- ui.button({ label: payLabel, type: 'submit', variant: (c.current && !trialOpen) || trialOpen ? 'primary' : 'secondary', disabled: !configured || !c.canChoose || Boolean(c.pay.blocked && c.pay.blocked !== 'downgrade_mid_period'), attrs: { 'aria-label': payLabel + ' – ' + c.name } }) %>
+        <% if (!trialOpen && c.pay.amountText) { %><p class="text-ink-700 mt-2 text-xs"><%= c.pay.amountText %> today<%= c.pay.note ? '. ' + c.pay.note : '' %></p><% } %>
+        <% if (c.pay.blocked === 'downgrade_mid_period') { %><p class="text-ink-700 mt-2 text-xs">You can move to this plan in the last week of the month you have paid for.</p><% } %>
+        <% if (configured && !c.canChoose) { %><p class="text-ink-700 mt-2 text-xs">Not open yet.</p><% } %>
+      </form>
+      <% } else if (!c.current) { %>
       <form method="post" action="<%= orgBase %>/billing/<%= view.hasSubscription ? 'plan' : 'checkout' %>">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="plan" value="<%= c.code %>">
@@ -50,7 +63,27 @@
   <% }) %>
 </div>
 
-<% if (view.hasSubscription) { %>
+<% if (provider === 'bkash' && bkash.payments.length) { %>
+<h2 class="mt-10 text-2xl">Payments</h2>
+<div class="mt-4 overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <caption class="sr-only">Your bKash payments, newest first</caption>
+    <thead><tr><th scope="col" class="py-2 pr-4">Date</th><th scope="col" class="py-2 pr-4">Amount</th><th scope="col" class="py-2 pr-4">Status</th><th scope="col" class="py-2">bKash transaction</th></tr></thead>
+    <tbody>
+      <% bkash.payments.forEach((p) => { %>
+      <tr class="border-t">
+        <td class="py-2 pr-4"><%= new Date(p.date).toISOString().slice(0, 10) %></td>
+        <td class="py-2 pr-4"><%= p.amountText %></td>
+        <td class="py-2 pr-4"><%= p.status === 'completed' ? 'Paid' : p.status === 'created' ? 'Waiting for bKash' : p.status === 'cancelled' ? 'Cancelled' : p.status === 'expired' ? 'Not finished' : 'Not completed' %></td>
+        <td class="py-2"><%= p.trxId || '—' %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+
+<% if (view.hasSubscription && provider !== 'bkash') { %>
 <h2 class="mt-10 text-2xl">Add-ons</h2>
 <div class="mt-4 grid gap-6 md:grid-cols-2">
   <% addons.forEach((a) => { %>

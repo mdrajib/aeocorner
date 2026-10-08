@@ -40,6 +40,8 @@ export const SCHEDULES = Object.freeze([
   // Billing (Milestone 8): reconcile with Stripe, report metered usage, close cancelled accounts.
   { name: 'billing.reconcile', repeat: { pattern: '15 5 * * *', tz: 'UTC' } },
   { name: 'billing.report_usage', repeat: { pattern: '20 * * * *', tz: 'UTC' } },
+  // bKash has no subscriptions of its own: settle lost payments and let unpaid periods lapse (ADR-0018).
+  { name: 'billing.bkash_sweep', repeat: { pattern: '25 * * * *', tz: 'UTC' } },
   { name: 'retention.sweep', repeat: { pattern: '45 5 * * *', tz: 'UTC' } },
   { name: 'billing.notices', repeat: { pattern: '0 15 * * *', tz: 'UTC' } },
   // The weekly digest: each hour, the projects with someone at Monday 08:00 (Milestone 8).

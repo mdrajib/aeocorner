@@ -129,6 +129,18 @@ export const SUBPROCESSORS = Object.freeze([
     evidence: { env: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'], hosts: ['api.stripe.com'] },
   },
   {
+    key: 'bkash',
+    name: 'bKash',
+    status: 'in_use',
+    purpose: 'Payments in Bangladeshi taka',
+    data: 'Payment amount and our invoice number (the customer signs in to bKash on bKash’s own page; we never see their number or PIN)',
+    location: 'Bangladesh',
+    evidence: {
+      env: ['BKASH_APP_KEY', 'BKASH_APP_SECRET', 'BKASH_USERNAME', 'BKASH_PASSWORD'],
+      hosts: ['tokenized.pay.bka.sh', 'tokenized.sandbox.bka.sh'],
+    },
+  },
+  {
     key: 'resend',
     name: 'Resend',
     status: 'in_use',

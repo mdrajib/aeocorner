@@ -363,6 +363,40 @@ const NOTICES = {
     'danger',
     'We couldn’t reach our payment provider just now. Nothing was changed. Try again in a minute.',
   ],
+  'billing-bkash-trial': [
+    'success',
+    'Your free trial has started. We will remind you before it ends; you pay with bKash then.',
+  ],
+  'billing-bkash-paid': ['success', 'Payment received. Thank you, your plan is paid up.'],
+  'billing-bkash-checking': [
+    'info',
+    'We are confirming your bKash payment. This page updates in a few minutes; if it still shows no payment, email us.',
+  ],
+  'billing-bkash-cancelled': ['info', 'No problem. Nothing was charged.'],
+  'billing-bkash-failed': [
+    'warning',
+    'bKash did not complete that payment, so nothing was charged. You can try again.',
+  ],
+  'billing-bkash-error': [
+    'danger',
+    'We couldn’t reach bKash just now. Nothing was charged. Try again in a minute.',
+  ],
+  'billing-trial-used': [
+    'info',
+    'The free trial is once per organization, so this plan starts with a payment.',
+  ],
+  'billing-downgrade-later': [
+    'info',
+    'You have already paid for this month. You can move to a smaller plan in the last week of it, and it starts when this month ends.',
+  ],
+  'billing-bkash-renewal-stopped': [
+    'info',
+    'Your plan will not renew. It stays active until the end of the period you have paid for.',
+  ],
+  'billing-bkash-renewal-resumed': [
+    'success',
+    'Your plan will continue. We will remind you before it ends.',
+  ],
   'plan-limit-projects': [
     'warning',
     'Your plan’s projects are all in use. Upgrade to add another.',
@@ -541,7 +575,7 @@ export function appRoutes({
     try {
       if (config.billingEnforced) {
         const access = await req.orgDb.billing.access({ enforced: true });
-        const message = accessText(access);
+        const message = accessText(access, billing?.bkash ? 'bkash' : 'stripe');
         if (message) {
           const isOwner = res.locals.can('billing.manage');
           res.locals.billingBanner = {

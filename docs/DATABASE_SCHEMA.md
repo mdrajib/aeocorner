@@ -14,7 +14,7 @@
 
 ## 0. Summary
 
-**72 tables in 16 areas, with 120 foreign keys and 25 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
+**73 tables in 16 areas, with 122 foreign keys and 26 CHECK constraints.** The schema covers everything in the MVP spec. It also models the proposals from the customer-journey and admin docs: fix verification, before/after outcomes, "That's not us" reports and the admin tables.
 
 The ten decisions that shape it:
 

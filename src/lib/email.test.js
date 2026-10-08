@@ -85,6 +85,14 @@ const sample = {
     projectName: 'Acme Dental',
     trafficUrl: 'https://aeocorner.com/app/o/X/projects/Y/traffic',
   },
+  'bkash-renewal': {
+    orgName: 'Acme Dental',
+    planName: 'Starter',
+    priceText: '৳2,500',
+    trial: true,
+    endsDate: 'October 18, 2026',
+    billingUrl: 'https://aeocorner.com/app/o/01ARZ3NDEKTSV4RRFFQ69G5FAV/billing',
+  },
   'trial-ending': {
     orgName: 'Acme Dental',
     planName: 'Starter',

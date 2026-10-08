@@ -3,6 +3,7 @@ import { actionRepos } from './org-actions.js';
 import { alertRepos } from './org-alerts.js';
 import { autofixRepos } from './org-autofix.js';
 import { billingRepos } from './org-billing.js';
+import { bkashRepos } from './org-bkash.js';
 import { contentRepos } from './org-content.js';
 import { dashboardRepos } from './org-dashboard.js';
 import { entityRepos } from './org-entity.js';
@@ -367,6 +368,7 @@ export function orgScopedRepos(prisma, orgId) {
     ...recoveryRepos(prisma, orgId),
     ...autopilotRepos(prisma, orgId, { appendActivity }),
     ...billingRepos(prisma, orgId, { appendActivity }),
+    ...bkashRepos(prisma, orgId),
     ...alertRepos(prisma, orgId),
     ...trafficRepos(prisma, orgId),
   };

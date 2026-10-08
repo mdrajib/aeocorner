@@ -1,0 +1,10 @@
+<%= trial ? 'Your free trial of ' + planName + ' ends on ' + endsDate : 'Your ' + planName + ' plan runs until ' + endsDate %>
+
+<% if (trial) { %>Nothing is charged automatically. To keep tracking <%= orgName %> after <%= endsDate %>, pay <%= priceText %> for the first month with bKash.
+
+If you don’t, tracking pauses after a short grace period. Your data stays, and you can pick it up whenever you pay.<% } else { %>Your plan for <%= orgName %> doesn’t renew by itself. To keep it going past <%= endsDate %>, pay <%= priceText %> for the next month with bKash. Paying early loses nothing: the new month starts when this one ends.
+
+If you don’t, tracking pauses after a short grace period. Your data stays.<% } %>
+
+Pay with bKash:
+<%- billingUrl %>

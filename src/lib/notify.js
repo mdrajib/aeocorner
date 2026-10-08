@@ -176,6 +176,39 @@ export function createNotifier({
       return r.status === 'sent';
     },
 
+    /**
+     * A bKash plan (or its trial) ends soon and nothing renews by itself: ask the owner to pay (ADR-0018). One per owner and
+     * period end, so a retry of the job, or a second run the same day, sends nothing more.
+     */
+    async sendBkashRenewal({
+      to,
+      userId,
+      orgId,
+      orgName,
+      orgPublicId,
+      planName,
+      priceText,
+      endsAt,
+      trial,
+    }) {
+      const r = await send({
+        to,
+        userId,
+        orgId,
+        kind: 'bkash-renewal',
+        dedupeKey: `bkash-renewal.${orgId}.${new Date(endsAt).toISOString().slice(0, 10)}.${userId}`,
+        data: {
+          orgName,
+          planName,
+          priceText,
+          trial: Boolean(trial),
+          endsDate: longDate(endsAt),
+          billingUrl: `${base}/app/o/${orgPublicId}/billing`,
+        },
+      });
+      return r.status === 'sent';
+    },
+
     /** The trial ends soon: what was found, and what stops if they cancel (CUSTOMER_JOURNEY stage 9). */
     async sendTrialEnding({
       to,

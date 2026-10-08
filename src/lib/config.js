@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
 import { DEFAULT_AUDIT_DAILY_BUDGET_USD, toMicros } from '../core/spend.js';
+import { BKASH_LIVE_URL, BKASH_SANDBOX_URL } from '../integrations/bkash.js';
 import { parseMasterKey } from './secrets.js';
 
 // Empty strings in .env mean "not set" — treat them as undefined so optional keys stay optional.
@@ -108,6 +109,15 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: optional(z.string().regex(/^whsec_/, 'must start with whsec_')),
   STRIPE_API_VERSION: optional(z.string().regex(/^d{4}-d{2}-d{2}(.[a-z]+)?$/)),
 
+  // bKash (ADR-0018), a way to pay in Bangladeshi taka. The four credentials come from the merchant's bKash tokenized
+  // checkout account and are set together or not at all. Set, billing is enforced here too.
+  BKASH_APP_KEY: optional(z.string().min(1)),
+  BKASH_APP_SECRET: optional(z.string().min(1)),
+  BKASH_USERNAME: optional(z.string().min(1)),
+  BKASH_PASSWORD: optional(z.string().min(1)),
+  // Defaults to bKash's sandbox outside production and the live address in production.
+  BKASH_BASE_URL: optional(z.url()),
+
   // Google OAuth for GA4 and Search Console (Milestone 8). Both or neither.
   GOOGLE_OAUTH_CLIENT_ID: optional(z.string().min(1)),
   GOOGLE_OAUTH_CLIENT_SECRET: optional(z.string().min(1)),
@@ -183,6 +193,41 @@ function stripeConfig(e, appEnv) {
     publishableKey: e.STRIPE_PUBLISHABLE_KEY ?? null,
     webhookSecret: e.STRIPE_WEBHOOK_SECRET ?? null,
     apiVersion: e.STRIPE_API_VERSION ?? null,
+    isLive,
+  };
+}
+
+/**
+ * bKash: the app key and secret and the merchant's username and password, all four or none. The live site uses bKash's
+ * live address and nothing else does, so a laptop or staging can never take a real payment.
+ */
+function bkashConfig(e, appEnv) {
+  const keys = ['BKASH_APP_KEY', 'BKASH_APP_SECRET', 'BKASH_USERNAME', 'BKASH_PASSWORD'];
+  const set = keys.filter((k) => e[k]);
+  if (set.length === 0) return null;
+  if (set.length < keys.length) {
+    throw new Error(
+      `bKash needs all of ${keys.join(', ')} (missing: ${keys.filter((k) => !e[k]).join(', ')}).`,
+    );
+  }
+  const baseUrl = (
+    e.BKASH_BASE_URL ?? (appEnv === 'production' ? BKASH_LIVE_URL : BKASH_SANDBOX_URL)
+  ).replace(/\/+$/, '');
+  const isLive = baseUrl === BKASH_LIVE_URL;
+  if (isLive && appEnv !== 'production') {
+    throw new Error(
+      'bKash’s live address is only allowed in the production environment: use the sandbox here.',
+    );
+  }
+  if (!isLive && appEnv === 'production') {
+    throw new Error('The live site needs bKash’s live address (this one is the sandbox).');
+  }
+  return {
+    appKey: e.BKASH_APP_KEY,
+    appSecret: e.BKASH_APP_SECRET,
+    username: e.BKASH_USERNAME,
+    password: e.BKASH_PASSWORD,
+    baseUrl,
     isLive,
   };
 }
@@ -345,6 +390,7 @@ export function loadConfig(env = process.env) {
   }
 
   const stripe = stripeConfig(e, appEnv);
+  const bkash = bkashConfig(e, appEnv);
   const google = googleConfig(e);
 
   const cloudflareAccess =
@@ -398,9 +444,10 @@ export function loadConfig(env = process.env) {
     extraction: { model: e.EXTRACTION_MODEL },
     content: { model: e.CONTENT_MODEL },
     stripe,
+    bkash,
     google,
     // Plans are enforced exactly when there is a way to pay.
-    billingEnforced: Boolean(stripe),
+    billingEnforced: Boolean(stripe || bkash),
     auth: customer
       ? {
           ...customer,

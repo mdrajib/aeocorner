@@ -627,22 +627,22 @@ model entity_aliases {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model entity_checks {
-  id          BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  org_id      BigInt               @db.UnsignedBigInt
-  project_id  BigInt               @db.UnsignedBigInt
-  kind        entity_checks_kind
-  subject     String               @db.VarChar(500)
-  platform    String?              @db.VarChar(32)
-  status      entity_checks_status
-  finding     String               @db.VarChar(32)
-  http_status Int?                 @db.UnsignedSmallInt
-  details     Json?
-  checked_at  DateTime
+  id                   BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id               BigInt               @db.UnsignedBigInt
+  project_id           BigInt               @db.UnsignedBigInt
+  kind                 entity_checks_kind
+  subject              String               @db.VarChar(500)
+  platform             String?              @db.VarChar(32)
+  status               entity_checks_status
+  finding              String               @db.VarChar(32)
+  http_status          Int?                 @db.UnsignedSmallInt
+  details              Json?
+  checked_at           DateTime
+  created_at           DateTime             @default(now())
+  updated_at           DateTime             @default(now())
   confirmed_at         DateTime?
-  confirmed_by_user_id BigInt?               @db.UnsignedBigInt
-  created_at  DateTime             @default(now())
-  updated_at  DateTime             @default(now())
-  projects    projects             @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_entity_checks_project")
+  confirmed_by_user_id BigInt?              @db.UnsignedBigInt
+  projects             projects             @relation(fields: [project_id, org_id], references: [id, org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_entity_checks_project")
 
   @@unique([project_id, kind, subject], map: "uq_entity_checks_subject")
   @@index([project_id, org_id], map: "ix_entity_checks_project")
@@ -984,12 +984,13 @@ model organizations {
   is_design_partner       Boolean                      @default(false)
   canceled_at             DateTime?
   retain_until            DateTime?
-  claude_until            DateTime?
   deleted_at              DateTime?
   purge_after             DateTime?
   created_at              DateTime                     @default(now())
   updated_at              DateTime                     @default(now())
+  claude_until            DateTime?
   audits                  audits[]
+  bkash_payments          bkash_payments[]
   entitlement_grants      entitlement_grants[]
   feature_flag_overrides  feature_flag_overrides[]
   invitations             invitations[]
@@ -1009,21 +1010,23 @@ model organizations {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model plans {
-  code               String          @id @db.VarChar(32)
-  name               String          @db.VarChar(64)
-  price_usd_month    Decimal         @db.Decimal(10, 2)
-  stripe_price_id    String?         @db.VarChar(64)
-  max_projects       Int?            @db.UnsignedInt
-  max_prompts        Int?            @db.UnsignedInt
-  max_seats          Int?            @db.UnsignedInt
-  drafts_per_month   Decimal?        @db.Decimal(6, 1)
-  runs_now_per_month Int?            @db.UnsignedInt
-  samples_per_engine Int             @default(3) @db.UnsignedTinyInt
+  code               String           @id @db.VarChar(32)
+  name               String           @db.VarChar(64)
+  price_usd_month    Decimal          @db.Decimal(10, 2)
+  stripe_price_id    String?          @db.VarChar(64)
+  max_projects       Int?             @db.UnsignedInt
+  max_prompts        Int?             @db.UnsignedInt
+  max_seats          Int?             @db.UnsignedInt
+  drafts_per_month   Decimal?         @db.Decimal(6, 1)
+  runs_now_per_month Int?             @db.UnsignedInt
+  samples_per_engine Int              @default(3) @db.UnsignedTinyInt
   features           Json?
-  is_public          Boolean         @default(true)
-  sort_order         Int             @default(0) @db.SmallInt
-  created_at         DateTime        @default(now())
-  updated_at         DateTime        @default(now())
+  is_public          Boolean          @default(true)
+  sort_order         Int              @default(0) @db.SmallInt
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @default(now())
+  price_bdt_month    Decimal?         @db.Decimal(10, 2)
+  bkash_payments     bkash_payments[]
   organizations      organizations[]
   subscriptions      subscriptions[]
 }
@@ -1705,23 +1708,24 @@ model staff_users {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model subscriptions {
-  id                     BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
-  org_id                 BigInt               @db.UnsignedBigInt
-  stripe_subscription_id String               @unique(map: "uq_subscriptions_stripe") @db.VarChar(64)
-  plan_code              String               @db.VarChar(32)
+  id                     BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  org_id                 BigInt                 @db.UnsignedBigInt
+  stripe_subscription_id String                 @unique(map: "uq_subscriptions_stripe") @db.VarChar(64)
+  plan_code              String                 @db.VarChar(32)
   status                 subscriptions_status
   trial_ends_at          DateTime?
   current_period_start   DateTime?
   current_period_end     DateTime?
-  cancel_at_period_end   Boolean              @default(false)
+  cancel_at_period_end   Boolean                @default(false)
   canceled_at            DateTime?
   grace_until            DateTime?
   first_paid_at          DateTime?
   money_back_until       DateTime?
-  created_at             DateTime             @default(now())
-  updated_at             DateTime             @default(now())
-  organizations          organizations        @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_subscriptions_org")
-  plans                  plans                @relation(fields: [plan_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_subscriptions_plan")
+  created_at             DateTime               @default(now())
+  updated_at             DateTime               @default(now())
+  provider               subscriptions_provider @default(stripe)
+  organizations          organizations          @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_subscriptions_org")
+  plans                  plans                  @relation(fields: [plan_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_subscriptions_plan")
 
   @@index([plan_code], map: "fk_subscriptions_plan")
   @@index([org_id, status], map: "ix_subscriptions_org")
@@ -1894,6 +1898,34 @@ model webhook_events {
 
   @@unique([source, external_id], map: "uq_webhook_events_external")
   @@index([status, received_at], map: "ix_webhook_events_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model bkash_payments {
+  id               BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  public_id        String                 @unique(map: "uq_bkash_payments_public") @db.Char(26)
+  org_id           BigInt                 @db.UnsignedBigInt
+  plan_code        String                 @db.VarChar(32)
+  purpose          bkash_payments_purpose
+  amount_bdt       Decimal                @db.Decimal(10, 2)
+  invoice_number   String                 @unique(map: "uq_bkash_payments_invoice") @db.VarChar(40)
+  bkash_payment_id String?                @unique(map: "uq_bkash_payments_bkash") @db.VarChar(64)
+  trx_id           String?                @unique(map: "uq_bkash_payments_trx") @db.VarChar(32)
+  status           bkash_payments_status  @default(created)
+  failure_reason   String?                @db.VarChar(160)
+  period_start     DateTime?
+  period_end       DateTime?
+  applied_at       DateTime?
+  completed_at     DateTime?
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @default(now())
+  organizations    organizations          @relation(fields: [org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bkash_payments_org")
+  plans            plans                  @relation(fields: [plan_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_bkash_payments_plan")
+
+  @@index([plan_code], map: "fk_bkash_payments_plan")
+  @@index([org_id, created_at], map: "ix_bkash_payments_org")
+  @@index([status, created_at], map: "ix_bkash_payments_status")
 }
 
 enum abuse_blocks_kind {
@@ -2718,4 +2750,23 @@ enum projects_domain_verify_method {
 enum recommendations_metric {
   mention_rate
   citation_share
+}
+
+enum bkash_payments_purpose {
+  start
+  renewal
+  change
+}
+
+enum bkash_payments_status {
+  created
+  completed
+  failed
+  cancelled
+  expired
+}
+
+enum subscriptions_provider {
+  stripe
+  bkash
 }

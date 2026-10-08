@@ -1,4 +1,7 @@
 import { WEBHOOK_PAYLOAD_DAYS, WEBHOOK_ROW_DAYS } from '../../core/org-purge.js';
+import { PAYMENT_EXPIRES_HOURS } from '../../core/bkash-billing.js';
+import { takaText } from '../../core/taka.js';
+import { BkashError } from '../../integrations/bkash.js';
 import { syncSubscription } from '../../integrations/stripe-sync.js';
 import { StripeError } from '../../integrations/stripe.js';
 
@@ -219,10 +222,90 @@ export async function retentionSweep(ctx) {
   return out;
 }
 
+/**
+ * bKash (ADR-0018), hourly. Nothing renews by itself, so this is what keeps the copy honest:
+ *   1. finish a payment that completed but whose subscription was not updated (a crash in between);
+ *   2. look up payments nobody heard the end of (the customer closed the tab, the callback never came) at bKash;
+ *   3. give up on a payment page nobody finished within a day;
+ *   4. let time move the subscriptions: a trial or paid month that ran out is `past_due` (a grace period, then tracking
+ *      pauses), and one unpaid for the grace plus 30 days is cancelled, which starts the read-only window.
+ * Steps 1, 3 and 4 need no call to bKash, so they run without credentials; step 2 needs them.
+ */
+export async function bkashSweep(ctx) {
+  const now = ctx.now();
+  const sys = ctx.db.system.billing.bkash;
+  const bkash = ctx.billing?.bkash ?? null;
+  const out = { retried: 0, looked: 0, settled: 0, closed: 0, expired: 0, lapsed: 0, failed: 0 };
+
+  for (const publicId of await sys.unapplied()) {
+    const done = await sys.applyCompleted(publicId, { now });
+    if (done.settled) out.retried += 1;
+  }
+
+  if (bkash) {
+    for (const p of await sys.pending({ olderThan: new Date(now.getTime() - 10 * 60_000) })) {
+      out.looked += 1;
+      try {
+        const found = await bkash.queryPayment(p.bkashPaymentId);
+        if (found.status !== 'completed') continue;
+        const settled = await sys.settle({
+          publicId: p.publicId,
+          paid: {
+            trxId: found.trxId,
+            amount: found.amount,
+            currency: found.currency,
+            invoiceNumber: found.invoiceNumber,
+          },
+          now,
+        });
+        if (settled.settled) out.settled += 1;
+        else
+          await ctx.alerts.alert({
+            key: `bkash.unsettled:${p.publicId}`,
+            severity: 'warning',
+            title: 'A bKash payment is complete at bKash but could not be settled here',
+            details: { payment: p.publicId, reason: settled.reason },
+          });
+      } catch (err) {
+        if (!(err instanceof BkashError)) throw err;
+        out.failed += 1;
+        ctx.logger.warn(
+          { payment: p.publicId, code: err.code },
+          'Could not look up a bKash payment',
+        );
+      }
+    }
+  }
+
+  out.expired = await sys.expire({
+    before: new Date(now.getTime() - PAYMENT_EXPIRES_HOURS * 3_600_000),
+  });
+  out.lapsed = (await sys.lapse({ now })).length;
+  return out;
+}
+
 /** The trial-ending email, four days before the card is charged. One per owner and trial (the notification's dedupe key). */
 export async function billingNotices(ctx) {
   if (!ctx.mail) return { skipped: 'email is not configured' };
-  const out = { trialEnding: 0, claudeEnding: 0 };
+  const out = { trialEnding: 0, bkashRenewal: 0, claudeEnding: 0 };
+  // bKash plans: nothing is charged by itself, so the owner is asked to pay a few days before the period ends.
+  for (const r of await ctx.db.system.billing.bkash.reminders({ now: ctx.now() })) {
+    if (r.priceBdt === null) continue;
+    for (const owner of r.owners) {
+      const sent = await ctx.mail.sendBkashRenewal({
+        to: owner.email,
+        userId: owner.id,
+        orgId: r.orgId,
+        orgName: r.orgName,
+        orgPublicId: r.orgPublicId,
+        planName: r.planName,
+        priceText: takaText(r.priceBdt),
+        endsAt: r.endsAt,
+        trial: r.trial,
+      });
+      if (sent) out.bkashRenewal += 1;
+    }
+  }
   for (const t of await ctx.db.system.billing.trials.ending({ now: ctx.now() })) {
     for (const owner of t.owners) {
       const sent = await ctx.mail.sendTrialEnding({
@@ -258,6 +341,7 @@ export async function billingNotices(ctx) {
 }
 
 export const billingHandlers = {
+  'billing.bkash_sweep': bkashSweep,
   'billing.notices': billingNotices,
   'billing.reconcile': billingReconcile,
   'billing.report_usage': billingReportUsage,

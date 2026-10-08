@@ -2046,6 +2046,31 @@ describe('billing, alerts, notification choices and Google traffic (Milestone 8)
     assert.equal(await B.scoped.billing.featureAllowed('client_seats'), true);
   });
 
+  test('bkash: A’s payments are invisible to B, and B cannot attach, close or stop what is A’s', async () => {
+    const made = await A.scoped.bkash.begin({
+      planCode: 'starter',
+      purpose: 'start',
+      amountBdt: 2500,
+      invoiceNumber: `AEO-leak-${Date.now().toString(36)}`,
+    });
+    const bkashId = `TRLEAK${Date.now()}`;
+    assert.equal(await A.scoped.bkash.attach(made.publicId, bkashId), true);
+
+    assert.equal((await A.scoped.bkash.byBkashId(bkashId)).publicId, made.publicId);
+    assert.equal(await B.scoped.bkash.byBkashId(bkashId), null);
+    assert.ok((await B.scoped.bkash.recent()).every((p) => p.publicId !== made.publicId));
+    assert.equal(await B.scoped.bkash.attach(made.publicId, `${bkashId}-b`), false);
+    assert.equal(await B.scoped.bkash.close(made.publicId, { status: 'cancelled' }), false);
+    assert.equal(
+      (await A.scoped.bkash.recent()).find((p) => p.publicId === made.publicId).status,
+      'created',
+    );
+
+    // B's subscription is Stripe's: stopping a bKash renewal touches nothing of B's, or A's.
+    assert.equal(await B.scoped.bkash.setCancelAtPeriodEnd(true), false);
+    assert.equal(await A.scoped.bkash.close(made.publicId, { status: 'cancelled' }), true);
+  });
+
   test('billing.attachCustomer: sets only A’s customer, and B’s is untouched', async () => {
     const before = (await B.scoped.billing.summary()).stripeCustomerId;
     await A.scoped.billing.attachCustomer(`cus_a_${Date.now()}`);
@@ -2206,6 +2231,7 @@ describe('coverage: no repository function without a leak test', () => {
     usage: ['recent', 'record', 'spentSinceMicros'],
     spend: ['pause', 'resume', 'state'],
     notifications: ['createOnce', 'forUser'],
+    bkash: ['attach', 'begin', 'byBkashId', 'close', 'recent', 'setCancelAtPeriodEnd'],
     billing: [
       'access',
       'addons',
@@ -2436,7 +2462,17 @@ describe('coverage: no repository function without a leak test', () => {
   // Billing is a group of groups: what a Stripe webhook and the billing jobs need to find an organization by Stripe's IDs.
   const SYSTEM_BILLING = {
     engineGrace: ['ending', 'expire'],
-    plans: ['get', 'list', 'priceMap', 'setStripePrice'],
+    bkash: [
+      'applyCompleted',
+      'close',
+      'expire',
+      'lapse',
+      'pending',
+      'reminders',
+      'settle',
+      'unapplied',
+    ],
+    plans: ['get', 'list', 'priceMap', 'setBdtPrice', 'setStripePrice'],
     subscriptions: ['apply', 'reconcilable'],
     retention: ['close', 'due', 'filesToDelete', 'purge', 'purgeDue', 'warnable'],
     trials: ['ending'],
@@ -2477,6 +2513,7 @@ describe('coverage: no repository function without a leak test', () => {
       'autofix',
       'autopilot',
       'billing',
+      'bkash',
       'brandKits',
       'changes',
       'content',

@@ -24,7 +24,7 @@ A self-serve SaaS that shows a brand how often AI answer engines (ChatGPT, Perpl
 | `docs/ADMIN_OPERATIONS.md` | Internal admin console, staff roles, runbooks, background jobs, alerts |
 | `docs/UI_DESIGN.md` | UI rules, brand basics (a proposal until the founder approves it), the component kit, screen inventory, wireframes by sign-off group, key flows, and what every empty/loading/error/partial-data state says |
 | `docs/DATABASE_SCHEMA.md` | Schema design: conventions, table catalog, ERDs, query patterns, tenancy, retention, grants, Clerk and Prisma rules (§10), open decisions (§11) |
-| `docs/db/schema.sql` | DDL: 72 tables, 120 foreign keys, 25 CHECKs. A readable snapshot of Prisma migration `0001_init` plus later migrations (`0003` to `0010`) |
+| `docs/db/schema.sql` | DDL: 73 tables, 122 foreign keys, 26 CHECKs. A readable snapshot of Prisma migration `0001_init` plus later migrations (`0003` to `0014`) |
 | `docs/db/seed_reference.sql` | Idempotent reference data (plans, engines, providers, seed domains). Currently an identical copy of migration `0002_reference_data` |
 | `docs/db/checks.sql` | CI guard rails. Every query must return zero rows |
 | `docs/RUNBOOK_RESTORE_DRILL.md` | The database restore drill (restore to a new cluster, `npm run restore:check`, destroy it), the order for a real recovery, and the log of drills. Written 2026-10-07, never run on a real cluster |
@@ -39,7 +39,7 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
   - Express; EJS + Tailwind CLI + htmx + Alpine.js.
   - BullMQ + Redis in a separate worker process.
   - DigitalOcean: Droplet (PM2 + Nginx), Managed MySQL 8, Redis, Spaces.
-  - Stripe, Resend, Claude API.
+  - Stripe (and bKash for taka, see "Paying with bKash"), Resend, Claude API.
 - **Auth: Clerk, identity only.**
   - Organizations, roles (owner/admin/editor/viewer), invitations and project access stay in MySQL.
   - `users` is a local copy keyed by `clerk_user_id`.
@@ -203,6 +203,16 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - **AI traffic** (`src/core/traffic.js`, `src/integrations/google.js` and `google-sync.js`, `src/db/repos/org-traffic.js`, `src/worker/handlers/traffic.js`, `src/web/routes/project-traffic.js`): two read-only Google scopes; the web process **encrypts** the refresh token in the callback (`/app/google/callback`, state signed with the session) and **only the worker opens it** (`sync.google`); the properties and sites on offer are listed once, in the callback, and stored as plain choices. Weeks not yet read are `null`, never 0. Fixtures in `tests/fixtures/google/` are built from Google's docs, not recorded; `tests/helpers/google-stub.js` serves them.
 - **The staff console** (`src/web/staff/admin.js`): costs, spend caps (`/spend`: who is near their cap, set or clear one with a reason; `src/core/spend-cap.js`, `db.system.spend`), providers, failed jobs, review queue, flags, audit log. One `identify` wall for every module path; every write is `audited()` (the `admin_audit_log` row is written first and the action refused if it cannot be). `tests/routes/staff-admin.test.js` lists every route and fails if a new one is not checked. A reviewer never sees the customer. Cross-organization reads/writes live in `src/db/repos/system-admin.js` and `system-billing.js`, listed in the tenancy test. **Feature flags** (`src/core/flags.js`, migration 0005): `digest.weekly`, `alerts.emails`, `google.sync` are read by the worker via `db.system.flags.isEnabled(key, orgId)`.
 - **Tests:** `tests/routes/billing.test.js`, `notifications.test.js`, `project-traffic.test.js`, `staff-admin.test.js`, `staff-admin-writes.test.js`; `tests/integration/billing-repo.test.js`, `billing-jobs.test.js`, `notify.test.js`, `digest-jobs.test.js`, `traffic-jobs.test.js`; `tests/adapters/stripe.test.js`, `google.test.js`. Test data: `fx.setOrg`, `fx.grant`, `fx.changeEvent`, `fx.claim`, `fx.reviewItem`, `fx.flagKey`.
+
+## Paying with bKash (2026-10-08; the why is in `docs/adr/0018-paying-with-bkash.md`)
+
+- **bKash is a way to pay, beside Stripe, in taka only.** With the four `BKASH_*` keys set the plan screen takes payment through bKash (`provider` in `billing.ejs`); Stripe's routes, webhook and reconcile stay for a Stripe customer. `config.billingEnforced` is true when either is configured. bKash has no subscription engine, so **we keep the cycle**: one paid month at a time, no automatic charge. A saved agreement with automatic renewal is NOT built.
+- **A bKash subscription is a `subscriptions` row** with `provider = 'bkash'` and the key `bkash-<org public id>` in the column called `stripe_subscription_id`. It goes through the same `subscriptions.apply`, so plans, grace, money-back and retention work unchanged. Stripe's reconcile and `trials.ending` filter on `provider = 'stripe'`.
+- **Pure rules are `src/core/bkash-billing.js`** (price and period of a payment, `quotePayment`; the trial; what time does to an unpaid period, `lapseTransition`; `reminderDue`). Prices are `plans.price_bdt_month` (NULL = not open for bKash). A smaller plan mid-month waits for the last 7 days; a bigger one is credited for the unused part. No add-ons with bKash.
+- **Nothing is believed until bKash is asked.** The return trip (`GET /billing/bkash/return`, `src/web/routes/org-billing-bkash.js`) uses `paymentID` only to find THIS organization's own `bkash_payments` row, then `execute`s; `system.billing.bkash.settle` checks the amount, `BDT` and our invoice number against the row before it completes anything. `applied_at` records that the subscription was updated; the hourly `billing.bkash_sweep` finishes what did not, looks up payments that never came back, expires pages nobody finished and lapses unpaid periods (needs no credentials for the last two).
+- **The client is `src/integrations/bkash.js`** (`createBkash`, a token that is renewed, never in an error message). **It has never run against bKash's sandbox**: the paths, headers, `mode` `0011` and the error code `2062` follow the documentation and the stand-in `tests/helpers/bkash-stub.js`. Run one sandbox payment before relying on it.
+- **Email:** `bkash-renewal` (kind in `src/core/notify.js`, sender `billing`), five days before the period ends, once per owner and end date, in `billing.notices`.
+- **Tests:** `src/core/bkash-billing.test.js`, `src/integrations/bkash.test.js`, `tests/integration/bkash-billing.test.js`, `tests/routes/bkash-billing.test.js`, the leak test `bkash:` in `tests/tenancy/repositories.test.js`. Set a price for tests with `db.system.billing.plans.setBdtPrice(code, taka)`.
 
 ## Entity checks (Milestone 12; the why is in `docs/adr/0013-entity-checks-and-guidance.md`)
 

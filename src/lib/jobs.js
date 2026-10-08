@@ -148,6 +148,7 @@ export const JOBS = Object.freeze({
   // warn cancelled accounts before their read-only period ends, then close the ones whose period is over.
   'billing.reconcile': { queue: 'system', schema: z.object({}) },
   'billing.report_usage': { queue: 'system', schema: z.object({}) },
+  'billing.bkash_sweep': { queue: 'system', schema: z.object({}) },
   'retention.sweep': { queue: 'system', schema: z.object({}) },
   // Daily: tell owners their trial is about to end.
   'billing.notices': { queue: 'system', schema: z.object({}) },

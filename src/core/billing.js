@@ -1,4 +1,5 @@
 import { addonFromLookupKey } from './addons.js';
+import { takaText } from './taka.js';
 import { GRACE_DAYS, MONEY_BACK_DAYS, RETAIN_DAYS, addDays } from './entitlements.js';
 
 /**
@@ -197,8 +198,10 @@ export function billingView({
   access,
   plans,
   claudeUntil = null,
+  provider = 'stripe',
   now = new Date(),
 }) {
+  const bkash = provider === 'bkash';
   const copy = STATUS_COPY[billingStatus] ?? STATUS_COPY.none;
   const days = trialDaysLeft(subscription?.trialEndsAt, now);
 
@@ -211,15 +214,25 @@ export function billingView({
   const lines = [];
   if (billingStatus === 'trialing' && subscription?.trialEndsAt) {
     lines.push(
-      `Your card is charged $${Number(plan?.price_usd_month ?? 0).toFixed(0)} on ${dateText(subscription.trialEndsAt)} unless you cancel first.`,
+      bkash
+        ? `Nothing is charged automatically. Pay ${plan?.price_bdt_month == null ? 'with bKash' : takaText(plan.price_bdt_month) + ' with bKash'} before ${dateText(subscription.trialEndsAt)} to keep tracking.`
+        : `Your card is charged $${Number(plan?.price_usd_month ?? 0).toFixed(0)} on ${dateText(subscription.trialEndsAt)} unless you cancel first.`,
     );
   }
   if (billingStatus === 'active' && subscription?.currentPeriodEnd) {
-    lines.push(
-      subscription.cancelAtPeriodEnd
-        ? `Your plan ends on ${dateText(subscription.currentPeriodEnd)} and won’t renew.`
-        : `Renews on ${dateText(subscription.currentPeriodEnd)}.`,
-    );
+    if (bkash) {
+      lines.push(
+        subscription.cancelAtPeriodEnd
+          ? `Your plan ends on ${dateText(subscription.currentPeriodEnd)} and won’t renew.`
+          : `Paid until ${dateText(subscription.currentPeriodEnd)}. We email you before then; you renew by paying with bKash.`,
+      );
+    } else {
+      lines.push(
+        subscription.cancelAtPeriodEnd
+          ? `Your plan ends on ${dateText(subscription.currentPeriodEnd)} and won’t renew.`
+          : `Renews on ${dateText(subscription.currentPeriodEnd)}.`,
+      );
+    }
   }
   if (subscription?.moneyBackUntil && new Date(subscription.moneyBackUntil) > now) {
     lines.push(
@@ -245,7 +258,7 @@ export function billingView({
   });
 
   const banners = [];
-  const message = access ? accessText(access) : null;
+  const message = access ? accessText(access, provider) : null;
   if (message) banners.push({ tone: access.level === 'setup' ? 'info' : 'warning', text: message });
   const full = meters.find((m) => m.full);
   if (full) {
@@ -268,9 +281,13 @@ export function billingView({
   const choices = (plans ?? []).map((p) => ({
     code: p.code,
     name: p.name,
-    priceText: `$${Number(p.price_usd_month).toFixed(0)}`,
+    priceText: bkash
+      ? p.price_bdt_month == null
+        ? '—'
+        : takaText(p.price_bdt_month)
+      : `$${Number(p.price_usd_month).toFixed(0)}`,
     current: p.code === plan?.code,
-    canChoose: Boolean(p.stripe_price_id),
+    canChoose: bkash ? p.price_bdt_month != null : Boolean(p.stripe_price_id),
     highlights: planHighlights(p),
     // Said before the switch, not after: moving to a plan without Claude ends Claude tracking at the period's end.
     claudeNote:
@@ -290,6 +307,7 @@ export function billingView({
     meters,
     banners,
     choices,
+    provider,
     hasSubscription,
     canManage: hasSubscription,
     ctaLabel: hasSubscription ? 'Change plan' : 'Start your 14-day free trial',
@@ -297,14 +315,19 @@ export function billingView({
 }
 
 /** The sentence the banner says for an access level (null while everything works). */
-export function accessText(access) {
+export function accessText(access, provider = 'stripe') {
+  const bkash = provider === 'bkash';
   switch (access.level) {
     case 'setup':
       return 'Choose a plan to start your 14-day free trial. Nothing is tracked until you do.';
     case 'grace':
-      return 'Your last payment didn’t go through. Update your card to keep tracking without a break.';
+      return bkash
+        ? 'Your plan period has ended. Pay with bKash to keep tracking without a break.'
+        : 'Your last payment didn’t go through. Update your card to keep tracking without a break.';
     case 'paused':
-      return 'Tracking is paused because payment didn’t go through. Your data is kept. Update your card to start again.';
+      return bkash
+        ? 'Tracking is paused because your plan hasn’t been paid for. Your data is kept. Pay with bKash to start again.'
+        : 'Tracking is paused because payment didn’t go through. Your data is kept. Update your card to start again.';
     case 'readonly':
       return 'Your subscription was cancelled. You can still read everything; choose a plan to start again.';
     default:

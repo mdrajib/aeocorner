@@ -1,0 +1,9 @@
+<h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.25;color:<%= t['ink-950'] %>;"><%= trial ? 'Your free trial of ' + planName + ' ends on ' + endsDate : 'Your ' + planName + ' plan runs until ' + endsDate %></h1>
+<% if (trial) { %>
+<p style="margin:0 0 16px 0;">Nothing is charged automatically. To keep tracking <strong><%= orgName %></strong> after <strong><%= endsDate %></strong>, pay <strong><%= priceText %></strong> for the first month with bKash.</p>
+<p style="margin:0 0 16px 0;">If you don’t, tracking pauses after a short grace period. Your data stays, and you can pick it up whenever you pay.</p>
+<% } else { %>
+<p style="margin:0 0 16px 0;">Your plan for <strong><%= orgName %></strong> doesn’t renew by itself. To keep it going past <strong><%= endsDate %></strong>, pay <strong><%= priceText %></strong> for the next month with bKash. Paying early loses nothing: the new month starts when this one ends.</p>
+<p style="margin:0 0 16px 0;">If you don’t, tracking pauses after a short grace period. Your data stays.</p>
+<% } %>
+<p style="margin:0 0 24px 0;"><a href="<%= billingUrl %>" style="display:inline-block;padding:12px 24px;background-color:<%= t['brand-600'] %>;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">Pay with bKash</a></p>

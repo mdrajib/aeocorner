@@ -4,6 +4,7 @@ import { TRIAL_DAYS } from '../../core/entitlements.js';
 import { addonPriceId } from '../../integrations/stripe-catalog.js';
 import { StripeError } from '../../integrations/stripe.js';
 import { syncSubscription } from '../../integrations/stripe-sync.js';
+import { bkashRoutes, bkashScreen } from './org-billing-bkash.js';
 
 /**
  * Plan, trial and billing (Milestone 8, tasks 8.02, 8.05 and 8.08; wireframe E3). Registered on the organization router.
@@ -20,6 +21,8 @@ const planCodeOk = (v) => typeof v === 'string' && /^[a-z0-9_]{1,32}$/.test(v);
 export function billingRoutes(org, { auth, appPage, billing, config, db, logger }) {
   const owner = auth.requirePermission('billing.manage');
   const stripe = billing?.stripe ?? null;
+  // bKash takes over the plan screen when it is configured; Stripe's own routes keep working for a Stripe customer.
+  const payWith = billing?.bkash ? 'bkash' : stripe ? 'stripe' : null;
   const base = (res) => `${res.locals.orgBase}/billing`;
   const back = (res, notice) => res.redirect(303, `${base(res)}?notice=${notice}`);
 
@@ -41,6 +44,8 @@ export function billingRoutes(org, { auth, appPage, billing, config, db, logger 
       logger.warn({ err: err.message }, 'Could not refresh the subscription from Stripe');
     }
   }
+
+  bkashRoutes(org, { auth, billing, config, db, logger });
 
   org.get('/billing', owner, async (req, res, next) => {
     try {
@@ -64,9 +69,23 @@ export function billingRoutes(org, { auth, appPage, billing, config, db, logger 
         access: summary.access,
         plans,
         claudeUntil: summary.claudeUntil,
+        provider: payWith === 'bkash' ? 'bkash' : 'stripe',
       });
+      const bkash =
+        payWith === 'bkash'
+          ? bkashScreen({
+              view,
+              plans,
+              summary,
+              payments: await req.orgDb.bkash.recent(),
+              now: new Date(),
+            })
+          : null;
+      if (bkash) view.choices = bkash.choices;
       appPage(res, 'billing', {
         view,
+        provider: payWith === 'bkash' ? 'bkash' : 'stripe',
+        bkash,
         addons: ADDON_CODES.map((code) => ({
           code,
           name: ADDONS[code].name,
@@ -79,7 +98,7 @@ export function billingRoutes(org, { auth, appPage, billing, config, db, logger 
           quantity: ADDONS[code].kind === 'licensed',
         })),
         trialDays: TRIAL_DAYS,
-        configured: Boolean(stripe),
+        configured: Boolean(payWith),
         hasCustomer: Boolean(summary.stripeCustomerId),
         pending: justStarted && summary.billingStatus === 'none',
         meta: {

@@ -7,6 +7,7 @@ import { createClaude } from '../llm/claude.js';
 import { createSecretBox } from '../lib/secrets.js';
 import { createGoogle } from '../integrations/google.js';
 import { createWikidata } from '../integrations/wikidata.js';
+import { createBkash } from '../integrations/bkash.js';
 import { createStripe } from '../integrations/stripe.js';
 import { createObjectStore } from '../integrations/spaces.js';
 import { createProvider } from '../web/auth/provider.js';
@@ -91,6 +92,7 @@ const billing = {
   stripe: config.stripe
     ? createStripe({ secretKey: config.stripe.secretKey, apiVersion: config.stripe.apiVersion })
     : null,
+  bkash: config.bkash ? createBkash(config.bkash) : null,
 };
 
 const runtime = createWorkerRuntime({

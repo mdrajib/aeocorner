@@ -1,4 +1,11 @@
 import { datesAfter, firstPayment, grantsFromAddons } from '../../core/billing.js';
+import {
+  lapseTransition,
+  quotePayment,
+  reminderDue,
+  subscriptionAfterPayment,
+  subscriptionFromRow,
+} from '../../core/bkash-billing.js';
 import { ADDONS } from '../../core/addons.js';
 import { addDays } from '../../core/entitlements.js';
 import { graceAfterPlanChange } from '../../core/engines.js';
@@ -55,6 +62,9 @@ export function systemBilling(prisma) {
     get: (code) => prisma.plans.findUnique({ where: { code } }),
     setStripePrice: (code, priceId) =>
       prisma.plans.update({ where: { code }, data: { stripe_price_id: priceId } }),
+    /** The price in taka for paying through bKash (null closes the plan to bKash). */
+    setBdtPrice: (code, price) =>
+      prisma.plans.update({ where: { code }, data: { price_bdt_month: price } }),
   };
 
   const subscriptions = {
@@ -75,6 +85,7 @@ export function systemBilling(prisma) {
       // A subscription claiming an organization that already has a different Stripe customer is not ours.
       if (
         found.via === 'metadata' &&
+        parsed.provider !== 'bkash' &&
         found.stripe_customer_id &&
         found.stripe_customer_id !== parsed.stripeCustomerId
       ) {
@@ -120,7 +131,12 @@ export function systemBilling(prisma) {
         } else {
           // The organization row is locked above, so no second writer can create it at the same moment.
           await tx.subscriptions.create({
-            data: { org_id: orgId, stripe_subscription_id: parsed.stripeSubscriptionId, ...data },
+            data: {
+              org_id: orgId,
+              stripe_subscription_id: parsed.stripeSubscriptionId,
+              provider: parsed.provider ?? 'stripe',
+              ...data,
+            },
           });
         }
 
@@ -192,7 +208,11 @@ export function systemBilling(prisma) {
     /** Subscriptions to re-check against Stripe (the daily reconcile): everything not yet ended. */
     async reconcilable({ afterId = 0n, limit = 100 } = {}) {
       const rows = await prisma.subscriptions.findMany({
-        where: { id: { gt: afterId }, status: { notIn: ['canceled', 'incomplete_expired'] } },
+        where: {
+          id: { gt: afterId },
+          provider: 'stripe',
+          status: { notIn: ['canceled', 'incomplete_expired'] },
+        },
         orderBy: { id: 'asc' },
         take: limit,
         select: { id: true, stripe_subscription_id: true, org_id: true },
@@ -202,6 +222,239 @@ export function systemBilling(prisma) {
         orgId: r.org_id,
         stripeSubscriptionId: r.stripe_subscription_id,
       }));
+    },
+  };
+
+  // --- bKash (ADR-0018) -------------------------------------------------------------------------------------------
+  // Nobody renews by themselves, so these are the writes a payment, a lapse and a reminder need. Each is safe to run twice.
+
+  const rowOf = (r) =>
+    r && {
+      planCode: r.plan_code,
+      status: r.status,
+      trialEndsAt: r.trial_ends_at,
+      currentPeriodStart: r.current_period_start,
+      currentPeriodEnd: r.current_period_end,
+      cancelAtPeriodEnd: r.cancel_at_period_end,
+      canceledAt: r.canceled_at,
+      graceUntil: r.grace_until,
+      firstPaidAt: r.first_paid_at,
+    };
+
+  const bkash = {
+    /**
+     * A payment bKash says is complete. Checks it against what we asked for (the amount, the currency and our invoice
+     * number), then marks it completed and updates the subscription. A payment that completes after we had given up on
+     * it still counts: the money was taken. Running it again finishes whatever was left undone and changes nothing else.
+     *
+     * @param {{ publicId: string, paid: { trxId: string, amount: number|null, currency: string|null, invoiceNumber: string|null } }} input
+     * @returns {Promise<{ settled: boolean, reason?: string, orgId?: bigint, applied?: object }>}
+     */
+    async settle({ publicId, paid, now = new Date() }) {
+      const payment = await prisma.bkash_payments.findFirst({ where: { public_id: publicId } });
+      if (!payment) return { settled: false, reason: 'unknown_payment' };
+      const orgId = payment.org_id;
+
+      if (payment.status !== 'completed') {
+        const matches =
+          paid.amount !== null &&
+          Number(paid.amount) === Number(payment.amount_bdt) &&
+          paid.currency === 'BDT' &&
+          paid.invoiceNumber === payment.invoice_number &&
+          typeof paid.trxId === 'string' &&
+          paid.trxId.length > 0;
+        if (!matches) {
+          await prisma.bkash_payments.updateMany({
+            where: { id: payment.id, status: { in: ['created', 'expired'] } },
+            data: {
+              status: 'failed',
+              failure_reason: 'What bKash reports does not match what we asked for.',
+            },
+          });
+          return { settled: false, reason: 'mismatch', orgId };
+        }
+
+        const done = await transaction(prisma, async (tx) => {
+          await tx.$queryRaw`SELECT id FROM organizations WHERE id = ${orgId} FOR UPDATE`;
+          const fresh = await tx.bkash_payments.findFirst({ where: { id: payment.id } });
+          if (fresh.status === 'completed') return true;
+          const [org, plan, sub] = await Promise.all([
+            tx.organizations.findUnique({ where: { id: orgId } }),
+            tx.plans.findUnique({ where: { code: fresh.plan_code } }),
+            tx.subscriptions.findFirst({ where: { org_id: orgId, provider: 'bkash' } }),
+          ]);
+          const currentPlan = org.plan_code
+            ? await tx.plans.findUnique({ where: { code: org.plan_code } })
+            : null;
+          // The period is worked out now, from the subscription as it is now, so two payments never overlap.
+          const quote = quotePayment({ plan, subscription: rowOf(sub), currentPlan, now });
+          const start = quote.ok ? quote.periodStart : now;
+          const end = quote.ok ? quote.periodEnd : new Date(now.getTime() + 30 * 86_400_000);
+          const claimed = await tx.bkash_payments.updateMany({
+            where: { id: fresh.id, status: { not: 'completed' } },
+            data: {
+              status: 'completed',
+              trx_id: paid.trxId,
+              period_start: start,
+              period_end: end,
+              completed_at: now,
+              failure_reason: null,
+            },
+          });
+          return claimed.count === 1;
+        });
+        if (!done) return { settled: false, reason: 'not_claimed', orgId };
+      }
+
+      return { ...(await bkash.applyCompleted(publicId, { now })), orgId };
+    },
+
+    /** Update the subscription from a completed payment, once (`applied_at`). Safe to repeat. */
+    async applyCompleted(publicId, { now = new Date() } = {}) {
+      const payment = await prisma.bkash_payments.findFirst({
+        where: { public_id: publicId, status: 'completed' },
+        include: { organizations: { select: { public_id: true } } },
+      });
+      if (!payment) return { settled: false, reason: 'not_completed' };
+      if (payment.applied_at) return { settled: true, already: true };
+      const previous = await prisma.subscriptions.findFirst({
+        where: { org_id: payment.org_id, provider: 'bkash' },
+      });
+      const parsed = subscriptionAfterPayment({
+        orgPublicId: payment.organizations.public_id,
+        planCode: payment.plan_code,
+        period: { start: payment.period_start, end: payment.period_end },
+        previous: rowOf(previous),
+      });
+      const applied = await subscriptions.apply({
+        parsed,
+        invoice: {
+          amount_paid: Number(payment.amount_bdt),
+          status_transitions: { paid_at: Math.floor(payment.completed_at.getTime() / 1000) },
+        },
+        now,
+      });
+      if (!applied.applied) return { settled: false, reason: applied.reason };
+      await prisma.bkash_payments.updateMany({
+        where: { id: payment.id, applied_at: null },
+        data: { applied_at: now },
+      });
+      return { settled: true, applied };
+    },
+
+    /** Payments bKash was asked for that nobody has heard the end of: to be looked up (callback lost, tab closed). */
+    async pending({ olderThan, limit = 100 }) {
+      const rows = await prisma.bkash_payments.findMany({
+        where: {
+          status: 'created',
+          bkash_payment_id: { not: null },
+          created_at: { lte: olderThan },
+        },
+        orderBy: { id: 'asc' },
+        take: limit,
+        select: { public_id: true, bkash_payment_id: true },
+      });
+      return rows.map((r) => ({ publicId: r.public_id, bkashPaymentId: r.bkash_payment_id }));
+    },
+
+    /** Mark a payment that did not go through (looked up at bKash and found failed). */
+    async close(publicId, { status, reason = null }) {
+      const done = await prisma.bkash_payments.updateMany({
+        where: { public_id: publicId, status: 'created' },
+        data: { status, failure_reason: reason },
+      });
+      return done.count === 1;
+    },
+
+    /** Payments never finished within the time allowed. */
+    async expire({ before }) {
+      const done = await prisma.bkash_payments.updateMany({
+        where: { status: 'created', created_at: { lt: before } },
+        data: { status: 'expired', failure_reason: 'Not finished on bKash’s page in time.' },
+      });
+      return done.count;
+    },
+
+    /** Completed payments whose subscription update did not finish (a crash in between). */
+    async unapplied({ limit = 100 } = {}) {
+      const rows = await prisma.bkash_payments.findMany({
+        where: { status: 'completed', applied_at: null },
+        orderBy: { id: 'asc' },
+        take: limit,
+        select: { public_id: true },
+      });
+      return rows.map((r) => r.public_id);
+    },
+
+    /**
+     * bKash subscriptions that time has moved on: a trial or month that ran out, or an unpaid account whose waiting
+     * time is over. The change goes through the same `apply` as a payment.
+     * @returns {Promise<Array<{ orgId: bigint, to: string, applied: object }>>}
+     */
+    async lapse({ now = new Date(), limit = 200 } = {}) {
+      const rows = await prisma.subscriptions.findMany({
+        where: {
+          provider: 'bkash',
+          status: { in: ['trialing', 'active', 'past_due'] },
+          organizations: { deleted_at: null },
+        },
+        include: { organizations: { select: { public_id: true } } },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      const out = [];
+      for (const r of rows) {
+        const to = lapseTransition({ subscription: rowOf(r), now });
+        if (!to) continue;
+        const parsed = subscriptionFromRow(rowOf(r), r.organizations.public_id, {
+          status: to,
+          canceledAt: to === 'canceled' ? now : null,
+        });
+        const applied = await subscriptions.apply({ parsed, now });
+        out.push({ orgId: r.org_id, to, applied });
+      }
+      return out;
+    },
+
+    /** Owners to remind that the period is ending, with the plan and its price. The notification's dedupe key stops repeats. */
+    async reminders({ now = new Date(), limit = 200 } = {}) {
+      const rows = await prisma.subscriptions.findMany({
+        where: {
+          provider: 'bkash',
+          status: { in: ['trialing', 'active'] },
+          cancel_at_period_end: false,
+          current_period_end: { gt: now },
+          organizations: { deleted_at: null },
+        },
+        include: {
+          plans: { select: { name: true, price_bdt_month: true } },
+          organizations: {
+            select: {
+              name: true,
+              public_id: true,
+              memberships: {
+                where: { role: 'owner' },
+                select: { users: { select: { id: true, email: true, deleted_at: true } } },
+              },
+            },
+          },
+        },
+        orderBy: { id: 'asc' },
+        take: limit,
+      });
+      return rows
+        .filter((r) => reminderDue({ subscription: rowOf(r), now }))
+        .map((r) => ({
+          subscriptionId: r.id,
+          orgId: r.org_id,
+          orgName: r.organizations.name,
+          orgPublicId: r.organizations.public_id,
+          trial: r.status === 'trialing',
+          endsAt: r.current_period_end,
+          planName: r.plans.name,
+          priceBdt: r.plans.price_bdt_month === null ? null : Number(r.plans.price_bdt_month),
+          owners: r.organizations.memberships.map((m) => m.users).filter((u) => u && !u.deleted_at),
+        }));
     },
   };
 
@@ -331,6 +584,7 @@ export function systemBilling(prisma) {
       const rows = await prisma.subscriptions.findMany({
         where: {
           status: 'trialing',
+          provider: 'stripe',
           trial_ends_at: { gt: now, lte: addDays(now, days) },
           organizations: { deleted_at: null },
         },
@@ -527,6 +781,7 @@ export function systemBilling(prisma) {
 
   // The purge is the last step of the same lifecycle: warn, close (above), then delete (system-purge.js).
   return {
+    bkash,
     engineGrace,
     plans,
     subscriptions,

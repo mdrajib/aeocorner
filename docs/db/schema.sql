@@ -45,6 +45,7 @@ CREATE TABLE plans (
   name                 VARCHAR(64)   NOT NULL,
   price_usd_month      DECIMAL(10,2) NOT NULL,
   stripe_price_id      VARCHAR(64)   NULL,
+  price_bdt_month      DECIMAL(10,2) NULL COMMENT 'price in BDT for paying through bKash; NULL = not open yet (migration 0014)',
   max_projects         INT UNSIGNED  NULL COMMENT 'NULL = not enforced',
   max_prompts          INT UNSIGNED  NULL,
   max_seats            INT UNSIGNED  NULL,
@@ -290,6 +291,7 @@ CREATE TABLE subscriptions (
   id                       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   org_id                   BIGINT UNSIGNED NOT NULL,
   stripe_subscription_id   VARCHAR(64)   NOT NULL,
+  provider                 ENUM('stripe','bkash') NOT NULL DEFAULT 'stripe' COMMENT 'who the money goes through (migration 0014)',
   plan_code                VARCHAR(32)   NOT NULL,
   status                   ENUM('incomplete','incomplete_expired','trialing','active','past_due','unpaid','canceled','paused') NOT NULL,
   trial_ends_at            DATETIME(3)   NULL,
@@ -1799,4 +1801,36 @@ CREATE TABLE autopilot_items (
 
 -- Claude after a downgrade (migration 0013): organizations gains claude_until. No new table, key or CHECK.
 
--- End of schema (72 tables: the 66 of v1, plus proof_shares (0006), entity_checks (0007), recovery_cases and recovery_events (0009), autopilot_settings and autopilot_items (0010)).
+-- bKash (migration 0014, ADR-0018): plans.price_bdt_month, subscriptions.provider and one new table.
+
+CREATE TABLE bkash_payments (
+  id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id         CHAR(26)      NOT NULL,
+  org_id            BIGINT UNSIGNED NOT NULL,
+  plan_code         VARCHAR(32)   NOT NULL,
+  purpose           ENUM('start','renewal','change') NOT NULL,
+  amount_bdt        DECIMAL(10,2) NOT NULL,
+  invoice_number    VARCHAR(40)   NOT NULL COMMENT 'merchantInvoiceNumber sent to bKash',
+  bkash_payment_id  VARCHAR(64)   NULL COMMENT 'paymentID bKash returned when the payment was created',
+  trx_id            VARCHAR(32)   NULL COMMENT 'bKash transaction ID once the payment completed',
+  status            ENUM('created','completed','failed','cancelled','expired') NOT NULL DEFAULT 'created',
+  failure_reason    VARCHAR(160)  NULL,
+  period_start      DATETIME(3)   NULL COMMENT 'the period this payment bought, set when it completed',
+  period_end        DATETIME(3)   NULL,
+  applied_at        DATETIME(3)   NULL COMMENT 'when the subscription was updated from this payment; NULL on a completed one = retry',
+  completed_at      DATETIME(3)   NULL,
+  created_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_bkash_payments_public (public_id),
+  UNIQUE KEY uq_bkash_payments_invoice (invoice_number),
+  UNIQUE KEY uq_bkash_payments_bkash (bkash_payment_id),
+  UNIQUE KEY uq_bkash_payments_trx (trx_id),
+  KEY ix_bkash_payments_org (org_id, created_at),
+  KEY ix_bkash_payments_status (status, created_at),
+  CONSTRAINT fk_bkash_payments_org  FOREIGN KEY (org_id)    REFERENCES organizations (id),
+  CONSTRAINT fk_bkash_payments_plan FOREIGN KEY (plan_code) REFERENCES plans (code),
+  CONSTRAINT ck_bkash_payments_amount CHECK (amount_bdt >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Payments asked of bKash (ADR-0018)';
+
+-- End of schema (73 tables: the 66 of v1, plus proof_shares (0006), entity_checks (0007), recovery_cases and recovery_events (0009), autopilot_settings and autopilot_items (0010), bkash_payments (0014)).

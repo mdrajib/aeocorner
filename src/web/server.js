@@ -14,6 +14,7 @@ import { closeRedis, createRedis } from '../lib/redis.js';
 import { createToolLimiter } from '../lib/tool-limits.js';
 import { createToolRunner } from '../lib/tool-runner.js';
 import { createTurnstile } from '../lib/turnstile.js';
+import { createBkash } from '../integrations/bkash.js';
 import { createStripe } from '../integrations/stripe.js';
 import { createApp } from './app.js';
 
@@ -40,7 +41,7 @@ if (config.isProduction) {
     !config.auth && 'CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY',
     !config.auth?.webhookSecret && 'CLERK_WEBHOOK_SECRET',
     !config.email.resendApiKey && 'RESEND_API_KEY',
-    !config.stripe && 'STRIPE_SECRET_KEY',
+    !config.stripe && !config.bkash && 'STRIPE_SECRET_KEY or the BKASH_* keys',
     config.stripe && !config.stripe.webhookSecret && 'STRIPE_WEBHOOK_SECRET',
   ].filter(Boolean);
   if (missing.length) {
@@ -119,17 +120,24 @@ if (!config.secrets)
   logger.warn('SECRETS_MASTER_KEY is not set: customers cannot connect WordPress.');
 
 // Billing (Milestone 8): the Stripe client. With a secret key set, plans are enforced (config.billingEnforced).
-const billing = config.stripe
-  ? {
-      stripe: createStripe({
-        secretKey: config.stripe.secretKey,
-        apiVersion: config.stripe.apiVersion,
-      }),
-    }
-  : null;
+const billing =
+  config.stripe || config.bkash
+    ? {
+        stripe: config.stripe
+          ? createStripe({
+              secretKey: config.stripe.secretKey,
+              apiVersion: config.stripe.apiVersion,
+            })
+          : null,
+        // bKash (ADR-0018): no webhook, the customer comes back to /billing/bkash/return and the worker sweeps the rest.
+        bkash: config.bkash ? createBkash(config.bkash) : null,
+      }
+    : null;
 if (!billing)
-  logger.warn('STRIPE_SECRET_KEY is not set: billing is off and no plan limits are enforced.');
-else if (!config.stripe.webhookSecret)
+  logger.warn(
+    'Neither STRIPE_SECRET_KEY nor the BKASH_* keys are set: billing is off and no plan limits are enforced.',
+  );
+else if (config.stripe && !config.stripe.webhookSecret)
   logger.warn('STRIPE_WEBHOOK_SECRET is not set: webhooks from Stripe will be refused.');
 
 const app = createApp({ config, logger, db, queues, audit, tools, content, billing });

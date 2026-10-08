@@ -114,6 +114,8 @@ export function billingRepos(prisma, orgId, { appendActivity }) {
         plan,
         grants: grants.filter((g) => !g.ends_at || g.ends_at > now),
         subscription: subscription && {
+          provider: subscription.provider,
+          currentPeriodStart: subscription.current_period_start,
           stripeSubscriptionId: subscription.stripe_subscription_id,
           status: subscription.status,
           trialEndsAt: subscription.trial_ends_at,

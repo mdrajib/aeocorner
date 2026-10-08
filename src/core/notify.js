@@ -16,6 +16,7 @@ export const KINDS = Object.freeze({
   digest: { category: 'proactive', pref: 'digest' },
   alert: { category: 'proactive', pref: 'alerts' },
   'trial-ending': { category: 'transactional', pref: null, sender: 'billing' },
+  'bkash-renewal': { category: 'transactional', pref: null, sender: 'billing' },
   'retention-warning': { category: 'transactional', pref: null, sender: 'billing' },
   'claude-ending': { category: 'transactional', pref: null, sender: 'billing' },
   'google-reconnect': { category: 'transactional', pref: null, sender: 'support' },

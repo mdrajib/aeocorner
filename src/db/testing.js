@@ -186,6 +186,14 @@ export function fixtures(db) {
       });
     },
 
+    /** Make a completed bKash payment look as if the crash came before the subscription was updated from it. */
+    unapplyBkashPayment(publicId) {
+      return prisma.bkash_payments.updateMany({
+        where: { public_id: publicId },
+        data: { applied_at: null },
+      });
+    },
+
     /** Read an organization row, for checks on state the repositories only change (never expose whole). */
     organizationRow: (orgId) => prisma.organizations.findUnique({ where: { id: orgId } }),
 
@@ -1137,6 +1145,7 @@ export function fixtures(db) {
         await prisma.org_activity_log.deleteMany({ where });
         await prisma.usage_ledger.deleteMany({ where });
         await prisma.notifications.deleteMany({ where });
+        await prisma.bkash_payments.deleteMany({ where });
         await prisma.subscriptions.deleteMany({ where });
         await prisma.entitlement_grants.deleteMany({ where });
         await prisma.feature_flag_overrides.deleteMany({ where });
