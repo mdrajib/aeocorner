@@ -43,6 +43,57 @@ describe('Resend mailer', () => {
     });
   });
 
+  test('billing and support notices use their own From address, and fall back to the default', async () => {
+    const fetchImpl = fakeFetch(() => json(200, { id: 'x' }));
+    const both = resendMailer({
+      apiKey: 'k',
+      from: 'default@aeocorner.com',
+      billingFrom: 'billing@aeocorner.com',
+      supportFrom: 'support@aeocorner.com',
+      fetchImpl,
+      logger,
+    });
+    await both.send({ to: 'a@b.test', email, sender: 'billing' });
+    await both.send({ to: 'a@b.test', email, sender: 'support' });
+    await both.send({ to: 'a@b.test', email });
+    await both.send({ to: 'a@b.test', email, sender: 'nonsense' });
+    assert.deepEqual(
+      fetchImpl.calls.map((c) => c.body.from),
+      [
+        'billing@aeocorner.com',
+        'support@aeocorner.com',
+        'default@aeocorner.com',
+        'default@aeocorner.com',
+      ],
+    );
+
+    const noneSet = resendMailer({ apiKey: 'k', from: 'default@aeocorner.com', fetchImpl, logger });
+    await noneSet.send({ to: 'a@b.test', email, sender: 'billing' });
+    assert.equal(fetchImpl.calls.at(-1).body.from, 'default@aeocorner.com');
+  });
+
+  test('a reply-to address is sent on every email, and left out when not set', async () => {
+    const fetchImpl = fakeFetch(() => json(200, { id: 'x' }));
+    const withReply = resendMailer({
+      apiKey: 'k',
+      from: 'hello@mail.aeocorner.com',
+      billingFrom: 'billing@mail.aeocorner.com',
+      replyTo: 'support@aeocorner.com',
+      fetchImpl,
+      logger,
+    });
+    await withReply.send({ to: 'a@b.test', email });
+    await withReply.send({ to: 'a@b.test', email, sender: 'billing' });
+    assert.deepEqual(
+      fetchImpl.calls.map((c) => c.body.reply_to),
+      ['support@aeocorner.com', 'support@aeocorner.com'],
+    );
+
+    const without = resendMailer({ apiKey: 'k', from: 'f', fetchImpl, logger });
+    await without.send({ to: 'a@b.test', email });
+    assert.equal('reply_to' in fetchImpl.calls.at(-1).body, false);
+  });
+
   test('rate limits and server errors are retryable; other refusals are not', async () => {
     for (const [status, retryable] of [
       [429, true],

@@ -151,6 +151,8 @@ Everything is in [`.env.example`](../.env.example); this is only what differs or
 | `DO_SPACES_*` | the bucket, prefix `aeo-corner/staging/` | the bucket, prefix `aeo-corner/prod/` |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | its own pair | its own pair. **Setting the secret opens the audit** |
 | `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS` | set (required in production mode) | set |
+| `EMAIL_BILL_ADDRESS`, `EMAIL_SUPPORT_ADDRESS` | optional; billing notices and support notices send from these, and from `EMAIL_FROM_ADDRESS` when empty. Their domain must be verified in Resend | same |
+| `EMAIL_REPLY_TO` | a real mailbox on the webmail (e.g. `support@aeocorner.com`), so replies to mail sent from the sending subdomain are not lost | same |
 | `ANTHROPIC_API_KEY`, `DATAFORSEO_*`, `SERPAPI_API_KEY`, `PERPLEXITY_API_KEY` | set, with the **account-side caps** at a few dollars | set, with the real caps |
 | `AUDIT_DAILY_BUDGET_USD` | `5` | `60` (the default) until the first real cost-per-audit is known |
 | `POSTHOG_API_KEY` | empty | set, so the audit funnel is counted |

@@ -92,6 +92,7 @@ export function createNotifier({
         to,
         email,
         idempotencyKey: `notification-${notification.id}`,
+        ...(def.sender && { sender: def.sender }),
         ...(link
           ? {
               headers: {

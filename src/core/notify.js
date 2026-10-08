@@ -7,15 +7,18 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  *   transactional  the customer's own action or account (a trial ending, a retention notice): never capped, no unsubscribe
  *   proactive      what we noticed (the weekly digest, an alert): at most ONE a day per person, and the person can switch it off
  *   marketing      not used yet
+ *
+ * `sender` is which From address a kind uses: 'billing' (EMAIL_BILL_ADDRESS), 'support' (EMAIL_SUPPORT_ADDRESS),
+ * or none for the default (EMAIL_FROM_ADDRESS). An address that is not set falls back to the default.
  */
 
 export const KINDS = Object.freeze({
   digest: { category: 'proactive', pref: 'digest' },
   alert: { category: 'proactive', pref: 'alerts' },
-  'trial-ending': { category: 'transactional', pref: null },
-  'retention-warning': { category: 'transactional', pref: null },
-  'claude-ending': { category: 'transactional', pref: null },
-  'google-reconnect': { category: 'transactional', pref: null },
+  'trial-ending': { category: 'transactional', pref: null, sender: 'billing' },
+  'retention-warning': { category: 'transactional', pref: null, sender: 'billing' },
+  'claude-ending': { category: 'transactional', pref: null, sender: 'billing' },
+  'google-reconnect': { category: 'transactional', pref: null, sender: 'support' },
 });
 
 /** The preferences a member has until they choose otherwise. */

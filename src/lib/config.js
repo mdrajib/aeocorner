@@ -116,6 +116,12 @@ const envSchema = z.object({
   // Signs Resend's delivery, bounce and complaint webhooks (Svix). Without it those webhooks are refused.
   RESEND_WEBHOOK_SECRET: optional(z.string().regex(/^whsec_/, 'must start with whsec_')),
   EMAIL_FROM_ADDRESS: optional(z.string().min(3)),
+  // Billing notices (trial ending, account closing, plan changes) and support notices send from these.
+  // Each must be on a domain verified in Resend. Unset: the message goes from EMAIL_FROM_ADDRESS.
+  EMAIL_BILL_ADDRESS: optional(z.string().min(3)),
+  EMAIL_SUPPORT_ADDRESS: optional(z.string().min(3)),
+  // Where a customer's reply goes, on every email: a mailbox that exists (the From address on a sending subdomain may not).
+  EMAIL_REPLY_TO: optional(z.string().min(3)),
 });
 
 const DEV_SECRETS_KEY = Buffer.alloc(32, 'aeo-corner-development-only-key').toString('base64');
@@ -408,6 +414,9 @@ export function loadConfig(env = process.env) {
       resendApiKey: e.RESEND_API_KEY ?? null,
       webhookSecret: e.RESEND_WEBHOOK_SECRET ?? null,
       from: e.EMAIL_FROM_ADDRESS ?? 'AEO Corner <hello@aeocorner.com>',
+      billingFrom: e.EMAIL_BILL_ADDRESS ?? null,
+      supportFrom: e.EMAIL_SUPPORT_ADDRESS ?? null,
+      replyTo: e.EMAIL_REPLY_TO ?? null,
     },
   };
 }

@@ -15,11 +15,22 @@ export class MailError extends Error {
  * Sends already-rendered emails ({ subject, html, text } from renderEmail) through Resend's HTTP API
  * (checked against Resend's docs on 2026-10-02: POST /emails, Bearer key, optional Idempotency-Key).
  * `idempotencyKey` makes a retried send harmless for 24 hours.
+ * `replyTo` (a mailbox that receives, since the From address on a sending subdomain may not) goes on every email.
+ * `sender` ('billing' or 'support') picks that address as the From; with none set, or any other value, the default `from` is used.
  */
-export function resendMailer({ apiKey, from, fetchImpl = globalThis.fetch, logger }) {
+export function resendMailer({
+  apiKey,
+  from,
+  billingFrom = null,
+  supportFrom = null,
+  replyTo = null,
+  fetchImpl = globalThis.fetch,
+  logger,
+}) {
+  const senders = { billing: billingFrom, support: supportFrom };
   return {
     kind: 'resend',
-    async send({ to, email, idempotencyKey, headers }) {
+    async send({ to, email, idempotencyKey, headers, sender }) {
       let response;
       try {
         response = await fetchImpl(RESEND_URL, {
@@ -30,7 +41,8 @@ export function resendMailer({ apiKey, from, fetchImpl = globalThis.fetch, logge
             ...(idempotencyKey && { 'Idempotency-Key': String(idempotencyKey).slice(0, 256) }),
           },
           body: JSON.stringify({
-            from,
+            from: senders[sender] ?? from,
+            ...(replyTo && { reply_to: replyTo }),
             to: [to],
             subject: email.subject,
             html: email.html,
@@ -88,8 +100,16 @@ export function memoryMailer() {
 }
 
 export function createMailer({ config, logger, fetchImpl }) {
-  const { resendApiKey, from } = config.email;
+  const { resendApiKey, from, billingFrom, supportFrom, replyTo } = config.email;
   return resendApiKey
-    ? resendMailer({ apiKey: resendApiKey, from, fetchImpl, logger })
+    ? resendMailer({
+        apiKey: resendApiKey,
+        from,
+        billingFrom,
+        supportFrom,
+        replyTo,
+        fetchImpl,
+        logger,
+      })
     : logMailer({ logger });
 }
