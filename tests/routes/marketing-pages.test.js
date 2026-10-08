@@ -307,6 +307,69 @@ describe('pricing page', () => {
   });
 });
 
+describe('pricing page when bKash is the way to pay (ADR-0018)', () => {
+  const bkashConfig = loadConfig({
+    ...envs.production,
+    BKASH_APP_KEY: 'k',
+    BKASH_APP_SECRET: 's',
+    BKASH_USERNAME: 'u',
+    BKASH_PASSWORD: 'p',
+    BKASH_BASE_URL: 'https://tokenized.pay.bka.sh/v1.2.0-beta',
+  });
+  const rows = (priceFor) =>
+    [
+      { code: 'starter', name: 'Starter', price_usd_month: '79.00', max_projects: 1 },
+      { code: 'growth', name: 'Growth', price_usd_month: '249.00', max_projects: 3 },
+      { code: 'agency', name: 'Agency', price_usd_month: '599.00', max_projects: 10 },
+    ].map((p) => ({
+      samples_per_engine: 3,
+      features: {},
+      price_bdt_month: priceFor[p.code] ?? null,
+      ...p,
+    }));
+  const page = async (priceFor) => {
+    const bkashApp = request(
+      createApp({
+        config: bkashConfig,
+        logger: silentLogger,
+        db: { reference: { plans: { list: async () => rows(priceFor) } } },
+      }),
+    );
+    return decode((await bkashApp.get('/pricing').expect(200)).text);
+  };
+
+  test('shows taka prices, no dollar prices, no add-ons, and nothing about cards or Stripe', async () => {
+    const text = await page({ starter: '2500.00', growth: '7500.00' });
+    assert.match(text, /data-price>৳2,500</);
+    assert.match(text, /data-price>৳7,500</);
+    assert.doesNotMatch(text, /data-price>\$/);
+    assert.match(text, /Bangladeshi taka/);
+    assert.doesNotMatch(text, /Stripe/);
+    assert.doesNotMatch(text, /enter a card/);
+    assert.doesNotMatch(text, /id="addons-heading"/);
+    assert.match(text, /How do I pay with bKash\?/);
+  });
+
+  test('a plan with no taka price says it is not open yet, and shows no dollar price in its place', async () => {
+    const text = await page({ starter: '2500.00' });
+    assert.match(text, /data-price>Not open yet</);
+    assert.doesNotMatch(text, /\$249|\$599/);
+  });
+
+  test('the Product markup offers only the priced plans, in BDT', async () => {
+    const text = await page({ starter: '2500.00', growth: '7500.00' });
+    const product = jsonLdOf(text).find((b) => b['@type'] === 'Product');
+    assert.deepEqual(
+      product.offers.map((o) => [o.name, o.price, o.priceCurrency]),
+      [
+        ['Starter', '2500', 'BDT'],
+        ['Growth', '7500', 'BDT'],
+      ],
+    );
+    assert.deepEqual(validateJsonLd(product).errors, []);
+  });
+});
+
 describe('structured data on every public page', () => {
   for (const page of publicPages) {
     test(`${page.path}: every JSON-LD block validates, and Organization is present`, async () => {

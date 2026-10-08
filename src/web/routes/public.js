@@ -84,13 +84,15 @@ function specificJsonLd(page, config, { pricing = null, faq = [] }) {
             'Tracks how often AI answer engines mention, recommend and cite your brand, and helps you fix the gaps.',
           image: `${config.baseUrl}/img/og.png`,
           brand: { '@type': 'Brand', name: 'AEO Corner' },
-          offers: pricing.plans.map((p) => ({
-            '@type': 'Offer',
-            name: p.name,
-            price: p.price.replace('$', ''),
-            priceCurrency: 'USD',
-            url: `${config.baseUrl}${page.path}`,
-          })),
+          offers: pricing.plans
+            .filter((p) => p.priced)
+            .map((p) => ({
+              '@type': 'Offer',
+              name: p.name,
+              price: p.amount,
+              priceCurrency: pricing.currency,
+              url: `${config.baseUrl}${page.path}`,
+            })),
         });
       }
       out.push(faqLd(faq));
@@ -118,7 +120,7 @@ function specificJsonLd(page, config, { pricing = null, faq = [] }) {
 }
 
 /** The page's own data: the FAQ it shows (also its FAQPage JSON-LD) and whatever the view needs. */
-async function pageData(page, { db, logger }) {
+async function pageData(page, { db, logger, currency = 'usd' }) {
   switch (page.view) {
     case 'home':
       return { faq: homeFaq };
@@ -130,7 +132,7 @@ async function pageData(page, { db, logger }) {
       let pricing = null;
       try {
         const rows = db ? await db.reference.plans.list() : [];
-        pricing = rows.length ? pricingView(rows) : null;
+        pricing = rows.length ? pricingView(rows, { currency }) : null;
       } catch (err) {
         logger?.error({ err }, 'The pricing page could not read the plans table');
       }
@@ -157,7 +159,12 @@ export function publicRoutes(config, { db = null, logger = null } = {}) {
     if (page.own) continue; // served by its own router (the free tools: routes/tools.js)
     router.get(page.path, async (req, res, next) => {
       try {
-        const data = await pageData(page, { db, logger });
+        // With bKash configured the plans are shown in taka; without it, in dollars as before.
+        const data = await pageData(page, {
+          db,
+          logger,
+          currency: config.bkash ? 'bdt' : 'usd',
+        });
         res.page(page.view, {
           analytics: true,
           ...data,

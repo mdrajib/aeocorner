@@ -43,7 +43,7 @@
       </li>
       <% } %>
     </ul>
-    <p class="text-ink-600 mt-6 text-sm">Prices are in US dollars, per month. Every plan includes all four AI engines: ChatGPT, Perplexity, Gemini and Google AI Overviews.</p>
+    <p class="text-ink-600 mt-6 text-sm"><%= pricing.currency === 'BDT' ? 'Prices are in Bangladeshi taka (BDT), per month, paid with bKash.' : 'Prices are in US dollars, per month.' %> Every plan includes all four AI engines: ChatGPT, Perplexity, Gemini and Google AI Overviews.</p>
   </div>
 </section>
 
@@ -64,6 +64,7 @@
   </div>
 </section>
 
+<% if (pricing.addons.length) { %>
 <section class="py-14 sm:py-16" aria-labelledby="addons-heading">
   <div class="container-narrow">
     <h2 class="text-3xl" id="addons-heading">Add-ons</h2>
@@ -79,6 +80,7 @@
     </ul>
   </div>
 </section>
+<% } %>
 <% } %>
 
 <section class="bg-ink-50 border-ink-200 border-t py-16 sm:py-20" id="faq" aria-labelledby="faq-heading">
