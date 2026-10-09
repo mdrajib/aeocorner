@@ -1,3 +1,5 @@
+// First, so a start-up error ends the process instead of leaving it "online" under PM2 (see the module).
+import '../lib/exit-on-fatal.js';
 import { createHostPacer, RENDER_PACING } from '../crawler/pacer.js';
 import { createRenderer } from '../crawler/render.js';
 import { createSafeFetcher } from '../crawler/safe-fetch.js';

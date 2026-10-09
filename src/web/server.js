@@ -1,3 +1,5 @@
+// First, so a start-up error ends the process instead of leaving it "online" under PM2 (see the module).
+import '../lib/exit-on-fatal.js';
 import { createSafeFetcher } from '../crawler/safe-fetch.js';
 import { createDb } from '../db/index.js';
 import { createAuditLimiter } from '../lib/audit-limits.js';
