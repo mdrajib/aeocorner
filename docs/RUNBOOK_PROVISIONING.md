@@ -86,7 +86,7 @@ node --version   # v24.x
 sudo mkdir -p /srv/aeo-corner && sudo chown deploy:deploy /srv/aeo-corner
 git clone git@github.com:mdrajib/aeocorner.git /srv/aeo-corner   # add a read-only deploy key to the repo first
 cd /srv/aeo-corner
-npm ci --omit=dev
+npm ci          # not --omit=dev: the CSS builder and the Prisma tool are development packages
 ```
 
 **Chromium.** The crawler's render step and the audit's rendered-page checks need it. Without it scans still finish, but the render checks say "couldn't check" and every audit's Readiness score is less complete, so install it on every Droplet that runs the worker:
@@ -169,7 +169,8 @@ The server refuses to start in production mode without a database, Redis, Clerk'
 ```bash
 cd /srv/aeo-corner
 git fetch --tags && git checkout <main for staging | the release tag for production>
-npm ci --omit=dev
+npm ci
+npm run prisma:generate
 npm run build:css
 npx prisma migrate deploy
 pm2 reload aeo-web          # zero downtime
@@ -178,7 +179,7 @@ pm2 reload aeo-worker       # waits for running jobs, then restarts
 
 Migrations run **before** the reload and must work with both the old and the new code running side by side for a few seconds (add a column, then use it in the next release; never rename in one step).
 
-**Rollback.** Check out the previous tag, `npm ci --omit=dev`, `npm run build:css`, reload both. Do **not** roll a migration back: write a new forward migration instead.
+**Rollback.** Check out the previous tag, `npm ci`, `npm run prisma:generate`, `npm run build:css`, reload both. Do **not** roll a migration back: write a new forward migration instead.
 
 **Maintenance page.** Set `MAINTENANCE_MODE=true` in `.env` and `pm2 reload aeo-web`: every page answers 503 with a "back soon" page, while `/healthz` and the static files stay up.
 

@@ -112,9 +112,10 @@ printf 'Host github.com\n  IdentityFile ~/.ssh/aeo_deploy\n  IdentitiesOnly yes\
 sudo mkdir -p /srv/aeo-corner && sudo chown deploy:deploy /srv/aeo-corner
 git clone git@github.com:mdrajib/aeocorner.git /srv/aeo-corner
 cd /srv/aeo-corner
-npm ci --omit=dev
+npm ci
 ```
 
+Use plain `npm ci`, not `--omit=dev`: the CSS builder (Tailwind) and the Prisma tool are development packages, and the server needs both to build and to set up the database.
 **Check:** `ls /srv/aeo-corner` shows `src`, `prisma`, `deploy`.
 
 ## 7. Install Chromium (the worker needs it)
@@ -176,6 +177,7 @@ The file already lists `aeocorner.com`, `www.aeocorner.com` and `admin.aeocorner
 
 ```bash
 cd /srv/aeo-corner
+npm run prisma:generate    # builds the database client the app imports (it is not in git)
 npx prisma migrate deploy
 npm run build:css
 pm2 start deploy/ecosystem.config.cjs
@@ -234,7 +236,8 @@ If it fails, the page shows a message and no money moves. Send the message (neve
 ```bash
 cd /srv/aeo-corner
 git fetch --tags && git checkout main && git pull
-npm ci --omit=dev
+npm ci
+npm run prisma:generate
 npm run build:css
 npx prisma migrate deploy
 pm2 reload aeo-web          # no dropped requests
@@ -242,7 +245,7 @@ pm2 reload aeo-worker       # waits for running jobs to finish
 ```
 
 - Run migrations **before** the reload. A migration must work with the old and the new code side by side for a few seconds (add a column in one release, use it in the next).
-- **Roll back** by checking out the previous commit or tag, `npm ci --omit=dev`, `npm run build:css`, and reloading. Never undo a migration: write a new one forward.
+- **Roll back** by checking out the previous commit or tag, `npm ci`, `npm run prisma:generate`, `npm run build:css`, and reloading. Never undo a migration: write a new one forward.
 - **Maintenance page:** set `MAINTENANCE_MODE=true` in `.env` and `pm2 reload aeo-web`.
 - Production branch: deploy a tagged release rather than whatever is on `main` once you have customers: `git tag v0.1.0 && git push --tags` from your laptop, then `git checkout v0.1.0` on the server.
 
