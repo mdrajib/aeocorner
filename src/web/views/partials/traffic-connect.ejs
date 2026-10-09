@@ -5,6 +5,7 @@
     <li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span>Read-only: we can look, we can’t change anything in your Google account.</span></li>
     <li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span>We keep the day, the source, the page and the counts. Nothing about individual visitors.</span></li>
     <li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span>You can disconnect any time, and we erase the saved login.</span></li>
+    <li class="flex gap-2"><%- ui.icon({ name: 'check', size: 16, class: 'mt-0.5 shrink-0' }) %><span>We use it only to show you this page. We never sell it, share it, use it for advertising or use it to train AI. <a href="/privacy#google-user-data">How we handle Google data</a></span></li>
   </ul>
   <% if (canManage) { %>
   <form method="post" action="<%= projectBase %>/integrations/google/connect">

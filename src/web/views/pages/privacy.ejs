@@ -21,6 +21,7 @@
           <tr><th scope="row" class="row-head">Account: name, email, organisation, team members and roles</th><td>To provide the service.</td><td>While your account exists, plus 30 days</td></tr>
           <tr><th scope="row" class="row-head">Brand details, competitors, questions and content drafts you create</th><td>To provide the service. We treat these as confidential.</td><td>While your account exists</td></tr>
           <tr><th scope="row" class="row-head">Public web pages we read and AI answers we collect</th><td>To produce your scores and reports.</td><td>13 months</td></tr>
+          <tr><th scope="row" class="row-head">Google Analytics and Search Console reports, only if you connect them</th><td>To show you the traffic AI answer engines send to your site. Read-only; see section 3.</td><td>Until you disconnect (the access token) or your account is deleted (the figures)</td></tr>
           <tr><th scope="row" class="row-head">Payment details</th><td>Handled only by Stripe (cards) or bKash (taka). We keep a customer or payment reference, the plan, the amount and the transaction ID, never card numbers, bKash numbers or PINs.</td><td>While your account exists, plus the time the law requires us to keep invoices</td></tr>
           <tr><th scope="row" class="row-head">Connection secrets (for example a WordPress application password)</th><td>To make changes you approve. Stored encrypted and never shown again.</td><td>Until you disconnect or delete your account</td></tr>
           <tr><th scope="row" class="row-head">Page views and referrer on this site</th><td>To understand how people find and use the site. Collected without cookies or stored identifiers.</td><td>Per our analytics provider’s retention setting</td></tr>
@@ -29,21 +30,42 @@
     </div>
 
     <h2 id="google-user-data">3. Google user data</h2>
-    <p>This section applies only if you choose to connect your Google account to a project. Connecting is optional, and nothing in AEO Corner needs it to work. We never ask for Google sign-in: signing in to AEO Corner does not give us any Google data.</p>
-    <h3>What we access</h3>
-    <p>When you connect, Google asks you to approve two <strong>read-only</strong> permissions, and we ask for nothing else (no email address, no profile, no ability to change anything):</p>
+    <p>This section explains how AEO Corner accesses, uses, stores, shares and deletes data it receives from Google APIs. It applies only if you choose to connect your Google account to a project. Connecting is optional and AEO Corner works without it. Signing in to AEO Corner does not use Google and gives us no Google data.</p>
+
+    <h3>What Google user data we access</h3>
+    <p>When you connect, Google shows you a consent screen for two <strong>read-only</strong> permissions. We request nothing else: no email address, no profile, no contacts, no files, and no permission to change anything in your accounts.</p>
     <ul>
-      <li><strong>Google Analytics</strong> (<code>analytics.readonly</code>): the traffic reports of the Google Analytics 4 property you choose, limited to visits that came from AI answer engines such as ChatGPT, Perplexity, Gemini and Google AI Overviews. We read the date, the traffic source, the landing page address and the number of sessions.</li>
-      <li><strong>Google Search Console</strong> (<code>webmasters.readonly</code>): the search performance of the site you choose: the date, the page address, clicks, impressions, click-through rate and average position. We also read the list of properties and sites on your account once, so that you can pick one.</li>
+      <li><strong>Google Analytics</strong> (<code>https://www.googleapis.com/auth/analytics.readonly</code>). From the Google Analytics 4 property you choose we read reports of visits that came from AI answer engines (such as ChatGPT, Perplexity, Gemini and Google AI Overviews): the date, the traffic source, the landing page address, and the counts of sessions, engaged sessions, key events and revenue. We also read the list of accounts and properties you can see, once, so that you can pick one.</li>
+      <li><strong>Google Search Console</strong> (<code>https://www.googleapis.com/auth/webmasters.readonly</code>). From the site you choose we read search performance by date: the search queries and page addresses, with clicks, impressions and average position. We keep only the queries that contain your brand name and discard every other query at once. We also read the list of sites you can see, once, so that you can pick one.</li>
     </ul>
+    <p>We do not read anything from a property or site you did not choose, and we read no personal data about your website’s visitors: Analytics and Search Console reports of this kind are aggregated counts.</p>
+
     <h3>How we use it</h3>
-    <p>We use this data only to show you, inside your own AEO Corner project, how much traffic AI answer engines send to your website and how it changes after you make a fix. We do not use it for advertising, we do not build profiles, we do not use it to train artificial-intelligence or machine-learning models, and no person at AEO Corner reads it except to support you when you ask.</p>
-    <h3>Who we share it with</h3>
-    <p>We do not sell it and we do not share it with anyone else. Your team members in the same organisation can see it in the project. The cloud and database providers that store our data (see the subprocessors list) hold it on our behalf, encrypted in transit, and may not use it for their own purposes.</p>
+    <p>We use this data for one purpose: to show you, inside your own AEO Corner project, how much traffic AI answer engines send to your website and how that changes after you make a fix. That is the user-facing feature you connect Google for, and we do not use the data for anything else.</p>
+    <ul>
+      <li>We do not use it for advertising of any kind, including personalised, targeted, retargeted or interest-based advertising.</li>
+      <li>We do not use it to determine creditworthiness or for lending.</li>
+      <li>We do not combine it with data from other customers, and we do not build databases of it for any other purpose.</li>
+      <li>We do not use it to develop, improve or train artificial-intelligence or machine-learning models, ours or anyone else’s, and we do not send it to AI model providers. The AI models we use (see the subprocessors list) work on public web pages and AI answers, never on Google user data.</li>
+    </ul>
+
+    <h3>Who sees it, and who we share it with</h3>
+    <p>Only members of your organisation who can see the project can see this data in AEO Corner. <strong>We do not sell it, rent it, transfer it or disclose it to anyone</strong>, including advertising platforms, data brokers and information resellers, except in these cases: (a) to the infrastructure providers listed on our subprocessors page, who store and process it for us under contract and may not use it for their own purposes; (b) where the law requires it; (c) for security, such as investigating abuse; and (d) in a merger, acquisition or sale of assets, only after we have told you and you have agreed.</p>
+    <p>AEO Corner staff do not read your Google data. A staff member may view it only if you ask us for support and agree to that, to investigate a security problem or bug, or where the law requires it. Our employees, contractors and any successor are bound by the same rules. These rules apply equally to the raw data and to anything aggregated, anonymised or derived from it.</p>
+
     <h3>How it is stored and protected</h3>
-    <p>The access token Google gives us is stored encrypted, in a separate key-protected form, and is opened only by the background process that reads your reports. The weekly traffic figures we read are stored in our database, kept apart from other organisations’ data.</p>
-    <h3>How long we keep it, and how to remove it</h3>
-    <p>You can disconnect at any time from the project’s Google connection screen: our copy of the access token is then erased and we stop reading your reports. You can also remove AEO Corner’s access yourself at <a href="https://myaccount.google.com/permissions" rel="noopener noreferrer">myaccount.google.com/permissions</a>. The traffic figures already stored are kept while your account exists and are deleted when your account is deleted; email us at the address in section 8 and we will delete them sooner on request.</p>
+    <p>Data is encrypted in transit (HTTPS). The access token Google gives us is stored encrypted with a separate key-protected envelope and is opened only by the background process that reads your reports; it is never shown to anyone, never written to logs and never sent to your browser. The report figures are stored in our database in the region described in section 7, separated from every other organisation’s data by access rules in our code that are checked by automated tests.</p>
+
+    <h3>How long we keep it, and how it is deleted</h3>
+    <ul>
+      <li><strong>The access token:</strong> kept until you disconnect or your account is closed. When you press “Disconnect” on the project’s Google connection screen, we erase our saved copy of it at once and stop reading your reports. You can also remove AEO Corner’s access yourself at any time at <a href="https://myaccount.google.com/permissions" rel="noopener noreferrer">myaccount.google.com/permissions</a>.</li>
+      <li><strong>The report figures</strong> (by day): kept while your account exists, so you can see trends, and deleted together with the rest of your account data about 30 days after the account is closed.</li>
+      <li><strong>Deleting sooner:</strong> email <a href="mailto:rajib@dotbdsolutions.com">rajib@dotbdsolutions.com</a> from the address on your account and ask us to delete your Google data. We confirm and do it within 30 days.</li>
+    </ul>
+
+    <h3>Changes</h3>
+    <p>If we ever want to use Google user data for a new purpose or access a new type of it, we will update this policy and ask for your consent before we do.</p>
+
     <h3>Google API Services User Data Policy</h3>
     <p>AEO Corner’s use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener noreferrer">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
 
