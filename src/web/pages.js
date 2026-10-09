@@ -85,7 +85,7 @@ export const publicPages = [
     title: 'Privacy Policy | AEO Corner',
     description:
       'What personal data AEO Corner collects, why, how long we keep it, and who we share it with.',
-    lastmod: '2026-10-02',
+    lastmod: '2026-10-09',
     priority: 0.3,
   },
   {
