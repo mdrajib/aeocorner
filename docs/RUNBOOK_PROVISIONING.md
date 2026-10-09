@@ -97,7 +97,7 @@ sudo npx playwright install --with-deps chromium    # downloads the browser and 
 npx playwright install chromium                     # the same browser for the deploy user's cache
 ```
 
-Check it: `node -e "require('playwright').chromium.launch().then(b => b.version().then(v => { console.log(v); return b.close(); }))"` prints a version.
+Check it: `node -e "require('playwright').chromium.launch().then(async b => { console.log(b.version()); await b.close(); })"` prints a version.
 
 ## 6. Configure and start the processes
 

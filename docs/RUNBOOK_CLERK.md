@@ -26,6 +26,8 @@ Clerk is **identity only**: it says who a person is. Organizations, roles, invit
 
 **Cost.** Required staff multi-factor needs Clerk Pro (about $25 a month, [MVP §12.3](MVP.md)). Check Clerk's current pricing page before you subscribe. Development instances include Pro features, which is why a test passes that production would not.
 
+**Without Clerk Pro** (ADR-0019, 2026-10-09): set `STAFF_SECOND_FACTOR=cloudflare` in `.env`. The console then takes its second factor from Cloudflare Access instead of Clerk, and requires the email Access verified to equal the staff member's email. It is weaker unless Access signs staff in through an identity provider that enforces 2-step verification (for example Google) and the staff Clerk accounts have a password: see [adr/0019](adr/0019-staff-second-factor-from-cloudflare-access.md). Leave it unset (`clerk`) once you have Clerk Pro.
+
 ## 2. Before you start
 
 | Needed | Why |

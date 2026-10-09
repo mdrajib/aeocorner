@@ -23,5 +23,6 @@ One-way-door technical decisions made while building AEO Corner, and the reasoni
 | [0016](0016-autopilot-prepares-and-a-person-approves.md) | Autopilot prepares and a person approves: nothing reaches a customer's site or `published` without a click from a person | Accepted (option A of founder decision F1, provisional until answered; option B is not built) | 2026-10-05 |
 | [0017](0017-free-tools-run-in-the-web-request-and-return-findings.md) | Free tools run in the web request and return findings, never the content they fetched | Accepted (founder decisions G1–G5 are the recommended answers, provisional until answered) | 2026-10-06 |
 | [0018](0018-paying-with-bkash.md) | Paying with bKash: one month at a time, in taka, and nothing is believed until bKash is asked | Accepted (choices made by the founder on 2026-10-08; not yet run against bKash's sandbox) | 2026-10-08 |
+| [0019](0019-staff-second-factor-from-cloudflare-access.md) | The staff second factor can come from Cloudflare Access instead of Clerk (no Clerk Pro needed) | Accepted 2026-10-09; off by default |
 
 **Format:** Status, Context, Decision, Consequences. Numbered sequentially, never renumbered or deleted — a reversed decision gets a new ADR marking the old one `Superseded by ADR-000N`, per [CLAUDE.md](../../CLAUDE.md)'s consistency rule.

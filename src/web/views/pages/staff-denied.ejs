@@ -1,10 +1,13 @@
-<%# Why a staff sign-in was refused. Props: reason (mfa | not-staff | role). Says which step failed and nothing about other accounts. %>
+<%# Why a staff sign-in was refused. Props: reason (mfa | access-identity | not-staff | role). Says which step failed and nothing about other accounts. %>
 <section class="py-20">
   <div class="container-narrow text-center">
     <p class="eyebrow">Staff access</p>
     <% if (reason === 'mfa') { %>
     <h1 class="mt-3 text-4xl">Two-factor sign-in is required</h1>
     <p class="text-ink-700 mx-auto mt-4 max-w-xl text-lg">This account has no second factor on its current session. Add an authenticator app or a passkey to your staff account, sign out, and sign in again.</p>
+    <% } else if (reason === 'access-identity') { %>
+    <h1 class="mt-3 text-4xl">The two sign-ins don’t match</h1>
+    <p class="text-ink-700 mx-auto mt-4 max-w-xl text-lg">The email you gave Cloudflare Access is not the email of this staff account. Sign out of both and use the same address for both.</p>
     <% } else if (reason === 'role') { %>
     <h1 class="mt-3 text-4xl">Your role doesn’t include this</h1>
     <p class="text-ink-700 mx-auto mt-4 max-w-xl text-lg">Ask a super admin if you need access to this part of the console.</p>

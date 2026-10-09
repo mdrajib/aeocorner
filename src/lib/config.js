@@ -68,6 +68,8 @@ const envSchema = z.object({
   CLOUDFLARE_ACCESS_TEAM_DOMAIN: optional(z.string().min(1)),
   CLOUDFLARE_ACCESS_AUD: optional(z.string().min(1)),
   STAFF_HOST: optional(z.string().min(1)),
+  // Where the staff second factor comes from: Clerk's own (needs Clerk Pro) or Cloudflare Access (see ADR-0019).
+  STAFF_SECOND_FACTOR: z.enum(['clerk', 'cloudflare']).default('clerk'),
 
   // Answer-engine data providers (MVP §6.2, src/engines). A provider without credentials is simply unavailable:
   // its engines fall back or say "couldn't check". DataForSEO needs both login and password, or neither.
@@ -407,6 +409,12 @@ export function loadConfig(env = process.env) {
     );
   }
 
+  if (staffClerk && e.STAFF_SECOND_FACTOR === 'cloudflare' && !cloudflareAccess) {
+    throw new Error(
+      'STAFF_SECOND_FACTOR=cloudflare needs Cloudflare Access (team domain and AUD) in every environment.',
+    );
+  }
+
   const staffHost = e.STAFF_HOST ?? `admin.${new URL(baseUrl).host}`;
   const staff = staffClerk
     ? {
@@ -415,6 +423,7 @@ export function loadConfig(env = process.env) {
         baseUrl: `${new URL(baseUrl).protocol}//${staffHost}`,
         signInUrl: `${accountsOrigin(staffClerk.frontendApi)}/sign-in`,
         cloudflareAccess,
+        secondFactor: e.STAFF_SECOND_FACTOR,
       }
     : null;
 

@@ -68,6 +68,7 @@ Open decisions are tracked in MVP §17 and DATABASE_SCHEMA §11. Read them there
 - Database tests (`test:routes`, `test:integration`, `test:tenancy`, `test:e2e`) run against `aeo_corner_test`. Each file creates uniquely named data through `fixtures(db)` and removes it afterwards; none truncates tables.
 - **Test commands:** `npm test` (unit tests beside the code), `test:smoke`, `test:routes`, `test:integration`, `test:tenancy`, `test:adapters` (fixture servers; the render tests need Chromium) and `test:e2e`. `npm run test:all` runs everything except e2e. Give `node --test` a glob, never a directory: a directory runs almost nothing. A test that checks "linear time" uses a deliberately loose wall-clock bound so a busy machine can't fail it; keep it loose.
 - Staff are invite-only: `npm run staff:invite -- email "Name" role`.
+- **The staff second factor** is Clerk's (`STAFF_SECOND_FACTOR=clerk`, the default, needs Clerk Pro) or Cloudflare Access's (`cloudflare`, ADR-0019: the email Access verified must equal the staff row's, and Access is required in every environment).
 
 ## Queues and the worker (Phase 3; the why is in `docs/adr/0008-queues-and-the-worker.md`, details in `docs/MVP.md` §7.8)
 

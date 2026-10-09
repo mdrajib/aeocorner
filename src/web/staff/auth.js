@@ -12,6 +12,11 @@ export function hasSecondFactor(claims) {
   return Array.isArray(fva) && Number.isFinite(fva[1]) && fva[1] >= 0;
 }
 
+const sameAddress = (a, b) =>
+  typeof a === 'string' &&
+  typeof b === 'string' &&
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
 /**
  * Staff authentication, in the order the checks are cheapest and most telling:
  *   1. a Clerk session from the STAFF Clerk app (customers can't have one: separate user pool)
@@ -46,7 +51,9 @@ export function createStaffAuth({ config, provider, db, logger }) {
         return res.status(401).type('text/plain').send('Sign in required.');
       }
 
-      if (!hasSecondFactor(session.claims)) return deny(res, 'mfa');
+      // The second factor is Clerk's (default) or, when chosen in the config, Cloudflare Access: see below.
+      const viaCloudflare = staff.secondFactor === 'cloudflare';
+      if (!viaCloudflare && !hasSecondFactor(session.claims)) return deny(res, 'mfa');
 
       let member = await db.staff.findByClerkId(session.clerkUserId);
       if (!member) {
@@ -61,6 +68,12 @@ export function createStaffAuth({ config, provider, db, logger }) {
           logger.info({ staffId: String(member.id) }, 'Staff account bound to Clerk user');
       }
       if (!member || member.status !== 'active') return deny(res, 'not-staff');
+
+      // With Cloudflare as the second factor, the person Access let in must be this very staff member: the token's
+      // email (Access verified it with a one-time code or the identity provider) has to match the staff row's.
+      if (viaCloudflare && !sameAddress(req.cloudflareAccess?.email, member.email)) {
+        return deny(res, 'access-identity');
+      }
 
       if (Date.now() - (member.last_login_at?.getTime() ?? 0) > LOGIN_TOUCH_MS) {
         await db.staff.recordLogin(member.id, req.ip);
