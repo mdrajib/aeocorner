@@ -144,7 +144,8 @@ describe('settling a payment', () => {
   test('a payment that completes after we gave up on it still counts: the money was taken', async () => {
     const { org, scoped } = await fx.org();
     const p = await payment(scoped, org);
-    await sys.expire({ before: new Date(clock.getTime() + day) });
+    // `created_at` is the database's real time, not the test clock, so the cut-off is relative to real time too.
+    await sys.expire({ before: new Date(Date.now() + day) });
     assert.equal((await scoped.bkash.recent())[0].status, 'expired');
     const done = await sys.settle({ publicId: p.publicId, paid: paidFor(p), now: clock });
     assert.equal(done.settled, true);
