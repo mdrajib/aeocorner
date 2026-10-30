@@ -105,8 +105,8 @@ These hold public URLs only, never who cited them, so sharing them across tenant
 | Table | Purpose | Used from |
 |---|---|---|
 | `leads` | Audit emails, marketing consent, conversion, `delete_after` (12 months if not converted). **OTP codes live in Redis** | 4 |
-| `audits` | One free audit: the 5 questions (JSON), scores, lite Brand Kit, top fixes, cost, a claim token for signup, and the 24-hour cache link | 4 |
-| `audit_answers` | 5 questions × 4 engines, 1 sample in live mode. **Never used as the tracking baseline** (CUSTOMER_JOURNEY §3.2) | 4 |
+| `audits` | One free audit: the 10 questions (JSON; 5 until 2026-10-30), scores, lite Brand Kit, top fixes, cost, a claim token for signup, and the 24-hour cache link | 4 |
+| `audit_answers` | 10 questions × 4 engines (40 rows; 20 until 2026-10-30), 1 sample in live mode. **Never used as the tracking baseline** (CUSTOMER_JOURNEY §3.2) | 4 |
 | `abuse_blocks` | Blocked IPs, email domains and target domains. Velocity counters live in Redis | 4 |
 
 ### 2.7 Projects and tracking configuration

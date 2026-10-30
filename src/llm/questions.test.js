@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
+import { AUDIT_QUESTION_COUNT } from '../core/audit-progress.js';
 import { MODELS } from './models.js';
 import {
   buildQuestionsRequest,
@@ -17,12 +18,18 @@ const message = (json, over = {}) => ({
 
 const q = (intent, text, search_query = 'dentist austin') => ({ intent, text, search_query });
 
+/** A valid set, deliberately out of the audit's order: discovery ×4, problem/solution ×3, comparison ×2, brand ×1. */
 const good = () => [
   q('brand', 'Is Acme Dental a good choice for a family with young kids?'),
   q('discovery', 'What are the best family dentists in Austin for children?'),
   q('problem_solution', 'How can I stop my kids being afraid of the dentist?'),
   q('comparison', 'Acme Dental vs Bright Smiles: which is better for braces in Austin?'),
   q('discovery', 'Which dental practices in Austin offer Saturday appointments?'),
+  q('discovery', 'Where can I find an emergency dentist in Austin tonight?'),
+  q('problem_solution', 'What can I do about a cracked tooth that hurts when I chew?'),
+  q('comparison', 'Is Acme Dental or Bright Smiles cheaper for a family check-up in Austin?'),
+  q('discovery', 'Which Austin dentists take new patients who have no insurance?'),
+  q('problem_solution', 'How do I fix crooked teeth as an adult without metal braces?'),
 ];
 
 const kit = {
@@ -44,7 +51,7 @@ describe('the question request', () => {
     assert.match(text, /competitors: Bright Smiles/);
     assert.match(
       text,
-      /Intents, in order: discovery, discovery, comparison, problem_solution, brand\./,
+      /Intents, in order: discovery, discovery, discovery, discovery, problem_solution, problem_solution, problem_solution, comparison, comparison, brand\./,
     );
     assert.deepEqual(request.output_config.format.schema, QUESTIONS_JSON_SCHEMA);
   });
@@ -71,7 +78,22 @@ describe('the question request', () => {
 });
 
 describe('the question reply', () => {
-  test('a good set comes back in the audit’s order, numbered 0 to 4', () => {
+  test('the audit asks ten questions, and most of them do not name the brand', () => {
+    assert.equal(MODES.audit.length, 10);
+    assert.equal(MODES.audit.length, AUDIT_QUESTION_COUNT, 'the default the screens fall back on');
+    const count = (intent) => MODES.audit.filter((i) => i === intent).length;
+    assert.deepEqual(
+      [count('discovery'), count('problem_solution'), count('comparison'), count('brand')],
+      [4, 3, 2, 1],
+    );
+    // The ones that test whether an engine finds the brand on its own come first.
+    assert.deepEqual(
+      MODES.audit.slice(0, 7).filter((i) => i === 'comparison' || i === 'brand'),
+      [],
+    );
+  });
+
+  test('a good set comes back in the audit’s order, numbered 0 to 9', () => {
     const result = readQuestionsReply(message({ questions: good() }), { brandName: 'Acme Dental' });
     assert.equal(result.ok, true);
     assert.deepEqual(
@@ -99,13 +121,9 @@ describe('the question reply', () => {
   });
 
   test('a short brand name is matched as a whole word, never inside another word', () => {
-    const set = [
-      q('discovery', 'What are the good places to get a root canal in Austin?'),
-      q('discovery', 'Which dentists in Austin take new patients this month?'),
-      q('comparison', 'Go vs Bright Smiles: which dentist is better for kids in Austin?'),
-      q('problem_solution', 'How can I stop my kids being afraid of the dentist?'),
-      q('brand', 'Is Go a good dentist for a family with young kids in Austin?'),
-    ];
+    const set = good().map((x) => ({ ...x, text: x.text.replaceAll('Acme Dental', 'Go') }));
+    // "good" contains "go" but is not the word: this discovery question must still count as not naming the brand.
+    set[1] = q('discovery', 'What are the good places to get a root canal in Austin?');
     assert.equal(readQuestionsReply(message({ questions: set }), { brandName: 'Go' }).ok, true);
   });
 
@@ -117,14 +135,14 @@ describe('the question reply', () => {
     );
     const extra = [
       ...good(),
-      q('discovery', 'Where can I find an emergency dentist in Austin tonight?'),
+      q('discovery', 'Which Austin dentists offer sedation for patients who are very nervous?'),
     ];
     assert.equal(
       readQuestionsReply(message({ questions: extra }), { brandName: 'Acme Dental' }).reason,
       'wrong_intents',
     );
     const twins = good();
-    twins[4] = { ...twins[1] };
+    twins[4] = { ...twins[1] }; // two discovery questions with the same words
     assert.equal(
       readQuestionsReply(message({ questions: twins }), { brandName: 'Acme Dental' }).reason,
       'wrong_intents',

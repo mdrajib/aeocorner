@@ -1,7 +1,14 @@
 import { createHash, createHmac } from 'node:crypto';
 import express, { Router } from 'express';
 import { z } from 'zod';
-import { answerCards, describeProgress, engineCards, headline } from '../../core/audit-progress.js';
+import {
+  answerCards,
+  AUDIT_QUESTION_COUNT,
+  describeProgress,
+  engineCards,
+  headline,
+} from '../../core/audit-progress.js';
+import { reportFigures } from '../../core/audit-report.js';
 import { evaluateAuditBudget, toMicros, utcDayStart } from '../../core/spend.js';
 import { reportUrl } from '../../lib/audit-mail.js';
 import { cleanUtm } from '../../core/utm.js';
@@ -551,7 +558,8 @@ export function auditRoutes({ config, db, audit: svc, logger, now = () => new Da
       : null;
     const questions = Array.isArray(audit.prompts) ? audit.prompts : [];
     const brandName = audit.brand_kit_lite?.brand_name ?? null;
-    const cards = engineCards({ answers, questionCount: questions.length || 5 });
+    const cards = engineCards({ answers, questionCount: questions.length || AUDIT_QUESTION_COUNT });
+    const figures = reportFigures({ answers, questions, brandName, domain: audit.domain });
     const fixes = Array.isArray(audit.top_fixes) ? audit.top_fixes : [];
 
     funnel('audit_report_viewed', {
@@ -569,6 +577,7 @@ export function auditRoutes({ config, db, audit: svc, logger, now = () => new Da
       brandName,
       headline: headline({ cards, brandName }),
       cards,
+      figures,
       answers: answerCards({ answers, questions, brandName }),
       fixes: fixes.map((fix) => ({ ...fix, evidenceLinks: evidenceLinks(fix, questions) })),
       cachedAt: source?.finished_at ?? null,

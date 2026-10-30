@@ -15,6 +15,9 @@ export const AUDIT_ENGINE_LABELS = Object.freeze({
 
 export const AUDIT_ENGINE_ORDER = Object.freeze(Object.keys(AUDIT_ENGINE_LABELS));
 
+/** How many questions an audit asks before its own are written (a test pins this to `MODES.audit` in llm/questions.js). */
+export const AUDIT_QUESTION_COUNT = 10;
+
 const FINAL = new Set(['complete', 'partial', 'failed']);
 
 export const isFinalStatus = (status) => FINAL.has(status);
@@ -45,11 +48,11 @@ export function engineState(rows, questionCount) {
  * @param {{ status: string, prompts?: Array }} input.audit
  * @param {{ status: string, pages_fetched?: number } | null} input.scan
  * @param {Array} input.answers  audit_answers rows
- * @param {number} [input.questionCount]  defaults to the number of generated questions, or 5
+ * @param {number} [input.questionCount]  defaults to the number of generated questions, or AUDIT_QUESTION_COUNT
  */
 export function describeProgress({ audit, scan = null, answers = [], questionCount }) {
   const questions = Array.isArray(audit.prompts) ? audit.prompts : [];
-  const total = questionCount ?? (questions.length || 5);
+  const total = questionCount ?? (questions.length || AUDIT_QUESTION_COUNT);
   const finished = isFinalStatus(audit.status);
   const started = audit.status !== 'awaiting_verification' && audit.status !== 'queued';
   const steps = [];
@@ -157,7 +160,7 @@ export function answerCards({ answers, questions = [], brandName = null, limit =
 }
 
 /** What each engine's card says on the report: its result cell and who it named instead. */
-export function engineCards({ answers, questionCount = 5 }) {
+export function engineCards({ answers, questionCount = AUDIT_QUESTION_COUNT }) {
   const by = new Map();
   for (const row of answers) {
     if (!by.has(row.engine_code)) by.set(row.engine_code, []);

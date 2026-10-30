@@ -96,8 +96,8 @@ Each stage lists: the customer's goal, the screens, what the system does, the da
 |---|---|
 | **Customer goal** | A fast, credible answer to "Does ChatGPT know about us?" |
 | **Screens** | 1) URL form (+ optional competitor URL) → 2) work email → 3) 6-digit code → 4) live progress page → 5) report |
-| **Progress page** | Streams real steps over server-sent events: "Reading your site (14 pages)" → "Checking whether AI crawlers can access it" → "Asking ChatGPT 5 buyer questions" → … Each answer excerpt appears as it arrives, so the wait feels productive |
-| **System** | Turnstile check → SSRF-safe fetch → robots/sitemap → select ≤ 20 pages → readiness checks → lite Brand Kit → 5 prompts → 4 engines × 5 prompts × 1 sample (live mode) → synchronous extraction → scores → top 5 fixes |
+| **Progress page** | Streams real steps over server-sent events: "Reading your site (14 pages)" → "Checking whether AI crawlers can access it" → "Asking ChatGPT 10 buyer questions" → … Each answer excerpt appears as it arrives, so the wait feels productive |
+| **System** | Turnstile check → SSRF-safe fetch → robots/sitemap → select ≤ 20 pages → readiness checks → lite Brand Kit → 10 prompts → 4 engines × 10 prompts × 1 sample (live mode, 40 answers) → synchronous extraction → scores → top 5 fixes |
 | **Data written** | `leads` (email, domain, consent), `audits` + `audit_checks`, answer snapshots (`runs.trigger = audit`), raw pages and answers in Spaces, `usage_ledger` (≈ $0.60) |
 | **Messages** | Verification code email; "Your AEO report is ready" email with the permanent report link |
 | **Metric** | Audit completion rate; p90 ≤ 10 min; cost ≤ $0.75 |
@@ -107,7 +107,7 @@ Each stage lists: the customer's goal, the screens, what the system does, the da
 
 The report is laid out in this order, most persuasive first:
 
-1. **Headline sentence:** *"ChatGPT mentioned you in 1 of 5 buyer questions. RivalCo was mentioned in 4."*
+1. **Headline sentence:** *"ChatGPT mentioned you in 2 of 10 buyer questions. RivalCo was mentioned in 8."*
 2. **AEO Score (0–100)** with its two parts shown separately: **Readiness** (things on your site) and **Visibility** (what AI answers say).
 3. **Engine cards:** ChatGPT, Perplexity, Gemini, AI Overviews. Each shows mentioned / not mentioned, and the competitors that were.
 4. **Real answer excerpts** with the customer's brand and competitors highlighted. This is the most persuasive element.
@@ -298,7 +298,7 @@ flowchart TB
 
 | From → to | What moves | Rule |
 |---|---|---|
-| Audit → project | Domain, lite Brand Kit, competitors, 5 questions, readiness results | Copied into the new project at signup. **Audit answers are not the baseline.** They were taken with 1 sample in live mode, so they aren't comparable with 3-sample weekly runs. They're kept as a "day 0 snapshot" for reference |
+| Audit → project | Domain, lite Brand Kit, competitors, the audit's 10 questions, readiness results | Copied into the new project at signup. **Audit answers are not the baseline.** They were taken with 1 sample in live mode, so they aren't comparable with 3-sample weekly runs. They're kept as a "day 0 snapshot" for reference |
 | Onboarding → first run | Confirmed Brand Kit, competitors, active questions | The run uses the Brand Kit version current at run start (`brand_profiles.version`) |
 | Run → dashboard | Snapshots → mentions and citations → `metric_daily` | Dashboards read only from rollups. Partial runs are excluded from significance tests |
 | Run → Action Center | Checks + metrics + citations → rule engine | Upsert on `stable_key`, so the same issue never appears twice |

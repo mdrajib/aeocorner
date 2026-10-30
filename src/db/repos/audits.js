@@ -127,7 +127,7 @@ export function auditsRepo(prisma) {
       return done.count === 1;
     },
 
-    /** The Brand Kit (lite), the five questions and the competitors we suggest. Replaces an earlier attempt's. */
+    /** The Brand Kit (lite), the ten questions and the competitors we suggest. Replaces an earlier attempt's. */
     async saveSetup(auditId, { brandKitLite, prompts, suggestedCompetitors }) {
       await prisma.audits.update({
         where: { id: auditId },

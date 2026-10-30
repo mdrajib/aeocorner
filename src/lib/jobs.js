@@ -139,7 +139,7 @@ export const JOBS = Object.freeze({
   'wordpress.test': { queue: 'content', schema: z.object({ orgId: id, projectId: id }) },
 
   // Run one free audit from start to finish (Milestone 1, MVP F1): read the site, work out the brand, ask four engines
-  // five questions, score and list the fixes. The domain, the visitor and everything else come from the audit row;
+  // ten questions, score and list the fixes. The domain, the visitor and everything else come from the audit row;
   // the payload is only its ID.
   'audit.run': { queue: 'audit', schema: z.object({ auditId: id }) },
 

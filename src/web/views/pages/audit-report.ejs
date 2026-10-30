@@ -39,6 +39,10 @@ const ago = hoursAgo === null ? '' : hoursAgo < 1 ? 'less than an hour' : hoursA
     </div>
   </section>
 
+  <% if (figures.grid.rows.length > 0) { %>
+  <%- ui.fragment('partials/audit-report-figures', { figures, domain }) %>
+  <% } %>
+
   <section aria-labelledby="engines-heading">
     <h2 class="text-2xl" id="engines-heading">What each AI engine said</h2>
     <div class="mt-4 grid gap-4 sm:grid-cols-2">

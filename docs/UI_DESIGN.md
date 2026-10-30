@@ -227,7 +227,7 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
  │ Checking yourcompany.com        about 4 min   │
  │ ✓ Read your site (14 pages)                   │
  │ ✓ Checked whether AI crawlers can reach it    │
- │ ◌ Asking ChatGPT 5 buyer questions…           │
+ │ ◌ Asking ChatGPT 10 buyer questions…          │
  │ ✓ Asked Perplexity                            │
  │ ? We couldn't check Gemini right now          │
  │ ┌ ChatGPT · "best family dentist in Austin" ┐ │
@@ -241,20 +241,30 @@ Low fidelity, to settle layout and content order, not looks. `▸` means collaps
 
 ```
  ┌ Headline ────────────────────────────────────────────────────────────┐
- │ ChatGPT mentioned you in 1 of 5 buyer questions. RivalCo was in 4.   │
+ │ ChatGPT mentioned you in 2 of 10 buyer questions. RivalCo was in 8.  │
  └──────────────────────────────────────────────────────────────────────┘
  ┌ AEO Score ┐  ┌ Readiness ┐  ┌ Visibility ┐      yourcompany.com · date
  │   38/100  │  │    54     │  │     15     │      How is this calculated?
  └───────────┘  └───────────┘  └────────────┘      (links to /methodology)
+ How AI sees yourcompany.com  (added 2026-10-29)
+ ┌ Mention rate ┐ ┌ Brand presence ┐ ┌ Top competitor ┐ ┌ Questions missed ┐
+ │     10%      │ │    4 of 40     │ │   RivalCo      │ │     10 of 10     │
+ └──────────────┘ └────────────────┘ └────────────────┘ └──────────────────┘
+ Board:         Business · Presence · Share of voice · Shortlisted answers
+                you first, then up to 10 businesses the engines named
+ Grid:          every question × every engine, as result cells
+                (Mentioned · Not mentioned · Couldn't check · No AI Overview)
  Engine cards:  [ChatGPT: Not mentioned · RivalCo, Acme]  [Perplexity ✓ …]
                 [Gemini: ? Couldn't check]  [Google AIO: No AI Overview]
- Real answers:  engine · question · excerpt with names highlighted (x5)
+ Real answers:  engine · question · excerpt with names highlighted (x10)
  Top 5 fixes:   1. Allow AI search bots in robots.txt   [why] [evidence ↗]
                 2. Add Organization schema   [we can do this for you]  …
  ┌ [ Track this weekly and fix it — start 14-day trial ]  [ Email to a colleague ]
  Honesty note: "This is a 1-sample snapshot. AI answers vary; tracking asks each
  question 3 times."
 ```
+
+*2026-10-29, the stats, board and grid* (`src/core/audit-report.js`, `partials/audit-report-figures.ejs`; the pattern comes from a competitor's report the founder liked, without its flaws). They count only readable answers: a failed, pending or unread answer is "Couldn't check" and leaves every figure, and with nothing readable a figure is "—", never 0. The first stat is called **Mention rate**, not "visibility", so it is not confused with the Visibility score (which weights rank and stance). **Presence** counts an answer once when it names the business (for you, also when it cites your site). **Share of voice** is a business's presences out of everyone's, including businesses past the list's 10. **Shortlisted** is an answer that ranks the business or recommends it, and not one that cautions against it. "Jasper" and "Jasper AI" are one business only when both appear in the answers. **A question is missed** when you are absent from at least half of its readable answers. The audit asks 10 questions on 4 engines (40 answers; 5 and 20 until 2026-10-30), and its cost against the $0.75 target is the founder's open decision (MVP F1).
 
 **A10 Edge-case messages** (shown in place of, or above, the screen they interrupt)
 

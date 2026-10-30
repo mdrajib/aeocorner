@@ -33,8 +33,8 @@ import { ledgerKey } from '../provider-call.js';
  *               started always finishes)
  *   2. scan     read the site and score its AI readiness, with no organization on any row (the free audit obeys
  *               robots.txt, ADR-0005)
- *   3. setup    the lite Brand Kit and the five questions, from the pages the scan read
- *   4. answers  four engines × five questions, in live mode, each read at once by the pre-pass and Claude
+ *   3. setup    the lite Brand Kit and the ten questions, from the pages the scan read
+ *   4. answers  four engines × ten questions, in live mode, each read at once by the pre-pass and Claude
  *   5. score    visibility, the AEO Score and the top five fixes, saved with the audit's cost from the ledger
  *   6. email    "your report is ready", once
  *
@@ -255,7 +255,7 @@ const unusableReply = (what, read) =>
   });
 
 // ---------------------------------------------------------------------------------------------------------------
-// 4. Four engines × five questions
+// 4. Four engines × ten questions
 
 const lastAttemptOf = (job) => job.attemptsMade + 1 >= (job.opts?.attempts ?? 1);
 

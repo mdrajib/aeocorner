@@ -7,7 +7,7 @@ import { fenced, readJsonReply } from './reply.js';
  * The Brand Kit, lite mode (MVP F1 pipeline step 5; the full Brand Kit of F2 is a later phase and extends this
  * one). From the pages we already fetched it works out who the business is: its name, what market it is in, what it
  * offers, who it is for, and up to three competitors an engine would plausibly name. The free audit then writes its
- * five questions from this, and the competitors are confirmed by the answers (a competitor no engine ever names is
+ * ten questions from this, and the competitors are confirmed by the answers (a competitor no engine ever names is
  * not shown as one).
  *
  * Pure functions, like extraction.js: no network, so the worker job and the tests use the same code.

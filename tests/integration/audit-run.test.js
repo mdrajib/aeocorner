@@ -13,7 +13,7 @@ import { auditRunJobId } from '../../src/lib/job-ids.js';
 import { memoryMailer } from '../../src/lib/mailer.js';
 import { SYSTEM_PROMPT as KIT_PROMPT } from '../../src/llm/brand-kit.js';
 import { SYSTEM_PROMPT as READ_PROMPT } from '../../src/llm/extraction-prompt.js';
-import { SYSTEM_PROMPT as QUESTIONS_PROMPT } from '../../src/llm/questions.js';
+import { MODES, SYSTEM_PROMPT as QUESTIONS_PROMPT } from '../../src/llm/questions.js';
 import { toMicros } from '../../src/core/spend.js';
 import { closedSite, goodSite, serveRoutes } from '../helpers/fixture-sites.js';
 import { startServer, testFetcher } from '../helpers/http-fixture.js';
@@ -21,7 +21,7 @@ import { startRuntime, until, waitForJob } from '../helpers/worker.js';
 
 /**
  * A free audit end to end (Milestone 1, task 1.10), against real Redis and MySQL, a fixture website, stand-in
- * engines and a stand-in Claude: the site is read, the brand and its five questions worked out, four engines asked,
+ * engines and a stand-in Claude: the site is read, the brand and its ten questions worked out, four engines asked,
  * every answer read, and the scores, the fixes and the cost saved: once, however often the job runs.
  */
 const db = connectTestDb();
@@ -52,6 +52,7 @@ const kitJson = {
   competitors: [{ name: RIVAL, domain: 'bright.example' }],
 };
 const q = (intent, text, searchQuery) => ({ intent, text, search_query: searchQuery });
+/** The audit's ten questions: discovery ×4, problem/solution ×3, comparison ×2, brand ×1. */
 const questionsJson = {
   questions: [
     q(
@@ -65,14 +66,39 @@ const questionsJson = {
       'widget makers fast delivery ohio',
     ),
     q(
-      'comparison',
-      `${BRAND} vs ${RIVAL}: which is better for a small factory?`,
-      'acme widgets vs bright widgets',
+      'discovery',
+      'Where can a small factory buy durable widgets in bulk at a fair price?',
+      'buy durable widgets in bulk',
+    ),
+    q(
+      'discovery',
+      'Which industrial widget suppliers have the best warranty for small factories?',
+      'industrial widget supplier warranty',
     ),
     q(
       'problem_solution',
       'How can a small factory cut downtime caused by worn-out widgets?',
       'reduce downtime worn widgets',
+    ),
+    q(
+      'problem_solution',
+      'What should a small factory do when widget deliveries keep arriving late?',
+      'late widget deliveries fix',
+    ),
+    q(
+      'problem_solution',
+      'How do I choose the right widget size for an old production line?',
+      'choose widget size old line',
+    ),
+    q(
+      'comparison',
+      `${BRAND} vs ${RIVAL}: which is better for a small factory?`,
+      'acme widgets vs bright widgets',
+    ),
+    q(
+      'comparison',
+      `Is ${BRAND} or ${RIVAL} cheaper for a small factory that orders every month?`,
+      'acme vs bright widgets price',
     ),
     q(
       'brand',
@@ -81,6 +107,9 @@ const questionsJson = {
     ),
   ],
 };
+const QUESTIONS = questionsJson.questions.length; // 10, asked on each of the four engines
+const CELLS = QUESTIONS * 4; // every answer asked for
+const READS = QUESTIONS * 3; // read by Claude: the AI Overview says it has none
 
 const entity = (name, ref, rank) => ({
   name,
@@ -259,7 +288,7 @@ const run = async (audit, { timeoutMs = 60_000 } = {}) => {
 };
 
 describe('a free audit, end to end', () => {
-  test('reads the site, asks four engines five questions, and saves the scores, the fixes and the cost', async () => {
+  test('reads the site, asks four engines ten questions, and saves the scores, the fixes and the cost', async () => {
     const audit = await queuedAudit();
     const job = await run(audit);
     assert.equal(job.returnvalue.status, 'complete', JSON.stringify(job.returnvalue));
@@ -275,18 +304,19 @@ describe('a free audit, end to end', () => {
     assert.equal(done.readiness_score, scan.readiness_score);
     assert.ok(done.readiness_score >= 50, `readiness ${done.readiness_score}`);
 
-    // The brand and its five questions, from the site.
+    // The brand and its ten questions, from the site.
     assert.equal(done.brand_kit_lite.brand_name, BRAND);
     assert.deepEqual(
       done.prompts.map((p) => p.intent),
-      ['discovery', 'discovery', 'comparison', 'problem_solution', 'brand'],
+      [...MODES.audit],
     );
+    assert.equal(done.prompts.length, 10);
     assert.deepEqual(done.suggested_competitors, [{ name: RIVAL, domain: 'bright.example' }]);
 
-    // Twenty answers, each engine asked in live mode, the AI Overview with the keyword form.
+    // Forty answers, each engine asked in live mode, the AI Overview with the keyword form.
     const rows = await db.audits.answers(audit.id);
-    assert.equal(rows.length, 20);
-    assert.equal(asks.length, 20);
+    assert.equal(rows.length, CELLS);
+    assert.equal(asks.length, CELLS);
     assert.ok(asks.every((a) => a.mode === 'live'));
     assert.ok(asks.filter((a) => a.engine === 'google_aio').every((a) => a.query));
     const by = (engine) => rows.filter((r) => r.engine_code === engine);
@@ -307,15 +337,15 @@ describe('a free audit, end to end', () => {
       ],
     );
 
-    // Visibility by hand: chatgpt 5 × 1.0, perplexity 5 × 0.85, gemini 5 × 0, the AI Overview said it had none
-    // and is left out: (5 + 4.25 + 0) / 15 = 61.67%.
+    // Visibility by hand: chatgpt 10 × 1.0, perplexity 10 × 0.85, gemini 10 × 0, the AI Overview said it had none
+    // and is left out: (10 + 8.5 + 0) / 30 = 61.67%.
     assert.equal(done.visibility_score, 62);
     assert.equal(done.aeo_score, Math.round(0.6 * done.readiness_score + 0.4 * 62));
     assert.equal(done.sub_scores.perEngine.chatgpt.score, 100);
     assert.equal(done.sub_scores.perEngine.perplexity.score, 85);
     assert.equal(done.sub_scores.perEngine.gemini.score, 0);
     assert.equal(done.sub_scores.perEngine.google_aio.score, null);
-    assert.equal(done.sub_scores.noAnswer, 5);
+    assert.equal(done.sub_scores.noAnswer, QUESTIONS);
 
     // The fixes link to their evidence, and the answers' gap is among them (gemini never names the brand).
     assert.ok(done.top_fixes.length >= 1 && done.top_fixes.length <= 5);
@@ -327,15 +357,16 @@ describe('a free audit, end to end', () => {
     if (notNamed) assert.deepEqual(notNamed.evidence.engines, ['gemini']);
     assert.ok(done.top_fixes.every((f) => f.evidence?.type));
 
-    // The cost is what the ledger says: the crawl (free), 2 reads of the site by Claude, 20 asks, 15 readings.
+    // The cost is what the ledger says: the crawl (free), 2 reads of the site by Claude, 40 asks, 30 readings.
     const ledger = await fx.auditLedgerRows(audit.id);
-    assert.equal(ledger.length, 1 + 2 + 20 + 15);
+    assert.equal(ledger.length, 1 + 2 + CELLS + READS);
     assert.ok(ledger.every((r) => r.org_id === null && r.audit_id === audit.id));
     const total = ledger.reduce((sum, r) => sum + toMicros(r.cost_usd.toString()), 0);
     assert.equal(toMicros(done.cost_usd.toString()), total);
-    // Haiku: 2000 in + 300 out and 800 in + 300 out; Opus: 15 × (1500 in × $4 + 600 out × $20) per million; 20 × $0.004.
-    assert.equal(total, 3_500 + 2_300 + 15 * (6_000 + 12_000) + 20 * 4_000);
-    assert.ok(total / 1e6 < 0.75, 'well inside the $0.75 budget per audit');
+    // Haiku: 2000 in + 300 out and 800 in + 300 out; Opus: 30 × (1500 in × $4 + 600 out × $20) per million; 40 × $0.004.
+    assert.equal(total, 3_500 + 2_300 + READS * (6_000 + 12_000) + CELLS * 4_000);
+    // With these stand-in prices; a real Opus reading costs more (MVP §12.1), so the live cost needs measuring.
+    assert.ok(total / 1e6 < 0.75, 'inside the $0.75 budget per audit at the stand-in prices');
   });
 
   test('the report email is sent once, to the lead, with the report’s address', async () => {
@@ -368,7 +399,7 @@ describe('a job that runs twice', () => {
     assert.equal(job.returnvalue.repeated, true);
 
     assert.equal(asks.length, asksBefore, 'no engine was asked again');
-    assert.equal((await db.audits.answers(audit.id)).length, 20);
+    assert.equal((await db.audits.answers(audit.id)).length, CELLS);
     assert.equal((await fx.auditLedgerRows(audit.id)).length, before.length);
     assert.equal(mailer.sent.length, 1);
   });
@@ -379,19 +410,19 @@ describe('a job that runs twice', () => {
     const job = await run(audit);
     assert.equal(job.returnvalue.status, 'complete', JSON.stringify(job.returnvalue));
 
-    assert.equal(asks.length, 20, 'every question was asked exactly once');
+    assert.equal(asks.length, CELLS, 'every question was asked exactly once');
     const rows = await db.audits.answers(audit.id);
-    assert.equal(rows.length, 20);
+    assert.equal(rows.length, CELLS);
     assert.ok(rows.every((r) => r.status !== 'pending'));
-    // 15 readings were paid for, plus the 3 that failed never reached the ledger (they threw before a charge).
+    // 30 readings were paid for, plus the 3 that failed never reached the ledger (they threw before a charge).
     const ledger = await fx.auditLedgerRows(audit.id);
     const keys = ledger.map((r) => r.idempotency_key);
     assert.equal(new Set(keys).size, keys.length);
     assert.equal(
       ledger.filter((r) => r.meter === 'answer_collect' || r.meter === 'serp').length,
-      20,
+      CELLS,
     );
-    assert.equal(ledger.filter((r) => r.meter === 'llm_extract').length, 15);
+    assert.equal(ledger.filter((r) => r.meter === 'llm_extract').length, READS);
     assert.equal((await db.audits.get(audit.id)).visibility_score, 62);
   });
 });
@@ -423,7 +454,11 @@ describe('a repeat audit of the same site', () => {
       0,
       'nothing was charged to the repeat',
     );
-    assert.equal((await db.audits.answers(second.id)).length, 20, 'it shows the earlier answers');
+    assert.equal(
+      (await db.audits.answers(second.id)).length,
+      CELLS,
+      'it shows the earlier answers',
+    );
 
     // Its own visitor still gets their email, with their own report address.
     assert.equal(mailer.sent.length, 1);
@@ -441,15 +476,15 @@ describe('what goes wrong', () => {
 
     const rows = await db.audits.answers(audit.id);
     const failed = rows.filter((r) => r.engine_code === 'perplexity');
-    assert.equal(failed.length, 5);
+    assert.equal(failed.length, QUESTIONS);
     assert.ok(failed.every((r) => r.status === 'failed' && r.brand_present === null));
 
     const done = await db.audits.get(audit.id);
     assert.equal(done.status, 'partial');
-    // chatgpt 5 × 1.0 and gemini 5 × 0 out of 10: 50. The failed engine is not counted as 0.
+    // chatgpt 10 × 1.0 and gemini 10 × 0 out of 20: 50. The failed engine is not counted as 0.
     assert.equal(done.visibility_score, 50);
     assert.equal(done.sub_scores.perEngine.perplexity.score, null);
-    assert.equal(done.sub_scores.unreadable, 5);
+    assert.equal(done.sub_scores.unreadable, QUESTIONS);
   });
 
   test('a site that cannot be read fails the audit before any engine is asked or any money is spent', async () => {

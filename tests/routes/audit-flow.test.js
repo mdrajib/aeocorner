@@ -599,6 +599,54 @@ describe('the report', () => {
     assert.match(res.text, /We couldn’t check Gemini this time/);
   });
 
+  test('the report shows the four headline stats, who the engines named, and every question on every engine', async () => {
+    const audit = await finishedAudit();
+    const res = await agent.get(`/r/${audit.public_id}`).expect(200);
+    const t = res.text.replace(/\s+/g, ' ');
+    // 2 of the 20 answers name the brand; every question is absent from at least half of its answers.
+    assert.match(t, /Mention rate[\s\S]*?10%/);
+    assert.match(t, /Brand presence[\s\S]*?2 of 20/);
+    assert.match(t, /Top competitor[\s\S]*?Bright Widgets[\s\S]*?named in 20 of 20 answers/);
+    assert.match(t, /Questions missed[\s\S]*?5 of 5/);
+    // The board: you first, then the rival, with presence, share of voice and shortlisted answers.
+    assert.match(t, /Share of voice/);
+    assert.match(t, /Acme Widgets<\/strong> <span class="text-ink-600">\(you\)/);
+    assert.match(t, /10% \(2 of 20\)/);
+    assert.match(t, /100% \(20 of 20\)/);
+    // The grid has one row per question and one column per engine.
+    assert.match(t, /Every question on every engine/);
+    for (const q of QUESTIONS) assert.match(t, new RegExp(`question ${q.promptIdx}\\?`));
+    assert.equal((res.text.match(/data-state="mentioned"/g) ?? []).length >= 2, true);
+    assert.match(t, /href="#answer-0-chatgpt"/, 'a cell links to the answer behind it');
+  });
+
+  test('an engine that could not be checked is "Couldn’t check" in the grid, and its answers leave the counts', async () => {
+    const audit = await finishedAudit({ status: 'partial', failEngine: 'gemini' });
+    const res = await agent.get(`/r/${audit.public_id}`).expect(200);
+    const t = res.text.replace(/\s+/g, ' ');
+    assert.match(t, /Brand presence[\s\S]*?2 of 15/);
+    assert.match(t, /5 couldn’t be read/);
+    const grid = res.text.slice(
+      res.text.indexOf('id="grid-heading"'),
+      res.text.indexOf('id="engines-heading"'),
+    );
+    assert.equal((grid.match(/data-state="unknown"/g) ?? []).length, 5, 'one per question');
+    assert.doesNotMatch(grid, /Gemini[\s\S]{0,200}Not mentioned/);
+  });
+
+  test('a competitor’s name from an engine is escaped on the board', async () => {
+    const audit = await finishedAudit();
+    await answer(audit, 0, 'chatgpt', {
+      entities: [
+        { name: 'Acme Widgets', kind: 'brand', rank: 2, stance: 'recommended' },
+        { name: '<script>alert(1)</script>', kind: 'discovered', rank: 1, stance: 'recommended' },
+      ],
+    });
+    const res = await agent.get(`/r/${audit.public_id}`).expect(200);
+    assert.doesNotMatch(res.text, /<script>alert\(1\)<\/script>/);
+    assert.match(res.text, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  });
+
   test('a score that could not be worked out is "Couldn’t check", never 0', async () => {
     const audit = await seedAudit('running');
     await db.audits.finish(audit.id, {

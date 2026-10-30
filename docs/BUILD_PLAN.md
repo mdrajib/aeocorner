@@ -306,7 +306,7 @@
 - [ ] Public audit endpoint: Cloudflare Turnstile, OTP email verification, rate limiting.
 - [ ] Publish `https://aeocorner.com/bot` before the audit goes public: the address in our crawler's user agent ([MVP §11.2](MVP.md#112-application-security)). It says what `AEOCornerBot` is, what it fetches, how it paces itself, how to block it in `robots.txt`, and who to write to. The audit reads strangers' sites ([ADR-0005](adr/0005-fetching-other-peoples-websites.md)), and site owners will look it up.
 - [ ] Persist audit-owned scans (`site_scans` with an `audit_id` and no organization): the Phase 4 pipeline `runSiteScan()` is unchanged; only the owner differs.
-- [ ] Orchestrates: crawler (Phase 4) → lite Brand Kit → 5 prompts → live-mode collection across all 4 engines (Phase 5) → synchronous extraction (Phase 6) → scores → fixes.
+- [ ] Orchestrates: crawler (Phase 4) → lite Brand Kit → 10 prompts (5 until 2026-10-30) → live-mode collection across all 4 engines (Phase 5) → synchronous extraction (Phase 6) → scores → fixes.
 - [ ] Audit screens — URL form → work email → 6-digit code → live progress page (server-sent events) → report — built from Phase 1's kit and the signed-off wireframes. The report email uses Phase 1's email base.
 - [ ] The email step has the marketing-consent checkbox and links to the Terms and Privacy pages from Phase 1; the choice is stored on `leads`.
 - [ ] The report carries the one-sample honesty note and links to Phase 1's methodology page ([CUSTOMER_JOURNEY.md](CUSTOMER_JOURNEY.md) honesty rules).

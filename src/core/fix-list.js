@@ -252,7 +252,7 @@ function visibilityFixes(answers, { brandName }) {
  * The ranked fixes for an audit, at most `limit`.
  *
  * @param checks   the scan's checks: `{ code, status, points, possible, summary }`
- * @param answers  the five questions' answers, as the scorer takes them, plus `competitorsNamed` (names of
+ * @param answers  the audit questions' answers, as the scorer takes them, plus `competitorsNamed` (names of
  *                 competitors the answer named) and `citedDomains` (the sites it cited, other than the brand's own)
  * @param brandName the brand as it should be written in a fix
  */

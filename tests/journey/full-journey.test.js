@@ -97,6 +97,7 @@ const kitFull = {
   competitors: [{ name: RIVAL, domain: 'bright.example' }],
 };
 const auditQuestion = (intent, text, searchQuery) => ({ intent, text, search_query: searchQuery });
+/** The audit's ten questions: discovery ×4, problem/solution ×3, comparison ×2, brand ×1. */
 const auditQuestions = {
   questions: [
     auditQuestion(
@@ -110,14 +111,39 @@ const auditQuestions = {
       'widget makers fast delivery ohio',
     ),
     auditQuestion(
-      'comparison',
-      `${BRAND} vs ${RIVAL}: which is better for a small factory?`,
-      'acme widgets vs bright widgets',
+      'discovery',
+      'Where can a small factory buy durable widgets in bulk at a fair price?',
+      'buy durable widgets in bulk',
+    ),
+    auditQuestion(
+      'discovery',
+      'Which industrial widget suppliers have the best warranty for small factories?',
+      'industrial widget supplier warranty',
     ),
     auditQuestion(
       'problem_solution',
       'How can a small factory cut downtime caused by worn-out widgets?',
       'reduce downtime worn widgets',
+    ),
+    auditQuestion(
+      'problem_solution',
+      'What should a small factory do when widget deliveries keep arriving late?',
+      'late widget deliveries fix',
+    ),
+    auditQuestion(
+      'problem_solution',
+      'How do I choose the right widget size for an old production line?',
+      'choose widget size old line',
+    ),
+    auditQuestion(
+      'comparison',
+      `${BRAND} vs ${RIVAL}: which is better for a small factory?`,
+      'acme widgets vs bright widgets',
+    ),
+    auditQuestion(
+      'comparison',
+      `Is ${BRAND} or ${RIVAL} cheaper for a small factory that orders every month?`,
+      'acme vs bright widgets price',
     ),
     auditQuestion(
       'brand',
@@ -348,7 +374,7 @@ describe('a new customer, from the free audit to a first executed recommendation
     );
     assert.equal(audit.status, 'complete');
     journey.audit = audit;
-    assert.equal(asked.length, 20, 'five questions on four engines');
+    assert.equal(asked.length, 40, 'ten questions on four engines');
     assert.ok(
       workerMail.sent.some((m) => m.to === email),
       'the "report ready" email was sent once',

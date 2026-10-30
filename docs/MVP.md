@@ -50,7 +50,7 @@ AEO Engine calls itself a *"Service-as-a-Software"* agency: senior humans set th
 
 | Capability | How AEO Engine delivers it | Nature | Our MVP |
 |---|---|---|---|
-| Free "AEO Checker" | URL + work email (OTP) + optional competitor. Returns a 0–100 score across 5 buyer prompts per engine, competitor comparison, revenue estimate and top 5 fixes, emailed in ~10 min | Software (lead magnet) | ✅ **Build** (F1) |
+| Free "AEO Checker" | URL + work email (OTP) + optional competitor. Returns a 0–100 score across 10 buyer prompts per engine, competitor comparison, revenue estimate and top 5 fixes, emailed in ~10 min | Software (lead magnet) | ✅ **Build** (F1) |
 | AI visibility tracking | ChatGPT, Perplexity, Gemini, AI Overviews. Prompts auto-generated or CSV. Share of voice, win rate, citation share. Auto-test **once a month (1st)**, plus manual runs | Software | ✅ **Build**, but weekly and with multi-sampling (F4–F6) |
 | Brand Intelligence | URL in; out come voice/tone, values, products, audiences, competitors, author personas and banned words. Re-analyze quarterly | Software (LLM) | ✅ **Build** (F2) |
 | AI blog writer | "14-step pipeline" (research → outline → writing → images → links → FAQ → QC → publish → index). 30–60 articles/mo. Publishes to WordPress, Shopify, Webflow, GoHighLevel | Software + human QC | ✅ **Build**, human-approved and lower volume (F8) |
@@ -204,22 +204,22 @@ Published pricing below comes from third-party round-ups dated 2026. Verify befo
 3. Take a raw-HTML fetch for all selected pages, plus a headless-rendered fetch for 5 of them (render comparison).
 4. Run the readiness checks ([§6.6](#66-aeo-readiness-rubric-v0)).
 5. Run a lite Brand Kit extraction: name, category, products, top 3 competitors (LLM-suggested, confirmed by the answers).
-6. Generate 5 high-intent buyer prompts (discovery ×2, comparison ×1, problem/solution ×1, brand ×1).
-7. Query 4 engines × 5 prompts × 1 sample, using live/priority provider modes.
+6. Generate 10 high-intent buyer prompts (discovery ×4, problem/solution ×3, comparison ×2, brand ×1). *Changed 2026-10-30 from 5 (discovery ×2, comparison ×1, problem/solution ×1, brand ×1) at the founder's request: more of the questions test whether an engine finds the brand on its own.*
+7. Query 4 engines × 10 prompts × 1 sample (40 answers), using live/priority provider modes.
 8. Extract mentions and citations, compute the scores, and generate the top 5 fixes.
 
 **Output**
 - A report with an unguessable ID, showing:
   - AEO Score (0–100), with readiness and visibility sub-scores
   - Per-engine visibility
-  - Competitor comparison
+  - Four headline stats (mention rate, brand presence, top competitor, questions missed), a competitor board (presence, share of voice, shortlisted answers) and a question × engine grid (added 2026-10-29; see [UI_DESIGN.md A9](UI_DESIGN.md))
   - The actual answer excerpts
   - Top 5 fixes
 - A CTA: "Track this weekly": starts a trial with the project, brand kit and prompts pre-filled.
 
 **Acceptance criteria**
 - p90 completion ≤ 10 min; p50 ≤ 5 min.
-- Variable cost ≤ $0.75 per audit.
+- Variable cost ≤ $0.75 per audit. **At risk since 2026-10-30:** 40 answers instead of 20 doubles the cost, about $1.20 with Opus 5.5 reading the answers and about $0.40 with Haiku 4.5 (estimates from §12.1's per-answer figures; not yet measured on a live run). The founder decides: Haiku for the audit, or a higher target.
 - Limits: 3 audits per email per day; 10 per IP per day; the same domain within 24 h is served from cache.
 - Every fix links to its evidence: a failing check or specific answers.
 - All user-supplied URL fetching goes through the SSRF-safe fetcher ([§11.2](#112-application-security)).
@@ -744,7 +744,7 @@ sequenceDiagram
   O-->>S: run complete, triggers alerts and digest data
 ```
 
-**Free audit:** safe fetch → robots/sitemap → page selection → raw + rendered fetch → checks → lite Brand Kit → 5 prompts → live-mode collection (4 engines) → synchronous extraction → scores → fixes → report + email. Target is under 10 min.
+**Free audit:** safe fetch → robots/sitemap → page selection → raw + rendered fetch → checks → lite Brand Kit → 10 prompts → live-mode collection (4 engines) → synchronous extraction → scores → fixes → report + email. Target is under 10 min.
 
 **Content:** target prompt → evidence pack (our citations + answers) → research (web search/fetch) → brief → draft (streamed) → QC → JSON-LD → human approval → WordPress draft/publish → IndexNow → recommendation marked done → closed-loop baseline.
 
@@ -1039,7 +1039,7 @@ One prompt-run = 10 answers: ChatGPT ×3, Gemini ×3, Perplexity ×3, AI Overvie
 | **Total per prompt-run** | **≈ $0.109** | **≈ $0.049** |
 
 - *2026-10-03:* the Perplexity price fell from ≈ $0.006 to ≈ $0.004 with the move to the Agent API, so collection is $0.029, not $0.035. The §12.3 margin table still uses the older, higher figure on purpose: the difference is about $0.006 per prompt-run (≈ $1.30 a month on Starter), it keeps the margins conservative, and the live provider check ([ADR-0006](adr/0006-engine-adapters.md)) may move it again.
-- Other costs: one content draft (research + brief + draft + QC on Opus 5) is **≈ $0.65–0.80**; one free audit (live-mode collection, synchronous extraction) is **≈ $0.60**.
+- Other costs: one content draft (research + brief + draft + QC on Opus 5) is **≈ $0.65–0.80**; one free audit (live-mode collection, synchronous extraction) was **≈ $0.60** with 5 questions (20 answers) and is **≈ $1.20 with Opus 5.5 reading, ≈ $0.40 with Haiku 4.5** since the audit moved to 10 questions on 2026-10-30 (estimate, not measured).
 
 ### 12.3 Plan hypothesis & margin check (weekly tracking = 4.33 runs/month)
 
@@ -1049,7 +1049,7 @@ One prompt-run = 10 answers: ChatGPT ×3, Gemini ×3, Perplexity ×3, AI Overvie
 | **Growth** | $249 | 3 projects · 150 prompts · weekly · 15 drafts · alerts · CSV | $75 + $12 = **$87** | **65%** | $36 + $12 = **$48** | **81%** |
 | **Agency** | $599 | 10 projects · 500 prompts · weekly · 40 drafts · client seats · (white-label v1.1) | $249 + $32 = **$281** | **53%** | $119 + $32 = **$151** | **75%** |
 | Add-on: daily tracking | +$129 per 50 prompts | 1 sample per engine per day | ≈ $65 (Opus 5) | ~50% | ≈ $35 (Haiku 4.5) | ~73% |
-| Free | $0 | One audit per domain every 30 days | ≈ $0.60 per audit | Acquisition cost | — | — |
+| Free | $0 | One audit per domain every 30 days | ≈ $1.20 per audit with Opus 5.5 reading, ≈ $0.40 with Haiku 4.5 (10 questions; was ≈ $0.60 with 5) | Acquisition cost | — | — |
 
 Fixed platform cost at MVP is roughly **$150–400/month** before usage:
 - **DigitalOcean infrastructure:** ≈ $65–80 (§7.11).

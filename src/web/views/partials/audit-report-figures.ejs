@@ -1,0 +1,87 @@
+<%# A9: the report's figures beyond the scores. Props: figures ({ stats, board, grid } from src/core/audit-report.js), domain.
+    Every figure with nothing readable behind it is a ui.stat in the unknown state or a "Couldn’t check" cell: never 0 and
+    never "Not mentioned". The grid's cells come from ui.resultCell so a failed answer can only say "Couldn’t check". %>
+<%
+const { stats, board, grid } = figures;
+const pct = (n) => (n === null || n === undefined ? '—' : n + '%');
+const rivals = board.rows.filter((r) => !r.isBrand);
+const top = stats.topCompetitor;
+const boardRows = board.rows.map((r) => ({
+  name: { html: r.isBrand
+    ? '<strong>' + ui.esc(r.name) + '</strong> <span class="text-ink-600">(you)</span>'
+    : ui.esc(r.name) },
+  presence: pct(r.presencePct) + ' (' + r.presence + ' of ' + board.basis + ')',
+  share: pct(r.shareOfVoice),
+  shortlisted: String(r.shortlisted),
+}));
+-%>
+<section aria-labelledby="seen-heading">
+  <h2 class="text-2xl" id="seen-heading">How AI sees <%= domain %></h2>
+  <p class="text-ink-700 mt-2 max-w-3xl">We asked <%= grid.rows.length %> buyer <%= grid.rows.length === 1 ? 'question' : 'questions' %> on each engine. These figures count only the answers we could read.</p>
+
+  <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="card card-body">
+      <%- stats.mentionRate !== null
+        ? ui.stat({ label: 'Mention rate', value: stats.mentionRate + '%', note: 'of readable answers name or cite you' })
+        : ui.stat({ label: 'Mention rate', state: 'unknown', note: 'no answer could be read' }) %>
+    </div>
+    <div class="card card-body">
+      <%- stats.known > 0
+        ? ui.stat({ label: 'Brand presence', value: stats.mentioned + ' of ' + stats.known, note: 'answers name or cite you' + (stats.unreadable > 0 ? ' (' + stats.unreadable + ' couldn’t be read)' : '') })
+        : ui.stat({ label: 'Brand presence', state: 'unknown', note: 'no answer could be read' }) %>
+    </div>
+    <div class="card card-body">
+      <%- top
+        ? ui.stat({ label: 'Top competitor', value: top.name, note: 'named in ' + top.presence + ' of ' + top.basis + ' answers' })
+        : board.basis > 0
+          ? ui.stat({ label: 'Top competitor', value: 'None named', note: 'the engines named no other business' })
+          : ui.stat({ label: 'Top competitor', state: 'unknown', note: 'we couldn’t read who was named' }) %>
+    </div>
+    <div class="card card-body">
+      <%- stats.questionsConsidered > 0
+        ? ui.stat({ label: 'Questions missed', value: stats.questionsMissed + ' of ' + stats.questionsConsidered, note: 'you were absent from at least half of the answers' })
+        : ui.stat({ label: 'Questions missed', state: 'unknown', note: 'no question had a readable answer' }) %>
+    </div>
+  </div>
+
+  <h3 class="mt-10 text-xl tracking-normal" id="board-heading">You and the businesses the engines named</h3>
+  <% if (board.basis === 0) { %>
+  <div class="mt-4"><%- ui.state({ title: 'Couldn’t check who was named', text: 'None of the answers could be read in full, so we can’t say which businesses the engines named. That is not counted against you.' }) %></div>
+  <% } else { %>
+  <p class="text-ink-700 mt-2 max-w-3xl text-sm">Ranked by the answers that shortlist each business. Presence counts an answer once when it names the business (for you, also when it cites your site). Share of voice splits those mentions between you and every business named<%= board.hidden > 0 ? ', including the ' + board.hidden + ' not listed here' : '' %>. It is not market share.</p>
+  <div class="mt-4">
+    <%- ui.table({
+      caption: 'Businesses named in the answers, ranked by shortlisted answers',
+      captionHidden: true,
+      columns: [
+        { key: 'name', label: 'Business' },
+        { key: 'presence', label: 'Presence', numeric: true },
+        { key: 'share', label: 'Share of voice', numeric: true },
+        { key: 'shortlisted', label: 'Shortlisted answers', numeric: true },
+      ],
+      rows: boardRows,
+    }) %>
+  </div>
+  <% if (rivals.length === 0) { %><p class="text-ink-700 mt-3 text-sm">The engines named no other business in these answers.</p><% } %>
+  <% if (board.basis < stats.known) { %><p class="text-ink-600 mt-3 text-sm">Built from <%= board.basis %> of the <%= stats.known %> readable answers; the rest could not be read for who else was named.</p><% } %>
+  <% } %>
+
+  <h3 class="mt-10 text-xl tracking-normal" id="grid-heading">Every question on every engine</h3>
+  <p class="text-ink-700 mt-2 max-w-3xl text-sm">“Couldn’t check” means the answer could not be collected or read. It is left out of the figures above, never counted as “not mentioned”.</p>
+  <div class="mt-4">
+    <%- ui.table({
+      caption: 'Result for each question on each engine',
+      captionHidden: true,
+      stack: true,
+      columns: [{ key: 'q', label: 'Question' }, ...grid.engines.map((e) => ({ key: e.code, label: e.label }))],
+      rows: grid.rows.map((r) => {
+        const out = { q: { html: ui.esc(r.question) + (r.missed ? ' <span class="text-ink-600 text-sm">· missed</span>' : '') } };
+        for (const c of r.cells) {
+          const cell = ui.resultCell({ status: c.status, mentioned: c.mentioned });
+          out[c.code] = { html: c.link ? '<a href="' + ui.esc(c.link) + '" class="no-underline">' + cell + '</a>' : cell };
+        }
+        return out;
+      }),
+    }) %>
+  </div>
+</section>
